@@ -15,7 +15,7 @@ function getHrApi(): HrApi {
     return window.hrApi
   }
 
-  if (window.ipcRenderer) {
+  if (window.ipcRenderer?.invoke) {
     return createHrApiFromIpcRenderer()
   }
 
@@ -53,7 +53,7 @@ function createHrApiFromIpcRenderer(): HrApi {
 }
 
 function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
-  if (!window.ipcRenderer) {
+  if (!window.ipcRenderer?.invoke) {
     return Promise.reject(new Error(`IPC канал ${channel} недоступен`))
   }
 
