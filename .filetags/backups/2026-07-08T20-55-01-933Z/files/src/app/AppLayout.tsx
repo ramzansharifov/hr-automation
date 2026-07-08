@@ -1,4 +1,3 @@
-@write src/app/AppLayout.tsx
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -11,8 +10,6 @@ const COLLAPSED_SIDEBAR_WIDTH = '84px'
 
 const tooltipContentClass =
   'z-50 select-none rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-xl'
-
-const sidebarDividerClass = 'h-px bg-white/10'
 
 function getExpandedLinkClass(isActive: boolean): string {
   return [
@@ -90,19 +87,14 @@ export function AppLayout(): JSX.Element {
           className="fixed inset-y-0 left-0 z-30 flex flex-col overflow-hidden border-r border-[#151c31] bg-[#070a17] text-white transition-[width] duration-300 ease-out"
           style={{ width: sidebarWidth }}
         >
-          <header className={isSidebarCollapsed ? 'px-5 py-5' : 'px-5 py-5'}>
+          <div className={isSidebarCollapsed ? 'px-4 pb-4 pt-5' : 'px-5 pb-5 pt-5'}>
             <div
               className={[
                 'flex items-center',
                 isSidebarCollapsed ? 'flex-col gap-3' : 'justify-between gap-4',
               ].join(' ')}
             >
-              <div
-                className={[
-                  'flex min-w-0 items-center',
-                  isSidebarCollapsed ? 'justify-center' : 'gap-3',
-                ].join(' ')}
-              >
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-md shadow-blue-950/35">
                   HR
                 </div>
@@ -119,43 +111,28 @@ export function AppLayout(): JSX.Element {
                 )}
               </div>
 
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    type="button"
-                    aria-label={isSidebarCollapsed ? 'Раскрыть сайдбар' : 'Свернуть сайдбар'}
-                    onClick={() => setIsSidebarCollapsed((current) => !current)}
-                    className={[
-                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-colors duration-200',
-                      'hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white',
-                      'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
-                    ].join(' ')}
-                  >
-                    {isSidebarCollapsed ? (
-                      <FiChevronRight className="h-4 w-4" />
-                    ) : (
-                      <FiChevronLeft className="h-4 w-4" />
-                    )}
-                  </button>
-                </Tooltip.Trigger>
-
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    side="right"
-                    align="center"
-                    sideOffset={12}
-                    className={tooltipContentClass}
-                  >
-                    {isSidebarCollapsed ? 'Раскрыть' : 'Свернуть'}
-                    <Tooltip.Arrow className="fill-slate-950" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
+              <button
+                type="button"
+                aria-label={isSidebarCollapsed ? 'Раскрыть сайдбар' : 'Свернуть сайдбар'}
+                onClick={() => setIsSidebarCollapsed((current) => !current)}
+                className={[
+                  'flex shrink-0 items-center justify-center rounded-xl border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-colors duration-200',
+                  'hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white',
+                  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
+                  isSidebarCollapsed ? 'h-9 w-9' : 'h-10 w-10',
+                ].join(' ')}
+              >
+                {isSidebarCollapsed ? (
+                  <FiChevronRight className="h-4 w-4" />
+                ) : (
+                  <FiChevronLeft className="h-4 w-4" />
+                )}
+              </button>
             </div>
-          </header>
+          </div>
 
-          <div className="px-5">
-            <div className={sidebarDividerClass} />
+          <div className={isSidebarCollapsed ? 'px-4' : 'px-5'}>
+            <div className="h-px bg-[#151c31]" />
           </div>
 
           <nav
@@ -163,8 +140,8 @@ export function AppLayout(): JSX.Element {
             className={[
               'min-h-0 flex-1 overflow-y-auto',
               isSidebarCollapsed
-                ? 'flex flex-col items-center gap-3 px-5 py-5'
-                : 'space-y-3 px-5 py-5',
+                ? 'flex flex-col items-center gap-3 px-4 py-5'
+                : 'space-y-1.5 px-5 py-5',
             ].join(' ')}
           >
             {navigationItems.map((item) => (
@@ -177,23 +154,21 @@ export function AppLayout(): JSX.Element {
             ))}
           </nav>
 
-          <footer>
-            <div className="px-5">
-              <div className={sidebarDividerClass} />
-            </div>
+          <div className={isSidebarCollapsed ? 'px-4' : 'px-5'}>
+            <div className="h-px bg-[#151c31]" />
+          </div>
 
-            <div
-              className={[
-                isSidebarCollapsed
-                  ? 'flex flex-col items-center gap-3 px-5 py-5'
-                  : 'space-y-3 px-5 py-5',
-              ].join(' ')}
-            >
-              {bottomNavigationItems.map((item) => (
-                <SidebarItem key={item.path} item={item} isCollapsed={isSidebarCollapsed} />
-              ))}
-            </div>
-          </footer>
+          <div
+            className={[
+              isSidebarCollapsed
+                ? 'flex flex-col items-center gap-3 px-4 py-5'
+                : 'space-y-1.5 px-5 py-5',
+            ].join(' ')}
+          >
+            {bottomNavigationItems.map((item) => (
+              <SidebarItem key={item.path} item={item} isCollapsed={isSidebarCollapsed} />
+            ))}
+          </div>
         </aside>
 
         <div
@@ -221,4 +196,3 @@ export function AppLayout(): JSX.Element {
     </Tooltip.Provider>
   )
 }
-@end
