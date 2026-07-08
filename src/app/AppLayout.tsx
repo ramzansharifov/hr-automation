@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { FiChevronLeft, FiChevronRight, FiDatabase } from "react-icons/fi";
 import type { AppNavigationItem } from "./navigation";
@@ -13,13 +13,30 @@ const tooltipContentClass =
 
 const sidebarDividerClass = "h-px bg-white/10";
 
-function getSidebarLinkClass(isActive: boolean): string {
+function getExpandedLinkClass(isActive: boolean): string {
   return [
-    "group flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors duration-200",
+    "group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
     isActive
-      ? "bg-blue-600 text-white shadow-sm shadow-blue-950/30"
-      : "text-slate-400 hover:bg-white/[0.07] hover:text-white",
+      ? "border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-950/30"
+      : "border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white",
+  ].join(" ");
+}
+
+function getCollapsedLinkClass(isActive: boolean): string {
+  return [
+    "group box-border flex h-12 w-12 shrink-0 items-center justify-center rounded-xl p-0 transition-colors duration-200",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
+    isActive ? "text-white" : "text-slate-300 hover:text-white",
+  ].join(" ");
+}
+
+function getCollapsedIconButtonClass(isActive: boolean): string {
+  return [
+    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 shadow-sm transition-colors duration-200",
+    isActive
+      ? "border-blue-500 bg-blue-600 text-white shadow-blue-950/40"
+      : "border-[#263451] bg-[#10182d] text-slate-300 group-hover:border-[#3a4a6d] group-hover:bg-[#17213a] group-hover:text-white",
   ].join(" ");
 }
 
@@ -35,15 +52,36 @@ function SidebarItem({
   end,
 }: SidebarItemProps): JSX.Element {
   const Icon = item.icon;
+  const { pathname } = useLocation();
+  const isActive =
+    item.path === "/"
+      ? pathname === "/"
+      : pathname === item.path || pathname.startsWith(`${item.path}/`);
 
   const link = (
     <NavLink
       to={item.path}
       end={end}
       aria-label={item.title}
-      className={({ isActive }) => getSidebarLinkClass(isActive)}
+      className={() =>
+        isCollapsed
+          ? getCollapsedLinkClass(isActive)
+          : getExpandedLinkClass(isActive)
+      }
     >
-      <Icon className="h-4.5 w-4.5 shrink-0" />
+      {isCollapsed ? (
+        <span
+          className={getCollapsedIconButtonClass(isActive)}
+          style={{
+            backgroundColor: isActive ? "#2563eb" : "#10182d",
+            borderColor: isActive ? "#3b82f6" : "#263451",
+          }}
+        >
+          <Icon className="h-[18px] w-[18px] shrink-0" />
+        </span>
+      ) : (
+        <Icon className="h-[18px] w-[18px] shrink-0" />
+      )}
 
       {!isCollapsed && <span className="truncate">{item.title}</span>}
     </NavLink>
@@ -94,12 +132,12 @@ export function AppLayout(): JSX.Element {
                 }
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
                 className={[
-                  "absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-xl border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-all duration-200",
+                  "absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-all duration-200",
                   "pointer-events-none opacity-0",
                   "group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100",
                   "hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white",
                   "focus-visible:pointer-events-auto focus-visible:opacity-100",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
                 ].join(" ")}
               >
                 {isSidebarCollapsed ? (
@@ -124,7 +162,12 @@ export function AppLayout(): JSX.Element {
           </Tooltip.Root>
 
           <header className="px-5 py-5">
-            <div className="flex min-w-0 items-center gap-3">
+            <div
+              className={[
+                "flex min-w-0 items-center",
+                isSidebarCollapsed ? "justify-center" : "gap-3",
+              ].join(" ")}
+            >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-md shadow-blue-950/35">
                 HR
               </div>
@@ -148,7 +191,10 @@ export function AppLayout(): JSX.Element {
 
           <nav
             aria-label="Main navigation"
-            className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-5"
+            className={[
+              "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-5",
+              isSidebarCollapsed ? "items-center px-4" : "px-5",
+            ].join(" ")}
           >
             {navigationItems.map((item) => (
               <SidebarItem
@@ -165,7 +211,12 @@ export function AppLayout(): JSX.Element {
               <div className={sidebarDividerClass} />
             </div>
 
-            <div className="flex flex-col gap-3 px-5 py-5">
+            <div
+              className={[
+                "flex flex-col gap-3 py-5",
+                isSidebarCollapsed ? "items-center px-4" : "px-5",
+              ].join(" ")}
+            >
               {bottomNavigationItems.map((item) => (
                 <SidebarItem
                   key={item.path}
