@@ -1,27 +1,34 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { FiDatabase, FiShield } from 'react-icons/fi'
-import { navigationItems } from './navigation'
+import { FiDatabase } from 'react-icons/fi'
+import { bottomNavigationItems, navigationItems } from './navigation'
+
+function navLinkClass(isActive: boolean): string {
+  return [
+    'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition',
+    isActive
+      ? 'bg-white text-slate-950 shadow-sm'
+      : 'text-slate-400 hover:bg-white/10 hover:text-white',
+  ].join(' ')
+}
 
 export function AppLayout(): JSX.Element {
-  const today = new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date())
-
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-72 flex-col border-r border-slate-200 bg-slate-950 text-white">
-        <div className="border-b border-white/10 p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-xl font-black">
-            HR
-          </div>
+    <div className="min-h-screen bg-[#f4f6fa] text-slate-950">
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-white/10 bg-[#080b18] text-white">
+        <div className="px-5 pb-5 pt-7">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-sm font-black">
+              HR
+            </div>
 
-          <h1 className="mt-4 text-xl font-bold">HR Automation</h1>
-          <p className="mt-1 text-sm text-slate-400">Автоматизация отдела кадров</p>
+            <div>
+              <h1 className="text-base font-black tracking-tight">HR Automation</h1>
+              <p className="mt-0.5 text-xs text-slate-500">Кадровая система</p>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3">
           {navigationItems.map((item) => {
             const Icon = item.icon
 
@@ -30,53 +37,45 @@ export function AppLayout(): JSX.Element {
                 key={item.path}
                 to={item.path}
                 end={item.path === '/'}
-                className={({ isActive }) =>
-                  [
-                    'group flex items-start gap-3 rounded-2xl px-4 py-3 text-sm transition',
-                    isActive
-                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-950/20'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white',
-                  ].join(' ')
-                }
+                className={({ isActive }) => navLinkClass(isActive)}
               >
-                <Icon className="mt-0.5 h-5 w-5 shrink-0" />
-                <span>
-                  <span className="block font-semibold">{item.title}</span>
-                  <span className="mt-0.5 block text-xs text-current opacity-70">
-                    {item.description}
-                  </span>
-                </span>
+                <Icon className="h-5 w-5 shrink-0" />
+                <span>{item.title}</span>
               </NavLink>
             )
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
-          <div className="rounded-2xl bg-white/10 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <FiShield className="h-4 w-4" />
-              Локальная база
-            </div>
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              Данные хранятся в SQLite через Electron backend.
-            </p>
-          </div>
+        <div className="space-y-1 border-t border-white/10 px-3 py-4">
+          {bottomNavigationItems.map((item) => {
+            const Icon = item.icon
+
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => navLinkClass(isActive)}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <span>{item.title}</span>
+              </NavLink>
+            )
+          })}
         </div>
       </aside>
 
-      <div className="min-h-screen pl-72">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 px-8 py-4 backdrop-blur">
+      <div className="min-h-screen pl-64">
+        <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/80 px-8 py-5 backdrop-blur-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">{today}</p>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">
                 Панель управления
               </h2>
             </div>
 
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm">
               <FiDatabase className="h-4 w-4 text-blue-600" />
-              SQLite backend активен
+              SQLite активен
             </div>
           </div>
         </header>

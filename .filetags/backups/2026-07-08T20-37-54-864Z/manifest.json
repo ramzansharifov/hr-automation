@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-07-08T20:37:54.918Z",
+  "backupPath": ".filetags/backups/2026-07-08T20-37-54-864Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/app/navigation.tsx",
+      "backupRelativePath": "files/src/app/navigation.tsx"
+    },
+    {
+      "originalPath": "src/app/AppLayout.tsx",
+      "backupRelativePath": "files/src/app/AppLayout.tsx"
+    },
+    {
+      "originalPath": "src/App.tsx",
+      "backupRelativePath": "files/src/App.tsx"
+    },
+    {
+      "originalPath": "src/pages/EntityPage.tsx",
+      "backupRelativePath": "files/src/pages/EntityPage.tsx"
+    },
+    {
+      "originalPath": "src/features/hr-table/HrEntityTable.tsx",
+      "backupRelativePath": "files/src/features/hr-table/HrEntityTable.tsx"
+    },
+    {
+      "originalPath": "src/pages/DashboardPage.tsx",
+      "backupRelativePath": "files/src/pages/DashboardPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/app/navigation.tsx\n   old: 62 line(s)\n   new: 70 line(s)",
+    "Write file: src/app/AppLayout.tsx\n   old: 90 line(s)\n   new: 89 line(s)",
+    "Write file: src/App.tsx\n   old: 23 line(s)\n   new: 27 line(s)",
+    "Write file: src/pages/EntityPage.tsx\n   old: 29 line(s)\n   new: 25 line(s)",
+    "Write file: src/features/hr-table/HrEntityTable.tsx\n   old: 229 line(s)\n   new: 221 line(s)",
+    "Write file: src/pages/DashboardPage.tsx\n   old: 231 line(s)\n   new: 181 line(s)",
+    "Write file: src/pages/ProfilePage.tsx\n   old: missing\n   new: 20 line(s)",
+    "Write file: src/pages/SettingsPage.tsx\n   old: missing\n   new: 23 line(s)"
+  ]
+}

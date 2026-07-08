@@ -89,40 +89,43 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-slate-100 p-5 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h3 className="text-lg font-black text-slate-950">{config.title}</h3>
-        </div>
+    <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-slate-950">{config.title}</h3>
+            <p className="mt-1 text-sm text-slate-500">{config.description}</p>
+          </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <FiSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={draftSearch}
-              onChange={(event) => setDraftSearch(event.target.value)}
-              placeholder="Поиск"
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white sm:w-72"
-            />
-          </form>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <form onSubmit={handleSearchSubmit} className="relative">
+              <FiSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={draftSearch}
+                onChange={(event) => setDraftSearch(event.target.value)}
+                placeholder="Поиск..."
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white sm:w-72"
+              />
+            </form>
 
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-            Обновить
-          </button>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+              Обновить
+            </button>
 
-          <button
-            type="button"
-            onClick={() => toast.info('Форма добавления будет в следующем патче')}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
-          >
-            <FiPlus className="h-4 w-4" />
-            {config.createLabel}
-          </button>
+            <button
+              type="button"
+              onClick={() => toast.info('Форма добавления будет в следующем патче')}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              <FiPlus className="h-4 w-4" />
+              {config.createLabel}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -131,7 +134,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
           <thead>
             <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               {config.columns.map((column) => (
-                <th key={column.key} className="border-b border-slate-100 px-5 py-4 font-black">
+                <th key={column.key} className="border-b border-slate-200 px-5 py-4 font-bold">
                   <button
                     type="button"
                     onClick={() => handleSort(column.key)}
@@ -168,16 +171,21 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
             {!isLoading && result.items.length === 0 && (
               <tr>
-                <td colSpan={config.columns.length} className="px-5 py-16 text-center">
-                  <p className="text-base font-black text-slate-900">Записей пока нет</p>
+                <td colSpan={config.columns.length} className="px-5 py-14 text-center">
+                  <div className="mx-auto max-w-sm">
+                    <p className="text-base font-semibold text-slate-900">Записей пока нет</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Попробуй изменить поиск или добавить первую запись.
+                    </p>
+                  </div>
                 </td>
               </tr>
             )}
 
             {isLoading && (
               <tr>
-                <td colSpan={config.columns.length} className="px-5 py-16 text-center">
-                  <p className="text-sm font-medium text-slate-500">Загрузка...</p>
+                <td colSpan={config.columns.length} className="px-5 py-14 text-center">
+                  <p className="text-sm font-medium text-slate-500">Загрузка данных...</p>
                 </td>
               </tr>
             )}
@@ -185,9 +193,9 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
         </table>
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">
-          Всего: <span className="font-bold text-slate-900">{result.total}</span>
+          Всего записей: <span className="font-semibold text-slate-900">{result.total}</span>
         </p>
 
         <div className="flex items-center gap-3">

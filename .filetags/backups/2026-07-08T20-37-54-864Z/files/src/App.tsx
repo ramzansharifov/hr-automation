@@ -2,8 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './app/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { EntityPage } from './pages/EntityPage'
-import { ProfilePage } from './pages/ProfilePage'
-import { SettingsPage } from './pages/SettingsPage'
 
 function App(): JSX.Element {
   return (
@@ -15,8 +13,6 @@ function App(): JSX.Element {
         <Route path="positions" element={<EntityPage entity="positions" />} />
         <Route path="vacations" element={<EntityPage entity="vacations" />} />
         <Route path="payroll" element={<EntityPage entity="payroll" />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
