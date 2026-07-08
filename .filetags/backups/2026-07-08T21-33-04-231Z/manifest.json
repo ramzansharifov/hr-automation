@@ -1,0 +1,24 @@
+{
+  "createdAt": "2026-07-08T21:33:04.273Z",
+  "backupPath": ".filetags/backups/2026-07-08T21-33-04-231Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/DashboardPage.tsx",
+      "backupRelativePath": "files/src/pages/DashboardPage.tsx"
+    },
+    {
+      "originalPath": "src/pages/ProfilePage.tsx",
+      "backupRelativePath": "files/src/pages/ProfilePage.tsx"
+    },
+    {
+      "originalPath": "src/pages/SettingsPage.tsx",
+      "backupRelativePath": "files/src/pages/SettingsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/pages/DashboardPage.tsx\n   old: 187 line(s)\n   new: 190 line(s)",
+    "Write file: src/pages/ProfilePage.tsx\n   old: 21 line(s)\n   new: 24 line(s)",
+    "Write file: src/pages/SettingsPage.tsx\n   old: 131 line(s)\n   new: 168 line(s)"
+  ]
+}

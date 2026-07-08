@@ -1,16 +1,14 @@
-import type { TFunction } from 'i18next'
-
-export function formatCurrency(value: unknown, locale = 'ru-RU'): string {
+export function formatCurrency(value: unknown): string {
   const amount = Number(value ?? 0)
 
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'TJS',
     maximumFractionDigits: 0,
   }).format(Number.isFinite(amount) ? amount : 0)
 }
 
-export function formatDate(value: unknown, locale = 'ru-RU'): string {
+export function formatDate(value: unknown): string {
   if (!value) {
     return '—'
   }
@@ -22,32 +20,23 @@ export function formatDate(value: unknown, locale = 'ru-RU'): string {
     return text
   }
 
-  return new Intl.DateTimeFormat(locale).format(date)
+  return new Intl.DateTimeFormat('ru-RU').format(date)
 }
 
-export function formatCellValue(value: unknown, locale = 'ru-RU'): string {
+export function formatCellValue(value: unknown): string {
   if (value === null || value === undefined || value === '') {
     return '—'
   }
 
   if (typeof value === 'number') {
-    return new Intl.NumberFormat(locale).format(value)
+    return new Intl.NumberFormat('ru-RU').format(value)
   }
 
   return String(value)
 }
 
-export function humanizeStatus(value: unknown, t?: TFunction): string {
+export function humanizeStatus(value: unknown): string {
   const key = String(value ?? '')
-
-  if (t) {
-    const translationKey = `common.status.${key}`
-    const translated = t(translationKey)
-
-    if (translated !== translationKey) {
-      return translated
-    }
-  }
 
   const labels: Record<string, string> = {
     active: 'Активен',

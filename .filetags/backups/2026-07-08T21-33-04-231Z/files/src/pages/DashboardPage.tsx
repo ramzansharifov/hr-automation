@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiUsers } from 'react-icons/fi'
-import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import type { HrDashboardStats, HrListResult } from '../shared/types/hr'
 import { formatCurrency, formatDate, humanizeStatus } from '../shared/lib/format'
 import { hrApiClient } from '../shared/lib/hrApiClient'
-import { getAppLocale } from '../shared/i18n'
 import { StatCard } from '../shared/ui/StatCard'
 
 const initialStats: HrDashboardStats = {
@@ -26,8 +24,6 @@ const emptyList: HrListResult = {
 }
 
 export function DashboardPage(): JSX.Element {
-  const { i18n, t } = useTranslation()
-  const locale = getAppLocale(i18n.language)
   const [stats, setStats] = useState<HrDashboardStats>(initialStats)
   const [employees, setEmployees] = useState<HrListResult>(emptyList)
   const [vacations, setVacations] = useState<HrListResult>(emptyList)
@@ -59,12 +55,12 @@ export function DashboardPage(): JSX.Element {
       setEmployees(employeesList)
       setVacations(vacationsList)
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('common.errors.dashboardLoad')
+      const message = error instanceof Error ? error.message : 'Не удалось загрузить панель'
       toast.error(message)
     } finally {
       setIsLoading(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
     void loadDashboard()
@@ -76,10 +72,10 @@ export function DashboardPage(): JSX.Element {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
-              {t('dashboard.hero.productName')}
+              HR Automation
             </p>
             <h1 className="app-text mt-3 text-3xl font-black tracking-tight">
-              {t('dashboard.hero.title')}
+              Автоматизация отдела кадров
             </h1>
           </div>
 
@@ -88,7 +84,7 @@ export function DashboardPage(): JSX.Element {
               to="/employees"
               className="app-button-primary rounded-2xl px-5 py-3 text-sm font-black transition"
             >
-              {t('dashboard.hero.employeesButton')}
+              Сотрудники
             </Link>
 
             <button
@@ -96,27 +92,27 @@ export function DashboardPage(): JSX.Element {
               onClick={() => void loadDashboard()}
               className="app-button-secondary rounded-2xl border px-5 py-3 text-sm font-black transition"
             >
-              {t('common.actions.refresh')}
+              Обновить
             </button>
           </div>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard title={t('dashboard.stats.employees')} value={stats.employeesTotal} description={t('dashboard.stats.total')} icon={FiUsers} />
-        <StatCard title={t('dashboard.stats.departments')} value={stats.departmentsTotal} description={t('dashboard.stats.total')} icon={FiGrid} />
-        <StatCard title={t('dashboard.stats.positions')} value={stats.positionsTotal} description={t('dashboard.stats.total')} icon={FiBriefcase} />
-        <StatCard title={t('dashboard.stats.vacations')} value={stats.activeVacations} description={t('dashboard.stats.active')} icon={FiCalendar} />
-        <StatCard title={t('dashboard.stats.payroll')} value={formatCurrency(stats.payrollMonthTotal, locale)} description={t('dashboard.stats.month')} icon={FiCreditCard} />
+        <StatCard title="Сотрудники" value={stats.employeesTotal} description="Всего" icon={FiUsers} />
+        <StatCard title="Отделы" value={stats.departmentsTotal} description="Всего" icon={FiGrid} />
+        <StatCard title="Должности" value={stats.positionsTotal} description="Всего" icon={FiBriefcase} />
+        <StatCard title="Отпуска" value={stats.activeVacations} description="Активные" icon={FiCalendar} />
+        <StatCard title="Зарплата" value={formatCurrency(stats.payrollMonthTotal)} description="Месяц" icon={FiCreditCard} />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
         <article className="app-surface app-shadow rounded-[28px] border p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="app-text text-lg font-black">{t('dashboard.sections.latestEmployees')}</h2>
+            <h2 className="app-text text-lg font-black">Последние сотрудники</h2>
 
             <Link to="/employees" className="app-link-accent text-sm font-black">
-              {t('common.actions.open')}
+              Открыть
             </Link>
           </div>
 
@@ -131,19 +127,19 @@ export function DashboardPage(): JSX.Element {
                     {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
                   </p>
                   <p className="app-muted mt-1 text-sm font-medium">
-                    {String(employee.employee_code ?? '—')} · {formatDate(employee.hire_date, locale)}
+                    {String(employee.employee_code ?? '—')} · {formatDate(employee.hire_date)}
                   </p>
                 </div>
 
                 <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
-                  {humanizeStatus(employee.status, t)}
+                  {humanizeStatus(employee.status)}
                 </span>
               </div>
             ))}
 
             {!isLoading && employees.items.length === 0 && (
               <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
-                {t('common.table.noRecords')}
+                Нет записей
               </p>
             )}
           </div>
@@ -151,10 +147,10 @@ export function DashboardPage(): JSX.Element {
 
         <article className="app-surface app-shadow rounded-[28px] border p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="app-text text-lg font-black">{t('dashboard.sections.upcomingVacations')}</h2>
+            <h2 className="app-text text-lg font-black">Ближайшие отпуска</h2>
 
             <Link to="/vacations" className="app-link-accent text-sm font-black">
-              {t('common.actions.open')}
+              Открыть
             </Link>
           </div>
 
@@ -167,19 +163,19 @@ export function DashboardPage(): JSX.Element {
                 <div>
                   <p className="app-text font-black">{String(vacation.vacation_type ?? '—')}</p>
                   <p className="app-muted mt-1 text-sm font-medium">
-                    {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
+                    {formatDate(vacation.starts_at)} — {formatDate(vacation.ends_at)}
                   </p>
                 </div>
 
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
-                  {humanizeStatus(vacation.status, t)}
+                  {humanizeStatus(vacation.status)}
                 </span>
               </div>
             ))}
 
             {!isLoading && vacations.items.length === 0 && (
               <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
-                {t('common.table.noRecords')}
+                Нет записей
               </p>
             )}
           </div>

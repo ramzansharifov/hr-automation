@@ -1,11 +1,9 @@
 import type { FormEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiChevronLeft, FiChevronRight, FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi'
-import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import type { HrEntityKey, HrListResult } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
-import { getAppLocale } from '../../shared/i18n'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
 
 interface HrEntityTableProps {
@@ -21,9 +19,7 @@ const emptyResult: HrListResult = {
 }
 
 export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
-  const { i18n, t } = useTranslation()
-  const locale = getAppLocale(i18n.language)
-  const config = useMemo(() => getEntityConfig(entity, t, locale), [entity, locale, t])
+  const config = useMemo(() => getEntityConfig(entity), [entity])
   const [result, setResult] = useState<HrListResult>(emptyResult)
   const [page, setPage] = useState(1)
   const [draftSearch, setDraftSearch] = useState('')
@@ -56,12 +52,12 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
       setResult(data)
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('common.errors.dataLoad')
+      const message = error instanceof Error ? error.message : 'Не удалось загрузить данные'
       toast.error(message)
     } finally {
       setIsLoading(false)
     }
-  }, [entity, orderBy, orderDirection, page, refreshIndex, search, t])
+  }, [entity, orderBy, orderDirection, page, refreshIndex, search])
 
   useEffect(() => {
     void loadData()
@@ -105,7 +101,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             <input
               value={draftSearch}
               onChange={(event) => setDraftSearch(event.target.value)}
-              placeholder={t('common.fields.search')}
+              placeholder="Поиск"
               className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition sm:w-72"
             />
           </form>
@@ -116,12 +112,12 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             className="app-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition"
           >
             <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-            {t('common.actions.refresh')}
+            Обновить
           </button>
 
           <button
             type="button"
-            onClick={() => toast.info(t('common.notifications.createFormSoon'))}
+            onClick={() => toast.info('Форма добавления будет в следующем патче')}
             className="app-button-primary inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold shadow-sm transition"
           >
             <FiPlus className="h-4 w-4" />
@@ -144,9 +140,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
                     {column.label}
                     {orderBy === column.key && (
                       <span className="app-accent-soft rounded-full px-2 py-0.5 text-[10px]">
-                        {orderDirection === 'asc'
-                          ? t('common.table.sort.asc')
-                          : t('common.table.sort.desc')}
+                        {orderDirection === 'asc' ? 'ASC' : 'DESC'}
                       </span>
                     )}
                   </button>
@@ -166,7 +160,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
                       column.className ?? '',
                     ].join(' ')}
                   >
-                    <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
+                    <span className="line-clamp-2">{renderCell(record, column)}</span>
                   </td>
                 ))}
               </tr>
@@ -175,7 +169,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             {!isLoading && result.items.length === 0 && (
               <tr>
                 <td colSpan={config.columns.length} className="px-5 py-16 text-center">
-                  <p className="app-text text-base font-black">{t('common.table.empty')}</p>
+                  <p className="app-text text-base font-black">Записей пока нет</p>
                 </td>
               </tr>
             )}
@@ -183,7 +177,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             {isLoading && (
               <tr>
                 <td colSpan={config.columns.length} className="px-5 py-16 text-center">
-                  <p className="app-muted text-sm font-medium">{t('common.table.loading')}</p>
+                  <p className="app-muted text-sm font-medium">Загрузка...</p>
                 </td>
               </tr>
             )}
@@ -193,7 +187,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
       <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="app-muted text-sm">
-          {t('common.table.total')}: <span className="app-text font-bold">{result.total}</span>
+          Всего: <span className="app-text font-bold">{result.total}</span>
         </p>
 
         <div className="flex items-center gap-3">
@@ -204,7 +198,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             className="app-button-secondary inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             <FiChevronLeft className="h-4 w-4" />
-            {t('common.actions.back')}
+            Назад
           </button>
 
           <span className="app-muted text-sm">
@@ -217,7 +211,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             onClick={() => setPage((current) => current + 1)}
             className="app-button-secondary inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {t('common.actions.next')}
+            Далее
             <FiChevronRight className="h-4 w-4" />
           </button>
         </div>

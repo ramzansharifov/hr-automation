@@ -1,224 +1,390 @@
-@write src/app/AppLayout.tsx
-import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
-import * as Tooltip from '@radix-ui/react-tooltip'
-import { FiChevronLeft, FiChevronRight, FiDatabase } from 'react-icons/fi'
-import type { AppNavigationItem } from './navigation'
-import { bottomNavigationItems, navigationItems } from './navigation'
+@write src/pages/DashboardPage.tsx
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiUsers } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'react-toastify'
+import type { HrDashboardStats, HrListResult } from '../shared/types/hr'
+import { formatCurrency, formatDate, humanizeStatus } from '../shared/lib/format'
+import { hrApiClient } from '../shared/lib/hrApiClient'
+import { getAppLocale } from '../shared/i18n'
+import { StatCard } from '../shared/ui/StatCard'
 
-const EXPANDED_SIDEBAR_WIDTH = '276px'
-const COLLAPSED_SIDEBAR_WIDTH = '84px'
-
-const tooltipContentClass =
-  'z-50 select-none rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-xl'
-
-const sidebarDividerClass = 'h-px bg-white/10'
-
-function getExpandedLinkClass(isActive: boolean): string {
-  return [
-    'group flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors duration-200',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
-    isActive
-      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/30'
-      : 'text-slate-400 hover:bg-white/[0.07] hover:text-white',
-  ].join(' ')
+const initialStats: HrDashboardStats = {
+  employeesTotal: 0,
+  departmentsTotal: 0,
+  positionsTotal: 0,
+  activeVacations: 0,
+  payrollMonthTotal: 0,
 }
 
-function getCollapsedLinkClass(isActive: boolean): string {
-  return [
-    'group flex h-11 w-11 items-center justify-center rounded-xl border transition-colors duration-200',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
-    isActive
-      ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-950/35'
-      : 'border-[#1b2540] bg-[#0d1427] text-slate-300 hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white',
-  ].join(' ')
+const emptyList: HrListResult = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 5,
+  totalPages: 0,
 }
 
-interface SidebarItemProps {
-  item: AppNavigationItem
-  isCollapsed: boolean
-  end?: boolean
-}
+export function DashboardPage(): JSX.Element {
+  const { i18n, t } = useTranslation()
+  const locale = getAppLocale(i18n.language)
+  const [stats, setStats] = useState<HrDashboardStats>(initialStats)
+  const [employees, setEmployees] = useState<HrListResult>(emptyList)
+  const [vacations, setVacations] = useState<HrListResult>(emptyList)
+  const [isLoading, setIsLoading] = useState(true)
 
-function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element {
-  const Icon = item.icon
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true)
 
-  const link = (
-    <NavLink
-      to={item.path}
-      end={end}
-      aria-label={item.title}
-      className={({ isActive }) =>
-        isCollapsed ? getCollapsedLinkClass(isActive) : getExpandedLinkClass(isActive)
-      }
-    >
-      <Icon className="h-[18px] w-[18px] shrink-0" />
-      {!isCollapsed && <span className="truncate">{item.title}</span>}
-    </NavLink>
-  )
+    try {
+      const [dashboardStats, employeesList, vacationsList] = await Promise.all([
+        hrApiClient.dashboard(),
+        hrApiClient.list({
+          entity: 'employees',
+          page: 1,
+          pageSize: 5,
+          orderBy: 'id',
+          orderDirection: 'desc',
+        }),
+        hrApiClient.list({
+          entity: 'vacations',
+          page: 1,
+          pageSize: 5,
+          orderBy: 'starts_at',
+          orderDirection: 'asc',
+        }),
+      ])
 
-  if (!isCollapsed) {
-    return link
-  }
+      setStats(dashboardStats)
+      setEmployees(employeesList)
+      setVacations(vacationsList)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('common.errors.dashboardLoad')
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [t])
+
+  useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
 
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>{link}</Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          side="right"
-          align="center"
-          sideOffset={12}
-          className={tooltipContentClass}
-        >
-          {item.title}
-          <Tooltip.Arrow className="fill-slate-950" />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  )
-}
-
-export function AppLayout(): JSX.Element {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
-
-  return (
-    <Tooltip.Provider delayDuration={120}>
-      <div className="min-h-screen overflow-x-hidden bg-[#f5f7fb] text-slate-950">
-        <aside
-          className="fixed inset-y-0 left-0 z-30 flex flex-col overflow-hidden border-r border-[#151c31] bg-[#070a17] text-white transition-[width] duration-300 ease-out"
-          style={{ width: sidebarWidth }}
-        >
-          <header className={isSidebarCollapsed ? 'px-5 py-5' : 'px-5 py-5'}>
-            <div
-              className={[
-                'flex items-center',
-                isSidebarCollapsed ? 'flex-col gap-3' : 'justify-between gap-4',
-              ].join(' ')}
-            >
-              <div
-                className={[
-                  'flex min-w-0 items-center',
-                  isSidebarCollapsed ? 'justify-center' : 'gap-3',
-                ].join(' ')}
-              >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-md shadow-blue-950/35">
-                  HR
-                </div>
-
-                {!isSidebarCollapsed && (
-                  <div className="min-w-0">
-                    <h1 className="truncate text-[15px] font-black tracking-tight">
-                      HR Automation
-                    </h1>
-                    <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-                      Кадровая система
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    type="button"
-                    aria-label={isSidebarCollapsed ? 'Раскрыть сайдбар' : 'Свернуть сайдбар'}
-                    onClick={() => setIsSidebarCollapsed((current) => !current)}
-                    className={[
-                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-colors duration-200',
-                      'hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white',
-                      'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
-                    ].join(' ')}
-                  >
-                    {isSidebarCollapsed ? (
-                      <FiChevronRight className="h-4 w-4" />
-                    ) : (
-                      <FiChevronLeft className="h-4 w-4" />
-                    )}
-                  </button>
-                </Tooltip.Trigger>
-
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    side="right"
-                    align="center"
-                    sideOffset={12}
-                    className={tooltipContentClass}
-                  >
-                    {isSidebarCollapsed ? 'Раскрыть' : 'Свернуть'}
-                    <Tooltip.Arrow className="fill-slate-950" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            </div>
-          </header>
-
-          <div className="px-5">
-            <div className={sidebarDividerClass} />
+    <div className="space-y-6">
+      <section className="app-surface app-shadow rounded-[28px] border p-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
+              {t('dashboard.hero.productName')}
+            </p>
+            <h1 className="app-text mt-3 text-3xl font-black tracking-tight">
+              {t('dashboard.hero.title')}
+            </h1>
           </div>
 
-          <nav
-            aria-label="Main navigation"
-            className={[
-              'min-h-0 flex-1 overflow-y-auto',
-              isSidebarCollapsed
-                ? 'flex flex-col items-center gap-3 px-5 py-5'
-                : 'space-y-3 px-5 py-5',
-            ].join(' ')}
-          >
-            {navigationItems.map((item) => (
-              <SidebarItem
-                key={item.path}
-                item={item}
-                end={item.path === '/'}
-                isCollapsed={isSidebarCollapsed}
-              />
-            ))}
-          </nav>
-
-          <footer>
-            <div className="px-5">
-              <div className={sidebarDividerClass} />
-            </div>
-
-            <div
-              className={[
-                isSidebarCollapsed
-                  ? 'flex flex-col items-center gap-3 px-5 py-5'
-                  : 'space-y-3 px-5 py-5',
-              ].join(' ')}
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/employees"
+              className="app-button-primary rounded-2xl px-5 py-3 text-sm font-black transition"
             >
-              {bottomNavigationItems.map((item) => (
-                <SidebarItem key={item.path} item={item} isCollapsed={isSidebarCollapsed} />
-              ))}
-            </div>
-          </footer>
-        </aside>
+              {t('dashboard.hero.employeesButton')}
+            </Link>
 
-        <div
-          className="min-h-screen min-w-0 transition-[padding] duration-300 ease-out"
-          style={{ paddingLeft: sidebarWidth }}
-        >
-          <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
-            <div className="flex items-center justify-between gap-6">
-              <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
-                Панель управления
-              </h2>
+            <button
+              type="button"
+              onClick={() => void loadDashboard()}
+              className="app-button-secondary rounded-2xl border px-5 py-3 text-sm font-black transition"
+            >
+              {t('common.actions.refresh')}
+            </button>
+          </div>
+        </div>
+      </section>
 
-              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
-                <FiDatabase className="h-4 w-4 text-blue-600" />
-                SQLite активен
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard title={t('dashboard.stats.employees')} value={stats.employeesTotal} description={t('dashboard.stats.total')} icon={FiUsers} />
+        <StatCard title={t('dashboard.stats.departments')} value={stats.departmentsTotal} description={t('dashboard.stats.total')} icon={FiGrid} />
+        <StatCard title={t('dashboard.stats.positions')} value={stats.positionsTotal} description={t('dashboard.stats.total')} icon={FiBriefcase} />
+        <StatCard title={t('dashboard.stats.vacations')} value={stats.activeVacations} description={t('dashboard.stats.active')} icon={FiCalendar} />
+        <StatCard title={t('dashboard.stats.payroll')} value={formatCurrency(stats.payrollMonthTotal, locale)} description={t('dashboard.stats.month')} icon={FiCreditCard} />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <article className="app-surface app-shadow rounded-[28px] border p-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="app-text text-lg font-black">{t('dashboard.sections.latestEmployees')}</h2>
+
+            <Link to="/employees" className="app-link-accent text-sm font-black">
+              {t('common.actions.open')}
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {employees.items.map((employee) => (
+              <div
+                key={String(employee.id)}
+                className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5"
+              >
+                <div>
+                  <p className="app-text font-black">
+                    {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
+                  </p>
+                  <p className="app-muted mt-1 text-sm font-medium">
+                    {String(employee.employee_code ?? '—')} · {formatDate(employee.hire_date, locale)}
+                  </p>
+                </div>
+
+                <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
+                  {humanizeStatus(employee.status, t)}
+                </span>
+              </div>
+            ))}
+
+            {!isLoading && employees.items.length === 0 && (
+              <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
+                {t('common.table.noRecords')}
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="app-surface app-shadow rounded-[28px] border p-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="app-text text-lg font-black">{t('dashboard.sections.upcomingVacations')}</h2>
+
+            <Link to="/vacations" className="app-link-accent text-sm font-black">
+              {t('common.actions.open')}
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {vacations.items.map((vacation) => (
+              <div
+                key={String(vacation.id)}
+                className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5"
+              >
+                <div>
+                  <p className="app-text font-black">{String(vacation.vacation_type ?? '—')}</p>
+                  <p className="app-muted mt-1 text-sm font-medium">
+                    {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
+                  {humanizeStatus(vacation.status, t)}
+                </span>
+              </div>
+            ))}
+
+            {!isLoading && vacations.items.length === 0 && (
+              <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
+                {t('common.table.noRecords')}
+              </p>
+            )}
+          </div>
+        </article>
+      </section>
+    </div>
+  )
+}
+@end
+
+@write src/pages/ProfilePage.tsx
+import { useTranslation } from 'react-i18next'
+
+export function ProfilePage(): JSX.Element {
+  const { t } = useTranslation()
+
+  return (
+    <div className="space-y-6">
+      <h1 className="app-text text-3xl font-black tracking-tight">{t('profile.title')}</h1>
+
+      <section className="app-surface app-shadow rounded-[28px] border p-7">
+        <div className="flex items-center gap-5">
+          <div className="app-accent flex h-16 w-16 items-center justify-center rounded-3xl text-xl font-black">
+            HR
+          </div>
+
+          <div>
+            <h2 className="app-text text-xl font-black">{t('profile.admin')}</h2>
+            <p className="app-muted mt-1 text-sm">{t('profile.localUser')}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+@end
+
+@write src/pages/SettingsPage.tsx
+import { FiCheck, FiMonitor, FiMoon, FiSun } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import {
+  accentColorOptions,
+  themeOptions,
+  useTheme,
+  type ThemePreference,
+} from '../app/theme'
+import { supportedLanguages } from '../shared/i18n'
+
+function getThemeIcon(theme: ThemePreference): typeof FiSun {
+  if (theme === 'dark') {
+    return FiMoon
+  }
+
+  if (theme === 'system') {
+    return FiMonitor
+  }
+
+  return FiSun
+}
+
+export function SettingsPage(): JSX.Element {
+  const { i18n, t } = useTranslation()
+  const { accentColor, resolvedTheme, setAccentColor, setTheme, theme } = useTheme()
+  const currentLanguage = i18n.resolvedLanguage ?? i18n.language
+
+  return (
+    <div className="space-y-6">
+      <h1 className="app-text text-3xl font-black tracking-tight">{t('settings.title')}</h1>
+
+      <section className="app-surface app-shadow rounded-[28px] border p-7">
+        <div>
+          <h2 className="app-text text-xl font-black">{t('settings.appearance.title')}</h2>
+          <p className="app-muted mt-2 text-sm">
+            {t('settings.appearance.description')}
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_1.15fr]">
+          <div className="app-surface-muted rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="app-text text-sm font-bold">{t('settings.appearance.theme.title')}</p>
+                <p className="app-muted mt-1 text-sm">
+                  {t('settings.appearance.theme.currentPalette', {
+                    palette: t(`settings.appearance.theme.palette.${resolvedTheme}`),
+                  })}
+                </p>
               </div>
             </div>
-          </header>
 
-          <main className="min-w-0 px-8 py-7">
-            <Outlet />
-          </main>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {themeOptions.map((option) => {
+                const isSelected = theme === option.id
+                const Icon = getThemeIcon(option.id)
+
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setTheme(option.id)}
+                    className={[
+                      'flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition',
+                      isSelected
+                        ? 'app-accent app-accent-border'
+                        : 'app-button-secondary',
+                    ].join(' ')}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {t(`settings.appearance.theme.options.${option.id}`)}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="app-surface-muted rounded-2xl p-5">
+            <p className="app-text text-sm font-bold">{t('settings.appearance.accent.title')}</p>
+            <p className="app-muted mt-1 text-sm">
+              {t('settings.appearance.accent.description')}
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {accentColorOptions.map((option) => {
+                const isSelected = accentColor === option.id
+
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setAccentColor(option.id)}
+                    className={[
+                      'app-surface flex h-12 items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-bold transition',
+                      isSelected ? 'app-accent-border' : 'app-border app-hover-muted',
+                    ].join(' ')}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span
+                        className="h-5 w-5 shrink-0 rounded-full border border-white/40 shadow-sm"
+                        style={{ backgroundColor: option.value }}
+                      />
+                      <span className="truncate">
+                        {t(`settings.appearance.accent.options.${option.id}`)}
+                      </span>
+                    </span>
+
+                    {isSelected && <FiCheck className="app-accent-text h-4 w-4 shrink-0" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
-      </div>
-    </Tooltip.Provider>
+
+        <div className="app-surface-muted mt-5 rounded-2xl p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="app-text text-sm font-bold">{t('settings.language.title')}</p>
+              <p className="app-muted mt-1 text-sm">{t('settings.language.description')}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              {supportedLanguages.map((language) => {
+                const isSelected = currentLanguage.split('-')[0] === language.id
+
+                return (
+                  <button
+                    key={language.id}
+                    type="button"
+                    onClick={() => void i18n.changeLanguage(language.id)}
+                    className={[
+                      'flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition',
+                      isSelected ? 'app-accent app-accent-border' : 'app-button-secondary',
+                    ].join(' ')}
+                  >
+                    {t(language.labelKey)}
+                    {isSelected && <FiCheck className="h-4 w-4 shrink-0" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="app-surface app-shadow rounded-[28px] border p-7">
+        <h2 className="app-text text-xl font-black">{t('settings.system.title')}</h2>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="app-surface-muted rounded-2xl p-5">
+            <p className="app-text text-sm font-bold">{t('settings.system.database.title')}</p>
+            <p className="app-muted mt-2 text-sm">
+              {t('settings.system.database.description')}
+            </p>
+          </div>
+
+          <div className="app-surface-muted rounded-2xl p-5">
+            <p className="app-text text-sm font-bold">{t('settings.system.interface.title')}</p>
+            <p className="app-muted mt-2 text-sm">
+              {t('settings.system.interface.description')}
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
   )
 }
 @end

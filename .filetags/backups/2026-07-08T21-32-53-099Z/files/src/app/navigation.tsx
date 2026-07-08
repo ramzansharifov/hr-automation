@@ -12,7 +12,7 @@ import {
 import type { HrEntityKey } from '../shared/types/hr'
 
 export interface AppNavigationItem {
-  titleKey: string
+  title: string
   path: string
   icon: IconType
   entity?: HrEntityKey
@@ -20,36 +20,36 @@ export interface AppNavigationItem {
 
 export const navigationItems: AppNavigationItem[] = [
   {
-    titleKey: 'navigation.dashboard',
+    title: 'Главная',
     path: '/',
     icon: FiHome,
   },
   {
-    titleKey: 'navigation.employees',
+    title: 'Сотрудники',
     path: '/employees',
     icon: FiUsers,
     entity: 'employees',
   },
   {
-    titleKey: 'navigation.departments',
+    title: 'Отделы',
     path: '/departments',
     icon: FiGrid,
     entity: 'departments',
   },
   {
-    titleKey: 'navigation.positions',
+    title: 'Должности',
     path: '/positions',
     icon: FiBriefcase,
     entity: 'positions',
   },
   {
-    titleKey: 'navigation.vacations',
+    title: 'Отпуска',
     path: '/vacations',
     icon: FiCalendar,
     entity: 'vacations',
   },
   {
-    titleKey: 'navigation.payroll',
+    title: 'Зарплата',
     path: '/payroll',
     icon: FiCreditCard,
     entity: 'payroll',
@@ -58,12 +58,12 @@ export const navigationItems: AppNavigationItem[] = [
 
 export const bottomNavigationItems: AppNavigationItem[] = [
   {
-    titleKey: 'navigation.profile',
+    title: 'Профиль',
     path: '/profile',
     icon: FiUser,
   },
   {
-    titleKey: 'navigation.settings',
+    title: 'Настройки',
     path: '/settings',
     icon: FiSettings,
   },
