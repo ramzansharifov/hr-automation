@@ -1,4 +1,3 @@
-@write src/app/AppLayout.tsx
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -6,21 +5,13 @@ import { FiChevronLeft, FiChevronRight, FiDatabase } from 'react-icons/fi'
 import type { AppNavigationItem } from './navigation'
 import { bottomNavigationItems, navigationItems } from './navigation'
 
-function getExpandedLinkClass(isActive: boolean): string {
+function getNavLinkClass(isActive: boolean, isCollapsed: boolean): string {
   return [
-    'group flex h-12 items-center gap-3 rounded-2xl px-3 text-sm font-bold transition-all duration-200',
+    'group relative flex items-center rounded-2xl text-sm font-bold transition-all duration-200',
+    isCollapsed ? 'mx-auto h-11 w-11 justify-center' : 'h-11 gap-3 px-3.5',
     isActive
       ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/25'
       : 'text-slate-400 hover:bg-white/[0.07] hover:text-white',
-  ].join(' ')
-}
-
-function getCollapsedLinkClass(isActive: boolean): string {
-  return [
-    'group mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border transition-all duration-200',
-    isActive
-      ? 'border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-950/25'
-      : 'border-white/[0.06] bg-white/[0.035] text-slate-400 hover:border-white/10 hover:bg-white/[0.09] hover:text-white',
   ].join(' ')
 }
 
@@ -38,13 +29,15 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
       to={item.path}
       end={end}
       aria-label={item.title}
-      className={({ isActive }) =>
-        isCollapsed ? getCollapsedLinkClass(isActive) : getExpandedLinkClass(isActive)
-      }
+      className={({ isActive }) => getNavLinkClass(isActive, isCollapsed)}
     >
-      <Icon className="h-[19px] w-[19px] shrink-0" />
+      <Icon className="h-[18px] w-[18px] shrink-0" />
 
-      {!isCollapsed && <span className="truncate">{item.title}</span>}
+      {!isCollapsed && (
+        <span className="truncate">
+          {item.title}
+        </span>
+      )}
     </NavLink>
   )
 
@@ -79,10 +72,10 @@ export function AppLayout(): JSX.Element {
         <aside
           className={[
             'fixed inset-y-0 left-0 z-30 flex flex-col border-r border-white/10 bg-[#070a17] text-white transition-[width] duration-300 ease-out',
-            isSidebarCollapsed ? 'w-[88px]' : 'w-[264px]',
+            isSidebarCollapsed ? 'w-[76px]' : 'w-[264px]',
           ].join(' ')}
         >
-          <div className={isSidebarCollapsed ? 'px-4 pb-5 pt-5' : 'px-4 pb-5 pt-5'}>
+          <div className="relative px-4 pb-4 pt-5">
             <div
               className={[
                 'flex items-center',
@@ -90,7 +83,7 @@ export function AppLayout(): JSX.Element {
               ].join(' ')}
             >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-blue-600 text-sm font-black tracking-tight shadow-lg shadow-blue-950/30">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-sm font-black tracking-tight shadow-lg shadow-blue-950/30">
                   HR
                 </div>
 
@@ -113,7 +106,10 @@ export function AppLayout(): JSX.Element {
                   type="button"
                   aria-label={isSidebarCollapsed ? 'Раскрыть сайдбар' : 'Свернуть сайдбар'}
                   onClick={() => setIsSidebarCollapsed((current) => !current)}
-                  className="absolute right-[-14px] top-8 z-40 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition hover:bg-slate-50 hover:text-blue-600"
+                  className={[
+                    'absolute -right-3 top-7 z-40 flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition hover:bg-slate-50 hover:text-blue-600',
+                    isSidebarCollapsed ? 'translate-x-0' : '',
+                  ].join(' ')}
                 >
                   {isSidebarCollapsed ? (
                     <FiChevronRight className="h-4 w-4" />
@@ -137,11 +133,11 @@ export function AppLayout(): JSX.Element {
             </Tooltip.Root>
           </div>
 
-          <div className={isSidebarCollapsed ? 'px-4' : 'px-4'}>
+          <div className="px-3">
             <div className="h-px bg-white/10" />
           </div>
 
-          <nav className={isSidebarCollapsed ? 'flex-1 space-y-3 px-4 py-5' : 'flex-1 space-y-2 px-4 py-5'}>
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             {navigationItems.map((item) => (
               <SidebarItem
                 key={item.path}
@@ -152,13 +148,17 @@ export function AppLayout(): JSX.Element {
             ))}
           </nav>
 
-          <div className={isSidebarCollapsed ? 'px-4' : 'px-4'}>
+          <div className="px-3">
             <div className="h-px bg-white/10" />
           </div>
 
-          <div className={isSidebarCollapsed ? 'space-y-3 px-4 py-5' : 'space-y-2 px-4 py-5'}>
+          <div className="space-y-1 px-3 py-4">
             {bottomNavigationItems.map((item) => (
-              <SidebarItem key={item.path} item={item} isCollapsed={isSidebarCollapsed} />
+              <SidebarItem
+                key={item.path}
+                item={item}
+                isCollapsed={isSidebarCollapsed}
+              />
             ))}
           </div>
         </aside>
@@ -166,7 +166,7 @@ export function AppLayout(): JSX.Element {
         <div
           className={[
             'min-h-screen transition-[padding] duration-300 ease-out',
-            isSidebarCollapsed ? 'pl-[88px]' : 'pl-[264px]',
+            isSidebarCollapsed ? 'pl-[76px]' : 'pl-[264px]',
           ].join(' ')}
         >
           <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
@@ -190,4 +190,3 @@ export function AppLayout(): JSX.Element {
     </Tooltip.Provider>
   )
 }
-@end

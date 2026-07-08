@@ -1,0 +1,14 @@
+{
+  "createdAt": "2026-07-08T20:40:35.723Z",
+  "backupPath": ".filetags/backups/2026-07-08T20-40-35-705Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/app/AppLayout.tsx",
+      "backupRelativePath": "files/src/app/AppLayout.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/app/AppLayout.tsx\n   old: 89 line(s)\n   new: 176 line(s)"
+  ]
+}

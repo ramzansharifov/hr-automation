@@ -20,7 +20,7 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #f5f7fb;
+  background: #f8fafc;
   color: #0f172a;
 }
 
@@ -49,8 +49,4 @@ button:disabled {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-[data-radix-popper-content-wrapper] {
-  z-index: 9999 !important;
 }

@@ -67,14 +67,12 @@ export function DashboardPage(): JSX.Element {
   }, [loadDashboard])
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+    <div className="space-y-7">
+      <section className="rounded-[30px] border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-600">
-              HR Automation
-            </p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+            <p className="text-sm font-bold text-blue-600">HR Automation</p>
+            <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-950">
               Автоматизация отдела кадров
             </h1>
           </div>
@@ -82,7 +80,7 @@ export function DashboardPage(): JSX.Element {
           <div className="flex flex-wrap gap-3">
             <Link
               to="/employees"
-              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
             >
               Сотрудники
             </Link>
@@ -90,7 +88,7 @@ export function DashboardPage(): JSX.Element {
             <button
               type="button"
               onClick={() => void loadDashboard()}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
             >
               Обновить
             </button>
@@ -98,47 +96,47 @@ export function DashboardPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Сотрудники" value={stats.employeesTotal} description="Всего" icon={FiUsers} />
-        <StatCard title="Отделы" value={stats.departmentsTotal} description="Всего" icon={FiGrid} />
-        <StatCard title="Должности" value={stats.positionsTotal} description="Всего" icon={FiBriefcase} />
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard title="Сотрудники" value={stats.employeesTotal} description="Всего записей" icon={FiUsers} />
+        <StatCard title="Отделы" value={stats.departmentsTotal} description="Всего записей" icon={FiGrid} />
+        <StatCard title="Должности" value={stats.positionsTotal} description="Всего записей" icon={FiBriefcase} />
         <StatCard title="Отпуска" value={stats.activeVacations} description="Активные" icon={FiCalendar} />
-        <StatCard title="Зарплата" value={formatCurrency(stats.payrollMonthTotal)} description="Месяц" icon={FiCreditCard} />
+        <StatCard title="Зарплата" value={formatCurrency(stats.payrollMonthTotal)} description="Текущий месяц" icon={FiCreditCard} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-2">
         <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-black text-slate-950">Последние сотрудники</h2>
+            <h2 className="text-xl font-black text-slate-950">Последние сотрудники</h2>
 
-            <Link to="/employees" className="text-sm font-black text-blue-600 hover:text-blue-700">
+            <Link to="/employees" className="text-sm font-bold text-blue-600 hover:text-blue-700">
               Открыть
             </Link>
           </div>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-6 space-y-3">
             {employees.items.map((employee) => (
               <div
                 key={String(employee.id)}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3.5"
+                className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4"
               >
                 <div>
-                  <p className="font-black text-slate-950">
+                  <p className="font-bold text-slate-950">
                     {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
+                  <p className="mt-1 text-sm text-slate-500">
                     {String(employee.employee_code ?? '—')} · {formatDate(employee.hire_date)}
                   </p>
                 </div>
 
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
                   {humanizeStatus(employee.status)}
                 </span>
               </div>
             ))}
 
             {!isLoading && employees.items.length === 0 && (
-              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-medium text-slate-500">
+              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Нет записей
               </p>
             )}
@@ -147,34 +145,31 @@ export function DashboardPage(): JSX.Element {
 
         <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-black text-slate-950">Ближайшие отпуска</h2>
+            <h2 className="text-xl font-black text-slate-950">Ближайшие отпуска</h2>
 
-            <Link to="/vacations" className="text-sm font-black text-blue-600 hover:text-blue-700">
+            <Link to="/vacations" className="text-sm font-bold text-blue-600 hover:text-blue-700">
               Открыть
             </Link>
           </div>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-6 space-y-3">
             {vacations.items.map((vacation) => (
-              <div
-                key={String(vacation.id)}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3.5"
-              >
-                <div>
-                  <p className="font-black text-slate-950">{String(vacation.vacation_type ?? '—')}</p>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    {formatDate(vacation.starts_at)} — {formatDate(vacation.ends_at)}
-                  </p>
+              <div key={String(vacation.id)} className="rounded-2xl bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-bold text-slate-950">{String(vacation.vacation_type ?? '—')}</p>
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                    {humanizeStatus(vacation.status)}
+                  </span>
                 </div>
 
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
-                  {humanizeStatus(vacation.status)}
-                </span>
+                <p className="mt-2 text-sm text-slate-500">
+                  {formatDate(vacation.starts_at)} — {formatDate(vacation.ends_at)}
+                </p>
               </div>
             ))}
 
             {!isLoading && vacations.items.length === 0 && (
-              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-medium text-slate-500">
+              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Нет записей
               </p>
             )}
