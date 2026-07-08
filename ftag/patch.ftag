@@ -1,149 +1,1044 @@
-@write vite.config.ts
-import { defineConfig } from "vite";
-import path from "node:path";
-import electron from "vite-plugin-electron/simple";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+@folder src/app
 
-const mainExternalDependencies = ["better-sqlite3"];
+@folder src/pages
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    electron({
-      main: {
-        entry: "electron/main.ts",
-        vite: {
-          build: {
-            rollupOptions: {
-              external: mainExternalDependencies,
-            },
-          },
-        },
-      },
-      preload: {
-        input: path.join(__dirname, "electron/preload.ts"),
-      },
-      renderer:
-        process.env.NODE_ENV === "test"
-          ? undefined
-          : {},
-    }),
-  ],
-});
+@folder src/features
+
+@folder src/features/hr-table
+
+@folder src/shared/lib
+
+@folder src/shared/ui
+
+@write src/main.tsx
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { HashRouter } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import App from './App'
+import './index.css'
+import 'react-toastify/dist/ReactToastify.css'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <HashRouter>
+      <App />
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2600}
+        closeOnClick
+        pauseOnHover
+        theme="light"
+      />
+    </HashRouter>
+  </React.StrictMode>,
+)
 @end
 
-@write electron-builder.json5
-// @see - https://www.electron.build/configuration/configuration
-{
-  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.hr.automation",
-  "asar": true,
-  "asarUnpack": [
-    "node_modules/better-sqlite3/**/*"
-  ],
-  "productName": "HR Automation",
-  "directories": {
-    "output": "release/${version}"
+@write src/App.tsx
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AppLayout } from './app/AppLayout'
+import { DashboardPage } from './pages/DashboardPage'
+import { EntityPage } from './pages/EntityPage'
+
+function App(): JSX.Element {
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="employees" element={<EntityPage entity="employees" />} />
+        <Route path="departments" element={<EntityPage entity="departments" />} />
+        <Route path="positions" element={<EntityPage entity="positions" />} />
+        <Route path="vacations" element={<EntityPage entity="vacations" />} />
+        <Route path="payroll" element={<EntityPage entity="payroll" />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+export default App
+@end
+
+@write src/app/navigation.tsx
+import type { IconType } from 'react-icons'
+import {
+  FiBriefcase,
+  FiCalendar,
+  FiCreditCard,
+  FiGrid,
+  FiHome,
+  FiUsers,
+} from 'react-icons/fi'
+import type { HrEntityKey } from '../shared/types/hr'
+
+export interface AppNavigationItem {
+  title: string
+  path: string
+  description: string
+  icon: IconType
+  entity?: HrEntityKey
+}
+
+export const navigationItems: AppNavigationItem[] = [
+  {
+    title: 'Главная',
+    path: '/',
+    description: 'Общая статистика и быстрый обзор',
+    icon: FiHome,
   },
-  "files": [
-    "dist",
-    "dist-electron"
-  ],
-  "extraResources": [
-    {
-      "from": "electron/migrations",
-      "to": "migrations",
-      "filter": [
-        "*.sql"
-      ]
-    }
-  ],
-  "mac": {
-    "target": [
-      "dmg"
-    ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+  {
+    title: 'Сотрудники',
+    path: '/employees',
+    description: 'Кадровый состав организации',
+    icon: FiUsers,
+    entity: 'employees',
   },
-  "win": {
-    "target": [
-      {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      }
-    ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+  {
+    title: 'Отделы',
+    path: '/departments',
+    description: 'Структура компании и контакты отделов',
+    icon: FiGrid,
+    entity: 'departments',
   },
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+  {
+    title: 'Должности',
+    path: '/positions',
+    description: 'Оклады, надбавки, требования и обязанности',
+    icon: FiBriefcase,
+    entity: 'positions',
   },
-  "linux": {
-    "target": [
-      "AppImage"
-    ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
-  }
+  {
+    title: 'Отпуска',
+    path: '/vacations',
+    description: 'Планирование и учет отпусков',
+    icon: FiCalendar,
+    entity: 'vacations',
+  },
+  {
+    title: 'Зарплата',
+    path: '/payroll',
+    description: 'Начисления, премии, удержания и налоги',
+    icon: FiCreditCard,
+    entity: 'payroll',
+  },
+]
+@end
+
+@write src/app/AppLayout.tsx
+import { NavLink, Outlet } from 'react-router-dom'
+import { FiDatabase, FiShield } from 'react-icons/fi'
+import { navigationItems } from './navigation'
+
+export function AppLayout(): JSX.Element {
+  const today = new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date())
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-950">
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-72 flex-col border-r border-slate-200 bg-slate-950 text-white">
+        <div className="border-b border-white/10 p-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-xl font-black">
+            HR
+          </div>
+
+          <h1 className="mt-4 text-xl font-bold">HR Automation</h1>
+          <p className="mt-1 text-sm text-slate-400">Автоматизация отдела кадров</p>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+          {navigationItems.map((item) => {
+            const Icon = item.icon
+
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/'}
+                className={({ isActive }) =>
+                  [
+                    'group flex items-start gap-3 rounded-2xl px-4 py-3 text-sm transition',
+                    isActive
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-950/20'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white',
+                  ].join(' ')
+                }
+              >
+                <Icon className="mt-0.5 h-5 w-5 shrink-0" />
+                <span>
+                  <span className="block font-semibold">{item.title}</span>
+                  <span className="mt-0.5 block text-xs text-current opacity-70">
+                    {item.description}
+                  </span>
+                </span>
+              </NavLink>
+            )
+          })}
+        </nav>
+
+        <div className="border-t border-white/10 p-4">
+          <div className="rounded-2xl bg-white/10 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <FiShield className="h-4 w-4" />
+              Локальная база
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              Данные хранятся в SQLite через Electron backend.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <div className="min-h-screen pl-72">
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 px-8 py-4 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">{today}</p>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+                Панель управления
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <FiDatabase className="h-4 w-4 text-blue-600" />
+              SQLite backend активен
+            </div>
+          </div>
+        </header>
+
+        <main className="p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  )
 }
 @end
 
-@write .gitignore
-# Dependencies
-node_modules/
+@write src/shared/lib/hrApiClient.ts
+import type {
+  HrApi,
+  HrCreateParams,
+  HrDeleteParams,
+  HrGetByIdParams,
+  HrListParams,
+  HrUpdateParams,
+} from '../types/hr'
 
-# Build output
-dist/
-dist-electron/
-release/
-out/
-build/
-dist-ssr/
+function getHrApi(): HrApi {
+  if (!window.hrApi) {
+    throw new Error('HR API недоступен. Запусти приложение через Electron.')
+  }
 
-# Electron Builder artifacts
-*.blockmap
-*.AppImage
-*.dmg
-*.exe
-*.snap
-*.deb
-*.rpm
+  return window.hrApi
+}
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+export const hrApiClient = {
+  list(params: HrListParams) {
+    return getHrApi().list(params)
+  },
 
-# Environment
-.env
-.env.local
-.env.*.local
-*.local
+  getById(params: HrGetByIdParams) {
+    return getHrApi().getById(params)
+  },
 
-# Database files
-*.sqlite
-*.sqlite3
-*.db
-*.sqlite-shm
-*.sqlite-wal
+  create(params: HrCreateParams) {
+    return getHrApi().create(params)
+  },
 
-# Editor
-.vscode/*
-!.vscode/extensions.json
-.idea/
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+  update(params: HrUpdateParams) {
+    return getHrApi().update(params)
+  },
+
+  delete(params: HrDeleteParams) {
+    return getHrApi().delete(params)
+  },
+
+  dashboard() {
+    return getHrApi().dashboard()
+  },
+}
+@end
+
+@write src/shared/lib/format.ts
+export function formatCurrency(value: unknown): string {
+  const amount = Number(value ?? 0)
+
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'TJS',
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(amount) ? amount : 0)
+}
+
+export function formatDate(value: unknown): string {
+  if (!value) {
+    return '—'
+  }
+
+  const text = String(value)
+  const date = new Date(text.length === 10 ? `${text}T00:00:00` : text)
+
+  if (Number.isNaN(date.getTime())) {
+    return text
+  }
+
+  return new Intl.DateTimeFormat('ru-RU').format(date)
+}
+
+export function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') {
+    return '—'
+  }
+
+  if (typeof value === 'number') {
+    return new Intl.NumberFormat('ru-RU').format(value)
+  }
+
+  return String(value)
+}
+
+export function humanizeStatus(value: unknown): string {
+  const key = String(value ?? '')
+
+  const labels: Record<string, string> = {
+    active: 'Активен',
+    inactive: 'Неактивен',
+    planned: 'Запланирован',
+    approved: 'Одобрен',
+    rejected: 'Отклонён',
+    completed: 'Завершён',
+    paid: 'Выплачено',
+    pending: 'Ожидает',
+    male: 'Мужской',
+    female: 'Женский',
+  }
+
+  return labels[key] ?? formatCellValue(value)
+}
+@end
+
+@write src/shared/ui/StatCard.tsx
+import type { ReactNode } from 'react'
+import type { IconType } from 'react-icons'
+
+interface StatCardProps {
+  title: string
+  value: ReactNode
+  description: string
+  icon: IconType
+}
+
+export function StatCard({ title, value, description, icon: Icon }: StatCardProps): JSX.Element {
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <div className="mt-3 text-3xl font-black tracking-tight text-slate-950">{value}</div>
+        </div>
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm leading-6 text-slate-500">{description}</p>
+    </article>
+  )
+}
+@end
+
+@write src/features/hr-table/hrEntityConfig.tsx
+import type { ReactNode } from 'react'
+import type { HrEntityKey, HrRecord } from '../../shared/types/hr'
+import { formatCellValue, formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/format'
+
+export interface HrEntityColumn {
+  key: string
+  label: string
+  className?: string
+  render?: (record: HrRecord) => ReactNode
+}
+
+export interface HrEntityPageConfig {
+  entity: HrEntityKey
+  title: string
+  description: string
+  createLabel: string
+  defaultOrderBy: string
+  columns: HrEntityColumn[]
+}
+
+function money(key: string): (record: HrRecord) => string {
+  return (record) => formatCurrency(record[key])
+}
+
+function date(key: string): (record: HrRecord) => string {
+  return (record) => formatDate(record[key])
+}
+
+function status(key: string): (record: HrRecord) => string {
+  return (record) => humanizeStatus(record[key])
+}
+
+export const hrEntityConfigs: Record<HrEntityKey, HrEntityPageConfig> = {
+  employees: {
+    entity: 'employees',
+    title: 'Сотрудники',
+    description: 'Кадровый состав, контакты, отделы, должности и даты приема на работу.',
+    createLabel: 'Добавить сотрудника',
+    defaultOrderBy: 'last_name',
+    columns: [
+      { key: 'employee_code', label: 'Код' },
+      { key: 'last_name', label: 'Фамилия' },
+      { key: 'first_name', label: 'Имя' },
+      { key: 'middle_name', label: 'Отчество' },
+      { key: 'department_id', label: 'Отдел' },
+      { key: 'position_id', label: 'Должность' },
+      { key: 'phone', label: 'Телефон' },
+      { key: 'email', label: 'Email' },
+      { key: 'hire_date', label: 'Дата приема', render: date('hire_date') },
+      { key: 'status', label: 'Статус', render: status('status') },
+    ],
+  },
+
+  departments: {
+    entity: 'departments',
+    title: 'Отделы',
+    description: 'Организационная структура, руководители, телефоны и расположение отделов.',
+    createLabel: 'Добавить отдел',
+    defaultOrderBy: 'name',
+    columns: [
+      { key: 'name', label: 'Наименование' },
+      { key: 'manager_name', label: 'Руководитель' },
+      { key: 'phone', label: 'Телефон' },
+      { key: 'email', label: 'Email' },
+      { key: 'location', label: 'Расположение' },
+      { key: 'created_on', label: 'Дата создания', render: date('created_on') },
+      { key: 'note', label: 'Примечание' },
+    ],
+  },
+
+  positions: {
+    entity: 'positions',
+    title: 'Должности',
+    description: 'Оклады, надбавки, премии, обязанности и требования по должностям.',
+    createLabel: 'Добавить должность',
+    defaultOrderBy: 'name',
+    columns: [
+      { key: 'name', label: 'Должность' },
+      { key: 'base_salary', label: 'Оклад', render: money('base_salary') },
+      { key: 'allowance', label: 'Надбавка', render: money('allowance') },
+      { key: 'bonus', label: 'Премия', render: money('bonus') },
+      { key: 'responsibilities', label: 'Обязанности' },
+      { key: 'requirements', label: 'Требования' },
+    ],
+  },
+
+  vacations: {
+    entity: 'vacations',
+    title: 'Отпуска',
+    description: 'Плановые, ежегодные и другие отпуска сотрудников с датами и статусами.',
+    createLabel: 'Оформить отпуск',
+    defaultOrderBy: 'starts_at',
+    columns: [
+      { key: 'employee_id', label: 'Сотрудник' },
+      { key: 'vacation_type', label: 'Вид отпуска' },
+      { key: 'starts_at', label: 'Начало', render: date('starts_at') },
+      { key: 'ends_at', label: 'Окончание', render: date('ends_at') },
+      { key: 'days_count', label: 'Дней' },
+      { key: 'reason', label: 'Причина' },
+      { key: 'status', label: 'Статус', render: status('status') },
+    ],
+  },
+
+  payroll: {
+    entity: 'payroll',
+    title: 'Заработная плата',
+    description: 'Начисления по месяцам: оклад, премии, надбавки, удержания, налоги и итог.',
+    createLabel: 'Добавить начисление',
+    defaultOrderBy: 'accrual_month',
+    columns: [
+      { key: 'employee_id', label: 'Сотрудник' },
+      { key: 'accrual_month', label: 'Месяц' },
+      { key: 'base_salary', label: 'Оклад', render: money('base_salary') },
+      { key: 'bonus', label: 'Премия', render: money('bonus') },
+      { key: 'allowance', label: 'Надбавка', render: money('allowance') },
+      { key: 'deductions', label: 'Удержания', render: money('deductions') },
+      { key: 'taxes', label: 'Налоги', render: money('taxes') },
+      { key: 'net_amount', label: 'Итого', render: money('net_amount'), className: 'font-bold' },
+      { key: 'paid_at', label: 'Дата выплаты', render: date('paid_at') },
+    ],
+  },
+}
+
+export function getEntityConfig(entity: HrEntityKey): HrEntityPageConfig {
+  return hrEntityConfigs[entity]
+}
+
+export function renderCell(record: HrRecord, column: HrEntityColumn): ReactNode {
+  if (column.render) {
+    return column.render(record)
+  }
+
+  return formatCellValue(record[column.key])
+}
+@end
+
+@write src/features/hr-table/HrEntityTable.tsx
+import type { FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FiChevronLeft, FiChevronRight, FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi'
+import { toast } from 'react-toastify'
+import type { HrEntityKey, HrListResult } from '../../shared/types/hr'
+import { hrApiClient } from '../../shared/lib/hrApiClient'
+import { getEntityConfig, renderCell } from './hrEntityConfig'
+
+interface HrEntityTableProps {
+  entity: HrEntityKey
+}
+
+const emptyResult: HrListResult = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 10,
+  totalPages: 0,
+}
+
+export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
+  const config = useMemo(() => getEntityConfig(entity), [entity])
+  const [result, setResult] = useState<HrListResult>(emptyResult)
+  const [page, setPage] = useState(1)
+  const [draftSearch, setDraftSearch] = useState('')
+  const [search, setSearch] = useState('')
+  const [orderBy, setOrderBy] = useState(config.defaultOrderBy)
+  const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc')
+  const [isLoading, setIsLoading] = useState(false)
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  useEffect(() => {
+    setPage(1)
+    setDraftSearch('')
+    setSearch('')
+    setOrderBy(config.defaultOrderBy)
+    setOrderDirection('asc')
+  }, [config.defaultOrderBy, entity])
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true)
+
+    try {
+      const data = await hrApiClient.list({
+        entity,
+        page,
+        pageSize: 10,
+        search,
+        orderBy,
+        orderDirection,
+      })
+
+      setResult(data)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось загрузить данные'
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [entity, orderBy, orderDirection, page, refreshIndex, search])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault()
+    setPage(1)
+    setSearch(draftSearch.trim())
+  }
+
+  function handleSort(columnKey: string): void {
+    setPage(1)
+
+    if (orderBy === columnKey) {
+      setOrderDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setOrderBy(columnKey)
+    setOrderDirection('asc')
+  }
+
+  function handleRefresh(): void {
+    setRefreshIndex((current) => current + 1)
+  }
+
+  const canGoBack = result.page > 1
+  const canGoForward = result.totalPages > 0 && result.page < result.totalPages
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-slate-950">{config.title}</h3>
+            <p className="mt-1 text-sm text-slate-500">{config.description}</p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <form onSubmit={handleSearchSubmit} className="relative">
+              <FiSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={draftSearch}
+                onChange={(event) => setDraftSearch(event.target.value)}
+                placeholder="Поиск..."
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white sm:w-72"
+              />
+            </form>
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+              Обновить
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toast.info('Форма добавления будет в следующем патче')}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              <FiPlus className="h-4 w-4" />
+              {config.createLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+          <thead>
+            <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              {config.columns.map((column) => (
+                <th key={column.key} className="border-b border-slate-200 px-5 py-4 font-bold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort(column.key)}
+                    className="flex items-center gap-2 text-left transition hover:text-blue-600"
+                  >
+                    {column.label}
+                    {orderBy === column.key && (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
+                        {orderDirection === 'asc' ? 'ASC' : 'DESC'}
+                      </span>
+                    )}
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {result.items.map((record, index) => (
+              <tr key={String(record.id ?? index)} className="transition hover:bg-slate-50">
+                {config.columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={[
+                      'max-w-[280px] border-b border-slate-100 px-5 py-4 align-top text-slate-700',
+                      column.className ?? '',
+                    ].join(' ')}
+                  >
+                    <span className="line-clamp-2">{renderCell(record, column)}</span>
+                  </td>
+                ))}
+              </tr>
+            ))}
+
+            {!isLoading && result.items.length === 0 && (
+              <tr>
+                <td colSpan={config.columns.length} className="px-5 py-14 text-center">
+                  <div className="mx-auto max-w-sm">
+                    <p className="text-base font-semibold text-slate-900">Записей пока нет</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Попробуй изменить поиск или добавить первую запись.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {isLoading && (
+              <tr>
+                <td colSpan={config.columns.length} className="px-5 py-14 text-center">
+                  <p className="text-sm font-medium text-slate-500">Загрузка данных...</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-500">
+          Всего записей: <span className="font-semibold text-slate-900">{result.total}</span>
+        </p>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={!canGoBack}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FiChevronLeft className="h-4 w-4" />
+            Назад
+          </button>
+
+          <span className="text-sm text-slate-500">
+            {result.page} / {Math.max(result.totalPages, 1)}
+          </span>
+
+          <button
+            type="button"
+            disabled={!canGoForward}
+            onClick={() => setPage((current) => current + 1)}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Далее
+            <FiChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+@end
+
+@write src/pages/DashboardPage.tsx
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiUsers } from 'react-icons/fi'
+import { toast } from 'react-toastify'
+import type { HrDashboardStats, HrListResult } from '../shared/types/hr'
+import { formatCurrency, formatDate, humanizeStatus } from '../shared/lib/format'
+import { hrApiClient } from '../shared/lib/hrApiClient'
+import { StatCard } from '../shared/ui/StatCard'
+
+const initialStats: HrDashboardStats = {
+  employeesTotal: 0,
+  departmentsTotal: 0,
+  positionsTotal: 0,
+  activeVacations: 0,
+  payrollMonthTotal: 0,
+}
+
+const emptyList: HrListResult = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 5,
+  totalPages: 0,
+}
+
+export function DashboardPage(): JSX.Element {
+  const [stats, setStats] = useState<HrDashboardStats>(initialStats)
+  const [employees, setEmployees] = useState<HrListResult>(emptyList)
+  const [vacations, setVacations] = useState<HrListResult>(emptyList)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true)
+
+    try {
+      const [dashboardStats, employeesList, vacationsList] = await Promise.all([
+        hrApiClient.dashboard(),
+        hrApiClient.list({
+          entity: 'employees',
+          page: 1,
+          pageSize: 5,
+          orderBy: 'id',
+          orderDirection: 'desc',
+        }),
+        hrApiClient.list({
+          entity: 'vacations',
+          page: 1,
+          pageSize: 5,
+          orderBy: 'starts_at',
+          orderDirection: 'asc',
+        }),
+      ])
+
+      setStats(dashboardStats)
+      setEmployees(employeesList)
+      setVacations(vacationsList)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось загрузить панель'
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
+
+  return (
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-3xl bg-slate-950 text-white shadow-sm">
+        <div className="grid gap-8 p-8 lg:grid-cols-[1.4fr_0.6fr]">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-300">
+              HR Automation System
+            </p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight">
+              Автоматизация отдела кадров
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+              Единая система для учета сотрудников, отделов, должностей, отпусков и
+              начисления заработной платы.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/employees"
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-500"
+              >
+                Открыть сотрудников
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => void loadDashboard()}
+                className="rounded-2xl bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
+              >
+                Обновить данные
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/10 p-6">
+            <p className="text-sm text-slate-300">Состояние системы</p>
+            <p className="mt-3 text-3xl font-black">{isLoading ? '...' : 'Активна'}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Frontend получает данные через preload API и IPC-каналы Electron.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard
+          title="Сотрудники"
+          value={stats.employeesTotal}
+          description="Общее количество сотрудников в системе"
+          icon={FiUsers}
+        />
+        <StatCard
+          title="Отделы"
+          value={stats.departmentsTotal}
+          description="Структурные подразделения организации"
+          icon={FiGrid}
+        />
+        <StatCard
+          title="Должности"
+          value={stats.positionsTotal}
+          description="Должности с окладами и требованиями"
+          icon={FiBriefcase}
+        />
+        <StatCard
+          title="Отпуска"
+          value={stats.activeVacations}
+          description="Плановые и одобренные отпуска"
+          icon={FiCalendar}
+        />
+        <StatCard
+          title="Зарплата"
+          value={formatCurrency(stats.payrollMonthTotal)}
+          description="Сумма начислений за текущий месяц"
+          icon={FiCreditCard}
+        />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">Последние сотрудники</h2>
+              <p className="mt-1 text-sm text-slate-500">Быстрый просмотр кадрового состава</p>
+            </div>
+
+            <Link to="/employees" className="text-sm font-bold text-blue-600 hover:text-blue-700">
+              Все сотрудники
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {employees.items.map((employee) => (
+              <div
+                key={String(employee.id)}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4"
+              >
+                <div>
+                  <p className="font-bold text-slate-950">
+                    {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Код: {String(employee.employee_code ?? '—')} · Прием:{' '}
+                    {formatDate(employee.hire_date)}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                  {humanizeStatus(employee.status)}
+                </span>
+              </div>
+            ))}
+
+            {!isLoading && employees.items.length === 0 && (
+              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500">
+                Сотрудники пока не добавлены.
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">Ближайшие отпуска</h2>
+              <p className="mt-1 text-sm text-slate-500">Планирование отсутствий сотрудников</p>
+            </div>
+
+            <Link to="/vacations" className="text-sm font-bold text-blue-600 hover:text-blue-700">
+              Все отпуска
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {vacations.items.map((vacation) => (
+              <div
+                key={String(vacation.id)}
+                className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-bold text-slate-950">{String(vacation.vacation_type ?? '—')}</p>
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                    {humanizeStatus(vacation.status)}
+                  </span>
+                </div>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  {formatDate(vacation.starts_at)} — {formatDate(vacation.ends_at)} ·{' '}
+                  {String(vacation.days_count ?? 0)} дней
+                </p>
+              </div>
+            ))}
+
+            {!isLoading && vacations.items.length === 0 && (
+              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500">
+                Отпуска пока не добавлены.
+              </p>
+            )}
+          </div>
+        </article>
+      </section>
+    </div>
+  )
+}
+@end
+
+@write src/pages/EntityPage.tsx
+import type { HrEntityKey } from '../shared/types/hr'
+import { HrEntityTable } from '../features/hr-table/HrEntityTable'
+import { getEntityConfig } from '../features/hr-table/hrEntityConfig'
+
+interface EntityPageProps {
+  entity: HrEntityKey
+}
+
+export function EntityPage({ entity }: EntityPageProps): JSX.Element {
+  const config = getEntityConfig(entity)
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-600">
+          Справочник
+        </p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+          {config.title}
+        </h1>
+        <p className="mt-3 max-w-3xl text-base leading-7 text-slate-500">
+          {config.description}
+        </p>
+      </section>
+
+      <HrEntityTable entity={entity} />
+    </div>
+  )
+}
+@end
+
+@write src/index.css
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+body {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 @end

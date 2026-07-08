@@ -1,34 +1,22 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
-import './App.css'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AppLayout } from './app/AppLayout'
+import { DashboardPage } from './pages/DashboardPage'
+import { EntityPage } from './pages/EntityPage'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function App(): JSX.Element {
   return (
-    <>
-      <div>
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="employees" element={<EntityPage entity="employees" />} />
+        <Route path="departments" element={<EntityPage entity="departments" />} />
+        <Route path="positions" element={<EntityPage entity="positions" />} />
+        <Route path="vacations" element={<EntityPage entity="vacations" />} />
+        <Route path="payroll" element={<EntityPage entity="payroll" />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
