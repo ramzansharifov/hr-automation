@@ -10,22 +10,22 @@ interface StatCardProps {
 
 export function StatCard({ title, value, description, icon: Icon }: StatCardProps): JSX.Element {
   return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="app-surface app-shadow rounded-[24px] border p-5 transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-bold text-slate-500">{title}</p>
-          <div className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+          <p className="app-muted text-sm font-bold">{title}</p>
+          <div className="app-text mt-3 text-3xl font-black tracking-tight">
             {value}
           </div>
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <div className="app-accent-soft flex h-11 w-11 items-center justify-center rounded-2xl">
           <Icon className="h-5 w-5" />
         </div>
       </div>
 
       {description && (
-        <p className="mt-4 text-sm font-medium text-slate-500">
+        <p className="app-muted mt-4 text-sm font-medium">
           {description}
         </p>
       )}

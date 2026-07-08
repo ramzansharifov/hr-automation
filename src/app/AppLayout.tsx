@@ -18,7 +18,7 @@ function getExpandedLinkClass(isActive: boolean): string {
     "group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
     isActive
-      ? "border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-950/30"
+      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-sm"
       : "border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white",
   ].join(" ");
 }
@@ -35,7 +35,7 @@ function getCollapsedIconButtonClass(isActive: boolean): string {
   return [
     "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 shadow-sm transition-colors duration-200",
     isActive
-      ? "border-blue-500 bg-blue-600 text-white shadow-blue-950/40"
+      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
       : "border-[#263451] bg-[#10182d] text-slate-300 group-hover:border-[#3a4a6d] group-hover:bg-[#17213a] group-hover:text-white",
   ].join(" ");
 }
@@ -73,8 +73,8 @@ function SidebarItem({
         <span
           className={getCollapsedIconButtonClass(isActive)}
           style={{
-            backgroundColor: isActive ? "#2563eb" : "#10182d",
-            borderColor: isActive ? "#3b82f6" : "#263451",
+            backgroundColor: isActive ? "var(--accent)" : "var(--sidebar-button)",
+            borderColor: isActive ? "var(--accent-border)" : "var(--sidebar-button-border)",
           }}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -118,10 +118,14 @@ export function AppLayout(): JSX.Element {
 
   return (
     <Tooltip.Provider delayDuration={120}>
-      <div className="min-h-screen overflow-x-hidden bg-[#f5f7fb] text-slate-950">
+      <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
         <aside
-          className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[#151c31] bg-[#070a17] text-white transition-[width] duration-300 ease-out"
-          style={{ width: sidebarWidth }}
+          className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r text-white transition-[width] duration-300 ease-out"
+          style={{
+            width: sidebarWidth,
+            backgroundColor: "var(--sidebar-bg)",
+            borderColor: "var(--sidebar-border)",
+          }}
         >
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -132,13 +136,17 @@ export function AppLayout(): JSX.Element {
                 }
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
                 className={[
-                  "absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-all duration-200",
+                  "absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border text-slate-300 shadow-sm transition-all duration-200",
                   "pointer-events-none opacity-0",
                   "group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100",
                   "hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white",
                   "focus-visible:pointer-events-auto focus-visible:opacity-100",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
                 ].join(" ")}
+                style={{
+                  backgroundColor: "var(--sidebar-button)",
+                  borderColor: "var(--sidebar-button-border)",
+                }}
               >
                 {isSidebarCollapsed ? (
                   <FiChevronRight className="h-4 w-4" />
@@ -168,7 +176,7 @@ export function AppLayout(): JSX.Element {
                 isSidebarCollapsed ? "justify-center" : "gap-3",
               ].join(" ")}
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-md shadow-blue-950/35">
+              <div className="app-accent flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black tracking-tight shadow-md">
                 HR
               </div>
 
@@ -232,14 +240,14 @@ export function AppLayout(): JSX.Element {
           className="min-h-screen min-w-0 transition-[padding] duration-300 ease-out"
           style={{ paddingLeft: sidebarWidth }}
         >
-          <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
+          <header className="app-surface sticky top-0 z-20 border-b px-8 py-4 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-6">
-              <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+              <h2 className="app-text truncate text-xl font-black tracking-tight">
                 Панель управления
               </h2>
 
-              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
-                <FiDatabase className="h-4 w-4 text-blue-600" />
+              <div className="app-button-secondary app-shadow flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold">
+                <FiDatabase className="app-accent-text h-4 w-4" />
                 SQLite активен
               </div>
             </div>

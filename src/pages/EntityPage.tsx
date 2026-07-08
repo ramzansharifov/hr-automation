@@ -13,7 +13,7 @@ export function EntityPage({ entity }: EntityPageProps): JSX.Element {
     <div className="space-y-6">
       <section className="flex items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-950">
+          <h1 className="app-text text-3xl font-black tracking-tight">
             {config.title}
           </h1>
         </div>

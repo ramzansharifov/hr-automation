@@ -68,13 +68,13 @@ export function DashboardPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="app-surface app-shadow rounded-[28px] border p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-600">
+            <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
               HR Automation
             </p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+            <h1 className="app-text mt-3 text-3xl font-black tracking-tight">
               Автоматизация отдела кадров
             </h1>
           </div>
@@ -82,7 +82,7 @@ export function DashboardPage(): JSX.Element {
           <div className="flex flex-wrap gap-3">
             <Link
               to="/employees"
-              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+              className="app-button-primary rounded-2xl px-5 py-3 text-sm font-black transition"
             >
               Сотрудники
             </Link>
@@ -90,7 +90,7 @@ export function DashboardPage(): JSX.Element {
             <button
               type="button"
               onClick={() => void loadDashboard()}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              className="app-button-secondary rounded-2xl border px-5 py-3 text-sm font-black transition"
             >
               Обновить
             </button>
@@ -107,11 +107,11 @@ export function DashboardPage(): JSX.Element {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="app-surface app-shadow rounded-[28px] border p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-black text-slate-950">Последние сотрудники</h2>
+            <h2 className="app-text text-lg font-black">Последние сотрудники</h2>
 
-            <Link to="/employees" className="text-sm font-black text-blue-600 hover:text-blue-700">
+            <Link to="/employees" className="app-link-accent text-sm font-black">
               Открыть
             </Link>
           </div>
@@ -120,36 +120,36 @@ export function DashboardPage(): JSX.Element {
             {employees.items.map((employee) => (
               <div
                 key={String(employee.id)}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3.5"
+                className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5"
               >
                 <div>
-                  <p className="font-black text-slate-950">
+                  <p className="app-text font-black">
                     {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
+                  <p className="app-muted mt-1 text-sm font-medium">
                     {String(employee.employee_code ?? '—')} · {formatDate(employee.hire_date)}
                   </p>
                 </div>
 
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+                <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
                   {humanizeStatus(employee.status)}
                 </span>
               </div>
             ))}
 
             {!isLoading && employees.items.length === 0 && (
-              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-medium text-slate-500">
+              <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
                 Нет записей
               </p>
             )}
           </div>
         </article>
 
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="app-surface app-shadow rounded-[28px] border p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-black text-slate-950">Ближайшие отпуска</h2>
+            <h2 className="app-text text-lg font-black">Ближайшие отпуска</h2>
 
-            <Link to="/vacations" className="text-sm font-black text-blue-600 hover:text-blue-700">
+            <Link to="/vacations" className="app-link-accent text-sm font-black">
               Открыть
             </Link>
           </div>
@@ -158,11 +158,11 @@ export function DashboardPage(): JSX.Element {
             {vacations.items.map((vacation) => (
               <div
                 key={String(vacation.id)}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3.5"
+                className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5"
               >
                 <div>
-                  <p className="font-black text-slate-950">{String(vacation.vacation_type ?? '—')}</p>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
+                  <p className="app-text font-black">{String(vacation.vacation_type ?? '—')}</p>
+                  <p className="app-muted mt-1 text-sm font-medium">
                     {formatDate(vacation.starts_at)} — {formatDate(vacation.ends_at)}
                   </p>
                 </div>
@@ -174,7 +174,7 @@ export function DashboardPage(): JSX.Element {
             ))}
 
             {!isLoading && vacations.items.length === 0 && (
-              <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-medium text-slate-500">
+              <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
                 Нет записей
               </p>
             )}

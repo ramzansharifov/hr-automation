@@ -89,27 +89,27 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-slate-100 p-5 xl:flex-row xl:items-center xl:justify-between">
+    <section className="app-surface app-shadow overflow-hidden rounded-[28px] border">
+      <div className="app-border-soft flex flex-col gap-4 border-b p-5 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h3 className="text-lg font-black text-slate-950">{config.title}</h3>
+          <h3 className="app-text text-lg font-black">{config.title}</h3>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <form onSubmit={handleSearchSubmit} className="relative">
-            <FiSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
               value={draftSearch}
               onChange={(event) => setDraftSearch(event.target.value)}
               placeholder="Поиск"
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white sm:w-72"
+              className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition sm:w-72"
             />
           </form>
 
           <button
             type="button"
             onClick={handleRefresh}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="app-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition"
           >
             <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             Обновить
@@ -118,7 +118,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
           <button
             type="button"
             onClick={() => toast.info('Форма добавления будет в следующем патче')}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+            className="app-button-primary inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold shadow-sm transition"
           >
             <FiPlus className="h-4 w-4" />
             {config.createLabel}
@@ -129,17 +129,17 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
       <div className="overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
-            <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
               {config.columns.map((column) => (
-                <th key={column.key} className="border-b border-slate-100 px-5 py-4 font-black">
+                <th key={column.key} className="app-border-soft border-b px-5 py-4 font-black">
                   <button
                     type="button"
                     onClick={() => handleSort(column.key)}
-                    className="flex items-center gap-2 text-left transition hover:text-blue-600"
+                    className="flex items-center gap-2 text-left transition hover:text-[var(--accent)]"
                   >
                     {column.label}
                     {orderBy === column.key && (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
+                      <span className="app-accent-soft rounded-full px-2 py-0.5 text-[10px]">
                         {orderDirection === 'asc' ? 'ASC' : 'DESC'}
                       </span>
                     )}
@@ -151,12 +151,12 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
           <tbody>
             {result.items.map((record, index) => (
-              <tr key={String(record.id ?? index)} className="transition hover:bg-slate-50">
+              <tr key={String(record.id ?? index)} className="app-hover-muted transition">
                 {config.columns.map((column) => (
                   <td
                     key={column.key}
                     className={[
-                      'max-w-[280px] border-b border-slate-100 px-5 py-4 align-top text-slate-700',
+                      'app-border-soft app-text-soft max-w-[280px] border-b px-5 py-4 align-top',
                       column.className ?? '',
                     ].join(' ')}
                   >
@@ -169,7 +169,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             {!isLoading && result.items.length === 0 && (
               <tr>
                 <td colSpan={config.columns.length} className="px-5 py-16 text-center">
-                  <p className="text-base font-black text-slate-900">Записей пока нет</p>
+                  <p className="app-text text-base font-black">Записей пока нет</p>
                 </td>
               </tr>
             )}
@@ -177,7 +177,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             {isLoading && (
               <tr>
                 <td colSpan={config.columns.length} className="px-5 py-16 text-center">
-                  <p className="text-sm font-medium text-slate-500">Загрузка...</p>
+                  <p className="app-muted text-sm font-medium">Загрузка...</p>
                 </td>
               </tr>
             )}
@@ -185,9 +185,9 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
         </table>
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">
-          Всего: <span className="font-bold text-slate-900">{result.total}</span>
+      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="app-muted text-sm">
+          Всего: <span className="app-text font-bold">{result.total}</span>
         </p>
 
         <div className="flex items-center gap-3">
@@ -195,13 +195,13 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             type="button"
             disabled={!canGoBack}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="app-button-secondary inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             <FiChevronLeft className="h-4 w-4" />
             Назад
           </button>
 
-          <span className="text-sm text-slate-500">
+          <span className="app-muted text-sm">
             {result.page} / {Math.max(result.totalPages, 1)}
           </span>
 
@@ -209,7 +209,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             type="button"
             disabled={!canGoForward}
             onClick={() => setPage((current) => current + 1)}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="app-button-secondary inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             Далее
             <FiChevronRight className="h-4 w-4" />
