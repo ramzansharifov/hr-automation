@@ -1,4 +1,3 @@
-@write vite.config.ts
 import { defineConfig } from "vite";
 import path from "node:path";
 import electron from "vite-plugin-electron/simple";
@@ -25,16 +24,6 @@ export default defineConfig({
       },
       preload: {
         input: path.join(__dirname, "electron/preload.ts"),
-        vite: {
-          build: {
-            rollupOptions: {
-              output: {
-                format: "cjs",
-                entryFileNames: "preload.cjs",
-              },
-            },
-          },
-        },
       },
       renderer:
         process.env.NODE_ENV === "test"
@@ -43,13 +32,3 @@ export default defineConfig({
     }),
   ],
 });
-@end
-
-@replace-first electron/main.ts
-@find
-      preload: path.join(__dirname, 'preload.mjs'),
-@endfind
-@with
-      preload: path.join(__dirname, 'preload.cjs'),
-@endwith
-@end

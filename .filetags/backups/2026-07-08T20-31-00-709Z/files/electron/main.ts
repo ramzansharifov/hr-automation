@@ -27,7 +27,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: path.join(__dirname, 'preload.mjs'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
