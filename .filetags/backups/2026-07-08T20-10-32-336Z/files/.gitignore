@@ -9,7 +9,7 @@ out/
 build/
 dist-ssr/
 
-# Electron Builder artifacts
+# Electron Builder
 *.blockmap
 *.AppImage
 *.dmg
