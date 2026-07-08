@@ -1,8 +1,1275 @@
-@insert-after-once vite.config.ts
+@folder electron/database
+
+@folder electron/migrations
+
+@folder electron/repositories
+
+@folder electron/services
+
+@folder electron/ipc
+
+@folder electron/admin
+
+@folder electron/seed
+
+@folder src/shared
+
+@folder src/shared/types
+
+@write .gitignore
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+release/
+out/
+build/
+dist-ssr/
+
+# Electron Builder
+*.blockmap
+*.AppImage
+*.dmg
+*.exe
+*.snap
+*.deb
+*.rpm
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.local
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-shm
+*.sqlite-wal
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+@end
+
+@write src/shared/types/hr.ts
+export type HrEntityKey = 'departments' | 'positions' | 'employees' | 'vacations' | 'payroll'
+
+export type HrOrderDirection = 'asc' | 'desc'
+
+export type HrRecord = Record<string, unknown>
+
+export type HrFilterValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Array<string | number | boolean | null>
+
+export interface HrListParams {
+  entity: HrEntityKey
+  page?: number
+  pageSize?: number
+  search?: string
+  filters?: Record<string, HrFilterValue>
+  orderBy?: string
+  orderDirection?: HrOrderDirection
+}
+
+export interface HrListResult {
+  items: HrRecord[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+export interface HrGetByIdParams {
+  entity: HrEntityKey
+  id: number
+}
+
+export interface HrCreateParams {
+  entity: HrEntityKey
+  data: HrRecord
+}
+
+export interface HrUpdateParams {
+  entity: HrEntityKey
+  id: number
+  data: HrRecord
+}
+
+export interface HrDeleteParams {
+  entity: HrEntityKey
+  id: number
+}
+
+export interface HrDashboardStats {
+  employeesTotal: number
+  departmentsTotal: number
+  positionsTotal: number
+  activeVacations: number
+  payrollMonthTotal: number
+}
+
+export interface HrApi {
+  list(params: HrListParams): Promise<HrListResult>
+  getById(params: HrGetByIdParams): Promise<HrRecord | null>
+  create(params: HrCreateParams): Promise<HrRecord>
+  update(params: HrUpdateParams): Promise<HrRecord>
+  delete(params: HrDeleteParams): Promise<{ success: true }>
+  dashboard(): Promise<HrDashboardStats>
+}
+@end
+
+@write src/shared/types/global.d.ts
+import type { HrApi } from './hr'
+
+declare global {
+  interface Window {
+    hrApi: HrApi
+    ipcRenderer: {
+      on: (...args: unknown[]) => unknown
+      off: (...args: unknown[]) => unknown
+      send: (...args: unknown[]) => unknown
+      invoke: (...args: unknown[]) => Promise<unknown>
+    }
+  }
+}
+
+export {}
+@end
+
+@write electron/admin/hrCrudEntities.ts
+import type { HrEntityKey } from '../../src/shared/types/hr'
+
+export interface HrCrudEntityConfig {
+  key: HrEntityKey
+  tableName: string
+  primaryKey: string
+  allowedColumns: string[]
+  searchableColumns: string[]
+  defaultOrderBy: string
+  hasUpdatedAt: boolean
+}
+
+function entity(
+  key: HrEntityKey,
+  allowedColumns: string[],
+  searchableColumns: string[],
+  options: Partial<Pick<HrCrudEntityConfig, 'defaultOrderBy' | 'hasUpdatedAt'>> = {},
+): HrCrudEntityConfig {
+  return {
+    key,
+    tableName: key,
+    primaryKey: 'id',
+    allowedColumns,
+    searchableColumns,
+    defaultOrderBy: options.defaultOrderBy ?? 'id',
+    hasUpdatedAt: options.hasUpdatedAt ?? true,
+  }
+}
+
+export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
+  departments: entity(
+    'departments',
+    ['name', 'manager_name', 'phone', 'email', 'location', 'created_on', 'note'],
+    ['name', 'manager_name', 'phone', 'email', 'location'],
+    { defaultOrderBy: 'name' },
+  ),
+
+  positions: entity(
+    'positions',
+    ['name', 'base_salary', 'allowance', 'bonus', 'responsibilities', 'requirements', 'note'],
+    ['name', 'responsibilities', 'requirements'],
+    { defaultOrderBy: 'name' },
+  ),
+
+  employees: entity(
+    'employees',
+    [
+      'employee_code',
+      'department_id',
+      'position_id',
+      'last_name',
+      'first_name',
+      'middle_name',
+      'birth_date',
+      'gender',
+      'address',
+      'phone',
+      'email',
+      'hire_date',
+      'status',
+      'note',
+    ],
+    ['employee_code', 'last_name', 'first_name', 'middle_name', 'phone', 'email', 'address'],
+    { defaultOrderBy: 'last_name' },
+  ),
+
+  vacations: entity(
+    'vacations',
+    ['employee_id', 'vacation_type', 'starts_at', 'ends_at', 'days_count', 'reason', 'status', 'note'],
+    ['vacation_type', 'reason', 'status', 'note'],
+    { defaultOrderBy: 'starts_at' },
+  ),
+
+  payroll: entity(
+    'payroll',
+    [
+      'employee_id',
+      'accrual_month',
+      'base_salary',
+      'bonus',
+      'allowance',
+      'deductions',
+      'taxes',
+      'net_amount',
+      'paid_at',
+      'note',
+    ],
+    ['accrual_month', 'note'],
+    { defaultOrderBy: 'accrual_month' },
+  ),
+}
+
+export function getHrCrudEntityConfig(entityKey: HrEntityKey): HrCrudEntityConfig {
+  const config = hrCrudEntities[entityKey]
+
+  if (!config) {
+    throw new Error(`Неизвестная HR-сущность: ${entityKey}`)
+  }
+
+  return config
+}
+@end
+
+@write electron/database/connection.ts
+import { app } from 'electron'
+import { mkdirSync } from 'node:fs'
+import path from 'node:path'
+import Database from 'better-sqlite3'
+
+let database: Database.Database | null = null
+
+function createDatabaseConnection(): Database.Database {
+  const databaseDirectory = path.join(app.getPath('userData'), 'database')
+
+  mkdirSync(databaseDirectory, { recursive: true })
+
+  const databasePath = path.join(databaseDirectory, 'hr-automation.sqlite')
+  const connection = new Database(databasePath)
+
+  connection.pragma('journal_mode = WAL')
+  connection.pragma('foreign_keys = ON')
+
+  return connection
+}
+
+export function getDatabase(): Database.Database {
+  if (!database) {
+    database = createDatabaseConnection()
+  }
+
+  return database
+}
+@end
+
+@write electron/database/migrations.ts
+import { app } from 'electron'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import path from 'node:path'
+import type Database from 'better-sqlite3'
+
+export function runMigrations(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `)
+
+  const migrationsDirectory = resolveMigrationsDirectory()
+
+  const migrationFiles = readdirSync(migrationsDirectory)
+    .filter((fileName) => fileName.endsWith('.sql'))
+    .sort()
+
+  const applyMigration = database.transaction((fileName: string, sql: string) => {
+    database.exec(sql)
+
+    database
+      .prepare(
+        `
+        INSERT INTO schema_migrations (name)
+        VALUES (?)
+      `,
+      )
+      .run(fileName)
+  })
+
+  for (const fileName of migrationFiles) {
+    const appliedMigration = database
+      .prepare('SELECT id FROM schema_migrations WHERE name = ? LIMIT 1')
+      .get(fileName)
+
+    if (appliedMigration) {
+      continue
+    }
+
+    const filePath = path.join(migrationsDirectory, fileName)
+    const sql = readFileSync(filePath, 'utf8')
+
+    try {
+      applyMigration(fileName, sql)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+
+      throw new Error(`Не удалось применить миграцию ${fileName}: ${message}`)
+    }
+  }
+}
+
+function resolveMigrationsDirectory(): string {
+  const candidates = [
+    path.join(process.resourcesPath, 'migrations'),
+    path.join(app.getAppPath(), 'electron/migrations'),
+    path.join(process.cwd(), 'electron/migrations'),
+  ]
+
+  const migrationsDirectory = candidates.find((candidate) => existsSync(candidate))
+
+  if (!migrationsDirectory) {
+    throw new Error(`Каталог миграций не найден. Проверены пути: ${candidates.join(', ')}`)
+  }
+
+  return migrationsDirectory
+}
+@end
+
+@write electron/database/index.ts
+import { getDatabase } from './connection'
+import { runMigrations } from './migrations'
+import { seedDatabase } from '../seed/seedDatabase'
+
+export function initializeDatabase(): void {
+  const database = getDatabase()
+
+  runMigrations(database)
+  seedDatabase(database)
+}
+@end
+
+@write electron/migrations/001_initial_hr_schema.sql
+CREATE TABLE IF NOT EXISTS departments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  manager_name TEXT,
+  phone TEXT,
+  email TEXT,
+  location TEXT,
+  created_on TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS positions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  base_salary REAL NOT NULL DEFAULT 0,
+  allowance REAL NOT NULL DEFAULT 0,
+  bonus REAL NOT NULL DEFAULT 0,
+  responsibilities TEXT,
+  requirements TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_code TEXT NOT NULL UNIQUE,
+  department_id INTEGER,
+  position_id INTEGER,
+  last_name TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  middle_name TEXT,
+  birth_date TEXT,
+  gender TEXT,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  hire_date TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+  FOREIGN KEY (position_id) REFERENCES positions(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS vacations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  vacation_type TEXT NOT NULL,
+  starts_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  days_count INTEGER NOT NULL DEFAULT 0,
+  reason TEXT,
+  status TEXT NOT NULL DEFAULT 'planned',
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payroll (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  accrual_month TEXT NOT NULL,
+  base_salary REAL NOT NULL DEFAULT 0,
+  bonus REAL NOT NULL DEFAULT 0,
+  allowance REAL NOT NULL DEFAULT 0,
+  deductions REAL NOT NULL DEFAULT 0,
+  taxes REAL NOT NULL DEFAULT 0,
+  net_amount REAL NOT NULL DEFAULT 0,
+  paid_at TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (employee_id, accrual_month),
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_employees_department_id ON employees(department_id);
+CREATE INDEX IF NOT EXISTS idx_employees_position_id ON employees(position_id);
+CREATE INDEX IF NOT EXISTS idx_vacations_employee_id ON vacations(employee_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_employee_id ON payroll(employee_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_accrual_month ON payroll(accrual_month);
+@end
+
+@write electron/seed/seedDatabase.ts
+import type Database from 'better-sqlite3'
+
+export function seedDatabase(database: Database.Database): void {
+  const transaction = database.transaction(() => {
+    seedDepartments(database)
+    seedPositions(database)
+    seedEmployees(database)
+    seedVacations(database)
+    seedPayroll(database)
+  })
+
+  transaction()
+}
+
+function seedDepartments(database: Database.Database): void {
+  const insertDepartment = database.prepare(`
+    INSERT OR IGNORE INTO departments (
+      name,
+      manager_name,
+      phone,
+      email,
+      location,
+      created_on,
+      note
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  insertDepartment.run(
+    'Отдел кадров',
+    'Саидова Малика',
+    '+992 900 11 22 33',
+    'hr@company.local',
+    'Главный офис, кабинет 204',
+    '2021-01-15',
+    'Основной отдел по работе с персоналом',
+  )
+
+  insertDepartment.run(
+    'Бухгалтерия',
+    'Каримов Фарид',
+    '+992 900 44 55 66',
+    'finance@company.local',
+    'Главный офис, кабинет 112',
+    '2020-03-10',
+    'Начисление заработной платы и отчётность',
+  )
+
+  insertDepartment.run(
+    'IT-отдел',
+    'Рахмонов Азиз',
+    '+992 901 77 88 99',
+    'it@company.local',
+    'Главный офис, кабинет 310',
+    '2022-05-01',
+    'Техническая поддержка и автоматизация',
+  )
+}
+
+function seedPositions(database: Database.Database): void {
+  const insertPosition = database.prepare(`
+    INSERT OR IGNORE INTO positions (
+      name,
+      base_salary,
+      allowance,
+      bonus,
+      responsibilities,
+      requirements,
+      note
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  insertPosition.run(
+    'HR-специалист',
+    4200,
+    300,
+    500,
+    'Ведение личных дел, оформление отпусков, подбор персонала',
+    'Опыт работы с кадровыми документами, внимательность',
+    'Базовая должность отдела кадров',
+  )
+
+  insertPosition.run(
+    'Бухгалтер',
+    5000,
+    500,
+    700,
+    'Начисление зарплаты, налоги, финансовая отчётность',
+    'Знание бухгалтерского учёта и налогов',
+    'Должность бухгалтерии',
+  )
+
+  insertPosition.run(
+    'Системный администратор',
+    6500,
+    800,
+    1000,
+    'Поддержка рабочих станций, серверов и внутренних систем',
+    'Опыт администрирования Windows/Linux, сети, безопасность',
+    'Техническая должность',
+  )
+}
+
+function seedEmployees(database: Database.Database): void {
+  const insertEmployee = database.prepare(`
+    INSERT OR IGNORE INTO employees (
+      employee_code,
+      department_id,
+      position_id,
+      last_name,
+      first_name,
+      middle_name,
+      birth_date,
+      gender,
+      address,
+      phone,
+      email,
+      hire_date,
+      status,
+      note
+    )
+    VALUES (
+      @employeeCode,
+      @departmentId,
+      @positionId,
+      @lastName,
+      @firstName,
+      @middleName,
+      @birthDate,
+      @gender,
+      @address,
+      @phone,
+      @email,
+      @hireDate,
+      @status,
+      @note
+    )
+  `)
+
+  insertEmployee.run({
+    employeeCode: 'EMP-0001',
+    departmentId: 1,
+    positionId: 1,
+    lastName: 'Саидова',
+    firstName: 'Малика',
+    middleName: 'Алишеровна',
+    birthDate: '1994-06-12',
+    gender: 'female',
+    address: 'г. Душанбе',
+    phone: '+992 900 11 22 33',
+    email: 'malika.saidova@company.local',
+    hireDate: '2021-02-01',
+    status: 'active',
+    note: 'Руководитель HR-процессов',
+  })
+
+  insertEmployee.run({
+    employeeCode: 'EMP-0002',
+    departmentId: 2,
+    positionId: 2,
+    lastName: 'Каримов',
+    firstName: 'Фарид',
+    middleName: 'Насимович',
+    birthDate: '1991-09-20',
+    gender: 'male',
+    address: 'г. Душанбе',
+    phone: '+992 900 44 55 66',
+    email: 'farid.karimov@company.local',
+    hireDate: '2020-04-10',
+    status: 'active',
+    note: 'Ответственный за начисления',
+  })
+
+  insertEmployee.run({
+    employeeCode: 'EMP-0003',
+    departmentId: 3,
+    positionId: 3,
+    lastName: 'Рахмонов',
+    firstName: 'Азиз',
+    middleName: 'Шарифович',
+    birthDate: '1996-01-28',
+    gender: 'male',
+    address: 'г. Душанбе',
+    phone: '+992 901 77 88 99',
+    email: 'aziz.rahmonov@company.local',
+    hireDate: '2022-05-15',
+    status: 'active',
+    note: 'Администрирование системы',
+  })
+}
+
+function seedVacations(database: Database.Database): void {
+  const insertVacation = database.prepare(`
+    INSERT OR IGNORE INTO vacations (
+      employee_id,
+      vacation_type,
+      starts_at,
+      ends_at,
+      days_count,
+      reason,
+      status,
+      note
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  insertVacation.run(
+    1,
+    'Ежегодный отпуск',
+    '2026-08-01',
+    '2026-08-14',
+    14,
+    'Плановый отпуск',
+    'planned',
+    'Демо-запись',
+  )
+}
+
+function seedPayroll(database: Database.Database): void {
+  const insertPayroll = database.prepare(`
+    INSERT OR IGNORE INTO payroll (
+      employee_id,
+      accrual_month,
+      base_salary,
+      bonus,
+      allowance,
+      deductions,
+      taxes,
+      net_amount,
+      paid_at,
+      note
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  insertPayroll.run(1, '2026-07', 4200, 500, 300, 0, 250, 4750, '2026-07-30', 'Демо-начисление')
+  insertPayroll.run(2, '2026-07', 5000, 700, 500, 100, 350, 5750, '2026-07-30', 'Демо-начисление')
+  insertPayroll.run(3, '2026-07', 6500, 1000, 800, 0, 500, 7800, '2026-07-30', 'Демо-начисление')
+}
+@end
+
+@write electron/repositories/hrCrudRepository.ts
+import type Database from 'better-sqlite3'
+import type {
+  HrDashboardStats,
+  HrListParams,
+  HrListResult,
+  HrRecord,
+} from '../../src/shared/types/hr'
+import type { HrCrudEntityConfig } from '../admin/hrCrudEntities'
+
+interface SqlWhereResult {
+  sql: string
+  params: Record<string, unknown>
+}
+
+const maxHrPageSize = 50000
+
+export class HrCrudRepository {
+  constructor(private readonly database: Database.Database) {}
+
+  list(config: HrCrudEntityConfig, params: HrListParams): HrListResult {
+    const page = normalizePage(params.page)
+    const pageSize = normalizePageSize(params.pageSize)
+    const offset = (page - 1) * pageSize
+    const where = this.buildWhere(config, params)
+    const orderBy = this.normalizeOrderBy(config, params.orderBy)
+    const orderDirection = params.orderDirection === 'desc' ? 'DESC' : 'ASC'
+
+    const items = this.database
+      .prepare(
+        `
+        SELECT *
+        FROM ${config.tableName}
+        ${where.sql}
+        ORDER BY ${orderBy} ${orderDirection}
+        LIMIT @limit OFFSET @offset
+      `,
+      )
+      .all({
+        ...where.params,
+        limit: pageSize,
+        offset,
+      }) as HrRecord[]
+
+    const countResult = this.database
+      .prepare(
+        `
+        SELECT COUNT(*) as total
+        FROM ${config.tableName}
+        ${where.sql}
+      `,
+      )
+      .get(where.params) as { total: number }
+
+    return {
+      items,
+      total: countResult.total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(countResult.total / pageSize),
+    }
+  }
+
+  getById(config: HrCrudEntityConfig, id: number): HrRecord | null {
+    const row = this.database
+      .prepare(
+        `
+        SELECT *
+        FROM ${config.tableName}
+        WHERE ${config.primaryKey} = ?
+        LIMIT 1
+      `,
+      )
+      .get(id) as HrRecord | undefined
+
+    return row ?? null
+  }
+
+  create(config: HrCrudEntityConfig, data: HrRecord): HrRecord {
+    const safeData = this.pickEditableData(config, data)
+
+    if (Object.keys(safeData).length === 0) {
+      throw new Error('Нет разрешённых полей для создания записи')
+    }
+
+    const columns = Object.keys(safeData)
+    const placeholders = columns.map((column) => `@${column}`)
+
+    const result = this.database
+      .prepare(
+        `
+        INSERT INTO ${config.tableName} (${columns.join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `,
+      )
+      .run(safeData)
+
+    const created = this.getById(config, Number(result.lastInsertRowid))
+
+    if (!created) {
+      throw new Error('Созданная запись не найдена')
+    }
+
+    return created
+  }
+
+  update(config: HrCrudEntityConfig, id: number, data: HrRecord): HrRecord {
+    const safeData = this.pickEditableData(config, data)
+
+    if (Object.keys(safeData).length === 0) {
+      throw new Error('Нет разрешённых полей для обновления записи')
+    }
+
+    const setParts = Object.keys(safeData).map((column) => `${column} = @${column}`)
+
+    if (config.hasUpdatedAt) {
+      setParts.push('updated_at = CURRENT_TIMESTAMP')
+    }
+
+    this.database
+      .prepare(
+        `
+        UPDATE ${config.tableName}
+        SET ${setParts.join(', ')}
+        WHERE ${config.primaryKey} = @id
+      `,
+      )
+      .run({
+        ...safeData,
+        id,
+      })
+
+    const updated = this.getById(config, id)
+
+    if (!updated) {
+      throw new Error('Обновлённая запись не найдена')
+    }
+
+    return updated
+  }
+
+  delete(config: HrCrudEntityConfig, id: number): void {
+    this.database
+      .prepare(
+        `
+        DELETE FROM ${config.tableName}
+        WHERE ${config.primaryKey} = ?
+      `,
+      )
+      .run(id)
+  }
+
+  dashboard(): HrDashboardStats {
+    const currentMonth = new Date().toISOString().slice(0, 7)
+
+    const employeesTotal = this.getNumber('SELECT COUNT(*) FROM employees')
+    const departmentsTotal = this.getNumber('SELECT COUNT(*) FROM departments')
+    const positionsTotal = this.getNumber('SELECT COUNT(*) FROM positions')
+    const activeVacations = this.getNumber(`
+      SELECT COUNT(*)
+      FROM vacations
+      WHERE status IN ('planned', 'approved')
+    `)
+
+    const payrollMonthTotal = this.getNumber(
+      `
+      SELECT COALESCE(SUM(net_amount), 0)
+      FROM payroll
+      WHERE accrual_month = ?
+    `,
+      [currentMonth],
+    )
+
+    return {
+      employeesTotal,
+      departmentsTotal,
+      positionsTotal,
+      activeVacations,
+      payrollMonthTotal,
+    }
+  }
+
+  private buildWhere(config: HrCrudEntityConfig, params: HrListParams): SqlWhereResult {
+    const conditions: string[] = []
+    const values: Record<string, unknown> = {}
+
+    if (params.search && config.searchableColumns.length > 0) {
+      const searchConditions = config.searchableColumns.map((column, index) => {
+        const key = `search_${index}`
+        values[key] = `%${params.search}%`
+
+        return `${column} LIKE @${key}`
+      })
+
+      conditions.push(`(${searchConditions.join(' OR ')})`)
+    }
+
+    if (params.filters) {
+      Object.entries(params.filters).forEach(([column, value], index) => {
+        if (!config.allowedColumns.includes(column) || value === undefined || value === null) {
+          return
+        }
+
+        if (Array.isArray(value)) {
+          const safeValues = value.filter((item) => item !== null && item !== undefined && item !== '')
+
+          if (safeValues.length === 0) {
+            conditions.push('1 = 0')
+            return
+          }
+
+          const keys = safeValues.map((_item, itemIndex) => `filter_${index}_${itemIndex}`)
+
+          keys.forEach((key, itemIndex) => {
+            values[key] = safeValues[itemIndex]
+          })
+
+          conditions.push(`${column} IN (${keys.map((key) => `@${key}`).join(', ')})`)
+          return
+        }
+
+        if (value === '') {
+          return
+        }
+
+        const key = `filter_${index}`
+        conditions.push(`${column} = @${key}`)
+        values[key] = value
+      })
+    }
+
+    return {
+      sql: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+      params: values,
+    }
+  }
+
+  private normalizeOrderBy(config: HrCrudEntityConfig, orderBy?: string): string {
+    if (orderBy && config.allowedColumns.includes(orderBy)) {
+      return orderBy
+    }
+
+    return config.defaultOrderBy
+  }
+
+  private pickEditableData(config: HrCrudEntityConfig, data: HrRecord): HrRecord {
+    const ignoredColumns = new Set(['id', 'created_at', 'updated_at'])
+    const result: HrRecord = {}
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (ignoredColumns.has(key)) {
+        return
+      }
+
+      if (!config.allowedColumns.includes(key)) {
+        return
+      }
+
+      result[key] = value
+    })
+
+    return result
+  }
+
+  private getNumber(sql: string, params: unknown[] = []): number {
+    const result = this.database.prepare(sql).pluck().get(...params) as number | null | undefined
+
+    return Number(result ?? 0)
+  }
+}
+
+function normalizePage(page?: number): number {
+  if (!page || page < 1) {
+    return 1
+  }
+
+  return Math.floor(page)
+}
+
+function normalizePageSize(pageSize?: number): number {
+  if (!pageSize || pageSize < 1) {
+    return 20
+  }
+
+  return Math.min(Math.floor(pageSize), maxHrPageSize)
+}
+@end
+
+@write electron/services/hrCrudService.ts
+import type {
+  HrCreateParams,
+  HrDashboardStats,
+  HrDeleteParams,
+  HrGetByIdParams,
+  HrListParams,
+  HrListResult,
+  HrRecord,
+  HrUpdateParams,
+} from '../../src/shared/types/hr'
+import { getHrCrudEntityConfig } from '../admin/hrCrudEntities'
+import { HrCrudRepository } from '../repositories/hrCrudRepository'
+
+export class HrCrudService {
+  constructor(private readonly repository: HrCrudRepository) {}
+
+  list(params: HrListParams): HrListResult {
+    const config = getHrCrudEntityConfig(params.entity)
+
+    return this.repository.list(config, params)
+  }
+
+  getById(params: HrGetByIdParams): HrRecord | null {
+    const config = getHrCrudEntityConfig(params.entity)
+
+    return this.repository.getById(config, params.id)
+  }
+
+  create(params: HrCreateParams): HrRecord {
+    const config = getHrCrudEntityConfig(params.entity)
+    const data = this.prepareData(params.entity, params.data)
+
+    return this.repository.create(config, data)
+  }
+
+  update(params: HrUpdateParams): HrRecord {
+    const config = getHrCrudEntityConfig(params.entity)
+    const data = this.prepareData(params.entity, params.data)
+
+    return this.repository.update(config, params.id, data)
+  }
+
+  delete(params: HrDeleteParams): { success: true } {
+    const config = getHrCrudEntityConfig(params.entity)
+
+    this.repository.delete(config, params.id)
+
+    return { success: true }
+  }
+
+  dashboard(): HrDashboardStats {
+    return this.repository.dashboard()
+  }
+
+  private prepareData(entity: string, data: HrRecord): HrRecord {
+    if (entity !== 'payroll') {
+      return data
+    }
+
+    const baseSalary = toNumber(data.base_salary)
+    const bonus = toNumber(data.bonus)
+    const allowance = toNumber(data.allowance)
+    const deductions = toNumber(data.deductions)
+    const taxes = toNumber(data.taxes)
+
+    return {
+      ...data,
+      base_salary: baseSalary,
+      bonus,
+      allowance,
+      deductions,
+      taxes,
+      net_amount: baseSalary + bonus + allowance - deductions - taxes,
+    }
+  }
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === 'number') {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    return Number(value)
+  }
+
+  return 0
+}
+@end
+
+@write electron/ipc/hrCrudIpc.ts
+import { ipcMain } from 'electron'
+import type {
+  HrCreateParams,
+  HrDeleteParams,
+  HrGetByIdParams,
+  HrListParams,
+  HrUpdateParams,
+} from '../../src/shared/types/hr'
+import { getDatabase } from '../database/connection'
+import { HrCrudRepository } from '../repositories/hrCrudRepository'
+import { HrCrudService } from '../services/hrCrudService'
+
+export function registerHrCrudIpcHandlers(): void {
+  const database = getDatabase()
+  const repository = new HrCrudRepository(database)
+  const service = new HrCrudService(repository)
+
+  ipcMain.handle('hr:list', (_event, params: HrListParams) => service.list(params))
+
+  ipcMain.handle('hr:getById', (_event, params: HrGetByIdParams) => service.getById(params))
+
+  ipcMain.handle('hr:create', (_event, params: HrCreateParams) => service.create(params))
+
+  ipcMain.handle('hr:update', (_event, params: HrUpdateParams) => service.update(params))
+
+  ipcMain.handle('hr:delete', (_event, params: HrDeleteParams) => service.delete(params))
+
+  ipcMain.handle('hr:dashboard', () => service.dashboard())
+}
+@end
+
+@replace-first electron/main.ts
 @find
-import react from '@vitejs/plugin-react'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
+@endfind
+@with
+import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { initializeDatabase } from './database'
+import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
+@endwith
+@end
+
+@insert-after-once electron/main.ts
+@find
+  electronApp.setAppUserModelId('com.hr.automation')
 @endfind
 @content
-import tailwindcss from '@tailwindcss/vite'
+
+  initializeDatabase()
+  registerHrCrudIpcHandlers()
 @endcontent
+@end
+
+@write electron/preload.ts
+import { contextBridge, ipcRenderer } from 'electron'
+import type {
+  HrApi,
+  HrCreateParams,
+  HrDeleteParams,
+  HrGetByIdParams,
+  HrListParams,
+  HrUpdateParams,
+} from '../src/shared/types/hr'
+
+const hrApi: HrApi = {
+  list(params: HrListParams) {
+    return ipcRenderer.invoke('hr:list', params)
+  },
+
+  getById(params: HrGetByIdParams) {
+    return ipcRenderer.invoke('hr:getById', params)
+  },
+
+  create(params: HrCreateParams) {
+    return ipcRenderer.invoke('hr:create', params)
+  },
+
+  update(params: HrUpdateParams) {
+    return ipcRenderer.invoke('hr:update', params)
+  },
+
+  delete(params: HrDeleteParams) {
+    return ipcRenderer.invoke('hr:delete', params)
+  },
+
+  dashboard() {
+    return ipcRenderer.invoke('hr:dashboard')
+  },
+}
+
+contextBridge.exposeInMainWorld('hrApi', hrApi)
+
+contextBridge.exposeInMainWorld('ipcRenderer', {
+  on(...args: Parameters<typeof ipcRenderer.on>) {
+    const [channel, listener] = args
+    return ipcRenderer.on(channel, (event, ...listenerArgs) => listener(event, ...listenerArgs))
+  },
+
+  off(...args: Parameters<typeof ipcRenderer.off>) {
+    const [channel, ...listenerArgs] = args
+    return ipcRenderer.off(channel, ...listenerArgs)
+  },
+
+  send(...args: Parameters<typeof ipcRenderer.send>) {
+    const [channel, ...sendArgs] = args
+    return ipcRenderer.send(channel, ...sendArgs)
+  },
+
+  invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
+    const [channel, ...invokeArgs] = args
+    return ipcRenderer.invoke(channel, ...invokeArgs)
+  },
+})
+@end
+
+@replace-first package.json
+@find
+    "preview": "vite preview"
+@endfind
+@with
+    "preview": "vite preview",
+    "build:check": "tsc && vite build",
+    "postinstall": "electron-builder install-app-deps"
+@endwith
+@end
+
+@write electron-builder.json5
+// @see - https://www.electron.build/configuration/configuration
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.hr.automation",
+  "asar": true,
+  "productName": "HR Automation",
+  "directories": {
+    "output": "release/${version}"
+  },
+  "files": [
+    "dist",
+    "dist-electron"
+  ],
+  "extraResources": [
+    {
+      "from": "electron/migrations",
+      "to": "migrations",
+      "filter": [
+        "*.sql"
+      ]
+    }
+  ],
+  "mac": {
+    "target": [
+      "dmg"
+    ],
+    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "deleteAppDataOnUninstall": false
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ],
+    "artifactName": "${productName}-Linux-${version}.${ext}"
+  }
+}
 @end

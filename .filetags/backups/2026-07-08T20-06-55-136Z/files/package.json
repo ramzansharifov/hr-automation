@@ -7,9 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "build:check": "tsc && vite build",
-    "postinstall": "electron-builder install-app-deps"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

@@ -1,28 +1,3 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
 # Dependencies
 node_modules/
 
@@ -32,26 +7,46 @@ dist-electron/
 release/
 out/
 build/
+dist-ssr/
+
+# Electron Builder
+*.blockmap
+*.AppImage
+*.dmg
+*.exe
+*.snap
+*.deb
+*.rpm
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # Environment
 .env
 .env.local
 .env.*.local
+*.local
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-shm
+*.sqlite-wal
 
 # Editor
 .vscode/*
 !.vscode/extensions.json
 .idea/
 .DS_Store
-
-# Electron / native
-*.sqlite
-*.sqlite-shm
-*.sqlite-wal
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

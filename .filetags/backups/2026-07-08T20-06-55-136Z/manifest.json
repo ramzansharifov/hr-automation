@@ -1,0 +1,55 @@
+{
+  "createdAt": "2026-07-08T20:06:55.175Z",
+  "backupPath": ".filetags/backups/2026-07-08T20-06-55-136Z",
+  "filesBackedUp": [
+    {
+      "originalPath": ".gitignore",
+      "backupRelativePath": "files/.gitignore"
+    },
+    {
+      "originalPath": "electron/main.ts",
+      "backupRelativePath": "files/electron/main.ts"
+    },
+    {
+      "originalPath": "electron/preload.ts",
+      "backupRelativePath": "files/electron/preload.ts"
+    },
+    {
+      "originalPath": "package.json",
+      "backupRelativePath": "files/package.json"
+    },
+    {
+      "originalPath": "electron-builder.json5",
+      "backupRelativePath": "files/electron-builder.json5"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Create folder: electron/database",
+    "Create folder: electron/migrations",
+    "Create folder: electron/repositories",
+    "Create folder: electron/services",
+    "Create folder: electron/ipc",
+    "Create folder: electron/admin",
+    "Create folder: electron/seed",
+    "Create folder: src/shared",
+    "Create folder: src/shared/types",
+    "Write file: .gitignore\n   old: 57 line(s)\n   new: 52 line(s)",
+    "Write file: src/shared/types/hr.ts\n   old: missing\n   new: 68 line(s)",
+    "Write file: src/shared/types/global.d.ts\n   old: missing\n   new: 15 line(s)",
+    "Write file: electron/admin/hrCrudEntities.ts\n   old: missing\n   new: 101 line(s)",
+    "Write file: electron/database/connection.ts\n   old: missing\n   new: 28 line(s)",
+    "Write file: electron/database/migrations.ts\n   old: missing\n   new: 70 line(s)",
+    "Write file: electron/database/index.ts\n   old: missing\n   new: 10 line(s)",
+    "Write file: electron/migrations/001_initial_hr_schema.sql\n   old: missing\n   new: 86 line(s)",
+    "Write file: electron/seed/seedDatabase.ts\n   old: missing\n   new: 240 line(s)",
+    "Write file: electron/repositories/hrCrudRepository.ts\n   old: missing\n   new: 285 line(s)",
+    "Write file: electron/services/hrCrudService.ts\n   old: missing\n   new: 88 line(s)",
+    "Write file: electron/ipc/hrCrudIpc.ts\n   old: missing\n   new: 29 line(s)",
+    "Replace file: electron/main.ts\n   found: yes\n   old: 77 line(s)\n   new: 79 line(s)",
+    "Insert after: electron/main.ts\n   found: yes\n   old: 79 line(s)\n   new: 82 line(s)",
+    "Write file: electron/preload.ts\n   old: 25 line(s)\n   new: 59 line(s)",
+    "Replace file: package.json\n   found: yes\n   old: 72 line(s)\n   new: 74 line(s)",
+    "Write file: electron-builder.json5\n   old: 44 line(s)\n   new: 52 line(s)"
+  ]
+}

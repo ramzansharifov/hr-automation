@@ -1,7 +1,5 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import { initializeDatabase } from './database'
-import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -63,9 +61,6 @@ app.on('window-all-closed', () => {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.hr.automation')
-
-  initializeDatabase()
-  registerHrCrudIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
