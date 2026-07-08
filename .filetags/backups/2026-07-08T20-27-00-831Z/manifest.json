@@ -1,0 +1,19 @@
+{
+  "createdAt": "2026-07-08T20:27:00.866Z",
+  "backupPath": ".filetags/backups/2026-07-08T20-27-00-831Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/shared/lib/hrApiClient.ts",
+      "backupRelativePath": "files/src/shared/lib/hrApiClient.ts"
+    },
+    {
+      "originalPath": "src/shared/types/global.d.ts",
+      "backupRelativePath": "files/src/shared/types/global.d.ts"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/shared/lib/hrApiClient.ts\n   old: 42 line(s)\n   new: 87 line(s)",
+    "Write file: src/shared/types/global.d.ts\n   old: 15 line(s)\n   new: 15 line(s)"
+  ]
+}

@@ -2,8 +2,8 @@ import type { HrApi } from './hr'
 
 declare global {
   interface Window {
-    hrApi?: HrApi
-    ipcRenderer?: {
+    hrApi: HrApi
+    ipcRenderer: {
       on: (...args: unknown[]) => unknown
       off: (...args: unknown[]) => unknown
       send: (...args: unknown[]) => unknown
