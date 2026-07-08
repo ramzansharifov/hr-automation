@@ -1,0 +1,8 @@
+@insert-after-once vite.config.ts
+@find
+import react from '@vitejs/plugin-react'
+@endfind
+@content
+import tailwindcss from '@tailwindcss/vite'
+@endcontent
+@end
