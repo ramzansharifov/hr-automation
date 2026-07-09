@@ -1,0 +1,14 @@
+{
+  "createdAt": "2026-07-09T09:59:30.771Z",
+  "backupPath": ".filetags/backups/2026-07-09T09-59-30-710Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/pages/employees/EmployeeDetailsPage.tsx\n   old: 410 line(s)\n   new: 396 line(s)"
+  ]
+}
