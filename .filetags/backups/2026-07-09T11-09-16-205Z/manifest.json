@@ -1,0 +1,20 @@
+{
+  "createdAt": "2026-07-09T11:09:16.263Z",
+  "backupPath": ".filetags/backups/2026-07-09T11-09-16-205Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 479 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 479 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 479 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 479 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 479 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 479 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 479 line(s)\n   new: 475 line(s)"
+  ]
+}

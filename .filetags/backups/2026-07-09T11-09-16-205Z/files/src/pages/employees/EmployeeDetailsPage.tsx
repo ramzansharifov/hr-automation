@@ -270,7 +270,7 @@ function EmployeePassportCard({
           </div>
         </motion.aside>
 
-        <div className="min-w-0 bg-[var(--color-surface-muted)]">
+        <div className="min-w-0">
           <motion.header
             initial={{ opacity: 0, y: -18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -286,35 +286,35 @@ function EmployeePassportCard({
             </span>
           </motion.header>
 
-          <div className="px-6 py-6 sm:px-8 xl:px-10">
-            <div className="grid gap-4 xl:grid-cols-2">
+          <div className="px-7 py-8 sm:px-10 xl:px-12 bg-gray-50">
+            <div className="grid gap-6 xl:grid-cols-2">
               <CardInfoBox
-                icon={<FiPhone className="h-6 w-6" />}
+                icon={<FiPhone className="h-8 w-8" />}
                 label={t("forms.fields.phone")}
                 value={valueOrEmpty(getString(employee.phone), t)}
               />
 
               <CardInfoBox
-                icon={<FiMail className="h-6 w-6" />}
+                icon={<FiMail className="h-8 w-8" />}
                 label={t("forms.fields.email")}
                 value={valueOrEmpty(getString(employee.email), t)}
               />
 
               <CardInfoBox
-                icon={<FiMapPin className="h-6 w-6" />}
+                icon={<FiMapPin className="h-8 w-8" />}
                 label={t("forms.fields.address")}
                 value={address}
                 wide
               />
 
               <CardInfoBox
-                icon={<FiUser className="h-6 w-6" />}
+                icon={<FiUser className="h-8 w-8" />}
                 label={t("forms.fields.gender")}
                 value={humanizeStatus(employee.gender, t)}
               />
 
               <CardInfoBox
-                icon={<FiCalendar className="h-6 w-6" />}
+                icon={<FiCalendar className="h-8 w-8" />}
                 label={t("forms.fields.birthDate")}
                 value={formatDate(employee.birth_date, locale)}
               />
@@ -335,6 +335,7 @@ interface CardInfoBoxProps {
 
 function CardInfoBox({
   icon,
+  label,
   value,
   wide = false,
 }: CardInfoBoxProps): JSX.Element {
@@ -343,19 +344,22 @@ function CardInfoBox({
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: "easeOut" }}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -3 }}
       className={[
-        "app-surface flex min-h-[92px] items-center gap-4 rounded-[22px] border px-5 py-4 transition",
+        "app-surface app-shadow app-hover-accent-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition",
         wide ? "xl:col-span-2" : "",
       ].join(" ")}
     >
-      <span className="app-accent-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]">
+      <span className="app-accent-soft app-accent-shadow-sm flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
         {icon}
       </span>
 
-      <p className="app-text min-w-0 whitespace-pre-line break-words text-lg font-black leading-snug">
-        {value}
-      </p>
+      <div className="min-w-0">
+        <p className="app-muted text-base font-black">{label}</p>
+        <p className="app-text mt-3 whitespace-pre-line break-words text-xl font-black leading-relaxed">
+          {value}
+        </p>
+      </div>
     </motion.div>
   );
 }

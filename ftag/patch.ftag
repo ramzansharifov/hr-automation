@@ -1,188 +1,118 @@
-@insert-after-once src/index.css
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
 @find
-.app-accent-gradient-panel {
-  background:
-    radial-gradient(circle at 85% 8%, color-mix(in srgb, var(--accent-soft) 26%, transparent) 0 18%, transparent 36%),
-    radial-gradient(circle at 28% 78%, color-mix(in srgb, var(--accent-border) 22%, transparent) 0 18%, transparent 34%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-border) 82%, #ffffff) 0%,
-      var(--accent) 42%,
-      color-mix(in srgb, var(--accent-hover) 74%, #020617) 100%
-    );
-}
+          <div className="px-7 py-8 sm:px-10 xl:px-12 bg-gray-50">
+            <div className="grid gap-6 xl:grid-cols-2">
 @endfind
-@content
-
-.app-passport-header-gradient {
-  background:
-    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent-soft) 30%, transparent) 0 22%, transparent 42%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-border) 78%, #ffffff) 0%,
-      var(--accent) 48%,
-      color-mix(in srgb, var(--accent-hover) 78%, #020617) 100%
-    );
-}
-
-.app-passport-divider {
-  height: 1px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, var(--accent) 48%, var(--color-border)) 18%,
-      color-mix(in srgb, var(--accent-border) 72%, #ffffff) 50%,
-      color-mix(in srgb, var(--accent) 48%, var(--color-border)) 82%,
-      transparent
-    );
-}
-
-.app-passport-soft-line {
-  height: 1px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, #ffffff 72%, var(--accent-border)),
-      transparent
-    );
-}
-@endcontent
+@with
+          <div className="bg-[var(--color-surface-muted)] px-6 py-6 sm:px-8 xl:px-10">
+            <div className="grid gap-4 xl:grid-cols-2">
+@endwith
 @end
 
-@replace-block src/pages/employees/EmployeeDetailsPage.tsx
-@from
-function EmployeePassportCard({
-@endfrom
-@to
-interface CardInfoBoxProps {
-@endto
-@with
-function EmployeePassportCard({
-  employee,
-  fullName,
-  locale,
-  t,
-}: EmployeePassportCardProps): JSX.Element {
-  const address = composeAddress(employee, t)
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, scale: 0.985, y: 18 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.42, delay: 0.12, ease: 'easeOut' }}
-      className="app-surface app-shadow-lg mx-auto max-w-7xl overflow-hidden rounded-[36px] border"
-    >
-      <div className="grid min-h-[560px] xl:grid-cols-[300px_minmax(0,1fr)]">
-        <motion.aside
-          initial={{ opacity: 0, x: -24 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.42, delay: 0.18, ease: 'easeOut' }}
-          className="app-accent-gradient-panel relative overflow-hidden p-7 text-white"
-        >
-          <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
-          <div className="absolute -right-28 top-16 h-72 w-72 rounded-full bg-white/10" />
-          <div className="absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-white/10" />
-          <div className="absolute bottom-24 left-6 h-44 w-44 rounded-full border border-white/15" />
-          <div className="absolute bottom-28 left-10 h-36 w-36 rounded-full bg-white/10" />
-
-          <div className="relative z-10 flex h-full min-h-[500px] flex-col items-center justify-center text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.82, rotate: -6 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 0.45, delay: 0.28, ease: 'easeOut' }}
-              className="relative flex h-36 w-36 items-center justify-center"
-            >
-              <div className="absolute inset-3 rounded-full bg-white/20 blur-2xl" />
-              <HRLogo className="app-accent-drop-shadow relative h-32 w-32" />
-            </motion.div>
-
-            <div className="app-passport-soft-line mt-12 w-24" />
-
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.32, delay: 0.38, ease: 'easeOut' }}
-              className="mt-10 text-base font-black uppercase tracking-[0.34em]"
-            >
-              Сотрудник
-            </motion.p>
-
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.32, delay: 0.44, ease: 'easeOut' }}
-              className="mt-5 text-xs font-black uppercase tracking-[0.38em] text-white/70"
-            >
-              HR Automation
-            </motion.p>
-          </div>
-        </motion.aside>
-
-        <div className="min-w-0">
-          <motion.header
-            initial={{ opacity: 0, y: -18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.36, delay: 0.22, ease: 'easeOut' }}
-            className="app-passport-header-gradient flex min-h-[132px] items-center justify-between gap-6 rounded-bl-[28px] rounded-tr-[36px] px-9 py-7 text-white"
-          >
-            <h2 className="min-w-0 truncate text-3xl font-black tracking-tight sm:text-4xl">
-              {fullName || t('employeesDetails.title')}
-            </h2>
-
-            <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] border border-white/30 bg-white/88 text-[var(--accent)]">
-              <FiUser className="h-10 w-10" />
-            </span>
-          </motion.header>
-
-          <div className="px-7 py-8 sm:px-10 xl:px-12">
-            <motion.div
-              initial={{ scaleX: 0, opacity: 0 }}
-              animate={{ scaleX: 1, opacity: 1 }}
-              transition={{ duration: 0.36, delay: 0.34, ease: 'easeOut' }}
-              className="app-passport-divider mb-8 origin-left"
-            />
-
-            <div className="grid gap-6 xl:grid-cols-2">
-              <CardInfoBox
+@replace-all src/pages/employees/EmployeeDetailsPage.tsx
+@find
                 icon={<FiPhone className="h-8 w-8" />}
-                label={t('forms.fields.phone')}
-                value={valueOrEmpty(getString(employee.phone), t)}
-              />
+@endfind
+@with
+                icon={<FiPhone className="h-6 w-6" />}
+@endwith
+@end
 
-              <CardInfoBox
+@replace-all src/pages/employees/EmployeeDetailsPage.tsx
+@find
                 icon={<FiMail className="h-8 w-8" />}
-                label={t('forms.fields.email')}
-                value={valueOrEmpty(getString(employee.email), t)}
-              />
+@endfind
+@with
+                icon={<FiMail className="h-6 w-6" />}
+@endwith
+@end
 
-              <CardInfoBox
+@replace-all src/pages/employees/EmployeeDetailsPage.tsx
+@find
                 icon={<FiMapPin className="h-8 w-8" />}
-                label={t('forms.fields.address')}
-                value={address}
-                wide
-              />
+@endfind
+@with
+                icon={<FiMapPin className="h-6 w-6" />}
+@endwith
+@end
 
-              <CardInfoBox
+@replace-all src/pages/employees/EmployeeDetailsPage.tsx
+@find
                 icon={<FiUser className="h-8 w-8" />}
-                label={t('forms.fields.gender')}
-                value={humanizeStatus(employee.gender, t)}
-              />
+@endfind
+@with
+                icon={<FiUser className="h-6 w-6" />}
+@endwith
+@end
 
-              <CardInfoBox
+@replace-all src/pages/employees/EmployeeDetailsPage.tsx
+@find
                 icon={<FiCalendar className="h-8 w-8" />}
-                label={t('forms.fields.birthDate')}
-                value={formatDate(employee.birth_date, locale)}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.article>
-  )
-}
+@endfind
+@with
+                icon={<FiCalendar className="h-6 w-6" />}
+@endwith
+@end
 
-interface CardInfoBoxProps {
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+function CardInfoBox({
+  icon,
+  label,
+  value,
+  wide = false,
+}: CardInfoBoxProps): JSX.Element {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: "easeOut" }}
+      whileHover={{ y: -3 }}
+      className={[
+        "app-surface app-shadow app-hover-accent-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition",
+        wide ? "xl:col-span-2" : "",
+      ].join(" ")}
+    >
+      <span className="app-accent-soft app-accent-shadow-sm flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
+        {icon}
+      </span>
+
+      <div className="min-w-0">
+        <p className="app-muted text-base font-black">{label}</p>
+        <p className="app-text mt-3 whitespace-pre-line break-words text-xl font-black leading-relaxed">
+          {value}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+@endfind
+@with
+function CardInfoBox({
+  icon,
+  value,
+  wide = false,
+}: CardInfoBoxProps): JSX.Element {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: "easeOut" }}
+      whileHover={{ y: -2 }}
+      className={[
+        "app-surface flex min-h-[92px] items-center gap-4 rounded-[22px] border px-5 py-4 transition",
+        wide ? "xl:col-span-2" : "",
+      ].join(" ")}
+    >
+      <span className="app-accent-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]">
+        {icon}
+      </span>
+
+      <p className="app-text min-w-0 whitespace-pre-line break-words text-lg font-black leading-snug">
+        {value}
+      </p>
+    </motion.div>
+  );
+}
 @endwith
 @end
