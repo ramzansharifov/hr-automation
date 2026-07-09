@@ -1,0 +1,15 @@
+{
+  "createdAt": "2026-07-09T09:55:35.225Z",
+  "backupPath": ".filetags/backups/2026-07-09T09-55-35-166Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/pages/employees/EmployeeDetailsPage.tsx\n   old: 313 line(s)\n   new: 335 line(s)",
+    "Replace file: src/shared/i18n/locales/ru.ts\n   found: no\n   old: 395 line(s)\n   new: 395 line(s)"
+  ]
+}

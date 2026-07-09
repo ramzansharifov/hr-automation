@@ -1,3 +1,4 @@
+@content
 import { useEffect, useState } from 'react'
 import type { TFunction } from 'i18next'
 import { FiRefreshCw } from 'react-icons/fi'
@@ -9,15 +10,14 @@ import { getAppLocale } from '../../shared/i18n'
 import { formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/format'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import type { HrRecord } from '../../shared/types/hr'
-
 import { getRecordLabel } from '../../features/employees/lib/employeeRelations'
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation()
   const locale = getAppLocale(i18n.language)
-
   const params = useParams()
   const employeeId = Number(params.id)
+
   const [employee, setEmployee] = useState<HrRecord | null>(null)
   const [departmentName, setDepartmentName] = useState('')
   const [positionName, setPositionName] = useState('')
@@ -73,7 +73,29 @@ export function EmployeeDetailsPage(): JSX.Element {
 
     void loadEmployee()
 
+    return () => {
+      isActive = false
+    }
+  }, [employeeId, t])
+
+  if (isLoading) {
+    return <LoadingState label={t('common.table.loading')} />
+  }
+
+  if (hasError || !employee) {
     return (
+      <EmptyState
+        title={t('employeesDetails.notFoundTitle')}
+        description={t('employeesDetails.notFoundDescription')}
+      />
+    )
+  }
+
+  const fullName = [getString(employee.last_name), getString(employee.first_name), getString(employee.middle_name)]
+    .filter(Boolean)
+    .join(' ')
+
+  return (
     <section className="app-surface app-shadow rounded-[32px] border p-5 sm:p-8">
       <EmployeePassportCard
         departmentName={departmentName}
@@ -310,3 +332,4 @@ function toNumber(value: unknown): number | null {
 function valueOrEmpty(value: string, t: (key: string) => string): string {
   return value.trim() || t('employeesDetails.emptyValue')
 }
+@endcontent
