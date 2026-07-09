@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { motion } from 'framer-motion'
 import type { TFunction } from 'i18next'
 import { FiCalendar, FiMail, FiMapPin, FiPhone, FiUser } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
@@ -98,20 +97,9 @@ export function EmployeeDetailsPage(): JSX.Element {
     .join(' ')
 
   return (
-    <motion.section
-      key={employeeId}
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.38, ease: 'easeOut' }}
-      className="app-surface app-shadow overflow-hidden rounded-[32px] border"
-    >
+    <section className="app-surface app-shadow overflow-hidden rounded-[32px] border">
       <Tabs.Root defaultValue="card">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.32, delay: 0.08, ease: 'easeOut' }}
-          className="app-border-soft border-b px-6 pt-5 sm:px-8"
-        >
+        <div className="app-border-soft border-b px-6 pt-5 sm:px-8">
           <Tabs.List className="flex flex-wrap gap-2" aria-label={t('employeesDetails.title')}>
             <Tabs.Trigger className={detailsTabTriggerClass} value="card">
               {t('employeesDetails.card.title')}
@@ -125,7 +113,7 @@ export function EmployeeDetailsPage(): JSX.Element {
               {t('employeesDetails.sections.notes')}
             </Tabs.Trigger>
           </Tabs.List>
-        </motion.div>
+        </div>
 
         <div className="p-5 sm:p-8">
           <Tabs.Content value="card" className="outline-none">
@@ -160,7 +148,7 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
         </div>
       </Tabs.Root>
-    </motion.section>
+    </section>
   )
 }
 
@@ -185,19 +173,9 @@ function EmployeePassportCard({
   const address = composeAddress(employee, t)
 
   return (
-    <motion.article
-      initial={{ opacity: 0, scale: 0.985, y: 18 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.42, delay: 0.12, ease: 'easeOut' }}
-      className="app-surface app-shadow-lg mx-auto max-w-7xl overflow-hidden rounded-[36px] border"
-    >
+    <article className="app-surface app-shadow-lg mx-auto max-w-7xl overflow-hidden rounded-[36px] border">
       <div className="grid min-h-[560px] xl:grid-cols-[380px_minmax(0,1fr)]">
-        <motion.aside
-          initial={{ opacity: 0, x: -24 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.42, delay: 0.18, ease: 'easeOut' }}
-          className="app-accent-gradient-panel relative overflow-hidden p-8 text-white"
-        >
+        <aside className="app-accent-gradient-panel relative overflow-hidden p-8 text-white">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10" />
           <div className="absolute -bottom-24 -right-12 h-72 w-72 rounded-full bg-white/10" />
           <div className="app-accent-glow-line absolute bottom-16 left-10 h-2 w-24 rounded-full" />
@@ -220,15 +198,10 @@ function EmployeePassportCard({
               HR Automation
             </p>
           </div>
-        </motion.aside>
+        </aside>
 
         <div className="p-7 sm:p-10 xl:p-12">
-          <motion.div
-            initial={{ opacity: 0, x: 18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.34, delay: 0.26, ease: 'easeOut' }}
-            className="flex items-center gap-5"
-          >
+          <div className="flex items-center gap-5">
             <span className="app-accent-soft app-accent-shadow-sm flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px]">
               <FiUser className="h-10 w-10" />
             </span>
@@ -236,14 +209,9 @@ function EmployeePassportCard({
             <h2 className="app-text text-3xl font-black tracking-tight sm:text-4xl">
               {fullName || t('employeesDetails.title')}
             </h2>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ duration: 0.36, delay: 0.32, ease: 'easeOut' }}
-            className="my-10 h-px origin-left bg-[var(--color-border)]"
-          />
+          <div className="my-10 h-px bg-[var(--color-border)]" />
 
           <div className="grid gap-6 xl:grid-cols-2">
             <CardInfoBox
@@ -279,7 +247,7 @@ function EmployeePassportCard({
           </div>
         </div>
       </div>
-    </motion.article>
+    </article>
   )
 }
 
@@ -292,13 +260,9 @@ interface CardInfoBoxProps {
 
 function CardInfoBox({ icon, label, value, wide = false }: CardInfoBoxProps): JSX.Element {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, ease: 'easeOut' }}
-      whileHover={{ y: -3 }}
+    <div
       className={[
-        'app-surface app-shadow app-hover-accent-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition',
+        'app-surface app-shadow app-hover-accent-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5',
         wide ? 'xl:col-span-2' : '',
       ].join(' ')}
     >
@@ -312,7 +276,7 @@ function CardInfoBox({ icon, label, value, wide = false }: CardInfoBoxProps): JS
           {value}
         </p>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -324,32 +288,18 @@ interface InfoPanelProps {
 
 function InfoPanel({ children, eyebrow, title }: InfoPanelProps): JSX.Element {
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.34, ease: 'easeOut' }}
-      className="app-surface app-shadow rounded-[30px] border p-6 sm:p-7"
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.26, delay: 0.08, ease: 'easeOut' }}
-      >
+    <section className="app-surface app-shadow rounded-[30px] border p-6 sm:p-7">
+      <div>
         <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
           {eyebrow}
         </p>
         <h2 className="app-text mt-3 text-2xl font-black">{title}</h2>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.14, ease: 'easeOut' }}
-        className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-      >
+      <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {children}
-      </motion.div>
-    </motion.section>
+      </div>
+    </section>
   )
 }
 
@@ -361,19 +311,15 @@ interface InfoFieldProps {
 
 function InfoField({ label, value, wide = false }: InfoFieldProps): JSX.Element {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
-      whileHover={{ y: -2 }}
+    <div
       className={[
-        'app-surface-muted app-border rounded-[24px] border p-5 transition hover:bg-[var(--color-surface-hover)]',
+        'app-surface-muted app-border rounded-[24px] border p-5 transition hover:bg-[var(--color-surface-hover)] hover:shadow-sm',
         wide ? 'md:col-span-2' : '',
       ].join(' ')}
     >
       <p className="app-muted text-xs font-black uppercase tracking-wide">{label}</p>
       <p className="app-text mt-2 min-h-5 break-words text-sm font-black">{value}</p>
-    </motion.div>
+    </div>
   )
 }
 
