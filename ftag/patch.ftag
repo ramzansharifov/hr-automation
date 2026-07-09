@@ -1,93 +1,18 @@
 @replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+            <Button disabled={isSubmitting} type="submit" variant="primary">
+              {t('employeesCreate.actions.create')}
+            </Button>
 @endfind
 @with
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-  async function handleWizardSubmit(event: { preventDefault(): void }): Promise<void> {
-    event.preventDefault()
-
-    if (activeStep < steps.length - 1) {
-      await handleNext()
-      return
-    }
-
-    await handleSubmit(handleCreate)()
-  }
-@endfind
-@with
-  async function handleFinalCreate(): Promise<void> {
-    if (activeStep !== steps.length - 1 || isSubmitting) {
-      return
-    }
-
-    await handleSubmit(handleCreate, handleCreateInvalid)()
-  }
-
-  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
-    const invalidStepIndex = steps.findIndex((step) =>
-      step.fields.some((field) => Boolean(formErrors[field])),
-    )
-
-    if (invalidStepIndex >= 0) {
-      setActiveStep(invalidStepIndex)
-    }
-
-    toast.error(t('employeesCreate.toasts.validationError'))
-  }
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-  async function handleCreate(values: EmployeeFormValues): Promise<void> {
-    if (activeStep < steps.length - 1) {
-      await handleNext()
-      return
-    }
-@endfind
-@with
-  async function handleCreate(values: EmployeeFormValues): Promise<void> {
-    if (activeStep !== steps.length - 1 || isSubmitting) {
-      return
-    }
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-      <form
-        className="app-surface app-shadow overflow-hidden rounded-[32px] border"
-        onSubmit={(event) => void handleWizardSubmit(event)}
-      >
-@endfind
-@with
-      <div
-        className="app-surface app-shadow overflow-hidden rounded-[32px] border"
-      >
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-              <Button disabled={isSubmitting} type="submit" variant="primary">
-                {t('employeesCreate.actions.create')}
-              </Button>
-@endfind
-@with
-              <Button
-                disabled={isSubmitting}
-                type="button"
-                onClick={() => void handleFinalCreate()}
-                variant="primary"
-              >
-                {t('employeesCreate.actions.create')}
-              </Button>
+            <Button
+              disabled={isSubmitting}
+              type="button"
+              onClick={() => void handleFinalCreate()}
+              variant="primary"
+            >
+              {t('employeesCreate.actions.create')}
+            </Button>
 @endwith
 @end
 
@@ -156,14 +81,5 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
                 }
                 required
               />
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-      </form>
-@endfind
-@with
-      </div>
 @endwith
 @end

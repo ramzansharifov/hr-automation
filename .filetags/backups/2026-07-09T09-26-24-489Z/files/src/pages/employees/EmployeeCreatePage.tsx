@@ -456,12 +456,7 @@ export function EmployeeCreatePage(): JSX.Element {
               {t('employeesCreate.actions.next')}
             </Button>
           ) : (
-            <Button
-              disabled={isSubmitting}
-              type="button"
-              onClick={() => void handleFinalCreate()}
-              variant="primary"
-            >
+            <Button disabled={isSubmitting} type="submit" variant="primary">
               {t('employeesCreate.actions.create')}
             </Button>
           )}
