@@ -203,13 +203,6 @@ export const ru = {
     emptyValue: 'Не указано',
     notFoundTitle: 'Сотрудник не найден',
     notFoundDescription: 'Запись отсутствует или была удалена.',
-    card: {
-      title: 'Карточка сотрудника',
-      frontSide: 'Лицевая сторона',
-      backSide: 'Обратная сторона',
-      flipToAddress: 'Показать адресные данные',
-      flipToPersonal: 'Показать личные данные',
-    },
     sections: {
       personal: 'Личные данные',
       address: 'Адресные данные',
