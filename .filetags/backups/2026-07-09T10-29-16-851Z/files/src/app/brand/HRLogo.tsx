@@ -12,7 +12,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
       viewBox="0 0 512 512"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={['hr-logo', className].filter(Boolean).join(' ')}
+      className={className}
       role="img"
       aria-labelledby="hr-automation-logo-title"
       initial={{ opacity: 0, scale: 0.88, rotate: -8 }}
@@ -24,9 +24,9 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
 
       <defs>
         <radialGradient id="hrLogoInnerBg" cx="50%" cy="38%" r="65%">
-          <stop offset="0%" stopColor="var(--hr-logo-inner-start)" />
-          <stop offset="58%" stopColor="var(--hr-logo-inner-middle)" />
-          <stop offset="100%" stopColor="var(--hr-logo-inner-end)" />
+          <stop offset="0%" stopColor="#2D2ACF" />
+          <stop offset="58%" stopColor="#15107A" />
+          <stop offset="100%" stopColor="#070733" />
         </radialGradient>
 
         <linearGradient
@@ -37,9 +37,9 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
           y2="440"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="var(--hr-logo-outer-start)" />
-          <stop offset="45%" stopColor="var(--hr-logo-outer-middle)" />
-          <stop offset="100%" stopColor="var(--hr-logo-outer-end)" />
+          <stop offset="0%" stopColor="#7B75FF" />
+          <stop offset="45%" stopColor="#4A3EFF" />
+          <stop offset="100%" stopColor="#1D1694" />
         </linearGradient>
 
         <linearGradient
@@ -50,9 +50,9 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
           y2="392"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="var(--hr-logo-orbit-start)" />
-          <stop offset="45%" stopColor="var(--hr-logo-orbit-middle)" />
-          <stop offset="100%" stopColor="var(--hr-logo-orbit-end)" />
+          <stop offset="0%" stopColor="#E6EBFF" />
+          <stop offset="45%" stopColor="#9EB2FF" />
+          <stop offset="100%" stopColor="#4A6BFF" />
         </linearGradient>
 
         <linearGradient
@@ -63,9 +63,9 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
           y2="320"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="var(--hr-logo-text-start)" />
-          <stop offset="70%" stopColor="var(--hr-logo-text-middle)" />
-          <stop offset="100%" stopColor="var(--hr-logo-text-end)" />
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="70%" stopColor="#F4F6FF" />
+          <stop offset="100%" stopColor="#C9D3FF" />
         </linearGradient>
 
         <linearGradient
@@ -76,8 +76,8 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
           y2="420"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="var(--hr-logo-circuit-start)" />
-          <stop offset="100%" stopColor="var(--hr-logo-circuit-end)" />
+          <stop offset="0%" stopColor="#A9B9FF" />
+          <stop offset="100%" stopColor="#5B73FF" />
         </linearGradient>
 
         <filter id="hrLogoShadow" x="-30%" y="-30%" width="160%" height="160%">
@@ -85,7 +85,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
             dx="0"
             dy="18"
             stdDeviation="18"
-            floodColor="var(--hr-logo-shadow)"
+            floodColor="#0C115C"
             floodOpacity="0.30"
           />
         </filter>
@@ -111,20 +111,13 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
       />
 
       <circle cx="256" cy="256" r="186" fill="url(#hrLogoInnerBg)" />
-      <circle
-        cx="256"
-        cy="256"
-        r="186"
-        stroke="var(--hr-logo-inner-stroke)"
-        strokeOpacity="0.24"
-        strokeWidth="2"
-      />
+      <circle cx="256" cy="256" r="186" stroke="white" strokeOpacity="0.08" strokeWidth="2" />
 
       <motion.circle
         cx="176"
         cy="132"
         r="112"
-        fill="var(--hr-logo-highlight-soft)"
+        fill="white"
         animate={{ opacity: [0.04, 0.085, 0.04] }}
         transition={{ duration: 5.2, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -133,7 +126,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         cx="364"
         cy="384"
         r="126"
-        fill="var(--hr-logo-highlight-strong)"
+        fill="#5B65FF"
         animate={{ opacity: [0.08, 0.16, 0.08] }}
         transition={{ duration: 5.8, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -165,12 +158,12 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
           cx="256"
           cy="256"
           r="146"
-          stroke="var(--hr-logo-arc)"
+          stroke="white"
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray="165 752"
           transform="rotate(-118 256 256)"
-          opacity="0.32"
+          opacity="0.22"
         />
       </motion.g>
 
@@ -178,7 +171,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         cx="373"
         cy="138"
         r="18"
-        fill="var(--hr-logo-node)"
+        fill="white"
         filter="url(#hrLogoNodeGlow)"
         animate={{ scale: [1, 1.2, 1], opacity: [0.9, 1, 0.9] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
@@ -189,7 +182,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         cx="138"
         cy="373"
         r="18"
-        fill="var(--hr-logo-node)"
+        fill="white"
         filter="url(#hrLogoNodeGlow)"
         animate={{ scale: [1, 1.2, 1], opacity: [0.9, 1, 0.9] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
@@ -238,7 +231,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         />
       </g>
 
-      <g fill="var(--hr-logo-node)">
+      <g fill="#C6D0FF">
         <motion.circle
           cx="256"
           cy="360"
@@ -265,7 +258,7 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         />
       </g>
 
-      <g fill="var(--hr-logo-node-core)">
+      <g fill="#12125A">
         <circle cx="256" cy="360" r="6" />
         <circle cx="185" cy="342" r="6" />
         <circle cx="327" cy="342" r="6" />

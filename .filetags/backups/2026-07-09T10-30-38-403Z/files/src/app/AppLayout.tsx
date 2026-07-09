@@ -20,7 +20,7 @@ function getExpandedLinkClass(isActive: boolean): string {
     'group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
     isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-sm shadow-blue-950/30'
+      ? 'border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-950/30'
       : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
   ].join(' ')
 }
@@ -37,8 +37,8 @@ function getCollapsedIconButtonClass(isActive: boolean): string {
   return [
     'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 shadow-sm transition-colors duration-200',
     isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-blue-950/40'
-      : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
+      ? 'border-blue-500 bg-blue-600 text-white shadow-blue-950/40'
+      : 'border-[#263451] bg-[#10182d] text-slate-300 group-hover:border-[#3a4a6d] group-hover:bg-[#17213a] group-hover:text-white',
   ].join(' ')
 }
 
@@ -167,8 +167,8 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
         <span
           className={getCollapsedIconButtonClass(isActive)}
           style={{
-            backgroundColor: isActive ? 'var(--accent)' : 'var(--sidebar-button)',
-            borderColor: isActive ? 'var(--accent-border)' : 'var(--sidebar-button-border)',
+            backgroundColor: isActive ? '#2563eb' : '#10182d',
+            borderColor: isActive ? '#3b82f6' : '#263451',
           }}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -329,7 +329,7 @@ export function AppLayout(): JSX.Element {
           <header className="sticky top-0 z-20 flex h-[85px] items-center border-b border-slate-200/70 bg-white/85 px-8 backdrop-blur-xl">
             <div className="flex w-full items-center justify-between gap-6">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 app-accent-text shadow-sm">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
                   <TopbarIcon className="h-5 w-5" />
                 </span>
 
@@ -347,7 +347,7 @@ export function AppLayout(): JSX.Element {
               </div>
 
               <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
-                <FiDatabase className="h-4 w-4 app-accent-text" />
+                <FiDatabase className="h-4 w-4 text-blue-600" />
                 {t('app.topbar.databaseActive')}
               </div>
             </div>

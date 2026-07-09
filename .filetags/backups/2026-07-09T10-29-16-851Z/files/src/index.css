@@ -25,35 +25,6 @@
   --sidebar-button-border: #263451;
   --sidebar-button-border-hover: #3a4a6d;
 }
-.hr-logo {
-  --hr-logo-outer-start: color-mix(in srgb, var(--accent-border) 74%, #ffffff);
-  --hr-logo-outer-middle: var(--accent);
-  --hr-logo-outer-end: color-mix(in srgb, var(--accent-hover) 82%, #020617);
-
-  --hr-logo-inner-start: color-mix(in srgb, var(--accent-border) 74%, #111827);
-  --hr-logo-inner-middle: color-mix(in srgb, var(--accent-hover) 78%, #111827);
-  --hr-logo-inner-end: color-mix(in srgb, var(--accent-hover) 42%, #020617);
-  --hr-logo-inner-stroke: color-mix(in srgb, var(--accent-border) 24%, #ffffff);
-
-  --hr-logo-orbit-start: color-mix(in srgb, var(--accent-soft) 76%, #ffffff);
-  --hr-logo-orbit-middle: color-mix(in srgb, var(--accent-border) 72%, #ffffff);
-  --hr-logo-orbit-end: var(--accent);
-
-  --hr-logo-arc: color-mix(in srgb, var(--accent-soft) 72%, #ffffff);
-  --hr-logo-node: color-mix(in srgb, var(--accent-soft) 84%, #ffffff);
-  --hr-logo-node-core: color-mix(in srgb, var(--accent-hover) 72%, #020617);
-
-  --hr-logo-text-start: #ffffff;
-  --hr-logo-text-middle: color-mix(in srgb, var(--accent-soft) 64%, #ffffff);
-  --hr-logo-text-end: color-mix(in srgb, var(--accent-border) 42%, #ffffff);
-
-  --hr-logo-circuit-start: color-mix(in srgb, var(--accent-border) 58%, #ffffff);
-  --hr-logo-circuit-end: var(--accent);
-
-  --hr-logo-highlight-soft: color-mix(in srgb, var(--accent-soft) 38%, #ffffff);
-  --hr-logo-highlight-strong: var(--accent-border);
-  --hr-logo-shadow: color-mix(in srgb, var(--accent-hover) 70%, #020617);
-}
 
 :root[data-theme="dark"] {
   --color-page: #0b1020;
