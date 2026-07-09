@@ -428,6 +428,7 @@ export function HrEntityTable({
         </table>
       </div>
 
+      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
       {viewMode === 'cards' && (
         <div className="min-h-0 flex-1 overflow-auto p-5">
           <div className="grid gap-3">
