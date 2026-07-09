@@ -1,6 +1,5 @@
 import type { FormEvent, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -248,10 +247,7 @@ export function HrEntityTable({
   const tableColumnCount = config.columns.length + 1
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+    <section
       className={['app-surface app-shadow flex flex-col overflow-hidden rounded-[28px] border', className].join(' ')}
     >
       {!hideToolbar && (
@@ -326,16 +322,8 @@ export function HrEntityTable({
 
           <tbody>
             {result.items.map((record, index) => (
-              <motion.tr
+              <tr
                 key={String(record.id ?? index)}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.22,
-                  delay: Math.min(index * 0.035, 0.18),
-                  ease: 'easeOut',
-                }}
-                whileHover={{ scale: onRowClick ? 1.002 : 1 }}
                 className={['app-hover-muted transition', onRowClick ? 'cursor-pointer' : ''].join(' ')}
                 onClick={onRowClick ? () => onRowClick(record) : undefined}
                 onKeyDown={(event) => handleRowKeyDown(event, record)}
@@ -376,7 +364,7 @@ export function HrEntityTable({
                     </button>
                   </div>
                 </td>
-              </motion.tr>
+              </tr>
             ))}
 
             {!isLoading && result.items.length === 0 && (
@@ -502,6 +490,6 @@ export function HrEntityTable({
         onOpenChange={setIsDeleteOpen}
         open={isDeleteOpen}
       />
-    </motion.section>
+    </section>
   )
 }

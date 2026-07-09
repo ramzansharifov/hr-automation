@@ -11,7 +11,6 @@ import { formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/for
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import type { HrRecord } from '../../shared/types/hr'
 import { getRecordLabel } from '../../features/employees/lib/employeeRelations'
-import { HRLogo } from '../../app/brand/HRLogo'
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation()
@@ -170,6 +169,7 @@ function EmployeePassportCard({
   locale,
   t,
 }: EmployeePassportCardProps): JSX.Element {
+  const initials = getInitials(fullName)
   const address = composeAddress(employee, t)
 
   return (
@@ -183,9 +183,8 @@ function EmployeePassportCard({
           <div className="absolute bottom-24 left-11 h-40 w-40 rounded-full bg-white/10" />
 
           <div className="relative z-10 flex h-full min-h-[500px] flex-col items-center justify-center text-center">
-            <div className="relative flex h-44 w-44 items-center justify-center">
-              <div className="absolute inset-4 rounded-full bg-white/20 blur-2xl" />
-              <HRLogo className="relative h-40 w-40 drop-shadow-[0_24px_45px_rgba(15,23,42,0.34)]" />
+            <div className="flex h-44 w-44 items-center justify-center rounded-full border border-white/20 bg-white/15 text-6xl font-black shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur">
+              {initials}
             </div>
 
             <div className="mt-12 h-px w-24 bg-white/70 shadow-[0_0_18px_rgba(255,255,255,0.9)]" />
@@ -345,7 +344,20 @@ function composeAddress(employee: HrRecord, t: TFunction): string {
   return valueOrEmpty(detailedAddress, t)
 }
 
+function getInitials(value: string): string {
+  const parts = value
+    .split(' ')
+    .map((part) => part.trim())
+    .filter(Boolean)
 
+  const initials = parts
+    .slice(0, 2)
+    .map((part) => Array.from(part)[0])
+    .join('')
+    .toUpperCase()
+
+  return initials || 'HR'
+}
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {

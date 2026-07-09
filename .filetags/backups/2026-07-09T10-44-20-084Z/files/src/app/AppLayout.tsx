@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { motion } from 'framer-motion'
 import { FiChevronLeft, FiChevronRight, FiDatabase } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import type { AppNavigationItem } from './navigation'
@@ -218,11 +217,7 @@ export function AppLayout(): JSX.Element {
   return (
     <Tooltip.Provider delayDuration={120}>
       <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
-        <motion.aside
-          layout
-          initial={{ x: -18, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
+        <aside
           className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] text-white transition-[width] duration-300 ease-out"
           style={{ width: sidebarWidth }}
         >
@@ -299,20 +294,13 @@ export function AppLayout(): JSX.Element {
               isSidebarCollapsed ? 'items-center px-4' : 'px-5',
             ].join(' ')}
           >
-            {navigationItems.map((item, index) => (
-              <motion.div
+            {navigationItems.map((item) => (
+              <SidebarItem
                 key={item.path}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.24, delay: index * 0.035, ease: 'easeOut' }}
-                className={isSidebarCollapsed ? 'w-12' : 'w-full'}
-              >
-                <SidebarItem
-                  item={item}
-                  end={item.path === '/'}
-                  isCollapsed={isSidebarCollapsed}
-                />
-              </motion.div>
+                item={item}
+                end={item.path === '/'}
+                isCollapsed={isSidebarCollapsed}
+              />
             ))}
           </nav>
 
@@ -327,24 +315,12 @@ export function AppLayout(): JSX.Element {
                 isSidebarCollapsed ? 'items-center px-4' : 'px-5',
               ].join(' ')}
             >
-              {bottomNavigationItems.map((item, index) => (
-                <motion.div
-                  key={item.path}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    duration: 0.24,
-                    delay: (navigationItems.length + index) * 0.035,
-                    ease: 'easeOut',
-                  }}
-                  className={isSidebarCollapsed ? 'w-12' : 'w-full'}
-                >
-                  <SidebarItem item={item} isCollapsed={isSidebarCollapsed} />
-                </motion.div>
+              {bottomNavigationItems.map((item) => (
+                <SidebarItem key={item.path} item={item} isCollapsed={isSidebarCollapsed} />
               ))}
             </div>
           </footer>
-        </motion.aside>
+        </aside>
 
         <div
           className="min-h-screen min-w-0 transition-[padding] duration-300 ease-out"

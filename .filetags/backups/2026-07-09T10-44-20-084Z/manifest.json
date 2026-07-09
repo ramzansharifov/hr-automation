@@ -1,0 +1,35 @@
+{
+  "createdAt": "2026-07-09T10:44:20.157Z",
+  "backupPath": ".filetags/backups/2026-07-09T10-44-20-084Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    },
+    {
+      "originalPath": "src/app/AppLayout.tsx",
+      "backupRelativePath": "files/src/app/AppLayout.tsx"
+    },
+    {
+      "originalPath": "src/features/hr-table/HrEntityTable.tsx",
+      "backupRelativePath": "files/src/features/hr-table/HrEntityTable.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Insert after: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 378 line(s)\n   new: 379 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 379 line(s)\n   new: 378 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 378 line(s)\n   new: 379 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 379 line(s)\n   new: 366 line(s)",
+    "Insert after: src/app/AppLayout.tsx\n   found: yes\n   old: 364 line(s)\n   new: 365 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: yes\n   old: 365 line(s)\n   new: 369 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: yes\n   old: 369 line(s)\n   new: 376 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: yes\n   old: 376 line(s)\n   new: 388 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: yes\n   old: 388 line(s)\n   new: 388 line(s)",
+    "Insert after: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 496 line(s)\n   new: 497 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 497 line(s)\n   new: 500 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 500 line(s)\n   new: 508 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 508 line(s)\n   new: 508 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 508 line(s)\n   new: 508 line(s)"
+  ]
+}
