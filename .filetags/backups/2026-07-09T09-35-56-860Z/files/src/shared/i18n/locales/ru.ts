@@ -53,8 +53,6 @@ export const ru = {
       noRecords: 'Нет записей',
       loading: 'Загрузка...',
       actions: 'Действия',
-      pageSize: 'Показывать',
-      pageSizeSuffix: 'записей',
       sort: {
         asc: 'ASC',
         desc: 'DESC',
@@ -314,7 +312,6 @@ export const ru = {
       createLabel: 'Добавить сотрудника',
       columns: {
         lastName: 'Фамилия',
-        fullName: 'ФИО',
         firstName: 'Имя',
         middleName: 'Отчество',
         department: 'Отдел',

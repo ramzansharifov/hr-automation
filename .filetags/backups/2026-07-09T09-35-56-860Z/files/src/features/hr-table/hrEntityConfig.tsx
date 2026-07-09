@@ -19,7 +19,7 @@ export interface HrEntityPageConfig {
   columns: HrEntityColumn[]
 }
 
-type HrEntityColumnFormat = 'money' | 'date' | 'status' | 'fullName'
+type HrEntityColumnFormat = 'money' | 'date' | 'status'
 
 interface HrEntityColumnDefinition {
   key: string
@@ -45,14 +45,14 @@ const hrEntityConfigDefinitions: Record<HrEntityKey, HrEntityPageConfigDefinitio
     createLabelKey: 'entities.employees.createLabel',
     defaultOrderBy: 'last_name',
     columns: [
-      {
-        key: 'last_name',
-        labelKey: 'entities.employees.columns.fullName',
-        format: 'fullName',
-        className: 'min-w-[240px] font-bold',
-      },
+      { key: 'last_name', labelKey: 'entities.employees.columns.lastName' },
+      { key: 'first_name', labelKey: 'entities.employees.columns.firstName' },
+      { key: 'middle_name', labelKey: 'entities.employees.columns.middleName' },
+      { key: 'department_id', labelKey: 'entities.employees.columns.department' },
+      { key: 'position_id', labelKey: 'entities.employees.columns.position' },
       { key: 'phone', labelKey: 'entities.employees.columns.phone' },
       { key: 'email', labelKey: 'entities.employees.columns.email' },
+      { key: 'hire_date', labelKey: 'entities.employees.columns.hireDate', format: 'date' },
       { key: 'status', labelKey: 'entities.employees.columns.status', format: 'status' },
     ],
   },
@@ -137,16 +137,6 @@ function createColumnRender(
   t: TFunction,
   locale: string,
 ): ((record: HrRecord) => ReactNode) | undefined {
-  if (column.format === 'fullName') {
-    return (record) => {
-      const fullName = [record.last_name, record.first_name, record.middle_name]
-        .map((value) => String(value ?? '').trim())
-        .filter(Boolean)
-        .join(' ')
-
-      return fullName || '—'
-    }
-  }
   if (column.format === 'money') {
     return (record) => formatCurrency(record[column.key], locale)
   }

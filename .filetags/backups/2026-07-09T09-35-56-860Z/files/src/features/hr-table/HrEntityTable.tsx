@@ -20,7 +20,7 @@ import type {
 } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
-import { Button, DropdownMenu, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
+import { Button, DropdownMenu, EmptyState, LoadingState } from '../../shared/ui'
 import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
 import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
@@ -43,31 +43,6 @@ const emptyResult: HrListResult = {
   pageSize: 10,
   totalPages: 0,
 }
-const pageSizeOptions: SelectOption[] = [
-  { value: '10', label: '10' },
-  { value: '25', label: '25' },
-  { value: '50', label: '50' },
-  { value: '100', label: '100' },
-]
-
-const maxVisiblePageButtons = 5
-
-function getPageNumbers(currentPage: number, totalPages: number): number[] {
-  const safeTotalPages = Math.max(totalPages, 1)
-  const half = Math.floor(maxVisiblePageButtons / 2)
-  let start = Math.max(1, currentPage - half)
-  let end = Math.min(safeTotalPages, start + maxVisiblePageButtons - 1)
-
-  start = Math.max(1, end - maxVisiblePageButtons + 1)
-
-  const pages: number[] = []
-
-  for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
-    pages.push(pageNumber)
-  }
-
-  return pages
-}
 
 export function HrEntityTable({
   className = '',
@@ -84,7 +59,6 @@ export function HrEntityTable({
   const config = useMemo(() => getEntityConfig(entity, t, locale), [entity, locale, t])
   const [result, setResult] = useState<HrListResult>(emptyResult)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
   const [draftSearch, setDraftSearch] = useState('')
   const [search, setSearch] = useState('')
   const [orderBy, setOrderBy] = useState(config.defaultOrderBy)
@@ -116,7 +90,7 @@ export function HrEntityTable({
       const data = await hrApiClient.list({
         entity,
         page,
-        pageSize,
+        pageSize: 10,
         search,
         filters: externalFilters,
         orderBy,
@@ -130,33 +104,16 @@ export function HrEntityTable({
     } finally {
       setIsLoading(false)
     }
-  }, [entity, externalFilters, orderBy, orderDirection, page, pageSize, search, t])
+  }, [entity, externalFilters, orderBy, orderDirection, page, search, t])
 
   useEffect(() => {
     void loadData()
   }, [loadData, refreshIndex])
-  useEffect(() => {
-    const safeTotalPages = Math.max(result.totalPages, 1)
-
-    if (page > safeTotalPages) {
-      setPage(safeTotalPages)
-    }
-  }, [page, result.totalPages])
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
     setPage(1)
     setSearch(draftSearch.trim())
-  }
-  function handlePageSizeChange(value: string): void {
-    const nextPageSize = Number(value)
-
-    if (!Number.isFinite(nextPageSize)) {
-      return
-    }
-
-    setPage(1)
-    setPageSize(nextPageSize)
   }
 
   function handleSort(columnKey: string): void {
@@ -240,8 +197,6 @@ export function HrEntityTable({
     handleRefresh()
   }
 
-  const totalPages = Math.max(result.totalPages, 1)
-  const pageNumbers = getPageNumbers(result.page, totalPages)
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
   const tableColumnCount = config.columns.length + 1
@@ -383,26 +338,12 @@ export function HrEntityTable({
         </table>
       </div>
 
-      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-          <p className="app-muted text-sm">
-            {t('common.table.total')}: <span className="app-text font-bold">{result.total}</span>
-          </p>
+      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="app-muted text-sm">
+          {t('common.table.total')}: <span className="app-text font-bold">{result.total}</span>
+        </p>
 
-          <div className="flex items-center gap-2">
-            <span className="app-muted text-sm font-medium">{t('common.table.pageSize')}</span>
-            <Select
-              ariaLabel={t('common.table.pageSize')}
-              className="h-10 w-24 rounded-xl"
-              onValueChange={handlePageSizeChange}
-              options={pageSizeOptions}
-              value={String(pageSize)}
-            />
-            <span className="app-muted text-sm font-medium">{t('common.table.pageSizeSuffix')}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex items-center gap-3">
           <Button
             type="button"
             disabled={!canGoBack}
@@ -414,51 +355,9 @@ export function HrEntityTable({
             {t('common.actions.back')}
           </Button>
 
-          <div className="flex items-center gap-1">
-            {pageNumbers[0] > 1 && (
-              <>
-                <Button
-                  type="button"
-                  onClick={() => setPage(1)}
-                  size="sm"
-                  variant={result.page === 1 ? 'primary' : 'secondary'}
-                  className="min-w-10 px-3"
-                >
-                  1
-                </Button>
-                <span className="app-muted px-1 text-sm">...</span>
-              </>
-            )}
-
-            {pageNumbers.map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                type="button"
-                onClick={() => setPage(pageNumber)}
-                size="sm"
-                variant={pageNumber === result.page ? 'primary' : 'secondary'}
-                className="min-w-10 px-3"
-                aria-current={pageNumber === result.page ? 'page' : undefined}
-              >
-                {pageNumber}
-              </Button>
-            ))}
-
-            {pageNumbers[pageNumbers.length - 1] < totalPages && (
-              <>
-                <span className="app-muted px-1 text-sm">...</span>
-                <Button
-                  type="button"
-                  onClick={() => setPage(totalPages)}
-                  size="sm"
-                  variant={result.page === totalPages ? 'primary' : 'secondary'}
-                  className="min-w-10 px-3"
-                >
-                  {totalPages}
-                </Button>
-              </>
-            )}
-          </div>
+          <span className="app-muted text-sm">
+            {result.page} / {Math.max(result.totalPages, 1)}
+          </span>
 
           <Button
             type="button"

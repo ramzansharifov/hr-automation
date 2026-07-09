@@ -15,7 +15,7 @@ interface SqlWhereResult {
 
 type HrFilterInput = NonNullable<HrListParams['filters']>[string]
 
-const maxHrPageSize = 100
+const maxHrPageSize = 50000
 
 export class HrCrudRepository {
   constructor(private readonly database: Database.Database) {}
