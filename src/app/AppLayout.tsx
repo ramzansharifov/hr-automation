@@ -41,6 +41,18 @@ function getCollapsedIconButtonClass(isActive: boolean): string {
   ].join(' ')
 }
 
+function getActiveNavigationItem(pathname: string): AppNavigationItem {
+  const allItems = [...navigationItems, ...bottomNavigationItems]
+
+  return (
+    allItems.find((item) =>
+      item.path === '/'
+        ? pathname === '/'
+        : pathname === item.path || pathname.startsWith(`${item.path}/`),
+    ) ?? navigationItems[0]
+  )
+}
+
 interface SidebarItemProps {
   item: AppNavigationItem
   isCollapsed: boolean
@@ -109,8 +121,11 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const { t } = useTranslation()
+  const location = useLocation()
 
   const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
+  const activeNavigationItem = getActiveNavigationItem(location.pathname)
+  const TopbarIcon = activeNavigationItem.icon
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -228,9 +243,14 @@ export function AppLayout(): JSX.Element {
         >
           <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-6">
-              <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
-                {t('app.topbar.title')}
-              </h2>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
+                  <TopbarIcon className="h-5 w-5" />
+                </span>
+                <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+                  {t(activeNavigationItem.titleKey)}
+                </h2>
+              </div>
 
               <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
                 <FiDatabase className="h-4 w-4 text-blue-600" />

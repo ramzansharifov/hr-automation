@@ -40,7 +40,6 @@ function optionalNumberString(): z.ZodString {
 }
 
 const employeesSchema = z.object({
-  employee_code: requiredString(),
   last_name: requiredString(),
   first_name: requiredString(),
   middle_name: optionalString(),
@@ -51,7 +50,13 @@ const employeesSchema = z.object({
   phone: optionalString(),
   email: optionalEmail(),
   hire_date: requiredString(),
+  salary: optionalNumberString(),
   status: requiredString(),
+  address_country: optionalString(),
+  address_city: optionalString(),
+  address_street: optionalString(),
+  address_house: optionalString(),
+  address_apartment: optionalString(),
   address: optionalString(),
   note: optionalString(),
 })

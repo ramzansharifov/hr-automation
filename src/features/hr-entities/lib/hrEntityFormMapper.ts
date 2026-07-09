@@ -14,6 +14,7 @@ const numberFieldNames = new Set([
   'bonus',
   'deductions',
   'taxes',
+  'salary',
 ])
 
 export function getHrEntityDefaultValues(

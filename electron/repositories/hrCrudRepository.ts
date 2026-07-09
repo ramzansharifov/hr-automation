@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
 import type {
   HrDashboardStats,
+  HrFilterCondition,
   HrListParams,
   HrListResult,
   HrRecord,
@@ -11,6 +12,8 @@ interface SqlWhereResult {
   sql: string
   params: Record<string, unknown>
 }
+
+type HrFilterInput = NonNullable<HrListParams['filters']>[string]
 
 const maxHrPageSize = 50000
 
@@ -195,13 +198,21 @@ export class HrCrudRepository {
     }
 
     if (params.filters) {
-      Object.entries(params.filters).forEach(([column, value], index) => {
-        if (!config.allowedColumns.includes(column) || value === undefined || value === null) {
+      Object.entries(params.filters).forEach(([column, filter], index) => {
+        if (!config.allowedColumns.includes(column) || filter === undefined || filter === null) {
           return
         }
 
-        if (Array.isArray(value)) {
-          const safeValues = value.filter((item) => item !== null && item !== undefined && item !== '')
+        const condition = normalizeFilterCondition(filter)
+        const value = condition.value
+
+        if (value === undefined || value === null || value === '') {
+          return
+        }
+
+        if (condition.operator === 'in') {
+          const rawValues = Array.isArray(value) ? value : [value]
+          const safeValues = rawValues.filter((item) => item !== null && item !== undefined && item !== '')
 
           if (safeValues.length === 0) {
             conditions.push('1 = 0')
@@ -218,11 +229,26 @@ export class HrCrudRepository {
           return
         }
 
-        if (value === '') {
+        const key = `filter_${index}`
+
+        if (condition.operator === 'contains') {
+          conditions.push(`${column} LIKE @${key}`)
+          values[key] = `%${String(value)}%`
           return
         }
 
-        const key = `filter_${index}`
+        if (condition.operator === 'gte') {
+          conditions.push(`${column} >= @${key}`)
+          values[key] = value
+          return
+        }
+
+        if (condition.operator === 'lte') {
+          conditions.push(`${column} <= @${key}`)
+          values[key] = value
+          return
+        }
+
         conditions.push(`${column} = @${key}`)
         values[key] = value
       })
@@ -266,6 +292,25 @@ export class HrCrudRepository {
 
     return Number(result ?? 0)
   }
+}
+
+function normalizeFilterCondition(filter: HrFilterInput): HrFilterCondition {
+  if (isFilterCondition(filter)) {
+    return filter
+  }
+
+  return {
+    operator: Array.isArray(filter) ? 'in' : 'equals',
+    value: filter,
+  }
+}
+
+function isFilterCondition(filter: HrFilterInput): filter is HrFilterCondition {
+  if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
+    return false
+  }
+
+  return 'operator' in filter && 'value' in filter
 }
 
 function normalizePage(page?: number): number {

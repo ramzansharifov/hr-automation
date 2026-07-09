@@ -56,7 +56,6 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
     createTitleKey: 'forms.employees.createTitle',
     editTitleKey: 'forms.employees.editTitle',
     fields: [
-      { name: 'employee_code', labelKey: 'forms.fields.employeeCode', required: true, type: 'text' },
       { name: 'last_name', labelKey: 'forms.fields.lastName', required: true, type: 'text' },
       { name: 'first_name', labelKey: 'forms.fields.firstName', required: true, type: 'text' },
       { name: 'middle_name', labelKey: 'forms.fields.middleName', type: 'text' },
@@ -95,6 +94,7 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
       { name: 'phone', labelKey: 'forms.fields.phone', type: 'tel' },
       { name: 'email', labelKey: 'forms.fields.email', type: 'email' },
       { name: 'hire_date', labelKey: 'forms.fields.hireDate', required: true, type: 'date' },
+      { name: 'salary', labelKey: 'forms.fields.salary', type: 'number' },
       {
         name: 'status',
         labelKey: 'forms.fields.status',
@@ -102,6 +102,11 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
         type: 'select',
         options: statusOptions.employee,
       },
+      { name: 'address_country', labelKey: 'forms.fields.addressCountry', type: 'text' },
+      { name: 'address_city', labelKey: 'forms.fields.addressCity', type: 'text' },
+      { name: 'address_street', labelKey: 'forms.fields.addressStreet', type: 'text' },
+      { name: 'address_house', labelKey: 'forms.fields.addressHouse', type: 'text' },
+      { name: 'address_apartment', labelKey: 'forms.fields.addressApartment', type: 'text' },
       { name: 'address', labelKey: 'forms.fields.address', type: 'textarea' },
       { name: 'note', labelKey: 'forms.fields.note', type: 'textarea' },
     ],

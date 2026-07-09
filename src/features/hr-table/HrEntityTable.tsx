@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   FiChevronLeft,
@@ -11,7 +11,13 @@ import {
 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
-import type { HrEntityKey, HrListResult, HrRecord } from '../../shared/types/hr'
+import type {
+  HrEntityKey,
+  HrFilterCondition,
+  HrFilterValue,
+  HrListResult,
+  HrRecord,
+} from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
 import { Button, DropdownMenu, EmptyState, LoadingState } from '../../shared/ui'
@@ -20,7 +26,14 @@ import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
 
 interface HrEntityTableProps {
+  className?: string
   entity: HrEntityKey
+  externalFilters?: Record<string, HrFilterValue | HrFilterCondition>
+  hideCreateButton?: boolean
+  hideToolbar?: boolean
+  hideToolbarSearch?: boolean
+  onCreateClick?: () => void
+  onRowClick?: (record: HrRecord) => void
 }
 
 const emptyResult: HrListResult = {
@@ -31,7 +44,16 @@ const emptyResult: HrListResult = {
   totalPages: 0,
 }
 
-export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
+export function HrEntityTable({
+  className = '',
+  entity,
+  externalFilters,
+  hideCreateButton = false,
+  hideToolbar = false,
+  hideToolbarSearch = false,
+  onCreateClick,
+  onRowClick,
+}: HrEntityTableProps): JSX.Element {
   const { i18n, t } = useTranslation()
   const locale = getAppLocale(i18n.language)
   const config = useMemo(() => getEntityConfig(entity, t, locale), [entity, locale, t])
@@ -57,6 +79,10 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
     setOrderDirection('asc')
   }, [config.defaultOrderBy, entity])
 
+  useEffect(() => {
+    setPage(1)
+  }, [externalFilters])
+
   const loadData = useCallback(async () => {
     setIsLoading(true)
 
@@ -66,6 +92,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
         page,
         pageSize: 10,
         search,
+        filters: externalFilters,
         orderBy,
         orderDirection,
       })
@@ -77,7 +104,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
     } finally {
       setIsLoading(false)
     }
-  }, [entity, orderBy, orderDirection, page, search, t])
+  }, [entity, externalFilters, orderBy, orderDirection, page, search, t])
 
   useEffect(() => {
     void loadData()
@@ -106,6 +133,11 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
   }
 
   function handleCreateClick(): void {
+    if (onCreateClick) {
+      onCreateClick()
+      return
+    }
+
     setDialogMode('create')
     setEditingRecord(null)
     setIsFormOpen(true)
@@ -148,6 +180,15 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
     handleRefresh()
   }
 
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, record: HrRecord): void {
+    if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) {
+      return
+    }
+
+    event.preventDefault()
+    onRowClick(record)
+  }
+
   async function handleDeleteConfirm(): Promise<void> {
     await hrApiClient.delete({
       entity,
@@ -161,44 +202,52 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
   const tableColumnCount = config.columns.length + 1
 
   return (
-    <section className="app-surface app-shadow overflow-hidden rounded-[28px] border">
-      <div className="app-border-soft flex flex-col gap-4 border-b p-5 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h3 className="app-text text-lg font-black">{config.title}</h3>
+    <section
+      className={['app-surface app-shadow flex flex-col overflow-hidden rounded-[28px] border', className].join(' ')}
+    >
+      {!hideToolbar && (
+        <div className="app-border-soft flex flex-col gap-4 border-b p-5 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="app-text text-lg font-black">{config.title}</h3>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {!hideToolbarSearch && (
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
+                <input
+                  value={draftSearch}
+                  onChange={(event) => setDraftSearch(event.target.value)}
+                  placeholder={t('common.fields.search')}
+                  className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition sm:w-72"
+                />
+              </form>
+            )}
+
+            <Button
+              type="button"
+              onClick={handleRefresh}
+              leftIcon={<FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />}
+              variant="secondary"
+            >
+              {t('common.actions.refresh')}
+            </Button>
+
+            {!hideCreateButton && (
+              <Button
+                type="button"
+                onClick={handleCreateClick}
+                leftIcon={<FiPlus className="h-4 w-4" />}
+                variant="primary"
+              >
+                {config.createLabel}
+              </Button>
+            )}
+          </div>
         </div>
+      )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <input
-              value={draftSearch}
-              onChange={(event) => setDraftSearch(event.target.value)}
-              placeholder={t('common.fields.search')}
-              className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition sm:w-72"
-            />
-          </form>
-
-          <Button
-            type="button"
-            onClick={handleRefresh}
-            leftIcon={<FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />}
-            variant="secondary"
-          >
-            {t('common.actions.refresh')}
-          </Button>
-
-          <Button
-            type="button"
-            onClick={handleCreateClick}
-            leftIcon={<FiPlus className="h-4 w-4" />}
-            variant="primary"
-          >
-            {config.createLabel}
-          </Button>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
             <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
@@ -228,7 +277,14 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
           <tbody>
             {result.items.map((record, index) => (
-              <tr key={String(record.id ?? index)} className="app-hover-muted transition">
+              <tr
+                key={String(record.id ?? index)}
+                className={['app-hover-muted transition', onRowClick ? 'cursor-pointer' : ''].join(' ')}
+                onClick={onRowClick ? () => onRowClick(record) : undefined}
+                onKeyDown={(event) => handleRowKeyDown(event, record)}
+                role={onRowClick ? 'button' : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+              >
                 {config.columns.map((column) => (
                   <td
                     key={column.key}
@@ -241,7 +297,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
                   </td>
                 ))}
                 <td className="app-border-soft border-b px-5 py-4 align-top">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
                     <DropdownMenu
                       actions={[
                         {

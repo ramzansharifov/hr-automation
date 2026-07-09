@@ -105,7 +105,7 @@ function seedPositions(database: Database.Database): void {
 function seedEmployees(database: Database.Database): void {
   const insertEmployee = database.prepare(`
     INSERT OR IGNORE INTO employees (
-      employee_code,
+      id,
       department_id,
       position_id,
       last_name,
@@ -121,7 +121,7 @@ function seedEmployees(database: Database.Database): void {
       note
     )
     VALUES (
-      @employeeCode,
+      @id,
       @departmentId,
       @positionId,
       @lastName,
@@ -139,7 +139,7 @@ function seedEmployees(database: Database.Database): void {
   `)
 
   insertEmployee.run({
-    employeeCode: 'EMP-0001',
+    id: 1,
     departmentId: 1,
     positionId: 1,
     lastName: 'Саидова',
@@ -156,7 +156,7 @@ function seedEmployees(database: Database.Database): void {
   })
 
   insertEmployee.run({
-    employeeCode: 'EMP-0002',
+    id: 2,
     departmentId: 2,
     positionId: 2,
     lastName: 'Каримов',
@@ -173,7 +173,7 @@ function seedEmployees(database: Database.Database): void {
   })
 
   insertEmployee.run({
-    employeeCode: 'EMP-0003',
+    id: 3,
     departmentId: 3,
     positionId: 3,
     lastName: 'Рахмонов',

@@ -159,6 +159,57 @@ export const ru = {
     },
   },
 
+  employeesPage: {
+    title: 'Сотрудники',
+    description: 'Поиск, фильтрация и просмотр анкет сотрудников.',
+    filters: {
+      title: 'Фильтры',
+      description: 'Заполните поля и нажмите «Найти».',
+      searchButton: 'Найти',
+      clearButton: 'Очистить',
+      addButton: 'Добавить сотрудника',
+    },
+  },
+
+  employeesCreate: {
+    title: 'Новый сотрудник',
+    description: 'Заполните анкету сотрудника по шагам и проверьте данные перед созданием.',
+    stepLabel: 'Шаг {{number}}',
+    steps: {
+      personal: 'Личные данные',
+      address: 'Адресные данные',
+      company: 'Данные по компании',
+      review: 'Просмотр анкеты',
+    },
+    actions: {
+      next: 'Далее',
+      back: 'Назад',
+      cancel: 'Отмена',
+      create: 'Создать сотрудника',
+    },
+    toasts: {
+      created: 'Сотрудник создан',
+      createError: 'Не удалось создать сотрудника',
+    },
+  },
+
+  employeesDetails: {
+    title: 'Анкета сотрудника',
+    backToList: 'Назад к списку',
+    emptyValue: 'Не указано',
+    notFoundTitle: 'Сотрудник не найден',
+    notFoundDescription: 'Запись отсутствует или была удалена.',
+    sections: {
+      personal: 'Личные данные',
+      address: 'Адресные данные',
+      company: 'Данные по компании',
+      notes: 'Служебная информация',
+    },
+    toasts: {
+      loadError: 'Не удалось загрузить анкету сотрудника',
+    },
+  },
+
   forms: {
     dialogDescription: 'Заполните поля и сохраните изменения.',
     placeholders: {
@@ -212,7 +263,6 @@ export const ru = {
       editTitle: 'Редактировать начисление',
     },
     fields: {
-      employeeCode: 'Код сотрудника',
       lastName: 'Фамилия',
       firstName: 'Имя',
       middleName: 'Отчество',
@@ -222,10 +272,16 @@ export const ru = {
       birthDate: 'Дата рождения',
       gender: 'Пол',
       address: 'Адрес',
+      addressCountry: 'Страна',
+      addressCity: 'Город',
+      addressStreet: 'Улица',
+      addressHouse: 'Дом',
+      addressApartment: 'Квартира',
       phone: 'Телефон',
       email: 'Email',
       hireDate: 'Дата приема',
       status: 'Статус',
+      salary: 'Оклад',
       note: 'Примечание',
       name: 'Наименование',
       managerName: 'Руководитель',
@@ -254,7 +310,6 @@ export const ru = {
       description: 'Кадровый состав, контакты, отделы, должности и даты приема на работу.',
       createLabel: 'Добавить сотрудника',
       columns: {
-        employeeCode: 'Код',
         lastName: 'Фамилия',
         firstName: 'Имя',
         middleName: 'Отчество',

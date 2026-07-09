@@ -3,7 +3,6 @@ import type { HrEntityFormValues } from '../lib/hrEntityFormMapper'
 
 export const hrEntityDefaults: Record<HrEntityKey, HrEntityFormValues> = {
   employees: {
-    employee_code: '',
     last_name: '',
     first_name: '',
     middle_name: '',
@@ -14,7 +13,13 @@ export const hrEntityDefaults: Record<HrEntityKey, HrEntityFormValues> = {
     phone: '',
     email: '',
     hire_date: '',
+    salary: '0',
     status: 'active',
+    address_country: '',
+    address_city: '',
+    address_street: '',
+    address_house: '',
+    address_apartment: '',
     address: '',
     note: '',
   },

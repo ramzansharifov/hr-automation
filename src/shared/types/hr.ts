@@ -11,12 +11,19 @@ export type HrFilterValue =
   | null
   | Array<string | number | boolean | null>
 
+export type HrFilterOperator = 'equals' | 'contains' | 'gte' | 'lte' | 'in'
+
+export interface HrFilterCondition {
+  operator: HrFilterOperator
+  value: HrFilterValue
+}
+
 export interface HrListParams {
   entity: HrEntityKey
   page?: number
   pageSize?: number
   search?: string
-  filters?: Record<string, HrFilterValue>
+  filters?: Record<string, HrFilterValue | HrFilterCondition>
   orderBy?: string
   orderDirection?: HrOrderDirection
 }

@@ -47,13 +47,7 @@ function getRelationOptionLabel(record: HrRecord, label: HrEntityRelationLabel):
       .map((part) => String(part ?? '').trim())
       .filter(Boolean)
       .join(' ')
-    const code = String(record.employee_code ?? '').trim()
-
-    if (fullName && code) {
-      return `${fullName} · ${code}`
-    }
-
-    return fullName || code || String(record.id ?? '')
+    return fullName || String(record.id ?? '')
   }
 
   return String(record.name ?? record.id ?? '')

@@ -45,7 +45,6 @@ const hrEntityConfigDefinitions: Record<HrEntityKey, HrEntityPageConfigDefinitio
     createLabelKey: 'entities.employees.createLabel',
     defaultOrderBy: 'last_name',
     columns: [
-      { key: 'employee_code', labelKey: 'entities.employees.columns.employeeCode' },
       { key: 'last_name', labelKey: 'entities.employees.columns.lastName' },
       { key: 'first_name', labelKey: 'entities.employees.columns.firstName' },
       { key: 'middle_name', labelKey: 'entities.employees.columns.middleName' },

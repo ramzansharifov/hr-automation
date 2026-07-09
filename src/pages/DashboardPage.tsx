@@ -130,9 +130,7 @@ export function DashboardPage(): JSX.Element {
                   <p className="app-text font-black">
                     {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
                   </p>
-                  <p className="app-muted mt-1 text-sm font-medium">
-                    {String(employee.employee_code ?? '—')} · {formatDate(employee.hire_date, locale)}
-                  </p>
+                  <p className="app-muted mt-1 text-sm font-medium">{formatDate(employee.hire_date, locale)}</p>
                 </div>
 
                 <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">

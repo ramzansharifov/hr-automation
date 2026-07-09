@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS positions (
 
 CREATE TABLE IF NOT EXISTS employees (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  employee_code TEXT NOT NULL UNIQUE,
   department_id INTEGER,
   position_id INTEGER,
   last_name TEXT NOT NULL,

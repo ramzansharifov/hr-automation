@@ -9,6 +9,7 @@ export interface SelectOption {
 }
 
 interface SelectProps {
+  ariaLabel?: string
   allowEmpty?: boolean
   className?: string
   disabled?: boolean
@@ -24,6 +25,7 @@ interface SelectProps {
 }
 
 export function Select({
+  ariaLabel,
   allowEmpty = false,
   className = '',
   disabled = false,
@@ -49,6 +51,7 @@ export function Select({
       value={value === '' ? undefined : value}
     >
       <RadixSelect.Trigger
+        aria-label={ariaLabel}
         id={id}
         onBlur={onBlur}
         className={[

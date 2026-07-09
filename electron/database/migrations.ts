@@ -3,6 +3,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import type Database from 'better-sqlite3'
 
+const foreignKeysOffMarker = '-- requires_foreign_keys_off'
+
 export function runMigrations(database: Database.Database): void {
   database.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -18,17 +20,9 @@ export function runMigrations(database: Database.Database): void {
     .filter((fileName) => fileName.endsWith('.sql'))
     .sort()
 
-  const applyMigration = database.transaction((fileName: string, sql: string) => {
+  const applyMigrationInTransaction = database.transaction((fileName: string, sql: string) => {
     database.exec(sql)
-
-    database
-      .prepare(
-        `
-        INSERT INTO schema_migrations (name)
-        VALUES (?)
-      `,
-      )
-      .run(fileName)
+    insertAppliedMigration(database, fileName)
   })
 
   for (const fileName of migrationFiles) {
@@ -44,13 +38,51 @@ export function runMigrations(database: Database.Database): void {
     const sql = readFileSync(filePath, 'utf8')
 
     try {
-      applyMigration(fileName, sql)
+      applyMigration(database, fileName, sql, applyMigrationInTransaction)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
 
       throw new Error(`Не удалось применить миграцию ${fileName}: ${message}`)
     }
   }
+}
+
+function applyMigration(
+  database: Database.Database,
+  fileName: string,
+  sql: string,
+  applyMigrationInTransaction: (fileName: string, sql: string) => void,
+): void {
+  const shouldDisableForeignKeys = sql.includes(foreignKeysOffMarker)
+
+  if (!shouldDisableForeignKeys) {
+    applyMigrationInTransaction(fileName, sql)
+    return
+  }
+
+  database.pragma('foreign_keys = OFF')
+
+  try {
+    applyMigrationInTransaction(fileName, sql)
+    const foreignKeyErrors = database.pragma('foreign_key_check') as unknown[]
+
+    if (foreignKeyErrors.length > 0) {
+      throw new Error(`Foreign key check failed after ${fileName}`)
+    }
+  } finally {
+    database.pragma('foreign_keys = ON')
+  }
+}
+
+function insertAppliedMigration(database: Database.Database, fileName: string): void {
+  database
+    .prepare(
+      `
+      INSERT INTO schema_migrations (name)
+      VALUES (?)
+    `,
+    )
+    .run(fileName)
 }
 
 function resolveMigrationsDirectory(): string {
