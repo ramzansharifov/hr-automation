@@ -1,0 +1,18 @@
+{
+  "createdAt": "2026-07-09T09:42:48.484Z",
+  "backupPath": ".filetags/backups/2026-07-09T09-42-48-387Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Insert after: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 198 line(s)\n   new: 199 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 199 line(s)\n   new: 199 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 199 line(s)\n   new: 234 line(s)",
+    "Insert before: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 234 line(s)\n   new: 240 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 240 line(s)\n   new: 240 line(s)"
+  ]
+}

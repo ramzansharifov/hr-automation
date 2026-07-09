@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import * as Tabs from '@radix-ui/react-tabs'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { Button, EmptyState, LoadingState, PageHeader } from '../../shared/ui'
+import { Button, EmptyState, LoadingState } from '../../shared/ui'
 import { getAppLocale } from '../../shared/i18n'
 import { formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/format'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
@@ -93,77 +94,118 @@ export function EmployeeDetailsPage(): JSX.Element {
     .join(' ')
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('employeesDetails.title')}
-        description={fullName}
-        actions={
-          <Button type="button" onClick={() => navigate('/employees')} variant="secondary">
-            {t('employeesDetails.backToList')}
-          </Button>
-        }
-      />
+    <div>
+      <section className="app-surface app-shadow overflow-hidden rounded-[32px] border">
+        <div className="app-border-soft border-b bg-gradient-to-br from-white via-white to-slate-50 p-6 sm:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
+              <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
+                {t('employeesDetails.title')}
+              </p>
+              <h1 className="app-text mt-3 truncate text-3xl font-black tracking-tight">
+                {fullName || t('employeesDetails.title')}
+              </h1>
+              <p className="app-muted mt-2 text-sm font-semibold">
+                ID: {employeeId}
+              </p>
+            </div>
 
-      <section className="app-surface app-shadow rounded-[28px] border p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h1 className="app-text text-3xl font-black">{fullName}</h1>
-          </div>
+            <div className="flex flex-col gap-4 xl:items-end">
+              <Button type="button" onClick={() => navigate('/employees')} variant="secondary">
+                {t('employeesDetails.backToList')}
+              </Button>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <SummaryPill label={t('forms.fields.status')} value={humanizeStatus(employee.status, t)} />
-            <SummaryPill label={t('forms.fields.departmentId')} value={valueOrEmpty(departmentName, t)} />
-            <SummaryPill label={t('forms.fields.positionId')} value={valueOrEmpty(positionName, t)} />
+              <div className="grid gap-3 sm:grid-cols-3">
+                <SummaryPill label={t('forms.fields.status')} value={humanizeStatus(employee.status, t)} />
+                <SummaryPill label={t('forms.fields.departmentId')} value={valueOrEmpty(departmentName, t)} />
+                <SummaryPill label={t('forms.fields.positionId')} value={valueOrEmpty(positionName, t)} />
+              </div>
+            </div>
           </div>
         </div>
+
+        <Tabs.Root defaultValue="personal">
+          <div className="app-border-soft border-b px-6 pt-5 sm:px-8">
+            <Tabs.List className="flex flex-wrap gap-2" aria-label={t('employeesDetails.title')}>
+              <Tabs.Trigger className={detailsTabTriggerClass} value="personal">
+                {t('employeesDetails.sections.personal')}
+              </Tabs.Trigger>
+              <Tabs.Trigger className={detailsTabTriggerClass} value="address">
+                {t('employeesDetails.sections.address')}
+              </Tabs.Trigger>
+              <Tabs.Trigger className={detailsTabTriggerClass} value="company">
+                {t('employeesDetails.sections.company')}
+              </Tabs.Trigger>
+              <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
+                {t('employeesDetails.sections.notes')}
+              </Tabs.Trigger>
+            </Tabs.List>
+          </div>
+
+          <div className="p-6 sm:p-8">
+            <Tabs.Content value="personal" className="outline-none">
+              <EmployeeInfoSection
+                title={t('employeesDetails.sections.personal')}
+                items={[
+                  { label: t('forms.fields.lastName'), value: valueOrEmpty(getString(employee.last_name), t) },
+                  { label: t('forms.fields.firstName'), value: valueOrEmpty(getString(employee.first_name), t) },
+                  { label: t('forms.fields.middleName'), value: valueOrEmpty(getString(employee.middle_name), t) },
+                  { label: t('forms.fields.birthDate'), value: formatDate(employee.birth_date, locale) },
+                  { label: t('forms.fields.gender'), value: humanizeStatus(employee.gender, t) },
+                  { label: t('forms.fields.phone'), value: valueOrEmpty(getString(employee.phone), t) },
+                  { label: t('forms.fields.email'), value: valueOrEmpty(getString(employee.email), t) },
+                ]}
+              />
+            </Tabs.Content>
+
+            <Tabs.Content value="address" className="outline-none">
+              <EmployeeInfoSection
+                title={t('employeesDetails.sections.address')}
+                items={[
+                  { label: t('forms.fields.addressCountry'), value: valueOrEmpty(getString(employee.address_country), t) },
+                  { label: t('forms.fields.addressCity'), value: valueOrEmpty(getString(employee.address_city), t) },
+                  { label: t('forms.fields.addressStreet'), value: valueOrEmpty(getString(employee.address_street), t) },
+                  { label: t('forms.fields.addressHouse'), value: valueOrEmpty(getString(employee.address_house), t) },
+                  { label: t('forms.fields.addressApartment'), value: valueOrEmpty(getString(employee.address_apartment), t) },
+                  { label: t('forms.fields.address'), value: valueOrEmpty(getString(employee.address), t) },
+                ]}
+              />
+            </Tabs.Content>
+
+            <Tabs.Content value="company" className="outline-none">
+              <EmployeeInfoSection
+                title={t('employeesDetails.sections.company')}
+                items={[
+                  { label: t('forms.fields.departmentId'), value: valueOrEmpty(departmentName, t) },
+                  { label: t('forms.fields.positionId'), value: valueOrEmpty(positionName, t) },
+                  { label: t('forms.fields.hireDate'), value: formatDate(employee.hire_date, locale) },
+                  { label: t('forms.fields.status'), value: humanizeStatus(employee.status, t) },
+                  { label: t('forms.fields.salary'), value: formatCurrency(employee.salary, locale) },
+                ]}
+              />
+            </Tabs.Content>
+
+            <Tabs.Content value="notes" className="outline-none">
+              <EmployeeInfoSection
+                title={t('employeesDetails.sections.notes')}
+                items={[
+                  { label: t('forms.fields.note'), value: valueOrEmpty(getString(employee.note), t) },
+                ]}
+              />
+            </Tabs.Content>
+          </div>
+        </Tabs.Root>
       </section>
-
-      <EmployeeInfoSection
-        title={t('employeesDetails.sections.personal')}
-        items={[
-          { label: t('forms.fields.lastName'), value: valueOrEmpty(getString(employee.last_name), t) },
-          { label: t('forms.fields.firstName'), value: valueOrEmpty(getString(employee.first_name), t) },
-          { label: t('forms.fields.middleName'), value: valueOrEmpty(getString(employee.middle_name), t) },
-          { label: t('forms.fields.birthDate'), value: formatDate(employee.birth_date, locale) },
-          { label: t('forms.fields.gender'), value: humanizeStatus(employee.gender, t) },
-          { label: t('forms.fields.phone'), value: valueOrEmpty(getString(employee.phone), t) },
-          { label: t('forms.fields.email'), value: valueOrEmpty(getString(employee.email), t) },
-        ]}
-      />
-
-      <EmployeeInfoSection
-        title={t('employeesDetails.sections.address')}
-        items={[
-          { label: t('forms.fields.addressCountry'), value: valueOrEmpty(getString(employee.address_country), t) },
-          { label: t('forms.fields.addressCity'), value: valueOrEmpty(getString(employee.address_city), t) },
-          { label: t('forms.fields.addressStreet'), value: valueOrEmpty(getString(employee.address_street), t) },
-          { label: t('forms.fields.addressHouse'), value: valueOrEmpty(getString(employee.address_house), t) },
-          { label: t('forms.fields.addressApartment'), value: valueOrEmpty(getString(employee.address_apartment), t) },
-          { label: t('forms.fields.address'), value: valueOrEmpty(getString(employee.address), t) },
-        ]}
-      />
-
-      <EmployeeInfoSection
-        title={t('employeesDetails.sections.company')}
-        items={[
-          { label: t('forms.fields.departmentId'), value: valueOrEmpty(departmentName, t) },
-          { label: t('forms.fields.positionId'), value: valueOrEmpty(positionName, t) },
-          { label: t('forms.fields.hireDate'), value: formatDate(employee.hire_date, locale) },
-          { label: t('forms.fields.status'), value: humanizeStatus(employee.status, t) },
-          { label: t('forms.fields.salary'), value: formatCurrency(employee.salary, locale) },
-        ]}
-      />
-
-      <EmployeeInfoSection
-        title={t('employeesDetails.sections.notes')}
-        items={[
-          { label: t('forms.fields.note'), value: valueOrEmpty(getString(employee.note), t) },
-        ]}
-      />
     </div>
   )
 }
 
+const detailsTabTriggerClass = [
+  'relative -mb-px rounded-t-2xl px-5 py-3 text-sm font-black transition',
+  'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
+  'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/20',
+].join(' ')
 interface SummaryPillProps {
   label: string
   value: string
@@ -171,7 +213,7 @@ interface SummaryPillProps {
 
 function SummaryPill({ label, value }: SummaryPillProps): JSX.Element {
   return (
-    <div className="app-surface-muted rounded-2xl px-4 py-3">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
       <p className="app-muted text-xs font-black uppercase tracking-wide">{label}</p>
       <p className="app-text mt-1 text-sm font-black">{value}</p>
     </div>
