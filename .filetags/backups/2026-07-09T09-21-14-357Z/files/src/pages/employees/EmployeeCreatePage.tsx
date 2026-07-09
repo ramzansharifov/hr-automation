@@ -157,18 +157,12 @@ export function EmployeeCreatePage(): JSX.Element {
   }, [t])
 
   async function handleNext(): Promise<void> {
-    if (activeStep >= steps.length - 1 || isSubmitting) {
-      return
-    }
-
     const currentStep = steps[activeStep]
     const isStepValid = await trigger(currentStep.fields)
 
-    if (!isStepValid) {
-      return
+    if (isStepValid) {
+      setActiveStep((current) => Math.min(current + 1, steps.length - 1))
     }
-
-    setActiveStep((current) => Math.min(current + 1, steps.length - 1))
   }
 
   function handleBack(): void {
@@ -179,24 +173,47 @@ export function EmployeeCreatePage(): JSX.Element {
 
     setActiveStep((current) => Math.max(current - 1, 0))
   }
-
-  async function handleWizardSubmit(event: { preventDefault(): void }): Promise<void> {
+  async function handleFormSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+
+    if (isSubmitting) {
+      return
+    }
 
     if (activeStep < steps.length - 1) {
       await handleNext()
       return
     }
 
-    await handleSubmit(handleCreate)()
+    await handleSubmit(handleCreate, handleCreateInvalid)()
+  }
+
+  async function handleFinalCreate(): Promise<void> {
+    if (isSubmitting) {
+      return
+    }
+
+    if (activeStep < steps.length - 1) {
+      await handleNext()
+      return
+    }
+
+    await handleSubmit(handleCreate, handleCreateInvalid)()
+  }
+
+  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
+    const invalidStepIndex = steps.findIndex((step) =>
+      step.fields.some((field) => Boolean(formErrors[field])),
+    )
+
+    if (invalidStepIndex >= 0 && invalidStepIndex !== activeStep) {
+      setActiveStep(invalidStepIndex)
+    }
+
+    toast.error(t('employeesCreate.toasts.validationError'))
   }
 
   async function handleCreate(values: EmployeeFormValues): Promise<void> {
-    if (activeStep < steps.length - 1) {
-      await handleNext()
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
@@ -245,7 +262,7 @@ export function EmployeeCreatePage(): JSX.Element {
   return (
       <form
         className="app-surface app-shadow overflow-hidden rounded-[32px] border"
-        onSubmit={(event) => void handleWizardSubmit(event)}
+        onSubmit={(event) => void handleFormSubmit(event)}
       >
         <section className="border-b app-border-soft p-6 sm:p-7">
           <StepProgress activeStep={activeStep} t={t} />

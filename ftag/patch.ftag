@@ -1,68 +1,26 @@
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-@endfind
+@replace-block src/pages/employees/EmployeeCreatePage.tsx
+@from
+  async function handleNext(): Promise<void> {
+@endfrom
+@to
+  function normalizeField(name: keyof EmployeeFormValues): void {
+@endto
 @with
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-@endwith
-@end
+  async function handleNext(): Promise<void> {
+    if (activeStep >= steps.length - 1 || isSubmitting) {
+      return
+    }
 
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-const employeeCreateSchema = z
-  .object({
-    last_name: requiredString(),
-    first_name: requiredString(),
-    middle_name: optionalString(),
-    birth_date: optionalString(),
-    gender: optionalString(),
-    phone: optionalString(),
-    email: optionalEmail(),
-    address_country: optionalString(),
-    address_city: optionalString(),
-    address_street: optionalString(),
-    address_house: optionalString(),
-    address_apartment: optionalString(),
-    address: optionalString(),
-    department_id: optionalNumberString(),
-    position_id: optionalNumberString(),
-    hire_date: requiredString(),
-    status: requiredString(),
-    salary: requiredNumberString(),
-    note: optionalString(),
-  })
-  .refine((value) => value.department_id !== '' || value.position_id !== '', {
-    message: requiredMessage,
-    path: ['department_id'],
-  })
-@endfind
-@with
-const employeeCreateSchema = z.object({
-  last_name: requiredString(),
-  first_name: requiredString(),
-  middle_name: optionalString(),
-  birth_date: optionalString(),
-  gender: optionalString(),
-  phone: optionalString(),
-  email: optionalEmail(),
-  address_country: optionalString(),
-  address_city: optionalString(),
-  address_street: optionalString(),
-  address_house: optionalString(),
-  address_apartment: optionalString(),
-  address: optionalString(),
-  department_id: requiredNumberString(),
-  position_id: requiredNumberString(),
-  hire_date: requiredString(),
-  status: requiredString(),
-  salary: requiredNumberString(),
-  note: optionalString(),
-})
-@endwith
-@end
+    const currentStep = steps[activeStep]
+    const isStepValid = await trigger(currentStep.fields)
 
-@insert-after-once src/pages/employees/EmployeeCreatePage.tsx
-@find
+    if (!isStepValid) {
+      return
+    }
+
+    setActiveStep((current) => Math.min(current + 1, steps.length - 1))
+  }
+
   function handleBack(): void {
     if (activeStep === 0) {
       navigate('/employees')
@@ -72,49 +30,50 @@ const employeeCreateSchema = z.object({
     setActiveStep((current) => Math.max(current - 1, 0))
   }
 
-@endfind
-@content
-  async function handleFormSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleWizardSubmit(event: { preventDefault(): void }): Promise<void> {
     event.preventDefault()
 
-    if (isSubmitting) {
-      return
-    }
-
     if (activeStep < steps.length - 1) {
       await handleNext()
       return
     }
 
-    await handleSubmit(handleCreate, handleCreateInvalid)()
+    await handleSubmit(handleCreate)()
   }
 
-  async function handleFinalCreate(): Promise<void> {
-    if (isSubmitting) {
-      return
-    }
-
+  async function handleCreate(values: EmployeeFormValues): Promise<void> {
     if (activeStep < steps.length - 1) {
       await handleNext()
       return
     }
 
-    await handleSubmit(handleCreate, handleCreateInvalid)()
-  }
+    setIsSubmitting(true)
 
-  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
-    const invalidStepIndex = steps.findIndex((step) =>
-      step.fields.some((field) => Boolean(formErrors[field])),
-    )
+    try {
+      const normalizedValues = normalizeEmployeeFormValues(values)
+      const created = await hrApiClient.create({
+        entity: 'employees',
+        data: mapEmployeeFormValuesToRecord(normalizedValues),
+      })
+      const id = Number(created.id)
 
-    if (invalidStepIndex >= 0 && invalidStepIndex !== activeStep) {
-      setActiveStep(invalidStepIndex)
+      toast.success(t('employeesCreate.toasts.created'))
+
+      if (Number.isFinite(id)) {
+        navigate(`/employees/${id}`)
+      } else {
+        navigate('/employees')
+      }
+    } catch (error) {
+      console.error('Employee create error:', error)
+      toast.error(t('employeesCreate.toasts.createError'))
+    } finally {
+      setIsSubmitting(false)
     }
-
-    toast.error(t('employeesCreate.toasts.validationError'))
   }
 
-@endcontent
+  function normalizeField(name: keyof EmployeeFormValues): void {
+@endwith
 @end
 
 @replace-first src/pages/employees/EmployeeCreatePage.tsx
@@ -122,115 +81,15 @@ const employeeCreateSchema = z.object({
         onSubmit={handleSubmit(handleCreate)}
 @endfind
 @with
+        onSubmit={(event) => void handleWizardSubmit(event)}
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
         onSubmit={(event) => void handleFormSubmit(event)}
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-              <Button disabled={isSubmitting} type="submit" variant="primary">
-                {t('employeesCreate.actions.create')}
-              </Button>
 @endfind
 @with
-              <Button
-                disabled={isSubmitting}
-                type="button"
-                onClick={() => void handleFinalCreate()}
-                variant="primary"
-              >
-                {t('employeesCreate.actions.create')}
-              </Button>
+        onSubmit={(event) => void handleWizardSubmit(event)}
 @endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-              <SelectField
-                control={control}
-                disabled={isRelationsLoading}
-                error={getError('department_id', errors, t)}
-                label={t('forms.fields.departmentId')}
-                name="department_id"
-                options={departments}
-                placeholder={
-                  isRelationsLoading
-                    ? t('forms.placeholders.loadingOptions')
-                    : t('forms.placeholders.selectDepartment')
-                }
-              />
-@endfind
-@with
-              <SelectField
-                control={control}
-                disabled={isRelationsLoading}
-                error={getError('department_id', errors, t)}
-                label={t('forms.fields.departmentId')}
-                name="department_id"
-                options={departments}
-                placeholder={
-                  isRelationsLoading
-                    ? t('forms.placeholders.loadingOptions')
-                    : t('forms.placeholders.selectDepartment')
-                }
-                required
-              />
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-              <SelectField
-                control={control}
-                disabled={isRelationsLoading}
-                error={getError('position_id', errors, t)}
-                label={t('forms.fields.positionId')}
-                name="position_id"
-                options={positions}
-                placeholder={
-                  isRelationsLoading
-                    ? t('forms.placeholders.loadingOptions')
-                    : t('forms.placeholders.selectPosition')
-                }
-              />
-@endfind
-@with
-              <SelectField
-                control={control}
-                disabled={isRelationsLoading}
-                error={getError('position_id', errors, t)}
-                label={t('forms.fields.positionId')}
-                name="position_id"
-                options={positions}
-                placeholder={
-                  isRelationsLoading
-                    ? t('forms.placeholders.loadingOptions')
-                    : t('forms.placeholders.selectPosition')
-                }
-                required
-              />
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-    } catch {
-      toast.error(t('employeesCreate.toasts.createError'))
-    } finally {
-@endfind
-@with
-    } catch (error) {
-      console.error('Employee create error:', error)
-      toast.error(t('employeesCreate.toasts.createError'))
-    } finally {
-@endwith
-@end
-
-@insert-after-once src/shared/i18n/locales/ru.ts
-@find
-      createError: 'Не удалось создать сотрудника',
-@endfind
-@content
-      validationError: 'Проверьте обязательные поля перед созданием сотрудника',
-@endcontent
 @end
