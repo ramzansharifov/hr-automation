@@ -178,17 +178,17 @@ function EmployeePassportCard({
         <aside className="app-accent-gradient-panel relative overflow-hidden p-8 text-white">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10" />
           <div className="absolute -bottom-24 -right-12 h-72 w-72 rounded-full bg-white/10" />
-          <div className="app-accent-glow-line absolute bottom-16 left-10 h-2 w-24 rounded-full" />
+          <div className="absolute bottom-16 left-10 h-2 w-24 rounded-full bg-white/70 shadow-[0_0_24px_rgba(255,255,255,0.9)]" />
           <div className="absolute bottom-20 left-7 h-48 w-48 rounded-full border border-white/15" />
           <div className="absolute bottom-24 left-11 h-40 w-40 rounded-full bg-white/10" />
 
           <div className="relative z-10 flex h-full min-h-[500px] flex-col items-center justify-center text-center">
             <div className="relative flex h-44 w-44 items-center justify-center">
               <div className="absolute inset-4 rounded-full bg-white/20 blur-2xl" />
-              <HRLogo className="app-accent-drop-shadow relative h-40 w-40" />
+              <HRLogo className="relative h-40 w-40 drop-shadow-[0_24px_45px_rgba(15,23,42,0.34)]" />
             </div>
 
-            <div className="app-accent-glow-line mt-12 h-px w-24" />
+            <div className="mt-12 h-px w-24 bg-white/70 shadow-[0_0_18px_rgba(255,255,255,0.9)]" />
 
             <p className="mt-10 text-lg font-black uppercase tracking-[0.34em]">
               Сотрудник
@@ -202,7 +202,7 @@ function EmployeePassportCard({
 
         <div className="p-7 sm:p-10 xl:p-12">
           <div className="flex items-center gap-5">
-            <span className="app-accent-soft app-accent-shadow-sm flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px]">
+            <span className="app-accent-soft flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] shadow-sm">
               <FiUser className="h-10 w-10" />
             </span>
 
@@ -262,11 +262,11 @@ function CardInfoBox({ icon, label, value, wide = false }: CardInfoBoxProps): JS
   return (
     <div
       className={[
-        'app-surface app-shadow app-hover-accent-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5',
+        'app-surface app-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5 hover:shadow-md',
         wide ? 'xl:col-span-2' : '',
       ].join(' ')}
     >
-      <span className="app-accent-soft app-accent-shadow-sm flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
+      <span className="app-accent-soft flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
         {icon}
       </span>
 

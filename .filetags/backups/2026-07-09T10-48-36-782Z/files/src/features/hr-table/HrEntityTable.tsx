@@ -360,7 +360,7 @@ export function HrEntityTable({
                       aria-label={t('common.actions.edit')}
                       title={t('common.actions.edit')}
                       onClick={() => handleEditClick(record)}
-                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
                     >
                       <FiEdit2 className="h-4 w-4" />
                     </button>
@@ -370,7 +370,7 @@ export function HrEntityTable({
                       aria-label={t('common.actions.delete')}
                       title={t('common.actions.delete')}
                       onClick={() => handleDeleteClick(record)}
-                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
                     >
                       <FiTrash2 className="h-4 w-4" />
                     </button>
