@@ -56,13 +56,12 @@ export function EmployeesPage(): JSX.Element {
     }
   }, [])
 
+  function handleRowClick(record: HrRecord): void {
   function handleViewModeChange(nextMode: EmployeesViewMode): void {
     setViewMode(nextMode)
     setStoredEmployeesViewMode(nextMode)
     window.dispatchEvent(new CustomEvent(EMPLOYEES_VIEW_MODE_EVENT, { detail: nextMode }))
   }
-
-  function handleRowClick(record: HrRecord): void {
     const id = Number(record.id)
 
     if (Number.isFinite(id)) {
