@@ -50,40 +50,6 @@
       color-mix(in srgb, var(--accent-hover) 74%, #020617) 100%
     );
 }
-.app-passport-header-gradient {
-  background:
-    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent-soft) 30%, transparent) 0 22%, transparent 42%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-border) 78%, #ffffff) 0%,
-      var(--accent) 48%,
-      color-mix(in srgb, var(--accent-hover) 78%, #020617) 100%
-    );
-}
-
-.app-passport-divider {
-  height: 1px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, var(--accent) 48%, var(--color-border)) 18%,
-      color-mix(in srgb, var(--accent-border) 72%, #ffffff) 50%,
-      color-mix(in srgb, var(--accent) 48%, var(--color-border)) 82%,
-      transparent
-    );
-}
-
-.app-passport-soft-line {
-  height: 1px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, #ffffff 72%, var(--accent-border)),
-      transparent
-    );
-}
 
 .app-danger-soft {
   background: color-mix(in srgb, #e11d48 9%, var(--color-surface));

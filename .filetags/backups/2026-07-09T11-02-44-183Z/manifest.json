@@ -1,0 +1,19 @@
+{
+  "createdAt": "2026-07-09T11:02:44.249Z",
+  "backupPath": ".filetags/backups/2026-07-09T11-02-44-183Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/index.css",
+      "backupRelativePath": "files/src/index.css"
+    },
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Insert after: src/index.css\n   found: yes\n   old: 507 line(s)\n   new: 541 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 420 line(s)\n   new: 437 line(s)"
+  ]
+}
