@@ -9,7 +9,6 @@ import {
   FiRefreshCw,
   FiSearch,
   FiTrash2,
-  FiUser,
 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
@@ -35,10 +34,8 @@ interface HrEntityTableProps {
   hideToolbar?: boolean
   hideToolbarSearch?: boolean
   onCreateClick?: () => void
-  viewMode?: HrEntityTableViewMode
   onRowClick?: (record: HrRecord) => void
 }
-type HrEntityTableViewMode = 'table' | 'cards'
 
 const emptyResult: HrListResult = {
   items: [],
@@ -72,31 +69,6 @@ function getPageNumbers(currentPage: number, totalPages: number): number[] {
 
   return pages
 }
-function getRecordTitle(record: HrRecord, entity: HrEntityKey): string {
-  if (entity === 'employees') {
-    const fullName = [record.last_name, record.first_name, record.middle_name]
-      .map((value) => String(value ?? '').trim())
-      .filter(Boolean)
-      .join(' ')
-
-    return fullName || '—'
-  }
-
-  return String(record.name ?? record.title ?? record.id ?? '—')
-}
-
-function getRecordInitials(title: string): string {
-  const initials = title
-    .split(' ')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => Array.from(part)[0])
-    .join('')
-    .toUpperCase()
-
-  return initials || 'HR'
-}
 
 export function HrEntityTable({
   className = '',
@@ -106,7 +78,6 @@ export function HrEntityTable({
   hideToolbar = false,
   hideToolbarSearch = false,
   onCreateClick,
-  viewMode = 'table',
   onRowClick,
 }: HrEntityTableProps): JSX.Element {
   const { i18n, t } = useTranslation()
@@ -253,7 +224,7 @@ export function HrEntityTable({
     handleRefresh()
   }
 
-  function handleRowKeyDown(event: KeyboardEvent<HTMLElement>, record: HrRecord): void {
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, record: HrRecord): void {
     if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) {
       return
     }
@@ -275,7 +246,6 @@ export function HrEntityTable({
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
   const tableColumnCount = config.columns.length + 1
-  const cardMetaColumns = config.columns.slice(1, 4)
 
   return (
     <motion.section
@@ -326,7 +296,7 @@ export function HrEntityTable({
         </div>
       )}
 
-      <div className={viewMode === 'table' ? 'min-h-0 flex-1 overflow-auto' : 'hidden'}>
+      <div className="min-h-0 flex-1 overflow-auto">
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
             <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
@@ -427,103 +397,6 @@ export function HrEntityTable({
           </tbody>
         </table>
       </div>
-
-      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-      {viewMode === 'cards' && (
-        <div className="min-h-0 flex-1 overflow-auto p-5">
-          <div className="grid gap-3">
-            {result.items.map((record, index) => {
-              const title = getRecordTitle(record, entity)
-
-              return (
-                <motion.article
-                  key={String(record.id ?? index)}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.22,
-                    delay: Math.min(index * 0.035, 0.18),
-                    ease: 'easeOut',
-                  }}
-                  whileHover={{ y: onRowClick ? -2 : 0 }}
-                  className={[
-                    'app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4 transition',
-                    onRowClick ? 'cursor-pointer' : '',
-                  ].join(' ')}
-                  onClick={onRowClick ? () => onRowClick(record) : undefined}
-                  onKeyDown={(event) => handleRowKeyDown(event, record)}
-                  role={onRowClick ? 'button' : undefined}
-                  tabIndex={onRowClick ? 0 : undefined}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <span className="app-accent-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-black">
-                      {entity === 'employees' ? (
-                        <FiUser className="h-5 w-5" />
-                      ) : (
-                        getRecordInitials(title)
-                      )}
-                    </span>
-
-                    <div className="min-w-0">
-                      <h4 className="app-text truncate text-sm font-black">
-                        {title}
-                      </h4>
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                        {cardMetaColumns.map((column) => (
-                          <span
-                            key={column.key}
-                            className="app-text-soft min-w-0 text-xs font-semibold"
-                          >
-                            <span className="app-muted">{column.label}: </span>
-                            {renderCell(record, column, locale)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex shrink-0 items-center justify-center gap-2"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <button
-                      type="button"
-                      aria-label={t('common.actions.edit')}
-                      title={t('common.actions.edit')}
-                      onClick={() => handleEditClick(record)}
-                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-                    >
-                      <FiEdit2 className="h-4 w-4" />
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label={t('common.actions.delete')}
-                      title={t('common.actions.delete')}
-                      onClick={() => handleDeleteClick(record)}
-                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-                    >
-                      <FiTrash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </motion.article>
-              )
-            })}
-
-            {!isLoading && result.items.length === 0 && (
-              <div className="px-5 py-16 text-center">
-                <EmptyState title={t('common.table.empty')} />
-              </div>
-            )}
-
-            {isLoading && (
-              <div className="px-5 py-16 text-center">
-                <LoadingState label={t('common.table.loading')} />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
