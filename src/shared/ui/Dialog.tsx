@@ -1,15 +1,15 @@
-import * as RadixDialog from '@radix-ui/react-dialog'
-import { useTranslation } from 'react-i18next'
-import type { ReactNode } from 'react'
-import { FiX } from 'react-icons/fi'
-import { Button } from './Button'
+import * as RadixDialog from "@radix-ui/react-dialog";
+import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
+import { FiX } from "react-icons/fi";
+import { Button } from "./Button";
 
 interface DialogProps {
-  children: ReactNode
-  description?: string
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  title: string
+  children: ReactNode;
+  description?: string;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  title: string;
 }
 
 export function Dialog({
@@ -19,7 +19,7 @@ export function Dialog({
   open,
   title,
 }: DialogProps): JSX.Element {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
@@ -40,18 +40,20 @@ export function Dialog({
 
             <RadixDialog.Close asChild>
               <Button
-                aria-label={t('common.actions.close')}
-                className="h-10 w-10 rounded-xl p-0"
+                aria-label={t("common.actions.close")}
+                className="h-12 w-12 rounded-2xl"
                 variant="ghost"
               >
-                <FiX className="h-4 w-4" />
+                <FiX />
               </Button>
             </RadixDialog.Close>
           </div>
 
-          <div className="max-h-[calc(86vh-93px)] overflow-y-auto p-6">{children}</div>
+          <div className="max-h-[calc(86vh-93px)] overflow-y-auto p-6">
+            {children}
+          </div>
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
-  )
+  );
 }
