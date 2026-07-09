@@ -5,7 +5,6 @@ import { FiChevronLeft, FiChevronRight, FiDatabase } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import type { AppNavigationItem } from './navigation'
 import { bottomNavigationItems, navigationItems } from './navigation'
-import { HRLogo } from './brand/HRLogo'
 
 const EXPANDED_SIDEBAR_WIDTH = '276px'
 const COLLAPSED_SIDEBAR_WIDTH = '84px'
@@ -268,7 +267,9 @@ export function AppLayout(): JSX.Element {
                 isSidebarCollapsed ? 'justify-center' : 'gap-3',
               ].join(' ')}
             >
-              <HRLogo className="h-11 w-11 shrink-0" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-md shadow-blue-950/35">
+                HR
+              </div>
 
               {!isSidebarCollapsed && (
                 <div className="min-w-0">

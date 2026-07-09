@@ -1,6 +1,3 @@
-@folder src/app/brand
-
-@write src/app/brand/HRLogo.tsx
 import { motion } from 'framer-motion'
 
 interface HRLogoProps {
@@ -269,24 +266,3 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
     </motion.svg>
   )
 }
-@end
-
-@insert-after-once src/app/AppLayout.tsx
-@find
-import { bottomNavigationItems, navigationItems } from './navigation'
-@endfind
-@content
-import { HRLogo } from './brand/HRLogo'
-@endcontent
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-md shadow-blue-950/35">
-                HR
-              </div>
-@endfind
-@with
-              <HRLogo className="h-11 w-11 shrink-0" />
-@endwith
-@end
