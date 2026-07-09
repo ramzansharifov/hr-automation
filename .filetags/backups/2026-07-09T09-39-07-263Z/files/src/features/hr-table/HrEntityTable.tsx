@@ -20,7 +20,7 @@ import type {
 } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
-import { Button, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
+import { Button, DropdownMenu, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
 import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
 import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
@@ -314,7 +314,7 @@ export function HrEntityTable({
                   </button>
                 </th>
               ))}
-              <th className="app-border-soft border-b px-5 py-4 text-center font-black">
+              <th className="app-border-soft border-b px-5 py-4 text-right font-black">
                 {t('common.table.actions')}
               </th>
             </tr>
@@ -342,26 +342,23 @@ export function HrEntityTable({
                   </td>
                 ))}
                 <td className="app-border-soft border-b px-5 py-4 align-top">
-                  <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
-                    <button
-                      type="button"
-                      aria-label={t('common.actions.edit')}
-                      title={t('common.actions.edit')}
-                      onClick={() => handleEditClick(record)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
-                    >
-                      <FiEdit2 className="h-4 w-4" />
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label={t('common.actions.delete')}
-                      title={t('common.actions.delete')}
-                      onClick={() => handleDeleteClick(record)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-100 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-                    >
-                      <FiTrash2 className="h-4 w-4" />
-                    </button>
+                  <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
+                    <DropdownMenu
+                      actions={[
+                        {
+                          icon: <FiEdit2 className="h-4 w-4" />,
+                          label: t('common.actions.edit'),
+                          onSelect: () => handleEditClick(record),
+                        },
+                        {
+                          danger: true,
+                          icon: <FiTrash2 className="h-4 w-4" />,
+                          label: t('common.actions.delete'),
+                          onSelect: () => handleDeleteClick(record),
+                        },
+                      ]}
+                      triggerLabel={t('common.actions.openMenu')}
+                    />
                   </div>
                 </td>
               </tr>

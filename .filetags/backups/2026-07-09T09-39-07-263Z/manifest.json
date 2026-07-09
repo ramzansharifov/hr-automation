@@ -1,0 +1,16 @@
+{
+  "createdAt": "2026-07-09T09:39:07.331Z",
+  "backupPath": ".filetags/backups/2026-07-09T09-39-07-263Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/features/hr-table/HrEntityTable.tsx",
+      "backupRelativePath": "files/src/features/hr-table/HrEntityTable.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 493 line(s)\n   new: 493 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 493 line(s)\n   new: 493 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 493 line(s)\n   new: 496 line(s)"
+  ]
+}

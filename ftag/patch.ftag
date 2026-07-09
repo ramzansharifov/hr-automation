@@ -1,349 +1,71 @@
 @replace-first src/features/hr-table/HrEntityTable.tsx
 @find
-import { Button, DropdownMenu, EmptyState, LoadingState } from '../../shared/ui'
-@endfind
-@with
 import { Button, DropdownMenu, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
-@endwith
-@end
-
-@insert-after-once src/features/hr-table/HrEntityTable.tsx
-@find
-const emptyResult: HrListResult = {
-  items: [],
-  total: 0,
-  page: 1,
-  pageSize: 10,
-  totalPages: 0,
-}
-@endfind
-@content
-
-const pageSizeOptions: SelectOption[] = [
-  { value: '10', label: '10' },
-  { value: '25', label: '25' },
-  { value: '50', label: '50' },
-  { value: '100', label: '100' },
-]
-
-const maxVisiblePageButtons = 5
-
-function getPageNumbers(currentPage: number, totalPages: number): number[] {
-  const safeTotalPages = Math.max(totalPages, 1)
-  const half = Math.floor(maxVisiblePageButtons / 2)
-  let start = Math.max(1, currentPage - half)
-  let end = Math.min(safeTotalPages, start + maxVisiblePageButtons - 1)
-
-  start = Math.max(1, end - maxVisiblePageButtons + 1)
-
-  const pages: number[] = []
-
-  for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
-    pages.push(pageNumber)
-  }
-
-  return pages
-}
-@endcontent
-@end
-
-@insert-after-once src/features/hr-table/HrEntityTable.tsx
-@find
-  const [page, setPage] = useState(1)
-@endfind
-@content
-  const [pageSize, setPageSize] = useState(10)
-@endcontent
-@end
-
-@replace-first src/features/hr-table/HrEntityTable.tsx
-@find
-        pageSize: 10,
 @endfind
 @with
-        pageSize,
+import { Button, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
 @endwith
 @end
 
 @replace-first src/features/hr-table/HrEntityTable.tsx
 @find
-  }, [entity, externalFilters, orderBy, orderDirection, page, search, t])
+              <th className="app-border-soft border-b px-5 py-4 text-right font-black">
+                {t('common.table.actions')}
+              </th>
 @endfind
 @with
-  }, [entity, externalFilters, orderBy, orderDirection, page, pageSize, search, t])
-@endwith
-@end
-
-@insert-after-once src/features/hr-table/HrEntityTable.tsx
-@find
-  useEffect(() => {
-    void loadData()
-  }, [loadData, refreshIndex])
-@endfind
-@content
-
-  useEffect(() => {
-    const safeTotalPages = Math.max(result.totalPages, 1)
-
-    if (page > safeTotalPages) {
-      setPage(safeTotalPages)
-    }
-  }, [page, result.totalPages])
-@endcontent
-@end
-
-@insert-after-once src/features/hr-table/HrEntityTable.tsx
-@find
-  function handleSearchSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault()
-    setPage(1)
-    setSearch(draftSearch.trim())
-  }
-@endfind
-@content
-
-  function handlePageSizeChange(value: string): void {
-    const nextPageSize = Number(value)
-
-    if (!Number.isFinite(nextPageSize)) {
-      return
-    }
-
-    setPage(1)
-    setPageSize(nextPageSize)
-  }
-@endcontent
-@end
-
-@replace-first src/features/hr-table/HrEntityTable.tsx
-@find
-  const canGoBack = result.page > 1
-  const canGoForward = result.totalPages > 0 && result.page < result.totalPages
-  const tableColumnCount = config.columns.length + 1
-@endfind
-@with
-  const totalPages = Math.max(result.totalPages, 1)
-  const pageNumbers = getPageNumbers(result.page, totalPages)
-  const canGoBack = result.page > 1
-  const canGoForward = result.totalPages > 0 && result.page < result.totalPages
-  const tableColumnCount = config.columns.length + 1
+              <th className="app-border-soft border-b px-5 py-4 text-center font-black">
+                {t('common.table.actions')}
+              </th>
 @endwith
 @end
 
 @replace-first src/features/hr-table/HrEntityTable.tsx
 @find
-      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="app-muted text-sm">
-          {t('common.table.total')}: <span className="app-text font-bold">{result.total}</span>
-        </p>
-
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            disabled={!canGoBack}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            leftIcon={<FiChevronLeft className="h-4 w-4" />}
-            size="sm"
-            variant="secondary"
-          >
-            {t('common.actions.back')}
-          </Button>
-
-          <span className="app-muted text-sm">
-            {result.page} / {Math.max(result.totalPages, 1)}
-          </span>
-
-          <Button
-            type="button"
-            disabled={!canGoForward}
-            onClick={() => setPage((current) => current + 1)}
-            rightIcon={<FiChevronRight className="h-4 w-4" />}
-            size="sm"
-            variant="secondary"
-          >
-            {t('common.actions.next')}
-          </Button>
-        </div>
-      </div>
+                <td className="app-border-soft border-b px-5 py-4 align-top">
+                  <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
+                    <DropdownMenu
+                      actions={[
+                        {
+                          icon: <FiEdit2 className="h-4 w-4" />,
+                          label: t('common.actions.edit'),
+                          onSelect: () => handleEditClick(record),
+                        },
+                        {
+                          danger: true,
+                          icon: <FiTrash2 className="h-4 w-4" />,
+                          label: t('common.actions.delete'),
+                          onSelect: () => handleDeleteClick(record),
+                        },
+                      ]}
+                      triggerLabel={t('common.actions.openMenu')}
+                    />
+                  </div>
+                </td>
 @endfind
 @with
-      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-          <p className="app-muted text-sm">
-            {t('common.table.total')}: <span className="app-text font-bold">{result.total}</span>
-          </p>
+                <td className="app-border-soft border-b px-5 py-4 align-top">
+                  <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.edit')}
+                      title={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </button>
 
-          <div className="flex items-center gap-2">
-            <span className="app-muted text-sm font-medium">{t('common.table.pageSize')}</span>
-            <Select
-              ariaLabel={t('common.table.pageSize')}
-              className="h-10 w-24 rounded-xl"
-              onValueChange={handlePageSizeChange}
-              options={pageSizeOptions}
-              value={String(pageSize)}
-            />
-            <span className="app-muted text-sm font-medium">{t('common.table.pageSizeSuffix')}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            type="button"
-            disabled={!canGoBack}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            leftIcon={<FiChevronLeft className="h-4 w-4" />}
-            size="sm"
-            variant="secondary"
-          >
-            {t('common.actions.back')}
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {pageNumbers[0] > 1 && (
-              <>
-                <Button
-                  type="button"
-                  onClick={() => setPage(1)}
-                  size="sm"
-                  variant={result.page === 1 ? 'primary' : 'secondary'}
-                  className="min-w-10 px-3"
-                >
-                  1
-                </Button>
-                <span className="app-muted px-1 text-sm">...</span>
-              </>
-            )}
-
-            {pageNumbers.map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                type="button"
-                onClick={() => setPage(pageNumber)}
-                size="sm"
-                variant={pageNumber === result.page ? 'primary' : 'secondary'}
-                className="min-w-10 px-3"
-                aria-current={pageNumber === result.page ? 'page' : undefined}
-              >
-                {pageNumber}
-              </Button>
-            ))}
-
-            {pageNumbers[pageNumbers.length - 1] < totalPages && (
-              <>
-                <span className="app-muted px-1 text-sm">...</span>
-                <Button
-                  type="button"
-                  onClick={() => setPage(totalPages)}
-                  size="sm"
-                  variant={result.page === totalPages ? 'primary' : 'secondary'}
-                  className="min-w-10 px-3"
-                >
-                  {totalPages}
-                </Button>
-              </>
-            )}
-          </div>
-
-          <Button
-            type="button"
-            disabled={!canGoForward}
-            onClick={() => setPage((current) => current + 1)}
-            rightIcon={<FiChevronRight className="h-4 w-4" />}
-            size="sm"
-            variant="secondary"
-          >
-            {t('common.actions.next')}
-          </Button>
-        </div>
-      </div>
-@endwith
-@end
-
-@replace-first src/features/hr-table/hrEntityConfig.tsx
-@find
-type HrEntityColumnFormat = 'money' | 'date' | 'status'
-@endfind
-@with
-type HrEntityColumnFormat = 'money' | 'date' | 'status' | 'fullName'
-@endwith
-@end
-
-@replace-first src/features/hr-table/hrEntityConfig.tsx
-@find
-    columns: [
-      { key: 'last_name', labelKey: 'entities.employees.columns.lastName' },
-      { key: 'first_name', labelKey: 'entities.employees.columns.firstName' },
-      { key: 'middle_name', labelKey: 'entities.employees.columns.middleName' },
-      { key: 'department_id', labelKey: 'entities.employees.columns.department' },
-      { key: 'position_id', labelKey: 'entities.employees.columns.position' },
-      { key: 'phone', labelKey: 'entities.employees.columns.phone' },
-      { key: 'email', labelKey: 'entities.employees.columns.email' },
-      { key: 'hire_date', labelKey: 'entities.employees.columns.hireDate', format: 'date' },
-      { key: 'status', labelKey: 'entities.employees.columns.status', format: 'status' },
-    ],
-@endfind
-@with
-    columns: [
-      {
-        key: 'last_name',
-        labelKey: 'entities.employees.columns.fullName',
-        format: 'fullName',
-        className: 'min-w-[240px] font-bold',
-      },
-      { key: 'phone', labelKey: 'entities.employees.columns.phone' },
-      { key: 'email', labelKey: 'entities.employees.columns.email' },
-      { key: 'status', labelKey: 'entities.employees.columns.status', format: 'status' },
-    ],
-@endwith
-@end
-
-@insert-after-once src/features/hr-table/hrEntityConfig.tsx
-@find
-function createColumnRender(
-  column: HrEntityColumnDefinition,
-  t: TFunction,
-  locale: string,
-): ((record: HrRecord) => ReactNode) | undefined {
-@endfind
-@content
-  if (column.format === 'fullName') {
-    return (record) => {
-      const fullName = [record.last_name, record.first_name, record.middle_name]
-        .map((value) => String(value ?? '').trim())
-        .filter(Boolean)
-        .join(' ')
-
-      return fullName || '—'
-    }
-  }
-
-@endcontent
-@end
-
-@insert-after-once src/shared/i18n/locales/ru.ts
-@find
-      actions: 'Действия',
-@endfind
-@content
-      pageSize: 'Показывать',
-      pageSizeSuffix: 'записей',
-@endcontent
-@end
-
-@insert-after-once src/shared/i18n/locales/ru.ts
-@find
-        lastName: 'Фамилия',
-@endfind
-@content
-        fullName: 'ФИО',
-@endcontent
-@end
-
-@replace-first electron/repositories/hrCrudRepository.ts
-@find
-const maxHrPageSize = 50000
-@endfind
-@with
-const maxHrPageSize = 100
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.delete')}
+                      title={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-100 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
 @endwith
 @end
