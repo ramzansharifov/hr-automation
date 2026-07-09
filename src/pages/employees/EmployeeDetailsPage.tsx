@@ -94,109 +94,133 @@ export function EmployeeDetailsPage(): JSX.Element {
     .join(' ')
 
   return (
-    <div>
-      <section className="app-surface app-shadow overflow-hidden rounded-[32px] border">
-        <div className="app-border-soft border-b bg-gradient-to-br from-white via-white to-slate-50 p-6 sm:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
-                {t('employeesDetails.title')}
-              </p>
-              <h1 className="app-text mt-3 truncate text-3xl font-black tracking-tight">
-                {fullName || t('employeesDetails.title')}
-              </h1>
-              <p className="app-muted mt-2 text-sm font-semibold">
-                ID: {employeeId}
-              </p>
-            </div>
+    <section className="app-surface app-shadow overflow-hidden rounded-[32px] border">
+      <Tabs.Root defaultValue="card">
+        <div className="app-border-soft flex flex-col gap-4 border-b px-6 pt-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs.List className="flex flex-wrap gap-2" aria-label={t('employeesDetails.title')}>
+            <Tabs.Trigger className={detailsTabTriggerClass} value="card">
+              {t('employeesDetails.sections.card')}
+            </Tabs.Trigger>
+            <Tabs.Trigger className={detailsTabTriggerClass} value="personal">
+              {t('employeesDetails.sections.personal')}
+            </Tabs.Trigger>
+            <Tabs.Trigger className={detailsTabTriggerClass} value="address">
+              {t('employeesDetails.sections.address')}
+            </Tabs.Trigger>
+            <Tabs.Trigger className={detailsTabTriggerClass} value="company">
+              {t('employeesDetails.sections.company')}
+            </Tabs.Trigger>
+            <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
+              {t('employeesDetails.sections.notes')}
+            </Tabs.Trigger>
+          </Tabs.List>
 
-            <div className="flex flex-col gap-4 xl:items-end">
-              <Button type="button" onClick={() => navigate('/employees')} variant="secondary">
-                {t('employeesDetails.backToList')}
-              </Button>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <SummaryPill label={t('forms.fields.status')} value={humanizeStatus(employee.status, t)} />
-                <SummaryPill label={t('forms.fields.departmentId')} value={valueOrEmpty(departmentName, t)} />
-                <SummaryPill label={t('forms.fields.positionId')} value={valueOrEmpty(positionName, t)} />
-              </div>
-            </div>
-          </div>
+          <Button type="button" onClick={() => navigate('/employees')} variant="secondary">
+            {t('employeesDetails.backToList')}
+          </Button>
         </div>
 
-        <Tabs.Root defaultValue="personal">
-          <div className="app-border-soft border-b px-6 pt-5 sm:px-8">
-            <Tabs.List className="flex flex-wrap gap-2" aria-label={t('employeesDetails.title')}>
-              <Tabs.Trigger className={detailsTabTriggerClass} value="personal">
-                {t('employeesDetails.sections.personal')}
-              </Tabs.Trigger>
-              <Tabs.Trigger className={detailsTabTriggerClass} value="address">
-                {t('employeesDetails.sections.address')}
-              </Tabs.Trigger>
-              <Tabs.Trigger className={detailsTabTriggerClass} value="company">
-                {t('employeesDetails.sections.company')}
-              </Tabs.Trigger>
-              <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
-                {t('employeesDetails.sections.notes')}
-              </Tabs.Trigger>
-            </Tabs.List>
-          </div>
+        <div className="p-6 sm:p-8">
+          <Tabs.Content value="card" className="outline-none">
+            <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
+              <div className="grid lg:grid-cols-[320px_minmax(0,1fr)]">
+                <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-slate-950 p-7 text-white">
+                  <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10" />
+                  <div className="absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-white/10" />
 
-          <div className="p-6 sm:p-8">
-            <Tabs.Content value="personal" className="outline-none">
-              <EmployeeInfoSection
-                title={t('employeesDetails.sections.personal')}
-                items={[
-                  { label: t('forms.fields.lastName'), value: valueOrEmpty(getString(employee.last_name), t) },
-                  { label: t('forms.fields.firstName'), value: valueOrEmpty(getString(employee.first_name), t) },
-                  { label: t('forms.fields.middleName'), value: valueOrEmpty(getString(employee.middle_name), t) },
-                  { label: t('forms.fields.birthDate'), value: formatDate(employee.birth_date, locale) },
-                  { label: t('forms.fields.gender'), value: humanizeStatus(employee.gender, t) },
-                  { label: t('forms.fields.phone'), value: valueOrEmpty(getString(employee.phone), t) },
-                  { label: t('forms.fields.email'), value: valueOrEmpty(getString(employee.email), t) },
-                ]}
-              />
-            </Tabs.Content>
+                  <div className="relative z-10 flex h-full min-h-[360px] flex-col justify-between">
+                    <div>
+                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 text-xl font-black shadow-xl shadow-blue-950/20">
+                        HR
+                      </div>
 
-            <Tabs.Content value="address" className="outline-none">
-              <EmployeeInfoSection
-                title={t('employeesDetails.sections.address')}
-                items={[
-                  { label: t('forms.fields.addressCountry'), value: valueOrEmpty(getString(employee.address_country), t) },
-                  { label: t('forms.fields.addressCity'), value: valueOrEmpty(getString(employee.address_city), t) },
-                  { label: t('forms.fields.addressStreet'), value: valueOrEmpty(getString(employee.address_street), t) },
-                  { label: t('forms.fields.addressHouse'), value: valueOrEmpty(getString(employee.address_house), t) },
-                  { label: t('forms.fields.addressApartment'), value: valueOrEmpty(getString(employee.address_apartment), t) },
-                  { label: t('forms.fields.address'), value: valueOrEmpty(getString(employee.address), t) },
-                ]}
-              />
-            </Tabs.Content>
+                      <p className="mt-8 text-xs font-black uppercase tracking-[0.28em] text-blue-100">
+                        {t('employeesDetails.sections.card')}
+                      </p>
+                      <h2 className="mt-3 text-3xl font-black leading-tight tracking-tight">
+                        {fullName || t('employeesDetails.title')}
+                      </h2>
+                    </div>
 
-            <Tabs.Content value="company" className="outline-none">
-              <EmployeeInfoSection
-                title={t('employeesDetails.sections.company')}
-                items={[
-                  { label: t('forms.fields.departmentId'), value: valueOrEmpty(departmentName, t) },
-                  { label: t('forms.fields.positionId'), value: valueOrEmpty(positionName, t) },
-                  { label: t('forms.fields.hireDate'), value: formatDate(employee.hire_date, locale) },
-                  { label: t('forms.fields.status'), value: humanizeStatus(employee.status, t) },
-                  { label: t('forms.fields.salary'), value: formatCurrency(employee.salary, locale) },
-                ]}
-              />
-            </Tabs.Content>
+                    <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                      <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">
+                        ID сотрудника
+                      </p>
+                      <p className="mt-2 text-2xl font-black">#{employeeId}</p>
+                    </div>
+                  </div>
+                </div>
 
-            <Tabs.Content value="notes" className="outline-none">
-              <EmployeeInfoSection
-                title={t('employeesDetails.sections.notes')}
-                items={[
-                  { label: t('forms.fields.note'), value: valueOrEmpty(getString(employee.note), t) },
-                ]}
-              />
-            </Tabs.Content>
-          </div>
-        </Tabs.Root>
-      </section>
-    </div>
+                <div className="p-6 sm:p-7">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <PassportField label={t('forms.fields.status')} value={humanizeStatus(employee.status, t)} />
+                    <PassportField label={t('forms.fields.departmentId')} value={valueOrEmpty(departmentName, t)} />
+                    <PassportField label={t('forms.fields.positionId')} value={valueOrEmpty(positionName, t)} />
+                    <PassportField label={t('forms.fields.phone')} value={valueOrEmpty(getString(employee.phone), t)} />
+                    <PassportField label={t('forms.fields.email')} value={valueOrEmpty(getString(employee.email), t)} />
+                    <PassportField label={t('forms.fields.gender')} value={humanizeStatus(employee.gender, t)} />
+                    <PassportField label={t('forms.fields.birthDate')} value={formatDate(employee.birth_date, locale)} />
+                    <PassportField label={t('forms.fields.hireDate')} value={formatDate(employee.hire_date, locale)} />
+                    <PassportField label={t('forms.fields.salary')} value={formatCurrency(employee.salary, locale)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Tabs.Content>
+
+          <Tabs.Content value="personal" className="outline-none">
+            <EmployeeInfoSection
+              title={t('employeesDetails.sections.personal')}
+              items={[
+                { label: t('forms.fields.lastName'), value: valueOrEmpty(getString(employee.last_name), t) },
+                { label: t('forms.fields.firstName'), value: valueOrEmpty(getString(employee.first_name), t) },
+                { label: t('forms.fields.middleName'), value: valueOrEmpty(getString(employee.middle_name), t) },
+                { label: t('forms.fields.birthDate'), value: formatDate(employee.birth_date, locale) },
+                { label: t('forms.fields.gender'), value: humanizeStatus(employee.gender, t) },
+                { label: t('forms.fields.phone'), value: valueOrEmpty(getString(employee.phone), t) },
+                { label: t('forms.fields.email'), value: valueOrEmpty(getString(employee.email), t) },
+              ]}
+            />
+          </Tabs.Content>
+
+          <Tabs.Content value="address" className="outline-none">
+            <EmployeeInfoSection
+              title={t('employeesDetails.sections.address')}
+              items={[
+                { label: t('forms.fields.addressCountry'), value: valueOrEmpty(getString(employee.address_country), t) },
+                { label: t('forms.fields.addressCity'), value: valueOrEmpty(getString(employee.address_city), t) },
+                { label: t('forms.fields.addressStreet'), value: valueOrEmpty(getString(employee.address_street), t) },
+                { label: t('forms.fields.addressHouse'), value: valueOrEmpty(getString(employee.address_house), t) },
+                { label: t('forms.fields.addressApartment'), value: valueOrEmpty(getString(employee.address_apartment), t) },
+                { label: t('forms.fields.address'), value: valueOrEmpty(getString(employee.address), t) },
+              ]}
+            />
+          </Tabs.Content>
+
+          <Tabs.Content value="company" className="outline-none">
+            <EmployeeInfoSection
+              title={t('employeesDetails.sections.company')}
+              items={[
+                { label: t('forms.fields.departmentId'), value: valueOrEmpty(departmentName, t) },
+                { label: t('forms.fields.positionId'), value: valueOrEmpty(positionName, t) },
+                { label: t('forms.fields.hireDate'), value: formatDate(employee.hire_date, locale) },
+                { label: t('forms.fields.status'), value: humanizeStatus(employee.status, t) },
+                { label: t('forms.fields.salary'), value: formatCurrency(employee.salary, locale) },
+              ]}
+            />
+          </Tabs.Content>
+
+          <Tabs.Content value="notes" className="outline-none">
+            <EmployeeInfoSection
+              title={t('employeesDetails.sections.notes')}
+              items={[
+                { label: t('forms.fields.note'), value: valueOrEmpty(getString(employee.note), t) },
+              ]}
+            />
+          </Tabs.Content>
+        </div>
+      </Tabs.Root>
+    </section>
   )
 }
 
@@ -206,16 +230,17 @@ const detailsTabTriggerClass = [
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
   'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/20',
 ].join(' ')
-interface SummaryPillProps {
+
+interface PassportFieldProps {
   label: string
   value: string
 }
 
-function SummaryPill({ label, value }: SummaryPillProps): JSX.Element {
+function PassportField({ label, value }: PassportFieldProps): JSX.Element {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
+    <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
       <p className="app-muted text-xs font-black uppercase tracking-wide">{label}</p>
-      <p className="app-text mt-1 text-sm font-black">{value}</p>
+      <p className="app-text mt-2 min-h-5 break-words text-sm font-black">{value}</p>
     </div>
   )
 }

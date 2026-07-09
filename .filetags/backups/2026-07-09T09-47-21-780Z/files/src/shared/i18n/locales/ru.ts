@@ -98,7 +98,6 @@ export const ru = {
       payroll: 'Зарплата',
     },
     sections: {
-      card: 'Карточка',
       latestEmployees: 'Последние сотрудники',
       upcomingVacations: 'Ближайшие отпуска',
     },
