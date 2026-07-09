@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Controller,
   useForm,
@@ -11,9 +12,10 @@ import {
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { FiCheck } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import { Button, FieldError, Input, PageHeader, Select, Textarea, type SelectOption } from '../../shared/ui'
+import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../shared/ui'
 import { getAppLocale } from '../../shared/i18n'
 import { formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/format'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
@@ -32,32 +34,27 @@ const requiredMessage = 'forms.validation.required'
 const invalidEmailMessage = 'forms.validation.email'
 const nonNegativeMessage = 'forms.validation.nonNegative'
 
-const employeeCreateSchema = z
-  .object({
-    last_name: requiredString(),
-    first_name: requiredString(),
-    middle_name: optionalString(),
-    birth_date: optionalString(),
-    gender: optionalString(),
-    phone: optionalString(),
-    email: optionalEmail(),
-    address_country: optionalString(),
-    address_city: optionalString(),
-    address_street: optionalString(),
-    address_house: optionalString(),
-    address_apartment: optionalString(),
-    address: optionalString(),
-    department_id: optionalNumberString(),
-    position_id: optionalNumberString(),
-    hire_date: requiredString(),
-    status: requiredString(),
-    salary: requiredNumberString(),
-    note: optionalString(),
-  })
-  .refine((value) => value.department_id !== '' || value.position_id !== '', {
-    message: requiredMessage,
-    path: ['department_id'],
-  })
+const employeeCreateSchema = z.object({
+  last_name: requiredString(),
+  first_name: requiredString(),
+  middle_name: optionalString(),
+  birth_date: optionalString(),
+  gender: optionalString(),
+  phone: optionalString(),
+  email: optionalEmail(),
+  address_country: optionalString(),
+  address_city: optionalString(),
+  address_street: optionalString(),
+  address_house: optionalString(),
+  address_apartment: optionalString(),
+  address: optionalString(),
+  department_id: requiredNumberString(),
+  position_id: requiredNumberString(),
+  hire_date: requiredString(),
+  status: requiredString(),
+  salary: requiredNumberString(),
+  note: optionalString(),
+})
 
 const steps = [
   {
@@ -160,12 +157,18 @@ export function EmployeeCreatePage(): JSX.Element {
   }, [t])
 
   async function handleNext(): Promise<void> {
+    if (activeStep >= steps.length - 1 || isSubmitting) {
+      return
+    }
+
     const currentStep = steps[activeStep]
     const isStepValid = await trigger(currentStep.fields)
 
-    if (isStepValid) {
-      setActiveStep((current) => Math.min(current + 1, steps.length - 1))
+    if (!isStepValid) {
+      return
     }
+
+    setActiveStep((current) => Math.min(current + 1, steps.length - 1))
   }
 
   function handleBack(): void {
@@ -177,7 +180,31 @@ export function EmployeeCreatePage(): JSX.Element {
     setActiveStep((current) => Math.max(current - 1, 0))
   }
 
+  async function handleFinalCreate(): Promise<void> {
+    if (activeStep !== steps.length - 1 || isSubmitting) {
+      return
+    }
+
+    await handleSubmit(handleCreate, handleCreateInvalid)()
+  }
+
+  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
+    const invalidStepIndex = steps.findIndex((step) =>
+      step.fields.some((field) => Boolean(formErrors[field])),
+    )
+
+    if (invalidStepIndex >= 0) {
+      setActiveStep(invalidStepIndex)
+    }
+
+    toast.error(t('employeesCreate.toasts.validationError'))
+  }
+
   async function handleCreate(values: EmployeeFormValues): Promise<void> {
+    if (activeStep !== steps.length - 1 || isSubmitting) {
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -195,7 +222,8 @@ export function EmployeeCreatePage(): JSX.Element {
       } else {
         navigate('/employees')
       }
-    } catch {
+    } catch (error) {
+      console.error('Employee create error:', error)
       toast.error(t('employeesCreate.toasts.createError'))
     } finally {
       setIsSubmitting(false)
@@ -223,33 +251,14 @@ export function EmployeeCreatePage(): JSX.Element {
   const normalizedReviewValues = normalizeEmployeeFormValues(watchedValues)
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('employeesCreate.title')}
-        description={t('employeesCreate.description')}
-      />
-
-      <form className="space-y-6" onSubmit={handleSubmit(handleCreate)}>
-        <section className="app-surface app-shadow rounded-[28px] border p-5">
-          <div className="grid gap-3 md:grid-cols-4">
-            {steps.map((step, index) => (
-              <div
-                key={step.key}
-                className={[
-                  'rounded-2xl border px-4 py-3 transition',
-                  index === activeStep
-                    ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
-                    : 'app-border-soft app-surface-muted app-text-soft',
-                ].join(' ')}
-              >
-                <span className="text-xs font-black uppercase tracking-wide">
-                  {t('employeesCreate.stepLabel', { number: index + 1 })}
-                </span>
-                <p className="mt-1 text-sm font-black">{t(step.titleKey)}</p>
-              </div>
-            ))}
-          </div>
+      <div
+        className="app-surface app-shadow overflow-hidden rounded-[32px] border"
+      >
+        <section className="border-b app-border-soft p-6 sm:p-7">
+          <StepProgress activeStep={activeStep} t={t} />
         </section>
+
+        <div className="border-b app-border-soft p-6 sm:p-8">
 
         {activeStep === 0 && (
           <FormCard title={t('employeesCreate.steps.personal')}>
@@ -433,7 +442,9 @@ export function EmployeeCreatePage(): JSX.Element {
           </div>
         )}
 
-        <footer className="app-surface app-shadow sticky bottom-4 flex flex-col gap-3 rounded-[28px] border p-4 sm:flex-row sm:justify-end">
+        </div>
+
+        <footer className="flex flex-col gap-3 bg-[var(--color-surface)] p-5 sm:flex-row sm:justify-end sm:p-6">
           <Button type="button" onClick={() => navigate('/employees')} variant="ghost">
             {t('employeesCreate.actions.cancel')}
           </Button>
@@ -445,13 +456,17 @@ export function EmployeeCreatePage(): JSX.Element {
               {t('employeesCreate.actions.next')}
             </Button>
           ) : (
-            <Button disabled={isSubmitting} type="submit" variant="primary">
+            <Button
+              disabled={isSubmitting}
+              type="button"
+              onClick={() => void handleFinalCreate()}
+              variant="primary"
+            >
               {t('employeesCreate.actions.create')}
             </Button>
           )}
         </footer>
-      </form>
-    </div>
+      </div>
   )
 }
 
@@ -487,6 +502,82 @@ function optionalNumberString(): z.ZodString {
     .refine((value) => value === '' || Number(value) >= 0, nonNegativeMessage)
 }
 
+interface StepProgressProps {
+  activeStep: number
+  t: TFunction
+}
+
+function StepProgress({ activeStep, t }: StepProgressProps): JSX.Element {
+  return (
+    <ol className="grid gap-5 md:grid-cols-4">
+      {steps.map((step, index) => {
+        const isCompleted = index < activeStep
+        const isActive = index === activeStep
+
+        return (
+          <li key={step.key} className="relative min-w-0">
+            {index < steps.length - 1 && (
+              <span
+                className={[
+                  'absolute left-1/2 top-5 hidden h-0.5 w-full -translate-y-1/2 transition-colors duration-300 md:block',
+                  isCompleted ? 'bg-blue-500' : 'bg-slate-200',
+                ].join(' ')}
+              />
+            )}
+
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <span
+                aria-current={isActive ? 'step' : undefined}
+                className={[
+                  'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300',
+                  isCompleted
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                    : isActive
+                      ? 'border-blue-600 bg-white text-blue-600 shadow-sm ring-4 ring-blue-50'
+                      : 'border-slate-200 bg-slate-50 text-slate-400',
+                ].join(' ')}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isCompleted ? (
+                    <motion.span
+                      key="check"
+                      className="flex items-center justify-center"
+                      initial={{ opacity: 0, rotate: -45, scale: 0.35 }}
+                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.35 }}
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
+                    >
+                      <FiCheck className="h-5 w-5" />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="number"
+                      initial={{ opacity: 0, scale: 0.75 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.75 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                    >
+                      {index + 1}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </span>
+
+              <span
+                className={[
+                  'mt-3 max-w-32 text-xs font-black leading-tight transition-colors duration-300',
+                  isCompleted || isActive ? 'text-blue-600' : 'text-slate-500',
+                ].join(' ')}
+              >
+                {t(step.titleKey)}
+              </span>
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
 interface FormCardProps {
   children: ReactNode
   title: string
@@ -494,7 +585,7 @@ interface FormCardProps {
 
 function FormCard({ children, title }: FormCardProps): JSX.Element {
   return (
-    <section className="app-surface app-shadow rounded-[28px] border p-6">
+    <section>
       <h2 className="app-text text-xl font-black">{title}</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">{children}</div>
     </section>

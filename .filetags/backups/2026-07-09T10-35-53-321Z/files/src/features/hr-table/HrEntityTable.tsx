@@ -348,7 +348,7 @@ export function HrEntityTable({
                       aria-label={t('common.actions.edit')}
                       title={t('common.actions.edit')}
                       onClick={() => handleEditClick(record)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
                     >
                       <FiEdit2 className="h-4 w-4" />
                     </button>
@@ -358,7 +358,7 @@ export function HrEntityTable({
                       aria-label={t('common.actions.delete')}
                       title={t('common.actions.delete')}
                       onClick={() => handleDeleteClick(record)}
-                      className="app-danger-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border p-0 shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-100 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
                     >
                       <FiTrash2 className="h-4 w-4" />
                     </button>

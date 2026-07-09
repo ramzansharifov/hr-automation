@@ -18,7 +18,7 @@ const sidebarDividerClass = 'h-px bg-white/10'
 function getExpandedLinkClass(isActive: boolean): string {
   return [
     'group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
     isActive
       ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-sm shadow-blue-950/30'
       : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
@@ -28,7 +28,7 @@ function getExpandedLinkClass(isActive: boolean): string {
 function getCollapsedLinkClass(isActive: boolean): string {
   return [
     'group box-border flex h-12 w-12 shrink-0 items-center justify-center rounded-xl p-0 transition-colors duration-200',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
     isActive ? 'text-white' : 'text-slate-300 hover:text-white',
   ].join(' ')
 }
@@ -216,9 +216,9 @@ export function AppLayout(): JSX.Element {
 
   return (
     <Tooltip.Provider delayDuration={120}>
-      <div className="min-h-screen overflow-x-hidden bg-[#f5f7fb] text-slate-950">
+      <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
         <aside
-          className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[#151c31] bg-[#070a17] text-white transition-[width] duration-300 ease-out"
+          className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] text-white transition-[width] duration-300 ease-out"
           style={{ width: sidebarWidth }}
         >
           <Tooltip.Root>
@@ -232,12 +232,12 @@ export function AppLayout(): JSX.Element {
                 }
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
                 className={[
-                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-all duration-200',
+                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 shadow-sm transition-all duration-200',
                   'pointer-events-none opacity-0',
                   'group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100',
-                  'hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white',
+                  'hover:border-[var(--accent-border)] hover:bg-[var(--sidebar-button-hover)] hover:text-white',
                   'focus-visible:pointer-events-auto focus-visible:opacity-100',
-                  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
+                  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
                 ].join(' ')}
               >
                 {isSidebarCollapsed ? (
@@ -326,27 +326,27 @@ export function AppLayout(): JSX.Element {
           className="min-h-screen min-w-0 transition-[padding] duration-300 ease-out"
           style={{ paddingLeft: sidebarWidth }}
         >
-          <header className="sticky top-0 z-20 flex h-[85px] items-center border-b border-slate-200/70 bg-white/85 px-8 backdrop-blur-xl">
+          <header className="app-topbar sticky top-0 z-20 flex h-[85px] items-center border-b px-8 backdrop-blur-xl">
             <div className="flex w-full items-center justify-between gap-6">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 app-accent-text shadow-sm">
+                <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)] shadow-sm">
                   <TopbarIcon className="h-5 w-5" />
                 </span>
 
                 <div className="min-w-0">
-                  <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+                  <h2 className="app-text truncate text-xl font-black tracking-tight">
                     {t(topbarContent.titleKey)}
                   </h2>
 
                   {topbarDescription && (
-                    <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+                    <p className="app-muted mt-1 truncate text-xs font-semibold">
                       {topbarDescription}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
+              <div className="app-surface flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold shadow-sm">
                 <FiDatabase className="h-4 w-4 app-accent-text" />
                 {t('app.topbar.databaseActive')}
               </div>

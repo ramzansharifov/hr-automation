@@ -520,7 +520,7 @@ function StepProgress({ activeStep, t }: StepProgressProps): JSX.Element {
               <span
                 className={[
                   'absolute left-1/2 top-5 hidden h-0.5 w-full -translate-y-1/2 transition-colors duration-300 md:block',
-                  isCompleted ? 'bg-blue-500' : 'bg-slate-200',
+                  isCompleted ? 'bg-[var(--accent)]' : 'bg-[var(--color-border)]',
                 ].join(' ')}
               />
             )}
@@ -531,10 +531,10 @@ function StepProgress({ activeStep, t }: StepProgressProps): JSX.Element {
                 className={[
                   'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300',
                   isCompleted
-                    ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg'
                     : isActive
-                      ? 'border-blue-600 bg-white text-blue-600 shadow-sm ring-4 ring-blue-50'
-                      : 'border-slate-200 bg-slate-50 text-slate-400',
+                      ? 'border-[var(--accent)] bg-[var(--color-surface)] text-[var(--accent)] shadow-sm ring-4 ring-[var(--accent-ring)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]',
                 ].join(' ')}
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -566,7 +566,7 @@ function StepProgress({ activeStep, t }: StepProgressProps): JSX.Element {
               <span
                 className={[
                   'mt-3 max-w-32 text-xs font-black leading-tight transition-colors duration-300',
-                  isCompleted || isActive ? 'text-blue-600' : 'text-slate-500',
+                  isCompleted || isActive ? 'app-accent-text' : 'app-muted',
                 ].join(' ')}
               >
                 {t(step.titleKey)}

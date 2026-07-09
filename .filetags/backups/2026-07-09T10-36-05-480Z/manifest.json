@@ -1,0 +1,40 @@
+{
+  "createdAt": "2026-07-09T10:36:05.513Z",
+  "backupPath": ".filetags/backups/2026-07-09T10-36-05-480Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/index.css",
+      "backupRelativePath": "files/src/index.css"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Insert after: src/index.css\n   found: yes\n   old: 343 line(s)\n   new: 343 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: no\n   old: 364 line(s)\n   new: 364 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: no\n   old: 380 line(s)\n   new: 380 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: no\n   old: 693 line(s)\n   new: 693 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: no\n   old: 693 line(s)\n   new: 693 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: no\n   old: 693 line(s)\n   new: 693 line(s)",
+    "Replace file: src/pages/DashboardPage.tsx\n   found: no\n   old: 189 line(s)\n   new: 189 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: no\n   old: 496 line(s)\n   new: 496 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: no\n   old: 496 line(s)\n   new: 496 line(s)",
+    "Replace file: src/shared/ui/Button.tsx\n   found: no\n   old: 58 line(s)\n   new: 58 line(s)"
+  ]
+}

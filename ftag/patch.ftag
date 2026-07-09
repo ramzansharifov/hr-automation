@@ -1,49 +1,306 @@
-@replace-first src/app/AppLayout.tsx
+@insert-after-once src/index.css
 @find
-    isActive
-      ? 'border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-950/30'
-      : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
+  --sidebar-button-border-hover: #3a4a6d;
+}
+@endfind
+@content
+
+:root {
+  --accent-ring: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-shadow: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.app-topbar {
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.app-accent-gradient-panel {
+  background:
+    radial-gradient(circle at 85% 8%, color-mix(in srgb, var(--accent-soft) 26%, transparent) 0 18%, transparent 36%),
+    radial-gradient(circle at 28% 78%, color-mix(in srgb, var(--accent-border) 22%, transparent) 0 18%, transparent 34%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-border) 82%, #ffffff) 0%,
+      var(--accent) 42%,
+      color-mix(in srgb, var(--accent-hover) 74%, #020617) 100%
+    );
+}
+
+.app-danger-soft {
+  background: color-mix(in srgb, #e11d48 9%, var(--color-surface));
+  border-color: color-mix(in srgb, #e11d48 24%, var(--color-border));
+  color: #e11d48;
+}
+
+.app-danger-soft:hover {
+  background: color-mix(in srgb, #e11d48 14%, var(--color-surface));
+}
+
+:root[data-theme="dark"] .app-danger-soft {
+  color: #fb7185;
+}
+@endcontent
+@end
+
+@replace-folder src
+@find
+focus-visible:outline-blue-400
 @endfind
 @with
-    isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-sm shadow-blue-950/30'
-      : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
+focus-visible:outline-[var(--accent-border)]
 @endwith
 @end
 
 @replace-first src/app/AppLayout.tsx
 @find
-    isActive
-      ? 'border-blue-500 bg-blue-600 text-white shadow-blue-950/40'
-      : 'border-[#263451] bg-[#10182d] text-slate-300 group-hover:border-[#3a4a6d] group-hover:bg-[#17213a] group-hover:text-white',
+      <div className="min-h-screen overflow-x-hidden bg-[#f5f7fb] text-slate-950">
 @endfind
 @with
-    isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-blue-950/40'
-      : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
+      <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
 @endwith
 @end
 
 @replace-first src/app/AppLayout.tsx
 @find
-          style={{
-            backgroundColor: isActive ? '#2563eb' : '#10182d',
-            borderColor: isActive ? '#3b82f6' : '#263451',
-          }}
+          className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[#151c31] bg-[#070a17] text-white transition-[width] duration-300 ease-out"
 @endfind
 @with
-          style={{
-            backgroundColor: isActive ? 'var(--accent)' : 'var(--sidebar-button)',
-            borderColor: isActive ? 'var(--accent-border)' : 'var(--sidebar-button-border)',
-          }}
+          className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] text-white transition-[width] duration-300 ease-out"
 @endwith
 @end
 
-@replace-all src/app/AppLayout.tsx
+@replace-first src/app/AppLayout.tsx
 @find
-text-blue-600
+                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[#1b2540] bg-[#0d1427] text-slate-300 shadow-sm transition-all duration-200',
 @endfind
 @with
-app-accent-text
+                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 shadow-sm transition-all duration-200',
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+                  'hover:border-[#2a3859] hover:bg-[#151f36] hover:text-white',
+@endfind
+@with
+                  'hover:border-[var(--accent-border)] hover:bg-[var(--sidebar-button-hover)] hover:text-white',
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+          <header className="sticky top-0 z-20 flex h-[85px] items-center border-b border-slate-200/70 bg-white/85 px-8 backdrop-blur-xl">
+@endfind
+@with
+          <header className="app-topbar sticky top-0 z-20 flex h-[85px] items-center border-b px-8 backdrop-blur-xl">
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 app-accent-text shadow-sm">
+@endfind
+@with
+                <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)] shadow-sm">
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+                  <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+@endfind
+@with
+                  <h2 className="app-text truncate text-xl font-black tracking-tight">
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+@endfind
+@with
+                    <p className="app-muted mt-1 truncate text-xs font-semibold">
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
+@endfind
+@with
+              <div className="app-surface flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold shadow-sm">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+const detailsTabTriggerClass = [
+  'relative -mb-px rounded-t-2xl px-5 py-3 text-sm font-black transition',
+  'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
+  'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/20',
+].join(' ')
+@endfind
+@with
+const detailsTabTriggerClass = [
+  'relative -mb-px rounded-t-2xl px-5 py-3 text-sm font-black transition',
+  'app-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
+  'data-[state=active]:bg-[var(--accent)] data-[state=active]:text-white data-[state=active]:shadow-sm',
+].join(' ')
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+    <article className="mx-auto max-w-7xl overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+@endfind
+@with
+    <article className="app-surface app-shadow-lg mx-auto max-w-7xl overflow-hidden rounded-[36px] border">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+        <aside className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-blue-700 to-indigo-950 p-8 text-white">
+@endfind
+@with
+        <aside className="app-accent-gradient-panel relative overflow-hidden p-8 text-white">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+            <p className="mt-5 text-sm font-black uppercase tracking-[0.38em] text-blue-100/70">
+@endfind
+@with
+            <p className="mt-5 text-sm font-black uppercase tracking-[0.38em] text-white/70">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+            <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-blue-50 text-blue-700 shadow-sm">
+@endfind
+@with
+            <span className="app-accent-soft flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] shadow-sm">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+          <div className="my-10 h-px bg-slate-200" />
+@endfind
+@with
+          <div className="my-10 h-px bg-[var(--color-border)]" />
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+        'flex min-h-[132px] items-center gap-6 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(15,23,42,0.09)]',
+@endfind
+@with
+        'app-surface app-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5 hover:shadow-md',
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-blue-50 text-blue-700">
+@endfind
+@with
+      <span className="app-accent-soft flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+    <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+@endfind
+@with
+    <section className="app-surface app-shadow rounded-[30px] border p-6 sm:p-7">
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+        'rounded-[24px] border border-slate-200 bg-slate-50/80 p-5 transition hover:bg-white hover:shadow-sm',
+@endfind
+@with
+        'app-surface-muted app-border rounded-[24px] border p-5 transition hover:bg-[var(--color-surface-hover)] hover:shadow-sm',
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+                  isCompleted ? 'bg-blue-500' : 'bg-slate-200',
+@endfind
+@with
+                  isCompleted ? 'bg-[var(--accent)]' : 'bg-[var(--color-border)]',
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+                  isCompleted
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                    : isActive
+                      ? 'border-blue-600 bg-white text-blue-600 shadow-sm ring-4 ring-blue-50'
+                      : 'border-slate-200 bg-slate-50 text-slate-400',
+@endfind
+@with
+                  isCompleted
+                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg'
+                    : isActive
+                      ? 'border-[var(--accent)] bg-[var(--color-surface)] text-[var(--accent)] shadow-sm ring-4 ring-[var(--accent-ring)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]',
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+                  isCompleted || isActive ? 'text-blue-600' : 'text-slate-500',
+@endfind
+@with
+                  isCompleted || isActive ? 'app-accent-text' : 'app-muted',
+@endwith
+@end
+
+@replace-first src/pages/DashboardPage.tsx
+@find
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
+@endfind
+@with
+                <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
+@endwith
+@end
+
+@replace-first src/features/hr-table/HrEntityTable.tsx
+@find
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+@endfind
+@with
+                      className="app-button-secondary app-accent-text inline-flex h-9 w-9 items-center justify-center rounded-xl border p-0 shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+@endwith
+@end
+
+@replace-first src/features/hr-table/HrEntityTable.tsx
+@find
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-100 bg-white text-rose-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+@endfind
+@with
+                      className="app-danger-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border p-0 shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+@endwith
+@end
+
+@replace-first src/shared/ui/Button.tsx
+@find
+  danger: 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
+@endfind
+@with
+  danger: 'app-danger-soft border',
 @endwith
 @end

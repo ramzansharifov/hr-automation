@@ -169,7 +169,7 @@ export function DashboardPage(): JSX.Element {
                   </p>
                 </div>
 
-                <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
                   {humanizeStatus(vacation.status, t)}
                 </span>
               </div>

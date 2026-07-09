@@ -154,7 +154,7 @@ export function EmployeeDetailsPage(): JSX.Element {
 const detailsTabTriggerClass = [
   'relative -mb-px rounded-t-2xl px-5 py-3 text-sm font-black transition',
   'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
   'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/20',
 ].join(' ')
 
@@ -175,9 +175,9 @@ function EmployeePassportCard({
   const address = composeAddress(employee, t)
 
   return (
-    <article className="app-surface app-shadow-lg mx-auto max-w-7xl overflow-hidden rounded-[36px] border">
+    <article className="mx-auto max-w-7xl overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
       <div className="grid min-h-[560px] xl:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="app-accent-gradient-panel relative overflow-hidden p-8 text-white">
+        <aside className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-blue-700 to-indigo-950 p-8 text-white">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10" />
           <div className="absolute -bottom-24 -right-12 h-72 w-72 rounded-full bg-white/10" />
           <div className="absolute bottom-16 left-10 h-2 w-24 rounded-full bg-white/70 shadow-[0_0_24px_rgba(255,255,255,0.9)]" />
@@ -195,7 +195,7 @@ function EmployeePassportCard({
               Сотрудник
             </p>
 
-            <p className="mt-5 text-sm font-black uppercase tracking-[0.38em] text-white/70">
+            <p className="mt-5 text-sm font-black uppercase tracking-[0.38em] text-blue-100/70">
               HR Automation
             </p>
           </div>
@@ -203,7 +203,7 @@ function EmployeePassportCard({
 
         <div className="p-7 sm:p-10 xl:p-12">
           <div className="flex items-center gap-5">
-            <span className="app-accent-soft flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] shadow-sm">
+            <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-blue-50 text-blue-700 shadow-sm">
               <FiUser className="h-10 w-10" />
             </span>
 
@@ -212,7 +212,7 @@ function EmployeePassportCard({
             </h2>
           </div>
 
-          <div className="my-10 h-px bg-[var(--color-border)]" />
+          <div className="my-10 h-px bg-slate-200" />
 
           <div className="grid gap-6 xl:grid-cols-2">
             <CardInfoBox
@@ -263,11 +263,11 @@ function CardInfoBox({ icon, label, value, wide = false }: CardInfoBoxProps): JS
   return (
     <div
       className={[
-        'app-surface app-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5 hover:shadow-md',
+        'flex min-h-[132px] items-center gap-6 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(15,23,42,0.09)]',
         wide ? 'xl:col-span-2' : '',
       ].join(' ')}
     >
-      <span className="app-accent-soft flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-blue-50 text-blue-700">
         {icon}
       </span>
 
@@ -289,7 +289,7 @@ interface InfoPanelProps {
 
 function InfoPanel({ children, eyebrow, title }: InfoPanelProps): JSX.Element {
   return (
-    <section className="app-surface app-shadow rounded-[30px] border p-6 sm:p-7">
+    <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
       <div>
         <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
           {eyebrow}
@@ -314,7 +314,7 @@ function InfoField({ label, value, wide = false }: InfoFieldProps): JSX.Element 
   return (
     <div
       className={[
-        'app-surface-muted app-border rounded-[24px] border p-5 transition hover:bg-[var(--color-surface-hover)] hover:shadow-sm',
+        'rounded-[24px] border border-slate-200 bg-slate-50/80 p-5 transition hover:bg-white hover:shadow-sm',
         wide ? 'md:col-span-2' : '',
       ].join(' ')}
     >
