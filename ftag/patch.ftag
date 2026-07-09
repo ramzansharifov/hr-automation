@@ -1,9 +1,14 @@
-@replace-first src/features/hr-table/HrEntityTable.tsx
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-      <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-      {viewMode === 'cards' && (
+
+function optionalNumberString(): z.ZodString {
+  return z
+    .string()
+    .trim()
+    .refine((value) => value === '' || Number.isFinite(Number(value)), requiredMessage)
+    .refine((value) => value === '' || Number(value) >= 0, nonNegativeMessage)
+}
 @endfind
 @with
-      {viewMode === 'cards' && (
 @endwith
 @end

@@ -494,6 +494,13 @@ function requiredNumberString(): z.ZodString {
     .refine((value) => Number(value) >= 0, nonNegativeMessage)
 }
 
+function optionalNumberString(): z.ZodString {
+  return z
+    .string()
+    .trim()
+    .refine((value) => value === '' || Number.isFinite(Number(value)), requiredMessage)
+    .refine((value) => value === '' || Number(value) >= 0, nonNegativeMessage)
+}
 
 interface StepProgressProps {
   activeStep: number
