@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useState } from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
+import { Controller, useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import type { HrEntityKey, HrRecord } from '../../../shared/types/hr'
@@ -78,6 +78,7 @@ export function HrEntityForm({
   const [relationSelects, setRelationSelects] = useState<Record<string, RelationSelectState>>({})
   const {
     formState: { errors },
+    control,
     handleSubmit,
     register,
     reset,
@@ -165,18 +166,14 @@ export function HrEntityForm({
           const errorMessage = typeof error === 'string' ? t(error) : undefined
           const label = t(field.labelKey)
           const placeholder = field.placeholderKey ? t(field.placeholderKey) : label
-          const commonProps = {
-            id: `${entity}-${field.name}`,
-            invalid: Boolean(errorMessage),
-            placeholder,
-            ...register(field.name),
-          }
+          const fieldId = `${entity}-${field.name}`
+          const relation = field.type === 'relation' ? field.relation : undefined
 
           return (
             <label
               key={field.name}
               className={field.type === 'textarea' ? 'block md:col-span-2' : 'block'}
-              htmlFor={`${entity}-${field.name}`}
+              htmlFor={fieldId}
             >
               <span className="app-text mb-2 block text-sm font-bold">
                 {label}
@@ -184,29 +181,67 @@ export function HrEntityForm({
               </span>
 
               {field.type === 'textarea' ? (
-                <Textarea {...commonProps} />
-              ) : field.type === 'select' ? (
-                <Select
-                  {...commonProps}
-                  options={(field.options ?? []).map((option) => ({
-                    value: option.value,
-                    label: t(option.labelKey),
-                  }))}
-                  placeholder={t('forms.placeholders.select')}
+                <Textarea
+                  id={fieldId}
+                  invalid={Boolean(errorMessage)}
+                  placeholder={placeholder}
+                  {...register(field.name)}
                 />
-              ) : field.type === 'relation' && field.relation ? (
-                <Select
-                  {...commonProps}
-                  disabled={relationSelects[field.name]?.isLoading}
-                  options={relationSelects[field.name]?.options ?? []}
-                  placeholder={
-                    relationSelects[field.name]?.isLoading
-                      ? t('forms.placeholders.loadingOptions')
-                      : t(field.relation.placeholderKey)
-                  }
+              ) : field.type === 'select' ? (
+                <Controller
+                  control={control}
+                  name={field.name}
+                  render={({ field: controllerField }) => (
+                    <Select
+                      allowEmpty={!field.required}
+                      emptyOptionLabel={t('forms.placeholders.emptyOption')}
+                      id={fieldId}
+                      invalid={Boolean(errorMessage)}
+                      name={controllerField.name}
+                      onBlur={controllerField.onBlur}
+                      onValueChange={controllerField.onChange}
+                      options={(field.options ?? []).map((option) => ({
+                        value: option.value,
+                        label: t(option.labelKey),
+                      }))}
+                      placeholder={t('forms.placeholders.select')}
+                      value={controllerField.value}
+                    />
+                  )}
+                />
+              ) : field.type === 'relation' && relation ? (
+                <Controller
+                  control={control}
+                  name={field.name}
+                  render={({ field: controllerField }) => (
+                    <Select
+                      allowEmpty={!field.required}
+                      disabled={relationSelects[field.name]?.isLoading}
+                      emptyOptionLabel={t('forms.placeholders.emptyOption')}
+                      id={fieldId}
+                      invalid={Boolean(errorMessage)}
+                      name={controllerField.name}
+                      onBlur={controllerField.onBlur}
+                      onValueChange={controllerField.onChange}
+                      options={relationSelects[field.name]?.options ?? []}
+                      placeholder={
+                        relationSelects[field.name]?.isLoading
+                          ? t('forms.placeholders.loadingOptions')
+                          : t(relation.placeholderKey)
+                      }
+                      value={controllerField.value}
+                    />
+                  )}
                 />
               ) : (
-                <Input min={field.type === 'number' ? 0 : undefined} type={getInputType(field)} {...commonProps} />
+                <Input
+                  id={fieldId}
+                  invalid={Boolean(errorMessage)}
+                  min={field.type === 'number' ? 0 : undefined}
+                  placeholder={placeholder}
+                  type={getInputType(field)}
+                  {...register(field.name)}
+                />
               )}
 
               <FieldError message={errorMessage} />
@@ -215,7 +250,7 @@ export function HrEntityForm({
         })}
       </div>
 
-      <div className="app-border-soft flex justify-end gap-3 border-t pt-5">
+      <div className="app-surface app-border-soft sticky bottom-0 -mx-6 -mb-6 flex justify-end gap-3 border-t px-6 py-5">
         <Button disabled={isSubmitting} onClick={onCancel} variant="secondary">
           {cancelLabel}
         </Button>

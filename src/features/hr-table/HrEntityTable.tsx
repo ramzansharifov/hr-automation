@@ -14,7 +14,7 @@ import { toast } from 'react-toastify'
 import type { HrEntityKey, HrListResult, HrRecord } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
-import { Button } from '../../shared/ui'
+import { Button, DropdownMenu, EmptyState, LoadingState } from '../../shared/ui'
 import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
 import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
@@ -178,23 +178,23 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             />
           </form>
 
-          <button
+          <Button
             type="button"
             onClick={handleRefresh}
-            className="app-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition"
+            leftIcon={<FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />}
+            variant="secondary"
           >
-            <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             {t('common.actions.refresh')}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={handleCreateClick}
-            className="app-button-primary inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold shadow-sm transition"
+            leftIcon={<FiPlus className="h-4 w-4" />}
+            variant="primary"
           >
-            <FiPlus className="h-4 w-4" />
             {config.createLabel}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -241,23 +241,23 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
                   </td>
                 ))}
                 <td className="app-border-soft border-b px-5 py-4 align-top">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      aria-label={t('common.actions.edit')}
-                      onClick={() => handleEditClick(record)}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      <FiEdit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      aria-label={t('common.actions.delete')}
-                      onClick={() => handleDeleteClick(record)}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      <FiTrash2 className="h-4 w-4 text-rose-500" />
-                    </Button>
+                  <div className="flex justify-end">
+                    <DropdownMenu
+                      actions={[
+                        {
+                          icon: <FiEdit2 className="h-4 w-4" />,
+                          label: t('common.actions.edit'),
+                          onSelect: () => handleEditClick(record),
+                        },
+                        {
+                          danger: true,
+                          icon: <FiTrash2 className="h-4 w-4" />,
+                          label: t('common.actions.delete'),
+                          onSelect: () => handleDeleteClick(record),
+                        },
+                      ]}
+                      triggerLabel={t('common.actions.openMenu')}
+                    />
                   </div>
                 </td>
               </tr>
@@ -266,7 +266,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             {!isLoading && result.items.length === 0 && (
               <tr>
                 <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
-                  <p className="app-text text-base font-black">{t('common.table.empty')}</p>
+                  <EmptyState title={t('common.table.empty')} />
                 </td>
               </tr>
             )}
@@ -274,7 +274,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
             {isLoading && (
               <tr>
                 <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
-                  <p className="app-muted text-sm font-medium">{t('common.table.loading')}</p>
+                  <LoadingState label={t('common.table.loading')} />
                 </td>
               </tr>
             )}
@@ -288,29 +288,31 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
         </p>
 
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
             disabled={!canGoBack}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="app-button-secondary inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+            leftIcon={<FiChevronLeft className="h-4 w-4" />}
+            size="sm"
+            variant="secondary"
           >
-            <FiChevronLeft className="h-4 w-4" />
             {t('common.actions.back')}
-          </button>
+          </Button>
 
           <span className="app-muted text-sm">
             {result.page} / {Math.max(result.totalPages, 1)}
           </span>
 
-          <button
+          <Button
             type="button"
             disabled={!canGoForward}
             onClick={() => setPage((current) => current + 1)}
-            className="app-button-secondary inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+            rightIcon={<FiChevronRight className="h-4 w-4" />}
+            size="sm"
+            variant="secondary"
           >
             {t('common.actions.next')}
-            <FiChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

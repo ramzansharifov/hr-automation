@@ -39,7 +39,11 @@ export function Dialog({
             </div>
 
             <RadixDialog.Close asChild>
-              <Button aria-label={t('common.actions.close')} className="h-10 w-10 rounded-xl p-0" variant="ghost">
+              <Button
+                aria-label={t('common.actions.close')}
+                className="h-10 w-10 rounded-xl p-0"
+                variant="ghost"
+              >
                 <FiX className="h-4 w-4" />
               </Button>
             </RadixDialog.Close>
