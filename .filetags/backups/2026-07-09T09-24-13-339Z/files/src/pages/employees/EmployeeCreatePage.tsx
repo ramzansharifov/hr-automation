@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Controller,
@@ -180,28 +180,20 @@ export function EmployeeCreatePage(): JSX.Element {
     setActiveStep((current) => Math.max(current - 1, 0))
   }
 
-  async function handleFinalCreate(): Promise<void> {
-    if (activeStep !== steps.length - 1 || isSubmitting) {
+  async function handleWizardSubmit(event: { preventDefault(): void }): Promise<void> {
+    event.preventDefault()
+
+    if (activeStep < steps.length - 1) {
+      await handleNext()
       return
     }
 
-    await handleSubmit(handleCreate, handleCreateInvalid)()
-  }
-
-  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
-    const invalidStepIndex = steps.findIndex((step) =>
-      step.fields.some((field) => Boolean(formErrors[field])),
-    )
-
-    if (invalidStepIndex >= 0) {
-      setActiveStep(invalidStepIndex)
-    }
-
-    toast.error(t('employeesCreate.toasts.validationError'))
+    await handleSubmit(handleCreate)()
   }
 
   async function handleCreate(values: EmployeeFormValues): Promise<void> {
-    if (activeStep !== steps.length - 1 || isSubmitting) {
+    if (activeStep < steps.length - 1) {
+      await handleNext()
       return
     }
 
@@ -251,8 +243,9 @@ export function EmployeeCreatePage(): JSX.Element {
   const normalizedReviewValues = normalizeEmployeeFormValues(watchedValues)
 
   return (
-      <div
+      <form
         className="app-surface app-shadow overflow-hidden rounded-[32px] border"
+        onSubmit={(event) => void handleWizardSubmit(event)}
       >
         <section className="border-b app-border-soft p-6 sm:p-7">
           <StepProgress activeStep={activeStep} t={t} />
@@ -461,7 +454,7 @@ export function EmployeeCreatePage(): JSX.Element {
             </Button>
           )}
         </footer>
-      </div>
+      </form>
   )
 }
 
