@@ -1,207 +1,236 @@
-@insert-before-once src/app/AppLayout.tsx
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-interface SidebarItemProps {
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+@endfind
+@with
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+const employeeCreateSchema = z
+  .object({
+    last_name: requiredString(),
+    first_name: requiredString(),
+    middle_name: optionalString(),
+    birth_date: optionalString(),
+    gender: optionalString(),
+    phone: optionalString(),
+    email: optionalEmail(),
+    address_country: optionalString(),
+    address_city: optionalString(),
+    address_street: optionalString(),
+    address_house: optionalString(),
+    address_apartment: optionalString(),
+    address: optionalString(),
+    department_id: optionalNumberString(),
+    position_id: optionalNumberString(),
+    hire_date: requiredString(),
+    status: requiredString(),
+    salary: requiredNumberString(),
+    note: optionalString(),
+  })
+  .refine((value) => value.department_id !== '' || value.position_id !== '', {
+    message: requiredMessage,
+    path: ['department_id'],
+  })
+@endfind
+@with
+const employeeCreateSchema = z.object({
+  last_name: requiredString(),
+  first_name: requiredString(),
+  middle_name: optionalString(),
+  birth_date: optionalString(),
+  gender: optionalString(),
+  phone: optionalString(),
+  email: optionalEmail(),
+  address_country: optionalString(),
+  address_city: optionalString(),
+  address_street: optionalString(),
+  address_house: optionalString(),
+  address_apartment: optionalString(),
+  address: optionalString(),
+  department_id: requiredNumberString(),
+  position_id: requiredNumberString(),
+  hire_date: requiredString(),
+  status: requiredString(),
+  salary: requiredNumberString(),
+  note: optionalString(),
+})
+@endwith
+@end
+
+@insert-after-once src/pages/employees/EmployeeCreatePage.tsx
+@find
+  function handleBack(): void {
+    if (activeStep === 0) {
+      navigate('/employees')
+      return
+    }
+
+    setActiveStep((current) => Math.max(current - 1, 0))
+  }
+
 @endfind
 @content
-interface AppTopbarContent {
-  titleKey: string
-  descriptionKey?: string
-  icon: AppNavigationItem['icon']
-}
+  async function handleFormSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
 
-function getTopbarContent(
-  pathname: string,
-  fallbackItem: AppNavigationItem,
-): AppTopbarContent {
-  if (pathname === '/employees/new') {
-    return {
-      titleKey: 'employeesCreate.title',
-      descriptionKey: 'employeesCreate.description',
-      icon: fallbackItem.icon,
+    if (isSubmitting) {
+      return
     }
-  }
 
-  if (pathname.startsWith('/employees/') && pathname !== '/employees') {
-    return {
-      titleKey: 'employeesDetails.title',
-      icon: fallbackItem.icon,
+    if (activeStep < steps.length - 1) {
+      await handleNext()
+      return
     }
+
+    await handleSubmit(handleCreate, handleCreateInvalid)()
   }
 
-  if (pathname === '/employees') {
-    return {
-      titleKey: 'employeesPage.title',
-      descriptionKey: 'employeesPage.description',
-      icon: fallbackItem.icon,
+  async function handleFinalCreate(): Promise<void> {
+    if (isSubmitting) {
+      return
     }
-  }
 
-  if (pathname === '/departments') {
-    return {
-      titleKey: 'entities.departments.title',
-      descriptionKey: 'entities.departments.description',
-      icon: fallbackItem.icon,
+    if (activeStep < steps.length - 1) {
+      await handleNext()
+      return
     }
+
+    await handleSubmit(handleCreate, handleCreateInvalid)()
   }
 
-  if (pathname === '/positions') {
-    return {
-      titleKey: 'entities.positions.title',
-      descriptionKey: 'entities.positions.description',
-      icon: fallbackItem.icon,
+  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
+    const invalidStepIndex = steps.findIndex((step) =>
+      step.fields.some((field) => Boolean(formErrors[field])),
+    )
+
+    if (invalidStepIndex >= 0 && invalidStepIndex !== activeStep) {
+      setActiveStep(invalidStepIndex)
     }
-  }
 
-  if (pathname === '/vacations') {
-    return {
-      titleKey: 'entities.vacations.title',
-      descriptionKey: 'entities.vacations.description',
-      icon: fallbackItem.icon,
-    }
+    toast.error(t('employeesCreate.toasts.validationError'))
   }
-
-  if (pathname === '/payroll') {
-    return {
-      titleKey: 'entities.payroll.title',
-      descriptionKey: 'entities.payroll.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/profile') {
-    return {
-      titleKey: 'profile.title',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/settings') {
-    return {
-      titleKey: 'settings.title',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  return {
-    titleKey: fallbackItem.titleKey,
-    icon: fallbackItem.icon,
-  }
-}
 
 @endcontent
 @end
 
-@replace-first src/app/AppLayout.tsx
-@find
-  const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
-  const activeNavigationItem = getActiveNavigationItem(location.pathname)
-  const TopbarIcon = activeNavigationItem.icon
-@endfind
-@with
-  const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
-  const activeNavigationItem = getActiveNavigationItem(location.pathname)
-  const topbarContent = getTopbarContent(location.pathname, activeNavigationItem)
-  const TopbarIcon = topbarContent.icon
-  const topbarDescription = topbarContent.descriptionKey ? t(topbarContent.descriptionKey) : undefined
-@endwith
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-          <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
-            <div className="flex items-center justify-between gap-6">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
-                  <TopbarIcon className="h-5 w-5" />
-                </span>
-                <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
-                  {t(activeNavigationItem.titleKey)}
-                </h2>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
-                <FiDatabase className="h-4 w-4 text-blue-600" />
-                {t('app.topbar.databaseActive')}
-              </div>
-            </div>
-          </header>
-@endfind
-@with
-          <header className="sticky top-0 z-20 flex h-[85px] items-center border-b border-slate-200/70 bg-white/85 px-8 backdrop-blur-xl">
-            <div className="flex w-full items-center justify-between gap-6">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
-                  <TopbarIcon className="h-5 w-5" />
-                </span>
-
-                <div className="min-w-0">
-                  <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
-                    {t(topbarContent.titleKey)}
-                  </h2>
-
-                  {topbarDescription && (
-                    <p className="mt-1 truncate text-xs font-semibold text-slate-500">
-                      {topbarDescription}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
-                <FiDatabase className="h-4 w-4 text-blue-600" />
-                {t('app.topbar.databaseActive')}
-              </div>
-            </div>
-          </header>
-@endwith
-@end
-
 @replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-import { Button, FieldError, Input, PageHeader, Select, Textarea, type SelectOption } from '../../shared/ui'
-@endfind
-@with
-import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../shared/ui'
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-  return (
-    <div>
-      <form
-        className="app-surface app-shadow overflow-hidden rounded-[32px] border"
         onSubmit={handleSubmit(handleCreate)}
-      >
-        <div className="border-b app-border-soft p-6 sm:p-7">
-          <PageHeader
-            title={t('employeesCreate.title')}
-            description={t('employeesCreate.description')}
-          />
-        </div>
-
-        <section className="border-b app-border-soft p-6 sm:p-7">
 @endfind
 @with
-  return (
-      <form
-        className="app-surface app-shadow overflow-hidden rounded-[32px] border"
-        onSubmit={handleSubmit(handleCreate)}
-      >
-        <section className="border-b app-border-soft p-6 sm:p-7">
+        onSubmit={(event) => void handleFormSubmit(event)}
 @endwith
 @end
 
 @replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-        </footer>
-      </form>
-    </div>
-  )
+              <Button disabled={isSubmitting} type="submit" variant="primary">
+                {t('employeesCreate.actions.create')}
+              </Button>
 @endfind
 @with
-        </footer>
-      </form>
-  )
+              <Button
+                disabled={isSubmitting}
+                type="button"
+                onClick={() => void handleFinalCreate()}
+                variant="primary"
+              >
+                {t('employeesCreate.actions.create')}
+              </Button>
 @endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+              <SelectField
+                control={control}
+                disabled={isRelationsLoading}
+                error={getError('department_id', errors, t)}
+                label={t('forms.fields.departmentId')}
+                name="department_id"
+                options={departments}
+                placeholder={
+                  isRelationsLoading
+                    ? t('forms.placeholders.loadingOptions')
+                    : t('forms.placeholders.selectDepartment')
+                }
+              />
+@endfind
+@with
+              <SelectField
+                control={control}
+                disabled={isRelationsLoading}
+                error={getError('department_id', errors, t)}
+                label={t('forms.fields.departmentId')}
+                name="department_id"
+                options={departments}
+                placeholder={
+                  isRelationsLoading
+                    ? t('forms.placeholders.loadingOptions')
+                    : t('forms.placeholders.selectDepartment')
+                }
+                required
+              />
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+              <SelectField
+                control={control}
+                disabled={isRelationsLoading}
+                error={getError('position_id', errors, t)}
+                label={t('forms.fields.positionId')}
+                name="position_id"
+                options={positions}
+                placeholder={
+                  isRelationsLoading
+                    ? t('forms.placeholders.loadingOptions')
+                    : t('forms.placeholders.selectPosition')
+                }
+              />
+@endfind
+@with
+              <SelectField
+                control={control}
+                disabled={isRelationsLoading}
+                error={getError('position_id', errors, t)}
+                label={t('forms.fields.positionId')}
+                name="position_id"
+                options={positions}
+                placeholder={
+                  isRelationsLoading
+                    ? t('forms.placeholders.loadingOptions')
+                    : t('forms.placeholders.selectPosition')
+                }
+                required
+              />
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
+    } catch {
+      toast.error(t('employeesCreate.toasts.createError'))
+    } finally {
+@endfind
+@with
+    } catch (error) {
+      console.error('Employee create error:', error)
+      toast.error(t('employeesCreate.toasts.createError'))
+    } finally {
+@endwith
+@end
+
+@insert-after-once src/shared/i18n/locales/ru.ts
+@find
+      createError: 'Не удалось создать сотрудника',
+@endfind
+@content
+      validationError: 'Проверьте обязательные поля перед созданием сотрудника',
+@endcontent
 @end

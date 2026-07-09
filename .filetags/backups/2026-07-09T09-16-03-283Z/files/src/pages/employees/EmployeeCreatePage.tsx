@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Controller,
@@ -34,27 +34,32 @@ const requiredMessage = 'forms.validation.required'
 const invalidEmailMessage = 'forms.validation.email'
 const nonNegativeMessage = 'forms.validation.nonNegative'
 
-const employeeCreateSchema = z.object({
-  last_name: requiredString(),
-  first_name: requiredString(),
-  middle_name: optionalString(),
-  birth_date: optionalString(),
-  gender: optionalString(),
-  phone: optionalString(),
-  email: optionalEmail(),
-  address_country: optionalString(),
-  address_city: optionalString(),
-  address_street: optionalString(),
-  address_house: optionalString(),
-  address_apartment: optionalString(),
-  address: optionalString(),
-  department_id: requiredNumberString(),
-  position_id: requiredNumberString(),
-  hire_date: requiredString(),
-  status: requiredString(),
-  salary: requiredNumberString(),
-  note: optionalString(),
-})
+const employeeCreateSchema = z
+  .object({
+    last_name: requiredString(),
+    first_name: requiredString(),
+    middle_name: optionalString(),
+    birth_date: optionalString(),
+    gender: optionalString(),
+    phone: optionalString(),
+    email: optionalEmail(),
+    address_country: optionalString(),
+    address_city: optionalString(),
+    address_street: optionalString(),
+    address_house: optionalString(),
+    address_apartment: optionalString(),
+    address: optionalString(),
+    department_id: optionalNumberString(),
+    position_id: optionalNumberString(),
+    hire_date: requiredString(),
+    status: requiredString(),
+    salary: requiredNumberString(),
+    note: optionalString(),
+  })
+  .refine((value) => value.department_id !== '' || value.position_id !== '', {
+    message: requiredMessage,
+    path: ['department_id'],
+  })
 
 const steps = [
   {
@@ -173,45 +178,6 @@ export function EmployeeCreatePage(): JSX.Element {
 
     setActiveStep((current) => Math.max(current - 1, 0))
   }
-  async function handleFormSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
-
-    if (isSubmitting) {
-      return
-    }
-
-    if (activeStep < steps.length - 1) {
-      await handleNext()
-      return
-    }
-
-    await handleSubmit(handleCreate, handleCreateInvalid)()
-  }
-
-  async function handleFinalCreate(): Promise<void> {
-    if (isSubmitting) {
-      return
-    }
-
-    if (activeStep < steps.length - 1) {
-      await handleNext()
-      return
-    }
-
-    await handleSubmit(handleCreate, handleCreateInvalid)()
-  }
-
-  function handleCreateInvalid(formErrors: FieldErrors<EmployeeFormValues>): void {
-    const invalidStepIndex = steps.findIndex((step) =>
-      step.fields.some((field) => Boolean(formErrors[field])),
-    )
-
-    if (invalidStepIndex >= 0 && invalidStepIndex !== activeStep) {
-      setActiveStep(invalidStepIndex)
-    }
-
-    toast.error(t('employeesCreate.toasts.validationError'))
-  }
 
   async function handleCreate(values: EmployeeFormValues): Promise<void> {
     setIsSubmitting(true)
@@ -231,8 +197,7 @@ export function EmployeeCreatePage(): JSX.Element {
       } else {
         navigate('/employees')
       }
-    } catch (error) {
-      console.error('Employee create error:', error)
+    } catch {
       toast.error(t('employeesCreate.toasts.createError'))
     } finally {
       setIsSubmitting(false)
@@ -262,7 +227,7 @@ export function EmployeeCreatePage(): JSX.Element {
   return (
       <form
         className="app-surface app-shadow overflow-hidden rounded-[32px] border"
-        onSubmit={(event) => void handleFormSubmit(event)}
+        onSubmit={handleSubmit(handleCreate)}
       >
         <section className="border-b app-border-soft p-6 sm:p-7">
           <StepProgress activeStep={activeStep} t={t} />
