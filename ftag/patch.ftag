@@ -1,53 +1,172 @@
-@insert-after-once src/pages/employees/EmployeeCreatePage.tsx
+@insert-before-once src/app/AppLayout.tsx
 @find
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+interface SidebarItemProps {
 @endfind
 @content
-import { AnimatePresence, motion } from 'framer-motion'
+interface AppTopbarContent {
+  titleKey: string
+  descriptionKey?: string
+  icon: AppNavigationItem['icon']
+}
+
+function getTopbarContent(
+  pathname: string,
+  fallbackItem: AppNavigationItem,
+): AppTopbarContent {
+  if (pathname === '/employees/new') {
+    return {
+      titleKey: 'employeesCreate.title',
+      descriptionKey: 'employeesCreate.description',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname.startsWith('/employees/') && pathname !== '/employees') {
+    return {
+      titleKey: 'employeesDetails.title',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/employees') {
+    return {
+      titleKey: 'employeesPage.title',
+      descriptionKey: 'employeesPage.description',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/departments') {
+    return {
+      titleKey: 'entities.departments.title',
+      descriptionKey: 'entities.departments.description',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/positions') {
+    return {
+      titleKey: 'entities.positions.title',
+      descriptionKey: 'entities.positions.description',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/vacations') {
+    return {
+      titleKey: 'entities.vacations.title',
+      descriptionKey: 'entities.vacations.description',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/payroll') {
+    return {
+      titleKey: 'entities.payroll.title',
+      descriptionKey: 'entities.payroll.description',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/profile') {
+    return {
+      titleKey: 'profile.title',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  if (pathname === '/settings') {
+    return {
+      titleKey: 'settings.title',
+      icon: fallbackItem.icon,
+    }
+  }
+
+  return {
+    titleKey: fallbackItem.titleKey,
+    icon: fallbackItem.icon,
+  }
+}
+
 @endcontent
 @end
 
-@insert-after-once src/pages/employees/EmployeeCreatePage.tsx
+@replace-first src/app/AppLayout.tsx
 @find
-import { useNavigate } from 'react-router-dom'
+  const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
+  const activeNavigationItem = getActiveNavigationItem(location.pathname)
+  const TopbarIcon = activeNavigationItem.icon
 @endfind
-@content
-import { FiCheck } from 'react-icons/fi'
-@endcontent
+@with
+  const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
+  const activeNavigationItem = getActiveNavigationItem(location.pathname)
+  const topbarContent = getTopbarContent(location.pathname, activeNavigationItem)
+  const TopbarIcon = topbarContent.icon
+  const topbarDescription = topbarContent.descriptionKey ? t(topbarContent.descriptionKey) : undefined
+@endwith
+@end
+
+@replace-first src/app/AppLayout.tsx
+@find
+          <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
+                  <TopbarIcon className="h-5 w-5" />
+                </span>
+                <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+                  {t(activeNavigationItem.titleKey)}
+                </h2>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
+                <FiDatabase className="h-4 w-4 text-blue-600" />
+                {t('app.topbar.databaseActive')}
+              </div>
+            </div>
+          </header>
+@endfind
+@with
+          <header className="sticky top-0 z-20 flex h-[85px] items-center border-b border-slate-200/70 bg-white/85 px-8 backdrop-blur-xl">
+            <div className="flex w-full items-center justify-between gap-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
+                  <TopbarIcon className="h-5 w-5" />
+                </span>
+
+                <div className="min-w-0">
+                  <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+                    {t(topbarContent.titleKey)}
+                  </h2>
+
+                  {topbarDescription && (
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+                      {topbarDescription}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
+                <FiDatabase className="h-4 w-4 text-blue-600" />
+                {t('app.topbar.databaseActive')}
+              </div>
+            </div>
+          </header>
+@endwith
 @end
 
 @replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('employeesCreate.title')}
-        description={t('employeesCreate.description')}
-      />
-
-      <form className="space-y-6" onSubmit={handleSubmit(handleCreate)}>
-        <section className="app-surface app-shadow rounded-[28px] border p-5">
-          <div className="grid gap-3 md:grid-cols-4">
-            {steps.map((step, index) => (
-              <div
-                key={step.key}
-                className={[
-                  'rounded-2xl border px-4 py-3 transition',
-                  index === activeStep
-                    ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
-                    : 'app-border-soft app-surface-muted app-text-soft',
-                ].join(' ')}
-              >
-                <span className="text-xs font-black uppercase tracking-wide">
-                  {t('employeesCreate.stepLabel', { number: index + 1 })}
-                </span>
-                <p className="mt-1 text-sm font-black">{t(step.titleKey)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+import { Button, FieldError, Input, PageHeader, Select, Textarea, type SelectOption } from '../../shared/ui'
 @endfind
 @with
+import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../shared/ui'
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@find
   return (
     <div>
       <form
@@ -62,128 +181,27 @@ import { FiCheck } from 'react-icons/fi'
         </div>
 
         <section className="border-b app-border-soft p-6 sm:p-7">
-          <StepProgress activeStep={activeStep} t={t} />
-        </section>
-
-        <div className="border-b app-border-soft p-6 sm:p-8">
+@endfind
+@with
+  return (
+      <form
+        className="app-surface app-shadow overflow-hidden rounded-[32px] border"
+        onSubmit={handleSubmit(handleCreate)}
+      >
+        <section className="border-b app-border-soft p-6 sm:p-7">
 @endwith
 @end
 
 @replace-first src/pages/employees/EmployeeCreatePage.tsx
 @find
-        <footer className="app-surface app-shadow sticky bottom-4 flex flex-col gap-3 rounded-[28px] border p-4 sm:flex-row sm:justify-end">
+        </footer>
+      </form>
+    </div>
+  )
 @endfind
 @with
-        </div>
-
-        <footer className="flex flex-col gap-3 bg-[var(--color-surface)] p-5 sm:flex-row sm:justify-end sm:p-6">
-@endwith
-@end
-
-@insert-before-once src/pages/employees/EmployeeCreatePage.tsx
-@find
-interface FormCardProps {
-@endfind
-@content
-interface StepProgressProps {
-  activeStep: number
-  t: TFunction
-}
-
-function StepProgress({ activeStep, t }: StepProgressProps): JSX.Element {
-  return (
-    <ol className="grid gap-5 md:grid-cols-4">
-      {steps.map((step, index) => {
-        const isCompleted = index < activeStep
-        const isActive = index === activeStep
-
-        return (
-          <li key={step.key} className="relative min-w-0">
-            {index < steps.length - 1 && (
-              <span
-                className={[
-                  'absolute left-1/2 top-5 hidden h-0.5 w-full -translate-y-1/2 transition-colors duration-300 md:block',
-                  isCompleted ? 'bg-blue-500' : 'bg-slate-200',
-                ].join(' ')}
-              />
-            )}
-
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <span
-                aria-current={isActive ? 'step' : undefined}
-                className={[
-                  'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300',
-                  isCompleted
-                    ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                    : isActive
-                      ? 'border-blue-600 bg-white text-blue-600 shadow-sm ring-4 ring-blue-50'
-                      : 'border-slate-200 bg-slate-50 text-slate-400',
-                ].join(' ')}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isCompleted ? (
-                    <motion.span
-                      key="check"
-                      className="flex items-center justify-center"
-                      initial={{ opacity: 0, rotate: -45, scale: 0.35 }}
-                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.35 }}
-                      transition={{ duration: 0.22, ease: 'easeOut' }}
-                    >
-                      <FiCheck className="h-5 w-5" />
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key="number"
-                      initial={{ opacity: 0, scale: 0.75 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.75 }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                    >
-                      {index + 1}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </span>
-
-              <span
-                className={[
-                  'mt-3 max-w-32 text-xs font-black leading-tight transition-colors duration-300',
-                  isCompleted || isActive ? 'text-blue-600' : 'text-slate-500',
-                ].join(' ')}
-              >
-                {t(step.titleKey)}
-              </span>
-            </div>
-          </li>
-        )
-      })}
-    </ol>
+        </footer>
+      </form>
   )
-}
-
-@endcontent
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-function FormCard({ children, title }: FormCardProps): JSX.Element {
-  return (
-    <section className="app-surface app-shadow rounded-[28px] border p-6">
-      <h2 className="app-text text-xl font-black">{title}</h2>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
-  )
-}
-@endfind
-@with
-function FormCard({ children, title }: FormCardProps): JSX.Element {
-  return (
-    <section>
-      <h2 className="app-text text-xl font-black">{title}</h2>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
-  )
-}
 @endwith
 @end

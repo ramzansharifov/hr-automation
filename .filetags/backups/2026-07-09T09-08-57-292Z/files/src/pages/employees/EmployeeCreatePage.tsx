@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { FiCheck } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../shared/ui'
+import { Button, FieldError, Input, PageHeader, Select, Textarea, type SelectOption } from '../../shared/ui'
 import { getAppLocale } from '../../shared/i18n'
 import { formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/format'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
@@ -225,10 +225,18 @@ export function EmployeeCreatePage(): JSX.Element {
   const normalizedReviewValues = normalizeEmployeeFormValues(watchedValues)
 
   return (
+    <div>
       <form
         className="app-surface app-shadow overflow-hidden rounded-[32px] border"
         onSubmit={handleSubmit(handleCreate)}
       >
+        <div className="border-b app-border-soft p-6 sm:p-7">
+          <PageHeader
+            title={t('employeesCreate.title')}
+            description={t('employeesCreate.description')}
+          />
+        </div>
+
         <section className="border-b app-border-soft p-6 sm:p-7">
           <StepProgress activeStep={activeStep} t={t} />
         </section>
@@ -437,6 +445,7 @@ export function EmployeeCreatePage(): JSX.Element {
           )}
         </footer>
       </form>
+    </div>
   )
 }
 

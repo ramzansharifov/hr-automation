@@ -1,0 +1,23 @@
+{
+  "createdAt": "2026-07-09T09:08:57.379Z",
+  "backupPath": ".filetags/backups/2026-07-09T09-08-57-292Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/app/AppLayout.tsx",
+      "backupRelativePath": "files/src/app/AppLayout.tsx"
+    },
+    {
+      "originalPath": "src/pages/employees/EmployeeCreatePage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeCreatePage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Insert before: src/app/AppLayout.tsx\n   found: yes\n   old: 270 line(s)\n   new: 354 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: yes\n   old: 354 line(s)\n   new: 356 line(s)",
+    "Replace file: src/app/AppLayout.tsx\n   found: yes\n   old: 356 line(s)\n   new: 365 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 672 line(s)\n   new: 672 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 672 line(s)\n   new: 664 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 664 line(s)\n   new: 663 line(s)"
+  ]
+}

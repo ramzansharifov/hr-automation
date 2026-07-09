@@ -53,90 +53,6 @@ function getActiveNavigationItem(pathname: string): AppNavigationItem {
   )
 }
 
-interface AppTopbarContent {
-  titleKey: string
-  descriptionKey?: string
-  icon: AppNavigationItem['icon']
-}
-
-function getTopbarContent(
-  pathname: string,
-  fallbackItem: AppNavigationItem,
-): AppTopbarContent {
-  if (pathname === '/employees/new') {
-    return {
-      titleKey: 'employeesCreate.title',
-      descriptionKey: 'employeesCreate.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname.startsWith('/employees/') && pathname !== '/employees') {
-    return {
-      titleKey: 'employeesDetails.title',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/employees') {
-    return {
-      titleKey: 'employeesPage.title',
-      descriptionKey: 'employeesPage.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/departments') {
-    return {
-      titleKey: 'entities.departments.title',
-      descriptionKey: 'entities.departments.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/positions') {
-    return {
-      titleKey: 'entities.positions.title',
-      descriptionKey: 'entities.positions.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/vacations') {
-    return {
-      titleKey: 'entities.vacations.title',
-      descriptionKey: 'entities.vacations.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/payroll') {
-    return {
-      titleKey: 'entities.payroll.title',
-      descriptionKey: 'entities.payroll.description',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/profile') {
-    return {
-      titleKey: 'profile.title',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/settings') {
-    return {
-      titleKey: 'settings.title',
-      icon: fallbackItem.icon,
-    }
-  }
-
-  return {
-    titleKey: fallbackItem.titleKey,
-    icon: fallbackItem.icon,
-  }
-}
 interface SidebarItemProps {
   item: AppNavigationItem
   isCollapsed: boolean
@@ -209,9 +125,7 @@ export function AppLayout(): JSX.Element {
 
   const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
   const activeNavigationItem = getActiveNavigationItem(location.pathname)
-  const topbarContent = getTopbarContent(location.pathname, activeNavigationItem)
-  const TopbarIcon = topbarContent.icon
-  const topbarDescription = topbarContent.descriptionKey ? t(topbarContent.descriptionKey) : undefined
+  const TopbarIcon = activeNavigationItem.icon
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -327,24 +241,15 @@ export function AppLayout(): JSX.Element {
           className="min-h-screen min-w-0 transition-[padding] duration-300 ease-out"
           style={{ paddingLeft: sidebarWidth }}
         >
-          <header className="sticky top-0 z-20 flex h-[85px] items-center border-b border-slate-200/70 bg-white/85 px-8 backdrop-blur-xl">
-            <div className="flex w-full items-center justify-between gap-6">
+          <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 px-8 py-4 backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-6">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-blue-600 shadow-sm">
                   <TopbarIcon className="h-5 w-5" />
                 </span>
-
-                <div className="min-w-0">
-                  <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
-                    {t(topbarContent.titleKey)}
-                  </h2>
-
-                  {topbarDescription && (
-                    <p className="mt-1 truncate text-xs font-semibold text-slate-500">
-                      {topbarDescription}
-                    </p>
-                  )}
-                </div>
+                <h2 className="truncate text-xl font-black tracking-tight text-slate-950">
+                  {t(activeNavigationItem.titleKey)}
+                </h2>
               </div>
 
               <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm">
