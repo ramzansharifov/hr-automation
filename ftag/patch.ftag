@@ -1,258 +1,55 @@
-@replace-first src/index.css
+@replace-first src/app/AppLayout.tsx
 @find
-:root {
-  --accent-ring: color-mix(in srgb, var(--accent) 14%, transparent);
-  --accent-shadow: color-mix(in srgb, var(--accent) 28%, transparent);
-}
+      <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
 @endfind
 @with
-:root {
-  --accent-ring: color-mix(in srgb, var(--accent) 14%, transparent);
-  --accent-shadow-soft: color-mix(in srgb, var(--accent) 10%, transparent);
-  --accent-shadow: color-mix(in srgb, var(--accent) 24%, transparent);
-  --accent-shadow-medium: color-mix(in srgb, var(--accent) 34%, transparent);
-  --accent-shadow-strong: color-mix(in srgb, var(--accent) 46%, transparent);
-}
-@endwith
-@end
-
-@replace-first src/index.css
-@find
-.app-shadow {
-  box-shadow: 0 1px 2px rgb(var(--color-shadow) / 0.08);
-}
-@endfind
-@with
-.app-shadow {
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent),
-    0 14px 34px var(--accent-shadow-soft);
-}
-@endwith
-@end
-
-@replace-first src/index.css
-@find
-.app-shadow-lg {
-  box-shadow: 0 18px 48px rgb(var(--color-shadow) / 0.12);
-}
-@endfind
-@with
-.app-shadow-lg {
-  box-shadow:
-    0 18px 48px color-mix(in srgb, var(--color-text) 10%, transparent),
-    0 28px 78px var(--accent-shadow);
-}
-
-.app-accent-shadow-sm {
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent),
-    0 10px 26px var(--accent-shadow-soft);
-}
-
-.app-accent-shadow {
-  box-shadow:
-    0 10px 28px color-mix(in srgb, var(--color-text) 8%, transparent),
-    0 18px 46px var(--accent-shadow);
-}
-
-.app-accent-shadow-lg {
-  box-shadow:
-    0 20px 54px color-mix(in srgb, var(--color-text) 10%, transparent),
-    0 34px 90px var(--accent-shadow-medium);
-}
-
-.app-accent-drop-shadow {
-  filter: drop-shadow(0 22px 36px var(--accent-shadow-medium));
-}
-
-.app-accent-glow-line {
-  background: color-mix(in srgb, var(--accent-soft) 64%, #ffffff);
-  box-shadow: 0 0 26px var(--accent-shadow-strong);
-}
-
-.app-hover-accent-shadow:hover {
-  box-shadow:
-    0 16px 40px color-mix(in srgb, var(--color-text) 9%, transparent),
-    0 24px 62px var(--accent-shadow);
-}
+      <div className="app-page app-theme-transition app-no-shadows min-h-screen overflow-x-hidden">
 @endwith
 @end
 
 @insert-after-once src/index.css
 @find
-.app-button-primary {
-  background: var(--accent);
-  color: #ffffff;
+.app-theme-transition,
+.app-theme-transition * {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: ease;
 }
 @endfind
 @content
-.app-button-primary {
-  box-shadow:
-    0 12px 30px var(--accent-shadow),
-    0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent);
+
+.app-no-shadows,
+.app-no-shadows *,
+.app-no-shadows *::before,
+.app-no-shadows *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.app-no-shadows [class*="shadow"],
+.app-no-shadows .app-shadow,
+.app-no-shadows .app-shadow-lg,
+.app-no-shadows .app-accent-shadow-sm,
+.app-no-shadows .app-accent-shadow,
+.app-no-shadows .app-accent-shadow-lg,
+.app-no-shadows .app-hover-accent-shadow,
+.app-no-shadows .app-tab-trigger,
+.app-no-shadows .app-button-primary,
+.app-no-shadows .app-table-action-button {
+  box-shadow: none !important;
+}
+
+.app-no-shadows .app-accent-drop-shadow,
+.app-no-shadows [class*="drop-shadow"] {
+  filter: none !important;
+}
+
+.app-no-shadows svg [filter] {
+  filter: none !important;
+}
+
+.app-no-shadows .app-accent-glow-line {
+  box-shadow: none !important;
 }
 @endcontent
-@end
-
-@insert-after-once src/index.css
-@find
-.app-table-action-button {
-  background: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text-soft);
-}
-@endfind
-@content
-.app-table-action-button {
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent),
-    0 10px 24px var(--accent-shadow-soft);
-}
-@endcontent
-@end
-
-@insert-after-once src/index.css
-@find
-.app-tab-trigger[data-state="active"] {
-  background: var(--accent);
-  border-color: var(--accent-border);
-  color: #ffffff;
-  box-shadow: 0 10px 28px var(--accent-shadow);
-}
-@endfind
-@content
-.app-tab-trigger[data-state="active"] {
-  box-shadow:
-    0 12px 34px var(--accent-shadow-medium),
-    0 1px 2px color-mix(in srgb, var(--color-text) 10%, transparent);
-}
-@endcontent
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-    isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-sm shadow-blue-950/30'
-      : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
-@endfind
-@with
-    isActive
-      ? 'app-accent-shadow border-[var(--accent-border)] bg-[var(--accent)] text-white'
-      : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
-@endwith
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-    isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-blue-950/40'
-      : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
-@endfind
-@with
-    isActive
-      ? 'app-accent-shadow border-[var(--accent-border)] bg-[var(--accent)] text-white'
-      : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
-@endwith
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 shadow-sm transition-all duration-200',
-@endfind
-@with
-                  'app-accent-shadow-sm absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 transition-all duration-200',
-@endwith
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-                <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)] shadow-sm">
-@endfind
-@with
-                <span className="app-accent-soft app-accent-shadow-sm flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
-@endwith
-@end
-
-@replace-first src/app/AppLayout.tsx
-@find
-              <div className="app-surface flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold shadow-sm">
-@endfind
-@with
-              <div className="app-surface app-accent-shadow-sm flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold">
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-              <div className="absolute inset-4 rounded-full bg-white/20 blur-2xl" />
-              <HRLogo className="relative h-40 w-40 drop-shadow-[0_24px_45px_rgba(15,23,42,0.34)]" />
-@endfind
-@with
-              <div className="absolute inset-4 rounded-full bg-white/20 blur-2xl" />
-              <HRLogo className="app-accent-drop-shadow relative h-40 w-40" />
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-          <div className="absolute bottom-16 left-10 h-2 w-24 rounded-full bg-white/70 shadow-[0_0_24px_rgba(255,255,255,0.9)]" />
-@endfind
-@with
-          <div className="app-accent-glow-line absolute bottom-16 left-10 h-2 w-24 rounded-full" />
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-            <div className="mt-12 h-px w-24 bg-white/70 shadow-[0_0_18px_rgba(255,255,255,0.9)]" />
-@endfind
-@with
-            <div className="app-accent-glow-line mt-12 h-px w-24" />
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-        'app-surface app-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5 hover:shadow-md',
-@endfind
-@with
-        'app-surface app-shadow app-hover-accent-shadow flex min-h-[132px] items-center gap-6 rounded-[26px] border p-6 transition hover:-translate-y-0.5',
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-            <span className="app-accent-soft flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] shadow-sm">
-@endfind
-@with
-            <span className="app-accent-soft app-accent-shadow-sm flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px]">
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-      <span className="app-accent-soft flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
-@endfind
-@with
-      <span className="app-accent-soft app-accent-shadow-sm flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px]">
-@endwith
-@end
-
-@replace-first src/features/hr-table/HrEntityTable.tsx
-@find
-                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-@endfind
-@with
-                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-@endwith
-@end
-
-@replace-first src/features/hr-table/HrEntityTable.tsx
-@find
-                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-@endfind
-@with
-                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-@endwith
 @end

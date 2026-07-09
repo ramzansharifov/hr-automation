@@ -471,36 +471,3 @@ button:disabled {
   transition-duration: 160ms;
   transition-timing-function: ease;
 }
-.app-no-shadows,
-.app-no-shadows *,
-.app-no-shadows *::before,
-.app-no-shadows *::after {
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-
-.app-no-shadows [class*="shadow"],
-.app-no-shadows .app-shadow,
-.app-no-shadows .app-shadow-lg,
-.app-no-shadows .app-accent-shadow-sm,
-.app-no-shadows .app-accent-shadow,
-.app-no-shadows .app-accent-shadow-lg,
-.app-no-shadows .app-hover-accent-shadow,
-.app-no-shadows .app-tab-trigger,
-.app-no-shadows .app-button-primary,
-.app-no-shadows .app-table-action-button {
-  box-shadow: none !important;
-}
-
-.app-no-shadows .app-accent-drop-shadow,
-.app-no-shadows [class*="drop-shadow"] {
-  filter: none !important;
-}
-
-.app-no-shadows svg [filter] {
-  filter: none !important;
-}
-
-.app-no-shadows .app-accent-glow-line {
-  box-shadow: none !important;
-}

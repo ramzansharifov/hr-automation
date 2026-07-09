@@ -217,7 +217,7 @@ export function AppLayout(): JSX.Element {
 
   return (
     <Tooltip.Provider delayDuration={120}>
-      <div className="app-page app-theme-transition app-no-shadows min-h-screen overflow-x-hidden">
+      <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
         <motion.aside
           layout
           initial={{ x: -18, opacity: 0 }}
