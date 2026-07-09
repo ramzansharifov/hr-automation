@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
 import type { TFunction } from 'i18next'
 import { FiRefreshCw } from 'react-icons/fi'
@@ -40,19 +40,22 @@ export function EmployeeDetailsPage(): JSX.Element {
       try {
         const record = await hrApiClient.getById({ entity: 'employees', id: employeeId })
 
-        if (!isActive) return
+        if (!isActive) {
+          return
+        }
 
         setEmployee(record)
 
         const departmentId = toNumber(record?.department_id)
         const positionId = toNumber(record?.position_id)
-
         const [department, position] = await Promise.all([
           departmentId ? hrApiClient.getById({ entity: 'departments', id: departmentId }) : Promise.resolve(null),
           positionId ? hrApiClient.getById({ entity: 'positions', id: positionId }) : Promise.resolve(null),
         ])
 
-        if (!isActive) return
+        if (!isActive) {
+          return
+        }
 
         setDepartmentName(getRecordLabel(department))
         setPositionName(getRecordLabel(position))
@@ -88,11 +91,7 @@ export function EmployeeDetailsPage(): JSX.Element {
     )
   }
 
-  const fullName = [
-    getString(employee.last_name),
-    getString(employee.first_name),
-    getString(employee.middle_name),
-  ]
+  const fullName = [getString(employee.last_name), getString(employee.first_name), getString(employee.middle_name)]
     .filter(Boolean)
     .join(' ')
 
@@ -104,11 +103,9 @@ export function EmployeeDetailsPage(): JSX.Element {
             <Tabs.Trigger className={detailsTabTriggerClass} value="card">
               {t('employeesDetails.card.title')}
             </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="company">
               {t('employeesDetails.sections.company')}
             </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
               {t('employeesDetails.sections.notes')}
             </Tabs.Trigger>
@@ -128,38 +125,47 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="company" className="outline-none">
-            <InfoPanel
-              eyebrow={t('employeesDetails.sections.company')}
-              title={fullName || t('employeesDetails.title')}
-            >
-              <InfoField label={t('forms.fields.departmentId')} value={valueOrEmpty(departmentName, t)} />
-              <InfoField label={t('forms.fields.positionId')} value={valueOrEmpty(positionName, t)} />
-              <InfoField label={t('forms.fields.status')} value={humanizeStatus(employee.status, t)} />
-              <InfoField label={t('forms.fields.hireDate')} value={formatDate(employee.hire_date, locale)} />
-              <InfoField label={t('forms.fields.salary')} value={formatCurrency(employee.salary, locale)} />
-            </InfoPanel>
+            <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div>
+                <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
+                  {t('employeesDetails.sections.company')}
+                </p>
+                <h2 className="app-text mt-3 text-2xl font-black">
+                  {fullName || t('employeesDetails.title')}
+                </h2>
+              </div>
+
+              <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoField label={t('forms.fields.departmentId')} value={valueOrEmpty(departmentName, t)} />
+                <InfoField label={t('forms.fields.positionId')} value={valueOrEmpty(positionName, t)} />
+                <InfoField label={t('forms.fields.status')} value={humanizeStatus(employee.status, t)} />
+                <InfoField label={t('forms.fields.hireDate')} value={formatDate(employee.hire_date, locale)} />
+                <InfoField label={t('forms.fields.salary')} value={formatCurrency(employee.salary, locale)} />
+              </div>
+            </section>
           </Tabs.Content>
 
           <Tabs.Content value="notes" className="outline-none">
-            <InfoPanel
-              eyebrow={t('employeesDetails.sections.notes')}
-              title={t('forms.fields.note')}
-            >
-              <InfoField label={t('forms.fields.note')} value={valueOrEmpty(getString(employee.note), t)} wide />
-            </InfoPanel>
+            <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div>
+                <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
+                  {t('employeesDetails.sections.notes')}
+                </p>
+                <h2 className="app-text mt-3 text-2xl font-black">
+                  {t('forms.fields.note')}
+                </h2>
+              </div>
+
+              <div className="mt-7">
+                <InfoField label={t('forms.fields.note')} value={valueOrEmpty(getString(employee.note), t)} wide />
+              </div>
+            </section>
           </Tabs.Content>
         </div>
       </Tabs.Root>
     </section>
   )
 }
-
-const detailsTabTriggerClass = [
-  'relative -mb-px rounded-t-2xl px-5 py-3 text-sm font-black transition',
-  'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400',
-  'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/20',
-].join(' ')
 
 interface EmployeePassportCardProps {
   employee: HrRecord
@@ -333,29 +339,6 @@ function FlipButton({ label, onClick }: FlipButtonProps): JSX.Element {
     >
       <FiRefreshCw className="h-5 w-5" />
     </button>
-  )
-}
-
-interface InfoPanelProps {
-  children: ReactNode
-  eyebrow: string
-  title: string
-}
-
-function InfoPanel({ children, eyebrow, title }: InfoPanelProps): JSX.Element {
-  return (
-    <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-      <div>
-        <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
-          {eyebrow}
-        </p>
-        <h2 className="app-text mt-3 text-2xl font-black">{title}</h2>
-      </div>
-
-      <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {children}
-      </div>
-    </section>
   )
 }
 

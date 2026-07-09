@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
 import type { TFunction } from 'i18next'
 import { FiRefreshCw } from 'react-icons/fi'
@@ -337,7 +337,7 @@ function FlipButton({ label, onClick }: FlipButtonProps): JSX.Element {
 }
 
 interface InfoPanelProps {
-  children: ReactNode
+  children: React.ReactNode
   eyebrow: string
   title: string
 }
