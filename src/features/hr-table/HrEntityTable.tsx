@@ -1,11 +1,22 @@
 import type { FormEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FiChevronLeft, FiChevronRight, FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi'
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiEdit2,
+  FiPlus,
+  FiRefreshCw,
+  FiSearch,
+  FiTrash2,
+} from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
-import type { HrEntityKey, HrListResult } from '../../shared/types/hr'
+import type { HrEntityKey, HrListResult, HrRecord } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
+import { Button } from '../../shared/ui'
+import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
+import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
 
 interface HrEntityTableProps {
@@ -32,6 +43,11 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
   const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc')
   const [isLoading, setIsLoading] = useState(false)
   const [refreshIndex, setRefreshIndex] = useState(0)
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
+  const [editingRecord, setEditingRecord] = useState<HrRecord | null>(null)
+  const [deletingRecord, setDeletingRecord] = useState<HrRecord | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
 
   useEffect(() => {
     setPage(1)
@@ -89,8 +105,60 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
     setRefreshIndex((current) => current + 1)
   }
 
+  function handleCreateClick(): void {
+    setDialogMode('create')
+    setEditingRecord(null)
+    setIsFormOpen(true)
+  }
+
+  function handleEditClick(record: HrRecord): void {
+    setDialogMode('edit')
+    setEditingRecord(record)
+    setIsFormOpen(true)
+  }
+
+  function handleDeleteClick(record: HrRecord): void {
+    setDeletingRecord(record)
+    setIsDeleteOpen(true)
+  }
+
+  function getRecordId(record: HrRecord | null): number {
+    const rawId = record?.id
+    const id = typeof rawId === 'number' ? rawId : Number(rawId)
+
+    if (!Number.isFinite(id)) {
+      throw new Error(t('forms.errors.missingId'))
+    }
+
+    return id
+  }
+
+  async function handleFormSubmit(data: HrRecord): Promise<void> {
+    if (dialogMode === 'create') {
+      await hrApiClient.create({ entity, data })
+      handleRefresh()
+      return
+    }
+
+    await hrApiClient.update({
+      entity,
+      id: getRecordId(editingRecord),
+      data,
+    })
+    handleRefresh()
+  }
+
+  async function handleDeleteConfirm(): Promise<void> {
+    await hrApiClient.delete({
+      entity,
+      id: getRecordId(deletingRecord),
+    })
+    handleRefresh()
+  }
+
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
+  const tableColumnCount = config.columns.length + 1
 
   return (
     <section className="app-surface app-shadow overflow-hidden rounded-[28px] border">
@@ -121,7 +189,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
           <button
             type="button"
-            onClick={() => toast.info(t('common.notifications.createFormSoon'))}
+            onClick={handleCreateClick}
             className="app-button-primary inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold shadow-sm transition"
           >
             <FiPlus className="h-4 w-4" />
@@ -152,6 +220,9 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
                   </button>
                 </th>
               ))}
+              <th className="app-border-soft border-b px-5 py-4 text-right font-black">
+                {t('common.table.actions')}
+              </th>
             </tr>
           </thead>
 
@@ -169,12 +240,32 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
                     <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
                   </td>
                 ))}
+                <td className="app-border-soft border-b px-5 py-4 align-top">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      aria-label={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      aria-label={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <FiTrash2 className="h-4 w-4 text-rose-500" />
+                    </Button>
+                  </div>
+                </td>
               </tr>
             ))}
 
             {!isLoading && result.items.length === 0 && (
               <tr>
-                <td colSpan={config.columns.length} className="px-5 py-16 text-center">
+                <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
                   <p className="app-text text-base font-black">{t('common.table.empty')}</p>
                 </td>
               </tr>
@@ -182,7 +273,7 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
 
             {isLoading && (
               <tr>
-                <td colSpan={config.columns.length} className="px-5 py-16 text-center">
+                <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
                   <p className="app-muted text-sm font-medium">{t('common.table.loading')}</p>
                 </td>
               </tr>
@@ -222,6 +313,21 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
           </button>
         </div>
       </div>
+
+      <HrEntityDialog
+        entity={entity}
+        initialRecord={editingRecord}
+        mode={dialogMode}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        open={isFormOpen}
+      />
+
+      <HrEntityDeleteDialog
+        onConfirm={handleDeleteConfirm}
+        onOpenChange={setIsDeleteOpen}
+        open={isDeleteOpen}
+      />
     </section>
   )
 }
