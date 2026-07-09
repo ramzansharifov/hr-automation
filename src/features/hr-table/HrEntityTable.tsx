@@ -77,11 +77,11 @@ export function HrEntityTable({ entity }: HrEntityTableProps): JSX.Element {
     } finally {
       setIsLoading(false)
     }
-  }, [entity, orderBy, orderDirection, page, refreshIndex, search, t])
+  }, [entity, orderBy, orderDirection, page, search, t])
 
   useEffect(() => {
     void loadData()
-  }, [loadData])
+  }, [loadData, refreshIndex])
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()

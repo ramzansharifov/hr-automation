@@ -1,9 +1,11 @@
 import * as RadixDialog from '@radix-ui/react-dialog'
+import { useTranslation } from 'react-i18next'
+import type { ReactNode } from 'react'
 import { FiX } from 'react-icons/fi'
 import { Button } from './Button'
 
 interface DialogProps {
-  children: React.ReactNode
+  children: ReactNode
   description?: string
   onOpenChange: (open: boolean) => void
   open: boolean
@@ -17,6 +19,8 @@ export function Dialog({
   open,
   title,
 }: DialogProps): JSX.Element {
+  const { t } = useTranslation()
+
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -35,7 +39,7 @@ export function Dialog({
             </div>
 
             <RadixDialog.Close asChild>
-              <Button aria-label="Close" className="h-10 w-10 rounded-xl p-0" variant="ghost">
+              <Button aria-label={t('common.actions.close')} className="h-10 w-10 rounded-xl p-0" variant="ghost">
                 <FiX className="h-4 w-4" />
               </Button>
             </RadixDialog.Close>

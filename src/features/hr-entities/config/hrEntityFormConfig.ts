@@ -8,6 +8,9 @@ export type HrEntityFormFieldType =
   | 'date'
   | 'textarea'
   | 'select'
+  | 'relation'
+
+export type HrEntityRelationLabel = 'name' | 'employeeName'
 
 export interface HrEntityFormOption {
   labelKey: string
@@ -21,6 +24,12 @@ export interface HrEntityFormField {
   required?: boolean
   type: HrEntityFormFieldType
   options?: HrEntityFormOption[]
+  relation?: {
+    entity: HrEntityKey
+    label: HrEntityRelationLabel
+    orderBy: string
+    placeholderKey: string
+  }
 }
 
 export interface HrEntityFormConfig {
@@ -51,8 +60,28 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
       { name: 'last_name', labelKey: 'forms.fields.lastName', required: true, type: 'text' },
       { name: 'first_name', labelKey: 'forms.fields.firstName', required: true, type: 'text' },
       { name: 'middle_name', labelKey: 'forms.fields.middleName', type: 'text' },
-      { name: 'department_id', labelKey: 'forms.fields.departmentId', type: 'number' },
-      { name: 'position_id', labelKey: 'forms.fields.positionId', type: 'number' },
+      {
+        name: 'department_id',
+        labelKey: 'forms.fields.departmentId',
+        type: 'relation',
+        relation: {
+          entity: 'departments',
+          label: 'name',
+          orderBy: 'name',
+          placeholderKey: 'forms.placeholders.selectDepartment',
+        },
+      },
+      {
+        name: 'position_id',
+        labelKey: 'forms.fields.positionId',
+        type: 'relation',
+        relation: {
+          entity: 'positions',
+          label: 'name',
+          orderBy: 'name',
+          placeholderKey: 'forms.placeholders.selectPosition',
+        },
+      },
       { name: 'birth_date', labelKey: 'forms.fields.birthDate', type: 'date' },
       {
         name: 'gender',
@@ -110,7 +139,18 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
     createTitleKey: 'forms.vacations.createTitle',
     editTitleKey: 'forms.vacations.editTitle',
     fields: [
-      { name: 'employee_id', labelKey: 'forms.fields.employeeId', required: true, type: 'number' },
+      {
+        name: 'employee_id',
+        labelKey: 'forms.fields.employeeId',
+        required: true,
+        type: 'relation',
+        relation: {
+          entity: 'employees',
+          label: 'employeeName',
+          orderBy: 'last_name',
+          placeholderKey: 'forms.placeholders.selectEmployee',
+        },
+      },
       { name: 'vacation_type', labelKey: 'forms.fields.vacationType', required: true, type: 'text' },
       { name: 'starts_at', labelKey: 'forms.fields.startsAt', required: true, type: 'date' },
       { name: 'ends_at', labelKey: 'forms.fields.endsAt', required: true, type: 'date' },
@@ -131,7 +171,18 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
     createTitleKey: 'forms.payroll.createTitle',
     editTitleKey: 'forms.payroll.editTitle',
     fields: [
-      { name: 'employee_id', labelKey: 'forms.fields.employeeId', required: true, type: 'number' },
+      {
+        name: 'employee_id',
+        labelKey: 'forms.fields.employeeId',
+        required: true,
+        type: 'relation',
+        relation: {
+          entity: 'employees',
+          label: 'employeeName',
+          orderBy: 'last_name',
+          placeholderKey: 'forms.placeholders.selectEmployee',
+        },
+      },
       { name: 'accrual_month', labelKey: 'forms.fields.accrualMonth', required: true, type: 'text' },
       { name: 'base_salary', labelKey: 'forms.fields.baseSalary', required: true, type: 'number' },
       { name: 'bonus', labelKey: 'forms.fields.bonus', type: 'number' },

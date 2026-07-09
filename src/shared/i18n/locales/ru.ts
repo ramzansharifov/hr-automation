@@ -13,6 +13,7 @@ export const ru = {
       collapse: 'Свернуть',
       expandSidebar: 'Раскрыть сайдбар',
       collapseSidebar: 'Свернуть сайдбар',
+      mainNavigation: 'Основная навигация',
     },
   },
 
@@ -39,6 +40,7 @@ export const ru = {
       save: 'Сохранить',
       cancel: 'Отмена',
       confirm: 'Подтвердить',
+      close: 'Закрыть',
     },
     fields: {
       search: 'Поиск',
@@ -159,6 +161,10 @@ export const ru = {
     dialogDescription: 'Заполните поля и сохраните изменения.',
     placeholders: {
       select: 'Выберите значение',
+      loadingOptions: 'Загрузка вариантов...',
+      selectDepartment: 'Выберите отдел',
+      selectPosition: 'Выберите должность',
+      selectEmployee: 'Выберите сотрудника',
     },
     validation: {
       required: 'Обязательное поле',
@@ -176,6 +182,7 @@ export const ru = {
       createError: 'Не удалось создать запись',
       updateError: 'Не удалось обновить запись',
       deleteError: 'Не удалось удалить запись',
+      relationsLoadError: 'Не удалось загрузить варианты для выбора',
     },
     delete: {
       title: 'Удалить запись',

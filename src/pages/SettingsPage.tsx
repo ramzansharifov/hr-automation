@@ -5,7 +5,7 @@ import {
   themeOptions,
   useTheme,
   type ThemePreference,
-} from '../app/theme'
+} from '../app/themeContext'
 import { supportedLanguages } from '../shared/i18n'
 
 function getThemeIcon(theme: ThemePreference): typeof FiSun {
