@@ -287,8 +287,7 @@ export function HrEntityTable({
   const pageNumbers = getPageNumbers(result.page, totalPages)
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
-  const hasActions = entity !== 'employees'
-  const tableColumnCount = config.columns.length + (hasActions ? 1 : 0)
+  const tableColumnCount = config.columns.length + 1
   const cardMetaColumns = config.columns.slice(1, 4)
 
   return (
@@ -384,11 +383,9 @@ export function HrEntityTable({
                   </button>
                 </th>
               ))}
-              {hasActions && (
-                <th className="app-border-soft border-b px-5 py-4 text-center font-black">
-                  {t('common.table.actions')}
-                </th>
-              )}
+              <th className="app-border-soft border-b px-5 py-4 text-center font-black">
+                {t('common.table.actions')}
+              </th>
             </tr>
           </thead>
 
@@ -421,31 +418,29 @@ export function HrEntityTable({
                     <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
                   </td>
                 ))}
-                {hasActions && (
-                  <td className="app-border-soft border-b px-5 py-4 align-top">
-                    <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.edit')}
-                        title={t('common.actions.edit')}
-                        onClick={() => handleEditClick(record)}
-                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
+                <td className="app-border-soft border-b px-5 py-4 align-top">
+                  <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.edit')}
+                      title={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </button>
 
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.delete')}
-                        title={t('common.actions.delete')}
-                        onClick={() => handleDeleteClick(record)}
-                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                )}
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.delete')}
+                      title={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
               </motion.tr>
             ))}
 
@@ -521,32 +516,30 @@ export function HrEntityTable({
                     </div>
                   </div>
 
-                  {hasActions && (
-                    <div
-                      className="flex shrink-0 items-center justify-center gap-2"
-                      onClick={(event) => event.stopPropagation()}
+                  <div
+                    className="flex shrink-0 items-center justify-center gap-2"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.edit')}
+                      title={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
                     >
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.edit')}
-                        title={t('common.actions.edit')}
-                        onClick={() => handleEditClick(record)}
-                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
+                      <FiEdit2 className="h-4 w-4" />
+                    </button>
 
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.delete')}
-                        title={t('common.actions.delete')}
-                        onClick={() => handleDeleteClick(record)}
-                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.delete')}
+                      title={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </motion.article>
               )
             })}

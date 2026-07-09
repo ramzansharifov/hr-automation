@@ -1,31 +1,303 @@
-@replace-first src/pages/employees/EmployeesPage.tsx
+@replace-first src/features/hr-table/HrEntityTable.tsx
 @find
-  function handleRowClick(record: HrRecord): void {
-  function handleViewModeChange(nextMode: EmployeesViewMode): void {
-    setViewMode(nextMode)
-    setStoredEmployeesViewMode(nextMode)
-    window.dispatchEvent(new CustomEvent(EMPLOYEES_VIEW_MODE_EVENT, { detail: nextMode }))
-  }
-    const id = Number(record.id)
-
-    if (Number.isFinite(id)) {
-      navigate(`/employees/${id}`)
-    }
-  }
+  const tableColumnCount = config.columns.length + 1
 @endfind
 @with
-  function handleViewModeChange(nextMode: EmployeesViewMode): void {
-    setViewMode(nextMode)
-    setStoredEmployeesViewMode(nextMode)
-    window.dispatchEvent(new CustomEvent(EMPLOYEES_VIEW_MODE_EVENT, { detail: nextMode }))
+  const hasActions = entity !== 'employees'
+  const tableColumnCount = config.columns.length + (hasActions ? 1 : 0)
+@endwith
+@end
+
+@replace-first src/features/hr-table/HrEntityTable.tsx
+@find
+              <th className="app-border-soft border-b px-5 py-4 text-center font-black">
+                {t('common.table.actions')}
+              </th>
+@endfind
+@with
+              {hasActions && (
+                <th className="app-border-soft border-b px-5 py-4 text-center font-black">
+                  {t('common.table.actions')}
+                </th>
+              )}
+@endwith
+@end
+
+@replace-first src/features/hr-table/HrEntityTable.tsx
+@find
+                <td className="app-border-soft border-b px-5 py-4 align-top">
+                  <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.edit')}
+                      title={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.delete')}
+                      title={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+@endfind
+@with
+                {hasActions && (
+                  <td className="app-border-soft border-b px-5 py-4 align-top">
+                    <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        aria-label={t('common.actions.edit')}
+                        title={t('common.actions.edit')}
+                        onClick={() => handleEditClick(record)}
+                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                      >
+                        <FiEdit2 className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-label={t('common.actions.delete')}
+                        title={t('common.actions.delete')}
+                        onClick={() => handleDeleteClick(record)}
+                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                      >
+                        <FiTrash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                )}
+@endwith
+@end
+
+@replace-first src/features/hr-table/HrEntityTable.tsx
+@find
+                  <div
+                    className="flex shrink-0 items-center justify-center gap-2"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.edit')}
+                      title={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-label={t('common.actions.delete')}
+                      title={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+@endfind
+@with
+                  {hasActions && (
+                    <div
+                      className="flex shrink-0 items-center justify-center gap-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        aria-label={t('common.actions.edit')}
+                        title={t('common.actions.edit')}
+                        onClick={() => handleEditClick(record)}
+                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                      >
+                        <FiEdit2 className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-label={t('common.actions.delete')}
+                        title={t('common.actions.delete')}
+                        onClick={() => handleDeleteClick(record)}
+                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                      >
+                        <FiTrash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+import { FiCalendar, FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi";
+@endfind
+@with
+import { FiCalendar, FiEdit2, FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi";
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+import { EmptyState, LoadingState } from "../../shared/ui";
+@endfind
+@with
+import { Button, EmptyState, LoadingState } from "../../shared/ui";
+@endwith
+@end
+
+@insert-after-once src/pages/employees/EmployeeDetailsPage.tsx
+@find
+import { HRLogo } from "../../app/brand/HRLogo";
+@endfind
+@content
+import { HrEntityDialog } from "../../features/hr-entities/components/HrEntityDialog";
+@endcontent
+@end
+
+@insert-after-once src/pages/employees/EmployeeDetailsPage.tsx
+@find
+  const [hasError, setHasError] = useState(false);
+@endfind
+@content
+  const [isEditOpen, setIsEditOpen] = useState(false);
+@endcontent
+@end
+
+@insert-after-once src/pages/employees/EmployeeDetailsPage.tsx
+@find
+  }, [employeeId, t]);
+@endfind
+@content
+
+  async function refreshEmployeeRelationLabels(record: HrRecord): Promise<void> {
+    const departmentId = toNumber(record.department_id);
+    const positionId = toNumber(record.position_id);
+
+    const [department, position] = await Promise.all([
+      departmentId
+        ? hrApiClient.getById({ entity: "departments", id: departmentId })
+        : Promise.resolve(null),
+      positionId
+        ? hrApiClient.getById({ entity: "positions", id: positionId })
+        : Promise.resolve(null),
+    ]);
+
+    setDepartmentName(getRecordLabel(department));
+    setPositionName(getRecordLabel(position));
   }
 
-  function handleRowClick(record: HrRecord): void {
-    const id = Number(record.id)
-
-    if (Number.isFinite(id)) {
-      navigate(`/employees/${id}`)
+  async function handleEmployeeUpdate(data: HrRecord): Promise<void> {
+    if (!Number.isFinite(employeeId)) {
+      throw new Error(t("forms.errors.missingId"));
     }
+
+    await hrApiClient.update({
+      entity: "employees",
+      id: employeeId,
+      data,
+    });
+
+    const updatedEmployee = await hrApiClient.getById({
+      entity: "employees",
+      id: employeeId,
+    });
+
+    setEmployee(updatedEmployee);
+    await refreshEmployeeRelationLabels(updatedEmployee);
   }
+@endcontent
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+          <Tabs.Content value="card" className="outline-none">
+            <EmployeePassportCard
+@endfind
+@with
+          <Tabs.Content value="card" className="outline-none">
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                onClick={() => setIsEditOpen(true)}
+              >
+                Редактировать данные
+              </Button>
+            </div>
+
+            <EmployeePassportCard
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+          <Tabs.Content value="company" className="outline-none">
+            <InfoPanel
+@endfind
+@with
+          <Tabs.Content value="company" className="outline-none">
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                onClick={() => setIsEditOpen(true)}
+              >
+                Редактировать данные
+              </Button>
+            </div>
+
+            <InfoPanel
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+          <Tabs.Content value="notes" className="outline-none">
+            <InfoPanel
+@endfind
+@with
+          <Tabs.Content value="notes" className="outline-none">
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                onClick={() => setIsEditOpen(true)}
+              >
+                Редактировать данные
+              </Button>
+            </div>
+
+            <InfoPanel
+@endwith
+@end
+
+@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@find
+      </Tabs.Root>
+    </motion.section>
+@endfind
+@with
+      </Tabs.Root>
+
+      <HrEntityDialog
+        entity="employees"
+        initialRecord={employee}
+        mode="edit"
+        onOpenChange={setIsEditOpen}
+        onSubmit={handleEmployeeUpdate}
+        open={isEditOpen}
+      />
+    </motion.section>
 @endwith
 @end

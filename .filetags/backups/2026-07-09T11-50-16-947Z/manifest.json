@@ -1,0 +1,30 @@
+{
+  "createdAt": "2026-07-09T11:50:17.024Z",
+  "backupPath": ".filetags/backups/2026-07-09T11-50-16-947Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/features/hr-table/HrEntityTable.tsx",
+      "backupRelativePath": "files/src/features/hr-table/HrEntityTable.tsx"
+    },
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 669 line(s)\n   new: 670 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 670 line(s)\n   new: 672 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 672 line(s)\n   new: 674 line(s)",
+    "Replace file: src/features/hr-table/HrEntityTable.tsx\n   found: yes\n   old: 674 line(s)\n   new: 676 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 475 line(s)\n   new: 475 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 475 line(s)\n   new: 475 line(s)",
+    "Insert after: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 475 line(s)\n   new: 476 line(s)",
+    "Insert after: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 476 line(s)\n   new: 477 line(s)",
+    "Insert after: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 477 line(s)\n   new: 514 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 514 line(s)\n   new: 525 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 525 line(s)\n   new: 536 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 536 line(s)\n   new: 547 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 547 line(s)\n   new: 556 line(s)"
+  ]
+}

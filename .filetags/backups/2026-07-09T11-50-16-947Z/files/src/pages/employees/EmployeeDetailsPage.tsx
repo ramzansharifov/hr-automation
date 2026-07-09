@@ -2,11 +2,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { motion } from "framer-motion";
 import type { TFunction } from "i18next";
-import { FiCalendar, FiEdit2, FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi";
+import { FiCalendar, FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Button, EmptyState, LoadingState } from "../../shared/ui";
+import { EmptyState, LoadingState } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
 import {
   formatCurrency,
@@ -17,7 +17,6 @@ import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import { HRLogo } from "../../app/brand/HRLogo";
-import { HrEntityDialog } from "../../features/hr-entities/components/HrEntityDialog";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
@@ -30,7 +29,6 @@ export function EmployeeDetailsPage(): JSX.Element {
   const [positionName, setPositionName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -89,43 +87,6 @@ export function EmployeeDetailsPage(): JSX.Element {
     };
   }, [employeeId, t]);
 
-  async function refreshEmployeeRelationLabels(record: HrRecord): Promise<void> {
-    const departmentId = toNumber(record.department_id);
-    const positionId = toNumber(record.position_id);
-
-    const [department, position] = await Promise.all([
-      departmentId
-        ? hrApiClient.getById({ entity: "departments", id: departmentId })
-        : Promise.resolve(null),
-      positionId
-        ? hrApiClient.getById({ entity: "positions", id: positionId })
-        : Promise.resolve(null),
-    ]);
-
-    setDepartmentName(getRecordLabel(department));
-    setPositionName(getRecordLabel(position));
-  }
-
-  async function handleEmployeeUpdate(data: HrRecord): Promise<void> {
-    if (!Number.isFinite(employeeId)) {
-      throw new Error(t("forms.errors.missingId"));
-    }
-
-    await hrApiClient.update({
-      entity: "employees",
-      id: employeeId,
-      data,
-    });
-
-    const updatedEmployee = await hrApiClient.getById({
-      entity: "employees",
-      id: employeeId,
-    });
-
-    setEmployee(updatedEmployee);
-    await refreshEmployeeRelationLabels(updatedEmployee);
-  }
-
   if (isLoading) {
     return <LoadingState label={t("common.table.loading")} />;
   }
@@ -182,17 +143,6 @@ export function EmployeeDetailsPage(): JSX.Element {
 
         <div className="p-5 sm:p-8">
           <Tabs.Content value="card" className="outline-none">
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => setIsEditOpen(true)}
-              >
-                Редактировать данные
-              </Button>
-            </div>
-
             <EmployeePassportCard
               employee={employee}
               fullName={fullName}
@@ -202,17 +152,6 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="company" className="outline-none">
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => setIsEditOpen(true)}
-              >
-                Редактировать данные
-              </Button>
-            </div>
-
             <InfoPanel
               eyebrow={t("employeesDetails.sections.company")}
               title={fullName || t("employeesDetails.title")}
@@ -241,17 +180,6 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="notes" className="outline-none">
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => setIsEditOpen(true)}
-              >
-                Редактировать данные
-              </Button>
-            </div>
-
             <InfoPanel
               eyebrow={t("employeesDetails.sections.notes")}
               title={t("forms.fields.note")}
@@ -265,15 +193,6 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
         </div>
       </Tabs.Root>
-
-      <HrEntityDialog
-        entity="employees"
-        initialRecord={employee}
-        mode="edit"
-        onOpenChange={setIsEditOpen}
-        onSubmit={handleEmployeeUpdate}
-        open={isEditOpen}
-      />
     </motion.section>
   );
 }
