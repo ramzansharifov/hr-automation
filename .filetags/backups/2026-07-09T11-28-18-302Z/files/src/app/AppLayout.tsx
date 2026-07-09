@@ -102,13 +102,6 @@ function getTopbarContent(
       icon: fallbackItem.icon,
     }
   }
-  if (pathname === '/filters') {
-    return {
-      titleKey: 'filtersPage.title',
-      descriptionKey: 'filtersPage.description',
-      icon: fallbackItem.icon,
-    }
-  }
 
   if (pathname === '/departments') {
     return {

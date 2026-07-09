@@ -1,14 +1,568 @@
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
+@write src/features/filters/employeeFiltersStore.ts
+import type { HrFilterCondition } from '../../shared/types/hr'
 
-function optionalNumberString(): z.ZodString {
-  return z
-    .string()
-    .trim()
-    .refine((value) => value === '' || Number.isFinite(Number(value)), requiredMessage)
-    .refine((value) => value === '' || Number(value) >= 0, nonNegativeMessage)
+export interface EmployeeFilterValues {
+  last_name: string
+  first_name: string
+  middle_name: string
+  phone: string
+  email: string
+  department_id: string
+  position_id: string
+  status: string
+  gender: string
 }
+
+export const EMPLOYEE_FILTERS_STORAGE_KEY = 'hr-employee-filters'
+export const EMPLOYEE_FILTERS_EVENT = 'hr-employee-filters-change'
+
+export const emptyEmployeeFilters: EmployeeFilterValues = {
+  last_name: '',
+  first_name: '',
+  middle_name: '',
+  phone: '',
+  email: '',
+  department_id: '',
+  position_id: '',
+  status: '',
+  gender: '',
+}
+
+const textFilterKeys: Array<
+  keyof Pick<
+    EmployeeFilterValues,
+    'last_name' | 'first_name' | 'middle_name' | 'phone' | 'email'
+  >
+> = ['last_name', 'first_name', 'middle_name', 'phone', 'email']
+
+const selectFilterKeys: Array<
+  keyof Pick<
+    EmployeeFilterValues,
+    'department_id' | 'position_id' | 'status' | 'gender'
+  >
+> = ['department_id', 'position_id', 'status', 'gender']
+
+export function isEmployeeFilterValues(value: unknown): value is EmployeeFilterValues {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+
+  return Object.keys(emptyEmployeeFilters).every((key) => typeof record[key] === 'string')
+}
+
+export function getStoredEmployeeFilterValues(): EmployeeFilterValues {
+  if (typeof window === 'undefined') {
+    return emptyEmployeeFilters
+  }
+
+  const storedValue = window.localStorage.getItem(EMPLOYEE_FILTERS_STORAGE_KEY)
+
+  if (!storedValue) {
+    return emptyEmployeeFilters
+  }
+
+  try {
+    const parsedValue: unknown = JSON.parse(storedValue)
+
+    return isEmployeeFilterValues(parsedValue) ? parsedValue : emptyEmployeeFilters
+  } catch {
+    return emptyEmployeeFilters
+  }
+}
+
+export function buildEmployeeFilters(
+  values: EmployeeFilterValues,
+): Record<string, HrFilterCondition> | undefined {
+  const filters: Record<string, HrFilterCondition> = {}
+
+  textFilterKeys.forEach((key) => {
+    const value = values[key].trim()
+
+    if (value) {
+      filters[key] = {
+        operator: 'contains',
+        value,
+      }
+    }
+  })
+
+  selectFilterKeys.forEach((key) => {
+    const value = values[key]
+
+    if (value) {
+      filters[key] = {
+        operator: 'equals',
+        value:
+          key === 'department_id' || key === 'position_id'
+            ? Number(value)
+            : value,
+      }
+    }
+  })
+
+  return Object.keys(filters).length > 0 ? filters : undefined
+}
+
+export function getStoredEmployeeHrFilters(): Record<string, HrFilterCondition> | undefined {
+  return buildEmployeeFilters(getStoredEmployeeFilterValues())
+}
+
+export function setStoredEmployeeFilterValues(values: EmployeeFilterValues): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(EMPLOYEE_FILTERS_STORAGE_KEY, JSON.stringify(values))
+
+  window.dispatchEvent(
+    new CustomEvent(EMPLOYEE_FILTERS_EVENT, {
+      detail: buildEmployeeFilters(values),
+    }),
+  )
+}
+
+export function clearStoredEmployeeFilterValues(): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.removeItem(EMPLOYEE_FILTERS_STORAGE_KEY)
+
+  window.dispatchEvent(
+    new CustomEvent(EMPLOYEE_FILTERS_EVENT, {
+      detail: undefined,
+    }),
+  )
+}
+@end
+
+@write src/features/filters/components/EmployeeFiltersPanel.tsx
+import type { FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { FiRotateCcw, FiSearch } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'react-toastify'
+import { Button, Input, Select, type SelectOption } from '../../../shared/ui'
+import { loadEmployeeRelationOptions } from '../../employees/lib/employeeRelations'
+import {
+  clearStoredEmployeeFilterValues,
+  emptyEmployeeFilters,
+  getStoredEmployeeFilterValues,
+  setStoredEmployeeFilterValues,
+  type EmployeeFilterValues,
+} from '../employeeFiltersStore'
+
+interface EmployeeFiltersPanelProps {
+  className?: string
+}
+
+export function EmployeeFiltersPanel({ className = '' }: EmployeeFiltersPanelProps): JSX.Element {
+  const { t } = useTranslation()
+  const [draftFilters, setDraftFilters] = useState<EmployeeFilterValues>(getStoredEmployeeFilterValues)
+  const [departments, setDepartments] = useState<SelectOption[]>([])
+  const [positions, setPositions] = useState<SelectOption[]>([])
+  const [isRelationsLoading, setIsRelationsLoading] = useState(true)
+
+  const statusOptions = useMemo(
+    () => [
+      { value: 'active', label: t('common.status.active') },
+      { value: 'inactive', label: t('common.status.inactive') },
+    ],
+    [t],
+  )
+
+  const genderOptions = useMemo(
+    () => [
+      { value: 'male', label: t('common.status.male') },
+      { value: 'female', label: t('common.status.female') },
+    ],
+    [t],
+  )
+
+  useEffect(() => {
+    let isActive = true
+
+    setIsRelationsLoading(true)
+    loadEmployeeRelationOptions()
+      .then((options) => {
+        if (!isActive) {
+          return
+        }
+
+        setDepartments(options.departments)
+        setPositions(options.positions)
+      })
+      .catch(() => {
+        toast.error(t('forms.toasts.relationsLoadError'))
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsRelationsLoading(false)
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [t])
+
+  function updateFilter(name: keyof EmployeeFilterValues, value: string): void {
+    setDraftFilters((current) => ({
+      ...current,
+      [name]: value,
+    }))
+  }
+
+  function handleSearch(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault()
+    setStoredEmployeeFilterValues(draftFilters)
+    toast.success('Фильтры применены')
+  }
+
+  function handleClear(): void {
+    setDraftFilters(emptyEmployeeFilters)
+    clearStoredEmployeeFilterValues()
+    toast.success('Фильтры очищены')
+  }
+
+  return (
+    <section
+      className={[
+        'app-surface app-shadow mx-auto max-w-5xl overflow-hidden rounded-[28px] border',
+        className,
+      ].join(' ')}
+    >
+      <div className="app-border-soft border-b px-6 py-5">
+        <h1 className="app-text text-2xl font-black">Фильтры</h1>
+        <p className="app-muted mt-2 text-sm font-semibold">
+          Настрой поиск сотрудников. После применения вернись в раздел «Сотрудники».
+        </p>
+      </div>
+
+      <form className="space-y-6 p-6" onSubmit={handleSearch}>
+        <div>
+          <h2 className="app-text text-base font-black">Личные данные</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <FilterInput
+              placeholder={t('forms.fields.lastName')}
+              value={draftFilters.last_name}
+              onChange={(value) => updateFilter('last_name', value)}
+            />
+            <FilterInput
+              placeholder={t('forms.fields.firstName')}
+              value={draftFilters.first_name}
+              onChange={(value) => updateFilter('first_name', value)}
+            />
+            <FilterInput
+              placeholder={t('forms.fields.middleName')}
+              value={draftFilters.middle_name}
+              onChange={(value) => updateFilter('middle_name', value)}
+            />
+            <FilterInput
+              placeholder={t('forms.fields.phone')}
+              value={draftFilters.phone}
+              onChange={(value) => updateFilter('phone', value)}
+            />
+            <FilterInput
+              placeholder={t('forms.fields.email')}
+              value={draftFilters.email}
+              onChange={(value) => updateFilter('email', value)}
+            />
+            <FilterSelect
+              options={genderOptions}
+              placeholder={t('forms.fields.gender')}
+              value={draftFilters.gender}
+              onValueChange={(value) => updateFilter('gender', value)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="app-text text-base font-black">Данные по компании</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <FilterSelect
+              disabled={isRelationsLoading}
+              options={departments}
+              placeholder={t('forms.fields.departmentId')}
+              value={draftFilters.department_id}
+              onValueChange={(value) => updateFilter('department_id', value)}
+            />
+            <FilterSelect
+              disabled={isRelationsLoading}
+              options={positions}
+              placeholder={t('forms.fields.positionId')}
+              value={draftFilters.position_id}
+              onValueChange={(value) => updateFilter('position_id', value)}
+            />
+            <FilterSelect
+              options={statusOptions}
+              placeholder={t('forms.fields.status')}
+              value={draftFilters.status}
+              onValueChange={(value) => updateFilter('status', value)}
+            />
+          </div>
+        </div>
+
+        <div className="app-border-soft flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleClear}
+            leftIcon={<FiRotateCcw className="h-4 w-4" />}
+          >
+            Очистить
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            leftIcon={<FiSearch className="h-4 w-4" />}
+          >
+            Применить фильтры
+          </Button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
+interface FilterInputProps {
+  onChange: (value: string) => void
+  placeholder: string
+  value: string
+}
+
+function FilterInput({
+  onChange,
+  placeholder,
+  value,
+}: FilterInputProps): JSX.Element {
+  return (
+    <Input
+      aria-label={placeholder}
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  )
+}
+
+interface FilterSelectProps {
+  disabled?: boolean
+  onValueChange: (value: string) => void
+  options: SelectOption[]
+  placeholder: string
+  value: string
+}
+
+function FilterSelect({
+  disabled = false,
+  onValueChange,
+  options,
+  placeholder,
+  value,
+}: FilterSelectProps): JSX.Element {
+  const { t } = useTranslation()
+
+  return (
+    <Select
+      allowEmpty
+      ariaLabel={placeholder}
+      disabled={disabled}
+      emptyOptionLabel={t('forms.placeholders.emptyOption')}
+      onValueChange={onValueChange}
+      options={options}
+      placeholder={placeholder}
+      value={value}
+    />
+  )
+}
+@end
+
+@write src/pages/FiltersPage.tsx
+import { EmployeeFiltersPanel } from '../features/filters/components/EmployeeFiltersPanel'
+
+export function FiltersPage(): JSX.Element {
+  return <EmployeeFiltersPanel />
+}
+@end
+
+@write src/pages/employees/EmployeesPage.tsx
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import type { HrFilterCondition, HrRecord } from '../../shared/types/hr'
+import { HrEntityTable } from '../../features/hr-table/HrEntityTable'
+import {
+  EMPLOYEE_FILTERS_EVENT,
+  getStoredEmployeeHrFilters,
+} from '../../features/filters/employeeFiltersStore'
+import {
+  EMPLOYEES_VIEW_MODE_EVENT,
+  getStoredEmployeesViewMode,
+  isEmployeesViewMode,
+  type EmployeesViewMode,
+} from '../../features/employees/viewMode'
+
+export function EmployeesPage(): JSX.Element {
+  const navigate = useNavigate()
+  const [appliedFilters, setAppliedFilters] = useState<
+    Record<string, HrFilterCondition> | undefined
+  >(getStoredEmployeeHrFilters)
+  const [viewMode, setViewMode] = useState<EmployeesViewMode>(getStoredEmployeesViewMode)
+
+  useEffect(() => {
+    function handleViewModeChange(event: Event): void {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+
+      if (isEmployeesViewMode(event.detail)) {
+        setViewMode(event.detail)
+      }
+    }
+
+    function handleFiltersChange(event: Event): void {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+
+      setAppliedFilters(event.detail as Record<string, HrFilterCondition> | undefined)
+    }
+
+    function handleStorageChange(): void {
+      setViewMode(getStoredEmployeesViewMode())
+      setAppliedFilters(getStoredEmployeeHrFilters())
+    }
+
+    window.addEventListener(EMPLOYEES_VIEW_MODE_EVENT, handleViewModeChange)
+    window.addEventListener(EMPLOYEE_FILTERS_EVENT, handleFiltersChange)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener(EMPLOYEES_VIEW_MODE_EVENT, handleViewModeChange)
+      window.removeEventListener(EMPLOYEE_FILTERS_EVENT, handleFiltersChange)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
+
+  function handleRowClick(record: HrRecord): void {
+    const id = Number(record.id)
+
+    if (Number.isFinite(id)) {
+      navigate(`/employees/${id}`)
+    }
+  }
+
+  return (
+    <HrEntityTable
+      className="h-[80vh]"
+      entity="employees"
+      externalFilters={appliedFilters}
+      hideToolbarSearch
+      onCreateClick={() => navigate('/employees/new')}
+      onRowClick={handleRowClick}
+      viewMode={viewMode}
+    />
+  )
+}
+@end
+
+@insert-after-once src/app/navigation.tsx
+@find
+  FiHome,
 @endfind
-@with
-@endwith
+@content
+  FiFilter,
+@endcontent
+@end
+
+@insert-after-once src/app/navigation.tsx
+@find
+  {
+    titleKey: 'navigation.employees',
+    path: '/employees',
+    icon: FiUsers,
+    entity: 'employees',
+  },
+@endfind
+@content
+  {
+    titleKey: 'navigation.filters',
+    path: '/filters',
+    icon: FiFilter,
+  },
+@endcontent
+@end
+
+@insert-after-once src/App.tsx
+@find
+import { EntityPage } from './pages/EntityPage'
+@endfind
+@content
+import { FiltersPage } from './pages/FiltersPage'
+@endcontent
+@end
+
+@insert-after-once src/App.tsx
+@find
+        <Route path="employees/:id" element={<EmployeeDetailsPage />} />
+@endfind
+@content
+        <Route path="filters" element={<FiltersPage />} />
+@endcontent
+@end
+
+@insert-after-once src/shared/i18n/locales/ru.ts
+@find
+    employees: 'Сотрудники',
+@endfind
+@content
+    filters: 'Фильтры',
+@endcontent
+@end
+
+@insert-after-once src/shared/i18n/locales/ru.ts
+@find
+  employeesPage: {
+    title: 'Сотрудники',
+    description: 'Поиск, фильтрация и просмотр анкет сотрудников.',
+    filters: {
+      title: 'Фильтры',
+      description: 'Заполните поля и нажмите «Найти».',
+      searchButton: 'Найти',
+      clearButton: 'Очистить',
+      addButton: 'Добавить сотрудника',
+    },
+  },
+@endfind
+@content
+
+  filtersPage: {
+    title: 'Фильтры',
+    description: 'Отдельный модуль поиска и отбора сотрудников.',
+  },
+@endcontent
+@end
+
+@insert-after-once src/app/AppLayout.tsx
+@find
+  if (pathname === '/employees') {
+    return {
+      titleKey: 'employeesPage.title',
+      descriptionKey: 'employeesPage.description',
+      icon: fallbackItem.icon,
+    }
+  }
+@endfind
+@content
+
+  if (pathname === '/filters') {
+    return {
+      titleKey: 'filtersPage.title',
+      descriptionKey: 'filtersPage.description',
+      icon: fallbackItem.icon,
+    }
+  }
+@endcontent
 @end

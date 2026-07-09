@@ -20,7 +20,6 @@ export const ru = {
   navigation: {
     dashboard: 'Главная',
     employees: 'Сотрудники',
-    filters: 'Фильтры',
     departments: 'Отделы',
     positions: 'Должности',
     vacations: 'Отпуска',
@@ -173,10 +172,6 @@ export const ru = {
       clearButton: 'Очистить',
       addButton: 'Добавить сотрудника',
     },
-  },
-  filtersPage: {
-    title: 'Фильтры',
-    description: 'Отдельный модуль поиска и отбора сотрудников.',
   },
 
   employeesCreate: {

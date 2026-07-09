@@ -5,7 +5,6 @@ import {
   FiCreditCard,
   FiGrid,
   FiHome,
-  FiFilter,
   FiSettings,
   FiUser,
   FiUsers,
@@ -30,11 +29,6 @@ export const navigationItems: AppNavigationItem[] = [
     path: '/employees',
     icon: FiUsers,
     entity: 'employees',
-  },
-  {
-    titleKey: 'navigation.filters',
-    path: '/filters',
-    icon: FiFilter,
   },
   {
     titleKey: 'navigation.departments',

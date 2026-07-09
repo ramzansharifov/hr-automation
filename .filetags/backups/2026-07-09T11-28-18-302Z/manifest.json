@@ -1,0 +1,44 @@
+{
+  "createdAt": "2026-07-09T11:28:18.370Z",
+  "backupPath": ".filetags/backups/2026-07-09T11-28-18-302Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/features/filters/components/EmployeeFiltersPanel.tsx",
+      "backupRelativePath": "files/src/features/filters/components/EmployeeFiltersPanel.tsx"
+    },
+    {
+      "originalPath": "src/pages/employees/EmployeesPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeesPage.tsx"
+    },
+    {
+      "originalPath": "src/app/navigation.tsx",
+      "backupRelativePath": "files/src/app/navigation.tsx"
+    },
+    {
+      "originalPath": "src/App.tsx",
+      "backupRelativePath": "files/src/App.tsx"
+    },
+    {
+      "originalPath": "src/shared/i18n/locales/ru.ts",
+      "backupRelativePath": "files/src/shared/i18n/locales/ru.ts"
+    },
+    {
+      "originalPath": "src/app/AppLayout.tsx",
+      "backupRelativePath": "files/src/app/AppLayout.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Write file: src/features/filters/employeeFiltersStore.ts\n   old: missing\n   new: 137 line(s)",
+    "Write file: src/features/filters/components/EmployeeFiltersPanel.tsx\n   old: 302 line(s)\n   new: 239 line(s)",
+    "Write file: src/pages/FiltersPage.tsx\n   old: missing\n   new: 5 line(s)",
+    "Write file: src/pages/employees/EmployeesPage.tsx\n   old: 73 line(s)\n   new: 77 line(s)",
+    "Insert after: src/app/navigation.tsx\n   found: yes\n   old: 70 line(s)\n   new: 71 line(s)",
+    "Insert after: src/app/navigation.tsx\n   found: yes\n   old: 71 line(s)\n   new: 76 line(s)",
+    "Insert after: src/App.tsx\n   found: yes\n   old: 33 line(s)\n   new: 34 line(s)",
+    "Insert after: src/App.tsx\n   found: yes\n   old: 34 line(s)\n   new: 35 line(s)",
+    "Insert after: src/shared/i18n/locales/ru.ts\n   found: yes\n   old: 395 line(s)\n   new: 396 line(s)",
+    "Insert after: src/shared/i18n/locales/ru.ts\n   found: yes\n   old: 396 line(s)\n   new: 400 line(s)",
+    "Insert after: src/app/AppLayout.tsx\n   found: yes\n   old: 432 line(s)\n   new: 439 line(s)"
+  ]
+}
