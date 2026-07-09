@@ -152,8 +152,10 @@ export function EmployeeDetailsPage(): JSX.Element {
 }
 
 const detailsTabTriggerClass = [
-  'app-tab-trigger relative -mb-px rounded-t-2xl border border-transparent px-5 py-3 text-sm font-black transition',
+  'relative -mb-px rounded-t-2xl px-5 py-3 text-sm font-black transition',
+  'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
+  'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/20',
 ].join(' ')
 
 interface EmployeePassportCardProps {
