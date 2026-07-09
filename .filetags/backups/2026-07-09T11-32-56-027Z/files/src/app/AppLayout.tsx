@@ -1,9 +1,14 @@
 import { useState } from 'react'
-
+import {
+  EMPLOYEES_VIEW_MODE_EVENT,
+  getStoredEmployeesViewMode,
+  setStoredEmployeesViewMode,
+  type EmployeesViewMode,
+} from '../features/employees/viewMode'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { motion } from 'framer-motion'
-import { FiChevronLeft, FiChevronRight, FiUser } from 'react-icons/fi'
+import { FiChevronLeft, FiChevronRight, FiDatabase, FiGrid, FiList } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import type { AppNavigationItem } from './navigation'
 import { bottomNavigationItems, navigationItems } from './navigation'
@@ -43,7 +48,15 @@ function getCollapsedIconButtonClass(isActive: boolean): string {
       : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
   ].join(' ')
 }
-
+function getViewModeButtonClass(isActive: boolean): string {
+  return [
+    'inline-flex h-9 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-black transition',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
+    isActive
+      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
+      : 'app-button-secondary',
+  ].join(' ')
+}
 
 function getActiveNavigationItem(pathname: string): AppNavigationItem {
   const allItems = [...navigationItems, ...bottomNavigationItems]
@@ -215,7 +228,8 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
 
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-
+  const [employeesViewMode, setEmployeesViewMode] =
+    useState<EmployeesViewMode>(getStoredEmployeesViewMode)
   const { t } = useTranslation()
   const location = useLocation()
 
@@ -225,6 +239,11 @@ export function AppLayout(): JSX.Element {
   const TopbarIcon = topbarContent.icon
   const topbarDescription = topbarContent.descriptionKey ? t(topbarContent.descriptionKey) : undefined
 
+  function handleEmployeesViewModeChange(nextMode: EmployeesViewMode): void {
+    setEmployeesViewMode(nextMode)
+    setStoredEmployeesViewMode(nextMode)
+    window.dispatchEvent(new CustomEvent(EMPLOYEES_VIEW_MODE_EVENT, { detail: nextMode }))
+  }
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -381,16 +400,31 @@ export function AppLayout(): JSX.Element {
                 </div>
               </div>
 
-              <div className="app-surface flex shrink-0 items-center gap-3 rounded-2xl border px-3 py-2">
-                <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)]">
-                  <FiUser className="h-5 w-5" />
-                </span>
-
-                <div className="min-w-0 text-left">
-                  <p className="app-text truncate text-sm font-black">Администратор</p>
-                  <p className="app-muted mt-0.5 truncate text-xs font-semibold">HR Manager</p>
+              {location.pathname === '/employees' ? (
+                <div className="app-surface flex shrink-0 items-center gap-2 rounded-xl border p-1">
+                  <button
+                    type="button"
+                    className={getViewModeButtonClass(employeesViewMode === 'table')}
+                    onClick={() => handleEmployeesViewModeChange('table')}
+                  >
+                    <FiList className="h-4 w-4" />
+                    Таблица
+                  </button>
+                  <button
+                    type="button"
+                    className={getViewModeButtonClass(employeesViewMode === 'cards')}
+                    onClick={() => handleEmployeesViewModeChange('cards')}
+                  >
+                    <FiGrid className="h-4 w-4" />
+                    Карточки
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="app-surface flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold">
+                  <FiDatabase className="app-accent-text h-4 w-4" />
+                  {t('app.topbar.databaseActive')}
+                </div>
+              )}
             </div>
           </header>
 

@@ -9,7 +9,6 @@ import {
 import {
   EMPLOYEES_VIEW_MODE_EVENT,
   getStoredEmployeesViewMode,
-  setStoredEmployeesViewMode,
   isEmployeesViewMode,
   type EmployeesViewMode,
 } from '../../features/employees/viewMode'
@@ -57,11 +56,6 @@ export function EmployeesPage(): JSX.Element {
   }, [])
 
   function handleRowClick(record: HrRecord): void {
-  function handleViewModeChange(nextMode: EmployeesViewMode): void {
-    setViewMode(nextMode)
-    setStoredEmployeesViewMode(nextMode)
-    window.dispatchEvent(new CustomEvent(EMPLOYEES_VIEW_MODE_EVENT, { detail: nextMode }))
-  }
     const id = Number(record.id)
 
     if (Number.isFinite(id)) {
@@ -78,7 +72,6 @@ export function EmployeesPage(): JSX.Element {
       onCreateClick={() => navigate('/employees/new')}
       onRowClick={handleRowClick}
       viewMode={viewMode}
-      onViewModeChange={handleViewModeChange}
     />
   )
 }

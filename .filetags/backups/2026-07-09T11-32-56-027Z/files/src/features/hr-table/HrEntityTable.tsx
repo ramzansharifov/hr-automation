@@ -10,8 +10,6 @@ import {
   FiSearch,
   FiTrash2,
   FiUser,
-  FiGrid,
-  FiList,
 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
@@ -38,7 +36,6 @@ interface HrEntityTableProps {
   hideToolbarSearch?: boolean
   onCreateClick?: () => void
   viewMode?: HrEntityTableViewMode
-  onViewModeChange?: (viewMode: HrEntityTableViewMode) => void
   onRowClick?: (record: HrRecord) => void
 }
 type HrEntityTableViewMode = 'table' | 'cards'
@@ -100,15 +97,6 @@ function getRecordInitials(title: string): string {
 
   return initials || 'HR'
 }
-function getTableViewModeButtonClass(isActive: boolean): string {
-  return [
-    'inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
-    isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
-      : 'app-button-secondary',
-  ].join(' ')
-}
 
 export function HrEntityTable({
   className = '',
@@ -119,7 +107,6 @@ export function HrEntityTable({
   hideToolbarSearch = false,
   onCreateClick,
   viewMode = 'table',
-  onViewModeChange,
   onRowClick,
 }: HrEntityTableProps): JSX.Element {
   const { i18n, t } = useTranslation()
@@ -300,29 +287,7 @@ export function HrEntityTable({
       {!hideToolbar && (
         <div className="app-border-soft flex flex-col gap-4 border-b p-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            {entity === 'employees' && onViewModeChange ? (
-              <div className="app-surface flex items-center gap-2 rounded-2xl border p-1">
-                <button
-                  type="button"
-                  className={getTableViewModeButtonClass(viewMode === 'table')}
-                  onClick={() => onViewModeChange('table')}
-                >
-                  <FiList className="h-4 w-4" />
-                  Таблица
-                </button>
-
-                <button
-                  type="button"
-                  className={getTableViewModeButtonClass(viewMode === 'cards')}
-                  onClick={() => onViewModeChange('cards')}
-                >
-                  <FiGrid className="h-4 w-4" />
-                  Карточки
-                </button>
-              </div>
-            ) : (
-              <h3 className="app-text text-lg font-black">{config.title}</h3>
-            )}
+            <h3 className="app-text text-lg font-black">{config.title}</h3>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
