@@ -78,6 +78,39 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
     { defaultOrderBy: 'last_name' },
   ),
 
+  employee_education: entity(
+    'employee_education',
+    [
+      'employee_id',
+      'education_type',
+      'education_degree',
+      'institution_name',
+      'speciality',
+      'started_at',
+      'ended_at',
+      'document_number',
+      'note',
+    ],
+    ['institution_name', 'speciality', 'document_number', 'note'],
+    { defaultOrderBy: 'started_at' },
+  ),
+
+  employee_experience: entity(
+    'employee_experience',
+    [
+      'employee_id',
+      'company_name',
+      'position_name',
+      'started_at',
+      'ended_at',
+      'is_current',
+      'responsibilities',
+      'note',
+    ],
+    ['company_name', 'position_name', 'responsibilities', 'note'],
+    { defaultOrderBy: 'started_at' },
+  ),
+
   vacations: entity(
     'vacations',
     ['employee_id', 'vacation_type', 'starts_at', 'ends_at', 'days_count', 'reason', 'status', 'note'],

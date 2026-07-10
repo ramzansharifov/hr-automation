@@ -1,13 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Controller,
   useForm,
-  type Control,
   type FieldErrors,
   type Resolver,
-  type UseFormRegisterReturn,
 } from 'react-hook-form'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
@@ -341,31 +338,6 @@ export function EmployeeCreatePage(): JSX.Element {
       </div>
   )
 }
-
-function requiredString(): z.ZodString {
-  return z.string().trim().min(1, requiredMessage)
-}
-
-function optionalString(): z.ZodOptional<z.ZodString> {
-  return z.string().optional()
-}
-
-function optionalEmail(): z.ZodString {
-  return z
-    .string()
-    .trim()
-    .refine((value) => value === '' || z.email().safeParse(value).success, invalidEmailMessage)
-}
-
-function requiredNumberString(): z.ZodString {
-  return z
-    .string()
-    .trim()
-    .min(1, requiredMessage)
-    .refine((value) => Number.isFinite(Number(value)), requiredMessage)
-    .refine((value) => Number(value) >= 0, nonNegativeMessage)
-}
-
 
 interface StepProgressProps {
   activeStep: number

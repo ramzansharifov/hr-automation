@@ -112,6 +112,37 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
     ],
   },
 
+  employee_education: {
+    createTitleKey: 'forms.employeeEducation.createTitle',
+    editTitleKey: 'forms.employeeEducation.editTitle',
+    fields: [
+      { name: 'employee_id', labelKey: 'forms.fields.employeeId', required: true, type: 'number' },
+      { name: 'education_type', labelKey: 'forms.fields.educationType', required: true, type: 'text' },
+      { name: 'education_degree', labelKey: 'forms.fields.educationDegree', type: 'text' },
+      { name: 'institution_name', labelKey: 'forms.fields.institutionName', required: true, type: 'text' },
+      { name: 'speciality', labelKey: 'forms.fields.speciality', type: 'text' },
+      { name: 'started_at', labelKey: 'forms.fields.startedAt', type: 'date' },
+      { name: 'ended_at', labelKey: 'forms.fields.endedAt', type: 'date' },
+      { name: 'document_number', labelKey: 'forms.fields.documentNumber', type: 'text' },
+      { name: 'note', labelKey: 'forms.fields.note', type: 'textarea' },
+    ],
+  },
+
+  employee_experience: {
+    createTitleKey: 'forms.employeeExperience.createTitle',
+    editTitleKey: 'forms.employeeExperience.editTitle',
+    fields: [
+      { name: 'employee_id', labelKey: 'forms.fields.employeeId', required: true, type: 'number' },
+      { name: 'company_name', labelKey: 'forms.fields.companyName', required: true, type: 'text' },
+      { name: 'position_name', labelKey: 'forms.fields.experiencePositionName', required: true, type: 'text' },
+      { name: 'started_at', labelKey: 'forms.fields.startedAt', type: 'date' },
+      { name: 'ended_at', labelKey: 'forms.fields.endedAt', type: 'date' },
+      { name: 'is_current', labelKey: 'forms.fields.isCurrent', type: 'number' },
+      { name: 'responsibilities', labelKey: 'forms.fields.responsibilities', type: 'textarea' },
+      { name: 'note', labelKey: 'forms.fields.note', type: 'textarea' },
+    ],
+  },
+
   departments: {
     createTitleKey: 'forms.departments.createTitle',
     editTitleKey: 'forms.departments.editTitle',

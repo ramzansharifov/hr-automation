@@ -26,6 +26,10 @@ import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import { HRLogo } from "../../app/brand/HRLogo";
 import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
 import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
+import {
+  EmployeeEducationPanel,
+  EmployeeExperiencePanel,
+} from "../../features/employees/forms/EmployeeRelatedRecords";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
@@ -176,6 +180,14 @@ export function EmployeeDetailsPage(): JSX.Element {
               {t("employeesDetails.sections.company")}
             </Tabs.Trigger>
 
+            <Tabs.Trigger className={detailsTabTriggerClass} value="education">
+              {t("employeesDetails.sections.education")}
+            </Tabs.Trigger>
+
+            <Tabs.Trigger className={detailsTabTriggerClass} value="experience">
+              {t("employeesDetails.sections.experience")}
+            </Tabs.Trigger>
+
             <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
               {t("employeesDetails.sections.notes")}
             </Tabs.Trigger>
@@ -248,6 +260,14 @@ export function EmployeeDetailsPage(): JSX.Element {
                 value={formatCurrency(employee.salary, locale)}
               />
             </InfoPanel>
+          </Tabs.Content>
+
+          <Tabs.Content value="education" className="outline-none">
+            <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
+          </Tabs.Content>
+
+          <Tabs.Content value="experience" className="outline-none">
+            <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
           </Tabs.Content>
 
           <Tabs.Content value="notes" className="outline-none">

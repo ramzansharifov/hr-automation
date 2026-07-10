@@ -63,7 +63,7 @@ export function EmployeeSectionEditDialog({
     setValue,
   } = useForm<EmployeeFormValues>({
     defaultValues,
-    resolver: zodResolver(employeeSectionSchemas[activeSection]) as Resolver<EmployeeFormValues>,
+    resolver: zodResolver(employeeSectionSchemas[activeSection]) as unknown as Resolver<EmployeeFormValues>,
   })
 
   const statusOptions = useMemo(

@@ -61,6 +61,29 @@ const employeesSchema = z.object({
   note: optionalString(),
 })
 
+const employeeEducationSchema = z.object({
+  employee_id: requiredNumberString(),
+  education_type: requiredString(),
+  education_degree: optionalString(),
+  institution_name: requiredString(),
+  speciality: optionalString(),
+  started_at: optionalString(),
+  ended_at: optionalString(),
+  document_number: optionalString(),
+  note: optionalString(),
+})
+
+const employeeExperienceSchema = z.object({
+  employee_id: requiredNumberString(),
+  company_name: requiredString(),
+  position_name: requiredString(),
+  started_at: optionalString(),
+  ended_at: optionalString(),
+  is_current: optionalNumberString(),
+  responsibilities: optionalString(),
+  note: optionalString(),
+})
+
 const departmentsSchema = z.object({
   name: requiredString(),
   manager_name: optionalString(),
@@ -114,6 +137,8 @@ const payrollSchema = z.object({
 
 export const hrEntitySchemas = {
   employees: employeesSchema,
+  employee_education: employeeEducationSchema,
+  employee_experience: employeeExperienceSchema,
   departments: departmentsSchema,
   positions: positionsSchema,
   vacations: vacationsSchema,

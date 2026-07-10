@@ -57,6 +57,36 @@ const hrEntityConfigDefinitions: Record<HrEntityKey, HrEntityPageConfigDefinitio
     ],
   },
 
+  employee_education: {
+    entity: 'employee_education',
+    titleKey: 'entities.employeeEducation.title',
+    descriptionKey: 'entities.employeeEducation.description',
+    createLabelKey: 'entities.employeeEducation.createLabel',
+    defaultOrderBy: 'started_at',
+    columns: [
+      { key: 'institution_name', labelKey: 'entities.employeeEducation.columns.institution' },
+      { key: 'education_type', labelKey: 'entities.employeeEducation.columns.type' },
+      { key: 'education_degree', labelKey: 'entities.employeeEducation.columns.degree' },
+      { key: 'speciality', labelKey: 'entities.employeeEducation.columns.speciality' },
+      { key: 'started_at', labelKey: 'entities.employeeEducation.columns.startedAt', format: 'date' },
+      { key: 'ended_at', labelKey: 'entities.employeeEducation.columns.endedAt', format: 'date' },
+    ],
+  },
+
+  employee_experience: {
+    entity: 'employee_experience',
+    titleKey: 'entities.employeeExperience.title',
+    descriptionKey: 'entities.employeeExperience.description',
+    createLabelKey: 'entities.employeeExperience.createLabel',
+    defaultOrderBy: 'started_at',
+    columns: [
+      { key: 'company_name', labelKey: 'entities.employeeExperience.columns.company' },
+      { key: 'position_name', labelKey: 'entities.employeeExperience.columns.position' },
+      { key: 'started_at', labelKey: 'entities.employeeExperience.columns.startedAt', format: 'date' },
+      { key: 'ended_at', labelKey: 'entities.employeeExperience.columns.endedAt', format: 'date' },
+    ],
+  },
+
   departments: {
     entity: 'departments',
     titleKey: 'entities.departments.title',

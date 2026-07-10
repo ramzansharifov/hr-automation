@@ -63,7 +63,7 @@ function getPageNumbers(currentPage: number, totalPages: number): number[] {
   const safeTotalPages = Math.max(totalPages, 1)
   const half = Math.floor(maxVisiblePageButtons / 2)
   let start = Math.max(1, currentPage - half)
-  let end = Math.min(safeTotalPages, start + maxVisiblePageButtons - 1)
+  const end = Math.min(safeTotalPages, start + maxVisiblePageButtons - 1)
 
   start = Math.max(1, end - maxVisiblePageButtons + 1)
 

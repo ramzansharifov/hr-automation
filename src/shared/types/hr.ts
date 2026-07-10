@@ -1,4 +1,11 @@
-export type HrEntityKey = 'departments' | 'positions' | 'employees' | 'vacations' | 'payroll'
+export type HrEntityKey =
+  | 'departments'
+  | 'positions'
+  | 'employees'
+  | 'employee_education'
+  | 'employee_experience'
+  | 'vacations'
+  | 'payroll'
 
 export type HrOrderDirection = 'asc' | 'desc'
 
