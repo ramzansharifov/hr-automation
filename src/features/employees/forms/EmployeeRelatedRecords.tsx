@@ -1,15 +1,17 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FiEdit2, FiTrash2 } from 'react-icons/fi'
+import { FiEdit2, FiPlus, FiTrash2 } from 'react-icons/fi'
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
-import type { TFunction } from 'i18next'
-import type { HrRecord } from '../../../shared/types/hr'
+
 import { hrApiClient } from '../../../shared/lib/hrApiClient'
 import { formatDate } from '../../../shared/lib/format'
+import type { HrRecord } from '../../../shared/types/hr'
 import {
   Button,
   ConfirmDialog,
+  Dialog,
   EmptyState,
   FieldError,
   Input,
@@ -76,6 +78,7 @@ export function EmployeeEducationPanel({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null)
   const [error, setError] = useState('')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -138,6 +141,42 @@ export function EmployeeEducationPanel({
     }))
   }
 
+  function openCreateDialog(): void {
+    setEditingId(null)
+    setError('')
+    setFormValues(educationDefaults)
+    setIsDialogOpen(true)
+  }
+
+  function openEditDialog(record: HrRecord): void {
+    const id = getRecordId(record)
+
+    if (!id) {
+      return
+    }
+
+    setEditingId(id)
+    setError('')
+    setFormValues({
+      education_type: getString(record.education_type) || 'university',
+      education_degree: getString(record.education_degree),
+      institution_name: getString(record.institution_name),
+      speciality: getString(record.speciality),
+      started_at: getString(record.started_at),
+      ended_at: getString(record.ended_at),
+      document_number: getString(record.document_number),
+      note: getString(record.note),
+    })
+    setIsDialogOpen(true)
+  }
+
+  function closeDialog(): void {
+    setIsDialogOpen(false)
+    setEditingId(null)
+    setError('')
+    setFormValues(educationDefaults)
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
 
@@ -168,8 +207,8 @@ export function EmployeeEducationPanel({
       }
 
       toast.success(t(editingId ? 'forms.toasts.updated' : 'forms.toasts.created'))
-      resetForm()
       await loadEducationRecords()
+      closeDialog()
     } catch {
       toast.error(t(editingId ? 'forms.toasts.updateError' : 'forms.toasts.createError'))
     } finally {
@@ -201,44 +240,47 @@ export function EmployeeEducationPanel({
     }
   }
 
-  function startEdit(record: HrRecord): void {
-    const id = getRecordId(record)
-
-    if (!id) {
-      return
-    }
-
-    setEditingId(id)
-    setError('')
-    setFormValues({
-      education_type: getString(record.education_type) || 'university',
-      education_degree: getString(record.education_degree),
-      institution_name: getString(record.institution_name),
-      speciality: getString(record.speciality),
-      started_at: getString(record.started_at),
-      ended_at: getString(record.ended_at),
-      document_number: getString(record.document_number),
-      note: getString(record.note),
-    })
-  }
-
-  function resetForm(): void {
-    setEditingId(null)
-    setError('')
-    setFormValues(educationDefaults)
-  }
-
   const isUniversity = formValues.education_type === 'university'
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <form className="app-surface app-shadow rounded-[30px] border p-5" onSubmit={handleSubmit}>
-        <FormTitle
-          title={t(editingId ? 'employeesDetails.education.editTitle' : 'employeesDetails.education.formTitle')}
-          description={t('employeesDetails.education.description')}
-        />
+    <div className="space-y-5">
+      <RelatedRecordsHeader
+        actionLabel={t('employeesDetails.education.formTitle')}
+        description={t('employeesDetails.education.description')}
+        onAction={openCreateDialog}
+        title={t('employeesDetails.sections.education')}
+      />
 
-        <div className="mt-5 grid gap-4">
+      <RecordsList
+        emptyTitle={t('employeesDetails.education.emptyTitle')}
+        isLoading={isLoading}
+        loadingLabel={t('common.table.loading')}
+        records={records}
+        renderRecord={(record) => (
+          <EducationRecordCard
+            locale={locale}
+            onDelete={() => setDeleteTarget(record)}
+            onEdit={() => openEditDialog(record)}
+            record={record}
+            t={t}
+          />
+        )}
+      />
+
+      <Dialog
+        description={t('employeesDetails.education.description')}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog()
+            return
+          }
+
+          setIsDialogOpen(true)
+        }}
+        open={isDialogOpen}
+        title={t(editingId ? 'employeesDetails.education.editTitle' : 'employeesDetails.education.formTitle')}
+      >
+        <form className="grid gap-4" onSubmit={handleSubmit}>
           <SelectField
             label={t('forms.fields.educationType')}
             onValueChange={(value) => updateField('education_type', value)}
@@ -297,37 +339,19 @@ export function EmployeeEducationPanel({
             onChange={(value) => updateField('note', value)}
             value={formValues.note}
           />
-        </div>
 
-        <FieldError message={error} />
+          <FieldError message={error} />
 
-        <div className="mt-5 flex justify-end gap-3">
-          {editingId && (
-            <Button type="button" variant="secondary" onClick={resetForm}>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={closeDialog}>
               {t('common.actions.cancel')}
             </Button>
-          )}
-          <Button disabled={isSubmitting} type="submit" variant="primary">
-            {t(editingId ? 'common.actions.save' : 'common.actions.create')}
-          </Button>
-        </div>
-      </form>
-
-      <RecordsList
-        emptyTitle={t('employeesDetails.education.emptyTitle')}
-        isLoading={isLoading}
-        loadingLabel={t('common.table.loading')}
-        records={records}
-        renderRecord={(record) => (
-          <EducationRecordCard
-            locale={locale}
-            onDelete={() => setDeleteTarget(record)}
-            onEdit={() => startEdit(record)}
-            record={record}
-            t={t}
-          />
-        )}
-      />
+            <Button disabled={isSubmitting} type="submit" variant="primary">
+              {t(editingId ? 'common.actions.save' : 'common.actions.create')}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       <ConfirmDialog
         cancelLabel={t('common.actions.cancel')}
@@ -357,6 +381,7 @@ export function EmployeeExperiencePanel({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null)
   const [error, setError] = useState('')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -398,6 +423,41 @@ export function EmployeeExperiencePanel({
     }))
   }
 
+  function openCreateDialog(): void {
+    setEditingId(null)
+    setError('')
+    setFormValues(experienceDefaults)
+    setIsDialogOpen(true)
+  }
+
+  function openEditDialog(record: HrRecord): void {
+    const id = getRecordId(record)
+
+    if (!id) {
+      return
+    }
+
+    setEditingId(id)
+    setError('')
+    setFormValues({
+      company_name: getString(record.company_name),
+      position_name: getString(record.position_name),
+      started_at: getString(record.started_at),
+      ended_at: getString(record.ended_at),
+      is_current: String(Number(record.is_current ?? 0)),
+      responsibilities: getString(record.responsibilities),
+      note: getString(record.note),
+    })
+    setIsDialogOpen(true)
+  }
+
+  function closeDialog(): void {
+    setIsDialogOpen(false)
+    setEditingId(null)
+    setError('')
+    setFormValues(experienceDefaults)
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
 
@@ -428,8 +488,8 @@ export function EmployeeExperiencePanel({
       }
 
       toast.success(t(editingId ? 'forms.toasts.updated' : 'forms.toasts.created'))
-      resetForm()
       await loadExperienceRecords()
+      closeDialog()
     } catch {
       toast.error(t(editingId ? 'forms.toasts.updateError' : 'forms.toasts.createError'))
     } finally {
@@ -461,41 +521,45 @@ export function EmployeeExperiencePanel({
     }
   }
 
-  function startEdit(record: HrRecord): void {
-    const id = getRecordId(record)
-
-    if (!id) {
-      return
-    }
-
-    setEditingId(id)
-    setError('')
-    setFormValues({
-      company_name: getString(record.company_name),
-      position_name: getString(record.position_name),
-      started_at: getString(record.started_at),
-      ended_at: getString(record.ended_at),
-      is_current: String(Number(record.is_current ?? 0)),
-      responsibilities: getString(record.responsibilities),
-      note: getString(record.note),
-    })
-  }
-
-  function resetForm(): void {
-    setEditingId(null)
-    setError('')
-    setFormValues(experienceDefaults)
-  }
-
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <form className="app-surface app-shadow rounded-[30px] border p-5" onSubmit={handleSubmit}>
-        <FormTitle
-          title={t(editingId ? 'employeesDetails.experience.editTitle' : 'employeesDetails.experience.formTitle')}
-          description={t('employeesDetails.experience.description')}
-        />
+    <div className="space-y-5">
+      <RelatedRecordsHeader
+        actionLabel={t('employeesDetails.experience.formTitle')}
+        description={t('employeesDetails.experience.description')}
+        onAction={openCreateDialog}
+        title={t('employeesDetails.sections.experience')}
+      />
 
-        <div className="mt-5 grid gap-4">
+      <RecordsList
+        emptyTitle={t('employeesDetails.experience.emptyTitle')}
+        isLoading={isLoading}
+        loadingLabel={t('common.table.loading')}
+        records={records}
+        renderRecord={(record) => (
+          <ExperienceRecordCard
+            locale={locale}
+            onDelete={() => setDeleteTarget(record)}
+            onEdit={() => openEditDialog(record)}
+            record={record}
+            t={t}
+          />
+        )}
+      />
+
+      <Dialog
+        description={t('employeesDetails.experience.description')}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog()
+            return
+          }
+
+          setIsDialogOpen(true)
+        }}
+        open={isDialogOpen}
+        title={t(editingId ? 'employeesDetails.experience.editTitle' : 'employeesDetails.experience.formTitle')}
+      >
+        <form className="grid gap-4" onSubmit={handleSubmit}>
           <TextField
             label={t('forms.fields.companyName')}
             onChange={(value) => updateField('company_name', value)}
@@ -525,15 +589,11 @@ export function EmployeeExperiencePanel({
             />
           </div>
 
-          <label className="app-surface-muted flex items-center gap-3 rounded-2xl border px-4 py-3">
-            <input
-              checked={formValues.is_current === '1'}
-              className="h-4 w-4 accent-[var(--accent)]"
-              onChange={(event) => updateField('is_current', event.target.checked ? '1' : '0')}
-              type="checkbox"
-            />
-            <span className="app-text text-sm font-bold">{t('forms.fields.isCurrent')}</span>
-          </label>
+          <ToggleField
+            checked={formValues.is_current === '1'}
+            label={t('forms.fields.isCurrent')}
+            onCheckedChange={(checked) => updateField('is_current', checked ? '1' : '0')}
+          />
 
           <TextareaField
             label={t('forms.fields.responsibilities')}
@@ -545,37 +605,19 @@ export function EmployeeExperiencePanel({
             onChange={(value) => updateField('note', value)}
             value={formValues.note}
           />
-        </div>
 
-        <FieldError message={error} />
+          <FieldError message={error} />
 
-        <div className="mt-5 flex justify-end gap-3">
-          {editingId && (
-            <Button type="button" variant="secondary" onClick={resetForm}>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={closeDialog}>
               {t('common.actions.cancel')}
             </Button>
-          )}
-          <Button disabled={isSubmitting} type="submit" variant="primary">
-            {t(editingId ? 'common.actions.save' : 'common.actions.create')}
-          </Button>
-        </div>
-      </form>
-
-      <RecordsList
-        emptyTitle={t('employeesDetails.experience.emptyTitle')}
-        isLoading={isLoading}
-        loadingLabel={t('common.table.loading')}
-        records={records}
-        renderRecord={(record) => (
-          <ExperienceRecordCard
-            locale={locale}
-            onDelete={() => setDeleteTarget(record)}
-            onEdit={() => startEdit(record)}
-            record={record}
-            t={t}
-          />
-        )}
-      />
+            <Button disabled={isSubmitting} type="submit" variant="primary">
+              {t(editingId ? 'common.actions.save' : 'common.actions.create')}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       <ConfirmDialog
         cancelLabel={t('common.actions.cancel')}
@@ -595,16 +637,34 @@ export function EmployeeExperiencePanel({
   )
 }
 
-interface FormTitleProps {
+interface RelatedRecordsHeaderProps {
+  actionLabel: string
   description: string
+  onAction: () => void
   title: string
 }
 
-function FormTitle({ description, title }: FormTitleProps): JSX.Element {
+function RelatedRecordsHeader({
+  actionLabel,
+  description,
+  onAction,
+  title,
+}: RelatedRecordsHeaderProps): JSX.Element {
   return (
-    <div>
-      <h2 className="app-text text-xl font-black">{title}</h2>
-      <p className="app-muted mt-2 text-sm">{description}</p>
+    <div className="app-border-soft flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <h2 className="app-text text-2xl font-black">{title}</h2>
+        <p className="app-muted mt-1 max-w-2xl text-sm">{description}</p>
+      </div>
+      <Button
+        className="shrink-0"
+        leftIcon={<FiPlus className="h-4 w-4" />}
+        onClick={onAction}
+        type="button"
+        variant="primary"
+      >
+        {actionLabel}
+      </Button>
     </div>
   )
 }
@@ -685,6 +745,39 @@ function SelectField({
   )
 }
 
+interface ToggleFieldProps {
+  checked: boolean
+  label: string
+  onCheckedChange: (checked: boolean) => void
+}
+
+function ToggleField({ checked, label, onCheckedChange }: ToggleFieldProps): JSX.Element {
+  return (
+    <button
+      aria-checked={checked}
+      className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition hover:bg-[var(--color-surface-hover)]"
+      onClick={() => onCheckedChange(!checked)}
+      role="switch"
+      type="button"
+    >
+      <span className="app-text text-sm font-bold">{label}</span>
+      <span
+        className={[
+          'relative h-7 w-12 rounded-full transition',
+          checked ? 'bg-[var(--accent)]' : 'bg-[var(--color-border)]',
+        ].join(' ')}
+      >
+        <span
+          className={[
+            'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
+            checked ? 'translate-x-6' : 'translate-x-1',
+          ].join(' ')}
+        />
+      </span>
+    </button>
+  )
+}
+
 interface RecordsListProps {
   emptyTitle: string
   isLoading: boolean
@@ -701,14 +794,28 @@ function RecordsList({
   renderRecord,
 }: RecordsListProps): JSX.Element {
   if (isLoading) {
-    return <LoadingState label={loadingLabel} />
+    return (
+      <div className="min-h-[320px] rounded-[28px] border border-dashed">
+        <LoadingState label={loadingLabel} />
+      </div>
+    )
   }
 
   if (records.length === 0) {
-    return <EmptyState title={emptyTitle} />
+    return (
+      <div className="min-h-[320px] rounded-[28px] border border-dashed">
+        <EmptyState title={emptyTitle} />
+      </div>
+    )
   }
 
-  return <div className="space-y-3">{records.map((record) => renderRecord(record))}</div>
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      {records.map((record, index) => (
+        <div key={String(record.id ?? index)}>{renderRecord(record)}</div>
+      ))}
+    </div>
+  )
 }
 
 interface RecordCardProps {
@@ -731,34 +838,32 @@ function EducationRecordCard({
   const speciality = getString(record.speciality)
 
   return (
-    <article className="app-surface app-shadow rounded-[26px] border p-5">
+    <article className="app-surface app-shadow h-full rounded-[26px] border p-5">
       <RecordCardHeader
-        onDelete={onDelete}
-        onEdit={onEdit}
+        badges={
+          <>
+            <SoftBadge>{getEducationTypeLabel(educationType, t)}</SoftBadge>
+            {educationType === 'university' && (
+              <SoftBadge>{getEducationDegreeLabel(educationDegree, t)}</SoftBadge>
+            )}
+          </>
+        }
         deleteLabel={t('common.actions.delete')}
         editLabel={t('common.actions.edit')}
+        onDelete={onDelete}
+        onEdit={onEdit}
         title={valueOrEmpty(getString(record.institution_name), t)}
       />
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <MetaItem
-          label={t('forms.fields.educationType')}
-          value={getEducationTypeLabel(educationType, t)}
-        />
-        {educationType === 'university' && (
-          <MetaItem
-            label={t('forms.fields.educationDegree')}
-            value={getEducationDegreeLabel(educationDegree, t)}
-          />
-        )}
         {speciality && <MetaItem label={t('forms.fields.speciality')} value={speciality} />}
         <MetaItem
           label={t('forms.fields.startedAt')}
-          value={formatDate(record.started_at, locale)}
+          value={formatRelatedDate(record.started_at, locale, t)}
         />
         <MetaItem
           label={t('forms.fields.endedAt')}
-          value={formatDate(record.ended_at, locale)}
+          value={formatRelatedDate(record.ended_at, locale, t)}
         />
         <MetaItem
           label={t('forms.fields.documentNumber')}
@@ -783,27 +888,28 @@ function ExperienceRecordCard({
   const isCurrent = Number(record.is_current ?? 0) === 1
 
   return (
-    <article className="app-surface app-shadow rounded-[26px] border p-5">
+    <article className="app-surface app-shadow h-full rounded-[26px] border p-5">
       <RecordCardHeader
-        onDelete={onDelete}
-        onEdit={onEdit}
+        badges={isCurrent ? <SoftBadge tone="accent">{t('employeesDetails.experience.current')}</SoftBadge> : null}
         deleteLabel={t('common.actions.delete')}
         editLabel={t('common.actions.edit')}
+        onDelete={onDelete}
+        onEdit={onEdit}
         title={valueOrEmpty(getString(record.company_name), t)}
       />
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <MetaItem
           label={t('forms.fields.experiencePositionName')}
-          value={getString(record.position_name)}
+          value={valueOrEmpty(getString(record.position_name), t)}
         />
         <MetaItem
           label={t('forms.fields.startedAt')}
-          value={formatDate(record.started_at, locale)}
+          value={formatRelatedDate(record.started_at, locale, t)}
         />
         <MetaItem
           label={t('forms.fields.endedAt')}
-          value={isCurrent ? t('employeesDetails.experience.current') : formatDate(record.ended_at, locale)}
+          value={isCurrent ? t('employeesDetails.experience.current') : formatRelatedDate(record.ended_at, locale, t)}
         />
       </div>
 
@@ -820,6 +926,7 @@ function ExperienceRecordCard({
 }
 
 interface RecordCardHeaderProps {
+  badges: ReactNode
   deleteLabel: string
   editLabel: string
   onDelete: () => void
@@ -828,6 +935,7 @@ interface RecordCardHeaderProps {
 }
 
 function RecordCardHeader({
+  badges,
   deleteLabel,
   editLabel,
   onDelete,
@@ -836,7 +944,10 @@ function RecordCardHeader({
 }: RecordCardHeaderProps): JSX.Element {
   return (
     <div className="flex items-start justify-between gap-4">
-      <h3 className="app-text text-lg font-black">{title}</h3>
+      <div className="min-w-0">
+        <h3 className="app-text truncate text-lg font-black">{title}</h3>
+        {badges && <div className="mt-2 flex flex-wrap gap-2">{badges}</div>}
+      </div>
       <div className="flex shrink-0 gap-2">
         <Button
           aria-label={editLabel}
@@ -861,6 +972,26 @@ function RecordCardHeader({
   )
 }
 
+interface SoftBadgeProps {
+  children: ReactNode
+  tone?: 'accent' | 'neutral'
+}
+
+function SoftBadge({ children, tone = 'neutral' }: SoftBadgeProps): JSX.Element {
+  return (
+    <span
+      className={[
+        'inline-flex min-h-7 items-center rounded-full px-3 text-xs font-black',
+        tone === 'accent'
+          ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
+          : 'app-surface-muted app-muted',
+      ].join(' ')}
+    >
+      {children}
+    </span>
+  )
+}
+
 interface MetaItemProps {
   label: string
   value: string
@@ -870,7 +1001,7 @@ function MetaItem({ label, value }: MetaItemProps): JSX.Element {
   return (
     <div className="app-surface-muted rounded-2xl p-4">
       <p className="app-muted text-xs font-black uppercase tracking-wide">{label}</p>
-      <p className="app-text mt-1 text-sm font-black">{value}</p>
+      <p className="app-text mt-1 break-words text-sm font-black">{value}</p>
     </div>
   )
 }
@@ -884,12 +1015,20 @@ function validateEducation(values: EducationFormValues, t: TFunction): string {
     return t('forms.validation.required')
   }
 
+  if (hasInvalidDateRange(values.started_at, values.ended_at)) {
+    return t('forms.validation.dateRange')
+  }
+
   return ''
 }
 
 function validateExperience(values: ExperienceFormValues, t: TFunction): string {
   if (!values.company_name.trim() || !values.position_name.trim()) {
     return t('forms.validation.required')
+  }
+
+  if (values.is_current !== '1' && hasInvalidDateRange(values.started_at, values.ended_at)) {
+    return t('forms.validation.dateRange')
   }
 
   return ''
@@ -959,6 +1098,21 @@ function nullableString(value: string): string | null {
   const trimmedValue = value.trim()
 
   return trimmedValue === '' ? null : trimmedValue
+}
+
+function formatRelatedDate(value: unknown, locale: string, t: TFunction): string {
+  return value ? formatDate(value, locale) : t('employeesDetails.emptyValue')
+}
+
+function hasInvalidDateRange(startedAt: string, endedAt: string): boolean {
+  if (!startedAt || !endedAt) {
+    return false
+  }
+
+  const startTime = new Date(`${startedAt}T00:00:00`).getTime()
+  const endTime = new Date(`${endedAt}T00:00:00`).getTime()
+
+  return Number.isFinite(startTime) && Number.isFinite(endTime) && endTime < startTime
 }
 
 function valueOrEmpty(value: string, t: TFunction): string {

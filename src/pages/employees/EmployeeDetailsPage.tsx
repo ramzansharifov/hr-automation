@@ -387,12 +387,12 @@ function EmployeePassportCard({
           </div>
         </motion.aside>
 
-        <div className="min-w-0 bg-[var(--color-surface-muted)] flex flex-col">
+        <div className="min-w-0 flex flex-col  bg-[var(--color-surface-muted)]">
           <motion.header
             initial={{ opacity: 0, y: -18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.36, delay: 0.22, ease: "easeOut" }}
-            className="app-passport-header-gradient flex min-h-[132px] items-center justify-between gap-6 px-9 py-7 text-white rounded-br-2xl"
+            className="app-passport-header-gradient flex rounded-br-2xl min-h-[132px] items-center justify-between gap-6 px-9 py-7 text-white"
           >
             <h2 className="min-w-0 truncate text-3xl font-black tracking-tight sm:text-4xl">
               {fullName || t("employeesDetails.title")}
