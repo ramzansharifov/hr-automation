@@ -14,8 +14,8 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { FiCheck } from 'react-icons/fi'
 import { toast } from 'react-toastify'
-
-import { Button, type SelectOption } from '../../shared/ui'
+import { z } from 'zod'
+import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../shared/ui'
 import { getAppLocale } from '../../shared/i18n'
 import { formatCurrency, formatDate, humanizeStatus } from '../../shared/lib/format'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
@@ -29,14 +29,32 @@ import {
 } from '../../features/employees/lib/employeeFormatters'
 import { loadEmployeeRelationOptions } from '../../features/employees/lib/employeeRelations'
 import { employeeDefaultValues, type EmployeeFormValues } from '../../features/employees/types'
-import {
-  EmployeeAddressFormSection,
-  EmployeeCompanyFormSection,
-  EmployeePersonalFormSection,
-} from '../../features/employees/forms/EmployeeFormSections'
-import { employeeCreateSchema } from '../../features/employees/forms/employeeFormValidation'
 
+const requiredMessage = 'forms.validation.required'
+const invalidEmailMessage = 'forms.validation.email'
+const nonNegativeMessage = 'forms.validation.nonNegative'
 
+const employeeCreateSchema = z.object({
+  last_name: requiredString(),
+  first_name: requiredString(),
+  middle_name: optionalString(),
+  birth_date: optionalString(),
+  gender: optionalString(),
+  phone: optionalString(),
+  email: optionalEmail(),
+  address_country: optionalString(),
+  address_city: optionalString(),
+  address_street: optionalString(),
+  address_house: optionalString(),
+  address_apartment: optionalString(),
+  address: optionalString(),
+  department_id: requiredNumberString(),
+  position_id: requiredNumberString(),
+  hire_date: requiredString(),
+  status: requiredString(),
+  salary: requiredNumberString(),
+  note: optionalString(),
+})
 
 const steps = [
   {
@@ -243,36 +261,146 @@ export function EmployeeCreatePage(): JSX.Element {
         <div className="border-b app-border-soft p-6 sm:p-8">
 
         {activeStep === 0 && (
-          <EmployeePersonalFormSection
-            control={control}
-            errors={errors}
-            genderOptions={genderOptions}
-            normalizeField={normalizeField}
-            register={register}
-            t={t}
-          />
+          <FormCard title={t('employeesCreate.steps.personal')}>
+            <TextField
+              error={getError('last_name', errors, t)}
+              label={t('forms.fields.lastName')}
+              registration={register('last_name', { onBlur: () => normalizeField('last_name') })}
+              required
+            />
+            <TextField
+              error={getError('first_name', errors, t)}
+              label={t('forms.fields.firstName')}
+              registration={register('first_name', { onBlur: () => normalizeField('first_name') })}
+              required
+            />
+            <TextField
+              error={getError('middle_name', errors, t)}
+              label={t('forms.fields.middleName')}
+              registration={register('middle_name', { onBlur: () => normalizeField('middle_name') })}
+            />
+            <TextField
+              error={getError('birth_date', errors, t)}
+              label={t('forms.fields.birthDate')}
+              registration={register('birth_date')}
+              type="date"
+            />
+            <SelectField
+              control={control}
+              error={getError('gender', errors, t)}
+              label={t('forms.fields.gender')}
+              name="gender"
+              options={genderOptions}
+              placeholder={t('forms.placeholders.select')}
+            />
+            <TextField
+              error={getError('phone', errors, t)}
+              label={t('forms.fields.phone')}
+              registration={register('phone', { onBlur: () => normalizeField('phone') })}
+              type="tel"
+            />
+            <TextField
+              error={getError('email', errors, t)}
+              label={t('forms.fields.email')}
+              registration={register('email', { onBlur: () => normalizeField('email') })}
+              type="email"
+            />
+          </FormCard>
         )}
 
         {activeStep === 1 && (
-          <EmployeeAddressFormSection
-            control={control}
-            errors={errors}
-            register={register}
-            t={t}
-          />
+          <FormCard title={t('employeesCreate.steps.address')}>
+            <TextField
+              error={getError('address_country', errors, t)}
+              label={t('forms.fields.addressCountry')}
+              registration={register('address_country')}
+            />
+            <TextField
+              error={getError('address_city', errors, t)}
+              label={t('forms.fields.addressCity')}
+              registration={register('address_city')}
+            />
+            <TextField
+              error={getError('address_street', errors, t)}
+              label={t('forms.fields.addressStreet')}
+              registration={register('address_street')}
+            />
+            <TextField
+              error={getError('address_house', errors, t)}
+              label={t('forms.fields.addressHouse')}
+              registration={register('address_house')}
+            />
+            <TextField
+              error={getError('address_apartment', errors, t)}
+              label={t('forms.fields.addressApartment')}
+              registration={register('address_apartment')}
+            />
+            <label className="block md:col-span-2">
+              <span className="app-text mb-2 block text-sm font-bold">{t('forms.fields.address')}</span>
+              <Textarea {...register('address')} />
+              <FieldError message={getError('address', errors, t)} />
+            </label>
+          </FormCard>
         )}
 
         {activeStep === 2 && (
-          <EmployeeCompanyFormSection
-            control={control}
-            departments={departments}
-            errors={errors}
-            isRelationsLoading={isRelationsLoading}
-            positions={positions}
-            register={register}
-            statusOptions={statusOptions}
-            t={t}
-          />
+          <FormCard title={t('employeesCreate.steps.company')}>
+            <SelectField
+              control={control}
+              disabled={isRelationsLoading}
+              error={getError('department_id', errors, t)}
+              label={t('forms.fields.departmentId')}
+              name="department_id"
+              options={departments}
+              placeholder={
+                isRelationsLoading
+                  ? t('forms.placeholders.loadingOptions')
+                  : t('forms.placeholders.selectDepartment')
+              }
+            />
+            <SelectField
+              control={control}
+              disabled={isRelationsLoading}
+              error={getError('position_id', errors, t)}
+              label={t('forms.fields.positionId')}
+              name="position_id"
+              options={positions}
+              placeholder={
+                isRelationsLoading
+                  ? t('forms.placeholders.loadingOptions')
+                  : t('forms.placeholders.selectPosition')
+              }
+            />
+            <TextField
+              error={getError('hire_date', errors, t)}
+              label={t('forms.fields.hireDate')}
+              registration={register('hire_date')}
+              required
+              type="date"
+            />
+            <SelectField
+              control={control}
+              error={getError('status', errors, t)}
+              label={t('forms.fields.status')}
+              name="status"
+              options={statusOptions}
+              placeholder={t('forms.placeholders.select')}
+              required
+            />
+            <TextField
+              error={getError('salary', errors, t)}
+              label={t('forms.fields.salary')}
+              min={0}
+              registration={register('salary')}
+              required
+              type="number"
+            />
+            <label className="block md:col-span-2">
+              <span className="app-text mb-2 block text-sm font-bold">{t('forms.fields.note')}</span>
+              <Textarea {...register('note')} />
+              <FieldError message={getError('note', errors, t)} />
+            </label>
+          </FormCard>
         )}
 
         {activeStep === 3 && (
@@ -443,6 +571,111 @@ function StepProgress({ activeStep, t }: StepProgressProps): JSX.Element {
     </ol>
   )
 }
+interface FormCardProps {
+  children: ReactNode
+  title: string
+}
+
+function FormCard({ children, title }: FormCardProps): JSX.Element {
+  return (
+    <section>
+      <h2 className="app-text text-xl font-black">{title}</h2>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">{children}</div>
+    </section>
+  )
+}
+
+interface TextFieldProps {
+  error?: string
+  label: string
+  min?: number
+  registration: UseFormRegisterReturn
+  required?: boolean
+  type?: string
+}
+
+function TextField({
+  error,
+  label,
+  min,
+  registration,
+  required = false,
+  type = 'text',
+}: TextFieldProps): JSX.Element {
+  return (
+    <label className="block">
+      <span className="app-text mb-2 block text-sm font-bold">
+        {label}
+        {required && <span className="text-rose-500"> *</span>}
+      </span>
+      <Input invalid={Boolean(error)} min={min} type={type} {...registration} />
+      <FieldError message={error} />
+    </label>
+  )
+}
+
+interface SelectFieldProps {
+  control: Control<EmployeeFormValues>
+  disabled?: boolean
+  error?: string
+  label: string
+  name: keyof EmployeeFormValues
+  options: SelectOption[]
+  placeholder: string
+  required?: boolean
+}
+
+function SelectField({
+  control,
+  disabled = false,
+  error,
+  label,
+  name,
+  options,
+  placeholder,
+  required = false,
+}: SelectFieldProps): JSX.Element {
+  const { t } = useTranslation()
+
+  return (
+    <label className="block">
+      <span className="app-text mb-2 block text-sm font-bold">
+        {label}
+        {required && <span className="text-rose-500"> *</span>}
+      </span>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <Select
+            allowEmpty={!required}
+            disabled={disabled}
+            emptyOptionLabel={t('forms.placeholders.emptyOption')}
+            invalid={Boolean(error)}
+            name={field.name}
+            onBlur={field.onBlur}
+            onValueChange={field.onChange}
+            options={options}
+            placeholder={placeholder}
+            value={field.value}
+          />
+        )}
+      />
+      <FieldError message={error} />
+    </label>
+  )
+}
+
+function getError(
+  name: keyof EmployeeFormValues,
+  errors: FieldErrors<EmployeeFormValues>,
+  t: TFunction,
+): string | undefined {
+  const message = errors[name]?.message
+
+  return typeof message === 'string' ? t(message) : undefined
+}
+
 function optionLabel(options: SelectOption[], value: string, t: TFunction): string {
   return options.find((option) => option.value === value)?.label ?? valueOrEmpty(value, t)
 }

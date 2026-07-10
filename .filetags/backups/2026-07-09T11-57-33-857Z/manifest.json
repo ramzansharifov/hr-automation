@@ -1,0 +1,39 @@
+{
+  "createdAt": "2026-07-09T11:57:33.953Z",
+  "backupPath": ".filetags/backups/2026-07-09T11-57-33-857Z",
+  "filesBackedUp": [
+    {
+      "originalPath": "src/pages/employees/EmployeeCreatePage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeCreatePage.tsx"
+    },
+    {
+      "originalPath": "src/pages/employees/EmployeeDetailsPage.tsx",
+      "backupRelativePath": "files/src/pages/employees/EmployeeDetailsPage.tsx"
+    }
+  ],
+  "directoriesRecorded": [],
+  "plannedChanges": [
+    "Create folder: src/features/employees/forms",
+    "Write file: src/features/employees/forms/employeeFormValidation.ts\n   old: missing\n   new: 88 line(s)",
+    "Write file: src/features/employees/forms/employeeFormRecordMapper.ts\n   old: missing\n   new: 61 line(s)",
+    "Write file: src/features/employees/forms/EmployeeFormSections.tsx\n   old: missing\n   new: 331 line(s)",
+    "Write file: src/features/employees/forms/EmployeeSectionEditDialog.tsx\n   old: missing\n   new: 231 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: no\n   old: 686 line(s)\n   new: 686 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 686 line(s)\n   new: 686 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 686 line(s)\n   new: 686 line(s)",
+    "Insert after: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 686 line(s)\n   new: 692 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 692 line(s)\n   new: 668 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 668 line(s)\n   new: 631 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 631 line(s)\n   new: 605 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 605 line(s)\n   new: 558 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: no\n   old: 558 line(s)\n   new: 558 line(s)",
+    "Replace file: src/pages/employees/EmployeeCreatePage.tsx\n   found: yes\n   old: 558 line(s)\n   new: 453 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 556 line(s)\n   new: 559 line(s)",
+    "Insert after: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 559 line(s)\n   new: 560 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 560 line(s)\n   new: 550 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 550 line(s)\n   new: 558 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 558 line(s)\n   new: 558 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 558 line(s)\n   new: 558 line(s)",
+    "Replace file: src/pages/employees/EmployeeDetailsPage.tsx\n   found: yes\n   old: 558 line(s)\n   new: 564 line(s)"
+  ]
+}

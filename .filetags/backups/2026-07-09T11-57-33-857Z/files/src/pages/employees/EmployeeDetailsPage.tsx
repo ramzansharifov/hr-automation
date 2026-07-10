@@ -17,10 +17,7 @@ import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import { HRLogo } from "../../app/brand/HRLogo";
-import {
-  EmployeeSectionEditDialog,
-} from "../../features/employees/forms/EmployeeSectionEditDialog";
-import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
+import { HrEntityDialog } from "../../features/hr-entities/components/HrEntityDialog";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
@@ -34,7 +31,6 @@ export function EmployeeDetailsPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editingSection, setEditingSection] = useState<EmployeeFormSectionKey | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -110,14 +106,24 @@ export function EmployeeDetailsPage(): JSX.Element {
     setPositionName(getRecordLabel(position));
   }
 
-  async function handleEmployeeSaved(updatedEmployee: HrRecord): Promise<void> {
+  async function handleEmployeeUpdate(data: HrRecord): Promise<void> {
+    if (!Number.isFinite(employeeId)) {
+      throw new Error(t("forms.errors.missingId"));
+    }
+
+    await hrApiClient.update({
+      entity: "employees",
+      id: employeeId,
+      data,
+    });
+
+    const updatedEmployee = await hrApiClient.getById({
+      entity: "employees",
+      id: employeeId,
+    });
+
     setEmployee(updatedEmployee);
     await refreshEmployeeRelationLabels(updatedEmployee);
-  }
-
-  function openSectionEditor(section: EmployeeFormSectionKey): void {
-    setEditingSection(section);
-    setIsEditOpen(true);
   }
 
   if (isLoading) {
@@ -176,22 +182,14 @@ export function EmployeeDetailsPage(): JSX.Element {
 
         <div className="p-5 sm:p-8">
           <Tabs.Content value="card" className="outline-none">
-            <div className="mb-4 flex flex-wrap justify-end gap-3">
+            <div className="mb-4 flex justify-end">
               <Button
                 type="button"
                 variant="secondary"
                 leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("personal")}
+                onClick={() => setIsEditOpen(true)}
               >
-                Личные данные
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("address")}
-              >
-                Адресные данные
+                Редактировать данные
               </Button>
             </div>
 
@@ -209,9 +207,9 @@ export function EmployeeDetailsPage(): JSX.Element {
                 type="button"
                 variant="secondary"
                 leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("company")}
+                onClick={() => setIsEditOpen(true)}
               >
-                Данные по компании
+                Редактировать данные
               </Button>
             </div>
 
@@ -248,9 +246,9 @@ export function EmployeeDetailsPage(): JSX.Element {
                 type="button"
                 variant="secondary"
                 leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("notes")}
+                onClick={() => setIsEditOpen(true)}
               >
-                Служебная информация
+                Редактировать данные
               </Button>
             </div>
 
@@ -268,19 +266,13 @@ export function EmployeeDetailsPage(): JSX.Element {
         </div>
       </Tabs.Root>
 
-      <EmployeeSectionEditDialog
-        employee={employee}
-        employeeId={employeeId}
-        onOpenChange={(open) => {
-          setIsEditOpen(open);
-
-          if (!open) {
-            setEditingSection(null);
-          }
-        }}
-        onSaved={handleEmployeeSaved}
+      <HrEntityDialog
+        entity="employees"
+        initialRecord={employee}
+        mode="edit"
+        onOpenChange={setIsEditOpen}
+        onSubmit={handleEmployeeUpdate}
         open={isEditOpen}
-        section={editingSection}
       />
     </motion.section>
   );
