@@ -1,173 +1,159 @@
-import type { FormEvent, ReactNode } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  FiAward,
-  FiBookOpen,
-  FiBriefcase,
-  FiCalendar,
-  FiEdit2,
-  FiFileText,
-  FiPlus,
-  FiTrash2,
-} from 'react-icons/fi'
-import type { TFunction } from 'i18next'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'react-toastify'
+import type { FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FiBookOpen, FiBriefcase } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 
-import { hrApiClient } from '../../../shared/lib/hrApiClient'
-import { formatDate } from '../../../shared/lib/format'
-import type { HrRecord } from '../../../shared/types/hr'
+import { hrApiClient } from "../../../shared/lib/hrApiClient";
+import type { HrRecord } from "../../../shared/types/hr";
 import {
   Button,
   ConfirmDialog,
   Dialog,
-  EmptyState,
   FieldError,
-  Input,
-  LoadingState,
-  Select,
-  Textarea,
   type SelectOption,
-} from '../../../shared/ui'
+} from "../../../shared/ui";
+import {
+  EducationRecordCard,
+  ExperienceRecordCard,
+  RelatedRecordsHeader,
+  RelatedRecordsList,
+} from "../related-records/RelatedRecordCards";
+import {
+  RelatedSelectField,
+  RelatedTextField,
+  RelatedTextareaField,
+  RelatedToggleField,
+} from "../related-records/RelatedRecordFields";
+import {
+  educationDefaults,
+  experienceDefaults,
+  getRecordId,
+  getString,
+  mapEducationFormToRecord,
+  mapExperienceFormToRecord,
+  validateEducation,
+  validateExperience,
+  type EducationFormValues,
+  type ExperienceFormValues,
+} from "../related-records/model";
 
 interface EmployeeRelatedRecordsProps {
-  employeeId: number
-  locale: string
-}
-
-interface EducationFormValues {
-  education_type: string
-  education_degree: string
-  institution_name: string
-  speciality: string
-  started_at: string
-  ended_at: string
-  document_number: string
-  note: string
-}
-
-interface ExperienceFormValues {
-  company_name: string
-  position_name: string
-  started_at: string
-  ended_at: string
-  is_current: string
-  responsibilities: string
-  note: string
-}
-
-const educationDefaults: EducationFormValues = {
-  education_type: 'university',
-  education_degree: 'bachelor',
-  institution_name: '',
-  speciality: '',
-  started_at: '',
-  ended_at: '',
-  document_number: '',
-  note: '',
-}
-
-const experienceDefaults: ExperienceFormValues = {
-  company_name: '',
-  position_name: '',
-  started_at: '',
-  ended_at: '',
-  is_current: '0',
-  responsibilities: '',
-  note: '',
+  employeeId: number;
+  locale: string;
 }
 
 export function EmployeeEducationPanel({
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
-  const { t } = useTranslation()
-  const [records, setRecords] = useState<HrRecord[]>([])
-  const [formValues, setFormValues] = useState<EducationFormValues>(educationDefaults)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null)
-  const [error, setError] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { t } = useTranslation();
+  const [records, setRecords] = useState<HrRecord[]>([]);
+  const [formValues, setFormValues] =
+    useState<EducationFormValues>(educationDefaults);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
+  const [error, setError] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const educationTypeOptions = useMemo<SelectOption[]>(
     () => [
-      { value: 'school', label: t('employeesDetails.education.types.school') },
-      { value: 'university', label: t('employeesDetails.education.types.university') },
+      { value: "school", label: t("employeesDetails.education.types.school") },
+      {
+        value: "university",
+        label: t("employeesDetails.education.types.university"),
+      },
     ],
     [t],
-  )
+  );
   const educationDegreeOptions = useMemo<SelectOption[]>(
     () => [
-      { value: 'bachelor', label: t('employeesDetails.education.degrees.bachelor') },
-      { value: 'specialist', label: t('employeesDetails.education.degrees.specialist') },
-      { value: 'master', label: t('employeesDetails.education.degrees.master') },
-      { value: 'postgraduate', label: t('employeesDetails.education.degrees.postgraduate') },
-      { value: 'phd', label: t('employeesDetails.education.degrees.phd') },
+      {
+        value: "bachelor",
+        label: t("employeesDetails.education.degrees.bachelor"),
+      },
+      {
+        value: "specialist",
+        label: t("employeesDetails.education.degrees.specialist"),
+      },
+      {
+        value: "master",
+        label: t("employeesDetails.education.degrees.master"),
+      },
+      {
+        value: "postgraduate",
+        label: t("employeesDetails.education.degrees.postgraduate"),
+      },
+      { value: "phd", label: t("employeesDetails.education.degrees.phd") },
     ],
     [t],
-  )
+  );
 
   const loadEducationRecords = useCallback(async (): Promise<void> => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const result = await hrApiClient.list({
-        entity: 'employee_education',
+        entity: "employee_education",
         page: 1,
         pageSize: 100,
         filters: {
           employee_id: {
-            operator: 'equals',
+            operator: "equals",
             value: employeeId,
           },
         },
-        orderBy: 'started_at',
-        orderDirection: 'desc',
-      })
+        orderBy: "started_at",
+        orderDirection: "desc",
+      });
 
-      setRecords(result.items)
+      setRecords(result.items);
     } catch {
-      toast.error(t('employeesDetails.education.toasts.loadError'))
+      toast.error(t("employeesDetails.education.toasts.loadError"));
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [employeeId, t])
+  }, [employeeId, t]);
 
   useEffect(() => {
-    void loadEducationRecords()
-  }, [loadEducationRecords])
+    void loadEducationRecords();
+  }, [loadEducationRecords]);
 
   function updateField(name: keyof EducationFormValues, value: string): void {
     setFormValues((current) => ({
       ...current,
       [name]: value,
-      ...(name === 'education_type' && value === 'school' ? { education_degree: '' } : {}),
-      ...(name === 'education_type' && value === 'university' && !current.education_degree
-        ? { education_degree: 'bachelor' }
+      ...(name === "education_type" && value === "school"
+        ? { education_degree: "" }
         : {}),
-    }))
+      ...(name === "education_type" &&
+      value === "university" &&
+      !current.education_degree
+        ? { education_degree: "bachelor" }
+        : {}),
+    }));
   }
 
   function openCreateDialog(): void {
-    setEditingId(null)
-    setError('')
-    setFormValues(educationDefaults)
-    setIsDialogOpen(true)
+    setEditingId(null);
+    setError("");
+    setFormValues(educationDefaults);
+    setIsDialogOpen(true);
   }
 
   function openEditDialog(record: HrRecord): void {
-    const id = getRecordId(record)
+    const id = getRecordId(record);
 
     if (!id) {
-      return
+      return;
     }
 
-    setEditingId(id)
-    setError('')
+    setEditingId(id);
+    setError("");
     setFormValues({
-      education_type: getString(record.education_type) || 'university',
+      education_type: getString(record.education_type) || "university",
       education_degree: getString(record.education_degree),
       institution_name: getString(record.institution_name),
       speciality: getString(record.speciality),
@@ -175,97 +161,103 @@ export function EmployeeEducationPanel({
       ended_at: getString(record.ended_at),
       document_number: getString(record.document_number),
       note: getString(record.note),
-    })
-    setIsDialogOpen(true)
+    });
+    setIsDialogOpen(true);
   }
 
   function closeDialog(): void {
-    setIsDialogOpen(false)
-    setEditingId(null)
-    setError('')
-    setFormValues(educationDefaults)
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setError("");
+    setFormValues(educationDefaults);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault();
 
-    const validationError = validateEducation(formValues, t)
+    const validationError = validateEducation(formValues, t);
 
     if (validationError) {
-      setError(validationError)
-      return
+      setError(validationError);
+      return;
     }
 
-    setError('')
-    setIsSubmitting(true)
+    setError("");
+    setIsSubmitting(true);
 
     try {
-      const data = mapEducationFormToRecord(employeeId, formValues)
+      const data = mapEducationFormToRecord(employeeId, formValues);
 
       if (editingId) {
         await hrApiClient.update({
-          entity: 'employee_education',
+          entity: "employee_education",
           id: editingId,
           data,
-        })
+        });
       } else {
         await hrApiClient.create({
-          entity: 'employee_education',
+          entity: "employee_education",
           data,
-        })
+        });
       }
 
-      toast.success(t(editingId ? 'forms.toasts.updated' : 'forms.toasts.created'))
-      await loadEducationRecords()
-      closeDialog()
+      toast.success(
+        t(editingId ? "forms.toasts.updated" : "forms.toasts.created"),
+      );
+      await loadEducationRecords();
+      closeDialog();
     } catch {
-      toast.error(t(editingId ? 'forms.toasts.updateError' : 'forms.toasts.createError'))
+      toast.error(
+        t(editingId ? "forms.toasts.updateError" : "forms.toasts.createError"),
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   async function handleDelete(): Promise<void> {
-    const id = getRecordId(deleteTarget)
+    const id = getRecordId(deleteTarget);
 
     if (!id) {
-      return
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       await hrApiClient.delete({
-        entity: 'employee_education',
+        entity: "employee_education",
         id,
-      })
-      toast.success(t('forms.toasts.deleted'))
-      setDeleteTarget(null)
-      await loadEducationRecords()
+      });
+      toast.success(t("forms.toasts.deleted"));
+      setDeleteTarget(null);
+      await loadEducationRecords();
     } catch {
-      toast.error(t('forms.toasts.deleteError'))
+      toast.error(t("forms.toasts.deleteError"));
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
-  const isUniversity = formValues.education_type === 'university'
+  const isUniversity = formValues.education_type === "university";
 
   return (
     <div className="space-y-5">
       <RelatedRecordsHeader
-        actionLabel={t('employeesDetails.education.formTitle')}
-        description={t('employeesDetails.education.description')}
+        actionLabel={t("employeesDetails.education.formTitle")}
+        description={t("employeesDetails.education.description")}
         icon={<FiBookOpen className="h-6 w-6" />}
         onAction={openCreateDialog}
         recordCount={records.length}
-        title={t('employeesDetails.sections.education')}
+        title={t("employeesDetails.sections.education")}
       />
 
-      <RecordsList
-        emptyTitle={t('employeesDetails.education.emptyTitle')}
+      <RelatedRecordsList
+        emptyTitle={t("employeesDetails.education.emptyTitle")}
         isLoading={isLoading}
-        loadingLabel={t('common.table.loading')}
+        loadingLabel={t("common.table.loading")}
         records={records}
         renderRecord={(record) => (
           <EducationRecordCard
@@ -279,75 +271,83 @@ export function EmployeeEducationPanel({
       />
 
       <Dialog
-        description={t('employeesDetails.education.description')}
+        description={t("employeesDetails.education.description")}
         onOpenChange={(open) => {
           if (!open) {
-            closeDialog()
-            return
+            closeDialog();
+            return;
           }
 
-          setIsDialogOpen(true)
+          setIsDialogOpen(true);
         }}
         open={isDialogOpen}
-        title={t(editingId ? 'employeesDetails.education.editTitle' : 'employeesDetails.education.formTitle')}
+        title={t(
+          editingId
+            ? "employeesDetails.education.editTitle"
+            : "employeesDetails.education.formTitle",
+        )}
       >
         <form className="grid gap-4" onSubmit={handleSubmit}>
-          <SelectField
-            label={t('forms.fields.educationType')}
-            onValueChange={(value) => updateField('education_type', value)}
+          <RelatedSelectField
+            label={t("forms.fields.educationType")}
+            onValueChange={(value) => updateField("education_type", value)}
             options={educationTypeOptions}
-            placeholder={t('forms.placeholders.select')}
+            placeholder={t("forms.placeholders.select")}
             value={formValues.education_type}
           />
 
           {isUniversity && (
-            <SelectField
-              label={t('forms.fields.educationDegree')}
-              onValueChange={(value) => updateField('education_degree', value)}
+            <RelatedSelectField
+              label={t("forms.fields.educationDegree")}
+              onValueChange={(value) => updateField("education_degree", value)}
               options={educationDegreeOptions}
-              placeholder={t('forms.placeholders.select')}
+              placeholder={t("forms.placeholders.select")}
               value={formValues.education_degree}
             />
           )}
 
-          <TextField
-            label={t(isUniversity ? 'forms.fields.universityName' : 'forms.fields.schoolName')}
-            onChange={(value) => updateField('institution_name', value)}
+          <RelatedTextField
+            label={t(
+              isUniversity
+                ? "forms.fields.universityName"
+                : "forms.fields.schoolName",
+            )}
+            onChange={(value) => updateField("institution_name", value)}
             required
             value={formValues.institution_name}
           />
 
           {isUniversity && (
-            <TextField
-              label={t('forms.fields.speciality')}
-              onChange={(value) => updateField('speciality', value)}
+            <RelatedTextField
+              label={t("forms.fields.speciality")}
+              onChange={(value) => updateField("speciality", value)}
               value={formValues.speciality}
             />
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label={t('forms.fields.startedAt')}
-              onChange={(value) => updateField('started_at', value)}
+            <RelatedTextField
+              label={t("forms.fields.startedAt")}
+              onChange={(value) => updateField("started_at", value)}
               type="date"
               value={formValues.started_at}
             />
-            <TextField
-              label={t('forms.fields.endedAt')}
-              onChange={(value) => updateField('ended_at', value)}
+            <RelatedTextField
+              label={t("forms.fields.endedAt")}
+              onChange={(value) => updateField("ended_at", value)}
               type="date"
               value={formValues.ended_at}
             />
           </div>
 
-          <TextField
-            label={t('forms.fields.documentNumber')}
-            onChange={(value) => updateField('document_number', value)}
+          <RelatedTextField
+            label={t("forms.fields.documentNumber")}
+            onChange={(value) => updateField("document_number", value)}
             value={formValues.document_number}
           />
-          <TextareaField
-            label={t('forms.fields.note')}
-            onChange={(value) => updateField('note', value)}
+          <RelatedTextareaField
+            label={t("forms.fields.note")}
+            onChange={(value) => updateField("note", value)}
             value={formValues.note}
           />
 
@@ -355,101 +355,102 @@ export function EmployeeEducationPanel({
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={closeDialog}>
-              {t('common.actions.cancel')}
+              {t("common.actions.cancel")}
             </Button>
             <Button disabled={isSubmitting} type="submit" variant="primary">
-              {t(editingId ? 'common.actions.save' : 'common.actions.create')}
+              {t(editingId ? "common.actions.save" : "common.actions.create")}
             </Button>
           </div>
         </form>
       </Dialog>
 
       <ConfirmDialog
-        cancelLabel={t('common.actions.cancel')}
-        confirmLabel={t('common.actions.delete')}
-        description={t('forms.delete.description')}
+        cancelLabel={t("common.actions.cancel")}
+        confirmLabel={t("common.actions.delete")}
+        description={t("forms.delete.description")}
         isLoading={isSubmitting}
         onConfirm={() => void handleDelete()}
         onOpenChange={(open) => {
           if (!open) {
-            setDeleteTarget(null)
+            setDeleteTarget(null);
           }
         }}
         open={Boolean(deleteTarget)}
-        title={t('forms.delete.title')}
+        title={t("forms.delete.title")}
       />
     </div>
-  )
+  );
 }
 
 export function EmployeeExperiencePanel({
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
-  const { t } = useTranslation()
-  const [records, setRecords] = useState<HrRecord[]>([])
-  const [formValues, setFormValues] = useState<ExperienceFormValues>(experienceDefaults)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null)
-  const [error, setError] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { t } = useTranslation();
+  const [records, setRecords] = useState<HrRecord[]>([]);
+  const [formValues, setFormValues] =
+    useState<ExperienceFormValues>(experienceDefaults);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
+  const [error, setError] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadExperienceRecords = useCallback(async (): Promise<void> => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const result = await hrApiClient.list({
-        entity: 'employee_experience',
+        entity: "employee_experience",
         page: 1,
         pageSize: 100,
         filters: {
           employee_id: {
-            operator: 'equals',
+            operator: "equals",
             value: employeeId,
           },
         },
-        orderBy: 'started_at',
-        orderDirection: 'desc',
-      })
+        orderBy: "started_at",
+        orderDirection: "desc",
+      });
 
-      setRecords(result.items)
+      setRecords(result.items);
     } catch {
-      toast.error(t('employeesDetails.experience.toasts.loadError'))
+      toast.error(t("employeesDetails.experience.toasts.loadError"));
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [employeeId, t])
+  }, [employeeId, t]);
 
   useEffect(() => {
-    void loadExperienceRecords()
-  }, [loadExperienceRecords])
+    void loadExperienceRecords();
+  }, [loadExperienceRecords]);
 
   function updateField(name: keyof ExperienceFormValues, value: string): void {
     setFormValues((current) => ({
       ...current,
       [name]: value,
-      ...(name === 'is_current' && value === '1' ? { ended_at: '' } : {}),
-    }))
+      ...(name === "is_current" && value === "1" ? { ended_at: "" } : {}),
+    }));
   }
 
   function openCreateDialog(): void {
-    setEditingId(null)
-    setError('')
-    setFormValues(experienceDefaults)
-    setIsDialogOpen(true)
+    setEditingId(null);
+    setError("");
+    setFormValues(experienceDefaults);
+    setIsDialogOpen(true);
   }
 
   function openEditDialog(record: HrRecord): void {
-    const id = getRecordId(record)
+    const id = getRecordId(record);
 
     if (!id) {
-      return
+      return;
     }
 
-    setEditingId(id)
-    setError('')
+    setEditingId(id);
+    setError("");
     setFormValues({
       company_name: getString(record.company_name),
       position_name: getString(record.position_name),
@@ -458,95 +459,101 @@ export function EmployeeExperiencePanel({
       is_current: String(Number(record.is_current ?? 0)),
       responsibilities: getString(record.responsibilities),
       note: getString(record.note),
-    })
-    setIsDialogOpen(true)
+    });
+    setIsDialogOpen(true);
   }
 
   function closeDialog(): void {
-    setIsDialogOpen(false)
-    setEditingId(null)
-    setError('')
-    setFormValues(experienceDefaults)
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setError("");
+    setFormValues(experienceDefaults);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault();
 
-    const validationError = validateExperience(formValues, t)
+    const validationError = validateExperience(formValues, t);
 
     if (validationError) {
-      setError(validationError)
-      return
+      setError(validationError);
+      return;
     }
 
-    setError('')
-    setIsSubmitting(true)
+    setError("");
+    setIsSubmitting(true);
 
     try {
-      const data = mapExperienceFormToRecord(employeeId, formValues)
+      const data = mapExperienceFormToRecord(employeeId, formValues);
 
       if (editingId) {
         await hrApiClient.update({
-          entity: 'employee_experience',
+          entity: "employee_experience",
           id: editingId,
           data,
-        })
+        });
       } else {
         await hrApiClient.create({
-          entity: 'employee_experience',
+          entity: "employee_experience",
           data,
-        })
+        });
       }
 
-      toast.success(t(editingId ? 'forms.toasts.updated' : 'forms.toasts.created'))
-      await loadExperienceRecords()
-      closeDialog()
+      toast.success(
+        t(editingId ? "forms.toasts.updated" : "forms.toasts.created"),
+      );
+      await loadExperienceRecords();
+      closeDialog();
     } catch {
-      toast.error(t(editingId ? 'forms.toasts.updateError' : 'forms.toasts.createError'))
+      toast.error(
+        t(editingId ? "forms.toasts.updateError" : "forms.toasts.createError"),
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   async function handleDelete(): Promise<void> {
-    const id = getRecordId(deleteTarget)
+    const id = getRecordId(deleteTarget);
 
     if (!id) {
-      return
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       await hrApiClient.delete({
-        entity: 'employee_experience',
+        entity: "employee_experience",
         id,
-      })
-      toast.success(t('forms.toasts.deleted'))
-      setDeleteTarget(null)
-      await loadExperienceRecords()
+      });
+      toast.success(t("forms.toasts.deleted"));
+      setDeleteTarget(null);
+      await loadExperienceRecords();
     } catch {
-      toast.error(t('forms.toasts.deleteError'))
+      toast.error(t("forms.toasts.deleteError"));
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   return (
     <div className="space-y-5">
       <RelatedRecordsHeader
-        actionLabel={t('employeesDetails.experience.formTitle')}
-        description={t('employeesDetails.experience.description')}
+        actionLabel={t("employeesDetails.experience.formTitle")}
+        description={t("employeesDetails.experience.description")}
         icon={<FiBriefcase className="h-6 w-6" />}
         onAction={openCreateDialog}
         recordCount={records.length}
-        title={t('employeesDetails.sections.experience')}
+        title={t("employeesDetails.sections.experience")}
       />
 
-      <RecordsList
-        emptyTitle={t('employeesDetails.experience.emptyTitle')}
+      <RelatedRecordsList
+        emptyTitle={t("employeesDetails.experience.emptyTitle")}
         isLoading={isLoading}
-        loadingLabel={t('common.table.loading')}
+        loadingLabel={t("common.table.loading")}
         records={records}
         renderRecord={(record) => (
           <ExperienceRecordCard
@@ -560,62 +567,68 @@ export function EmployeeExperiencePanel({
       />
 
       <Dialog
-        description={t('employeesDetails.experience.description')}
+        description={t("employeesDetails.experience.description")}
         onOpenChange={(open) => {
           if (!open) {
-            closeDialog()
-            return
+            closeDialog();
+            return;
           }
 
-          setIsDialogOpen(true)
+          setIsDialogOpen(true);
         }}
         open={isDialogOpen}
-        title={t(editingId ? 'employeesDetails.experience.editTitle' : 'employeesDetails.experience.formTitle')}
+        title={t(
+          editingId
+            ? "employeesDetails.experience.editTitle"
+            : "employeesDetails.experience.formTitle",
+        )}
       >
         <form className="grid gap-4" onSubmit={handleSubmit}>
-          <TextField
-            label={t('forms.fields.companyName')}
-            onChange={(value) => updateField('company_name', value)}
+          <RelatedTextField
+            label={t("forms.fields.companyName")}
+            onChange={(value) => updateField("company_name", value)}
             required
             value={formValues.company_name}
           />
-          <TextField
-            label={t('forms.fields.experiencePositionName')}
-            onChange={(value) => updateField('position_name', value)}
+          <RelatedTextField
+            label={t("forms.fields.experiencePositionName")}
+            onChange={(value) => updateField("position_name", value)}
             required
             value={formValues.position_name}
           />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label={t('forms.fields.startedAt')}
-              onChange={(value) => updateField('started_at', value)}
+            <RelatedTextField
+              label={t("forms.fields.startedAt")}
+              onChange={(value) => updateField("started_at", value)}
               type="date"
               value={formValues.started_at}
             />
-            <TextField
-              disabled={formValues.is_current === '1'}
-              label={t('forms.fields.endedAt')}
-              onChange={(value) => updateField('ended_at', value)}
+            <RelatedTextField
+              disabled={formValues.is_current === "1"}
+              label={t("forms.fields.endedAt")}
+              onChange={(value) => updateField("ended_at", value)}
               type="date"
               value={formValues.ended_at}
             />
           </div>
 
-          <ToggleField
-            checked={formValues.is_current === '1'}
-            label={t('forms.fields.isCurrent')}
-            onCheckedChange={(checked) => updateField('is_current', checked ? '1' : '0')}
+          <RelatedToggleField
+            checked={formValues.is_current === "1"}
+            label={t("forms.fields.isCurrent")}
+            onCheckedChange={(checked) =>
+              updateField("is_current", checked ? "1" : "0")
+            }
           />
 
-          <TextareaField
-            label={t('forms.fields.responsibilities')}
-            onChange={(value) => updateField('responsibilities', value)}
+          <RelatedTextareaField
+            label={t("forms.fields.responsibilities")}
+            onChange={(value) => updateField("responsibilities", value)}
             value={formValues.responsibilities}
           />
-          <TextareaField
-            label={t('forms.fields.note')}
-            onChange={(value) => updateField('note', value)}
+          <RelatedTextareaField
+            label={t("forms.fields.note")}
+            onChange={(value) => updateField("note", value)}
             value={formValues.note}
           />
 
@@ -623,572 +636,29 @@ export function EmployeeExperiencePanel({
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={closeDialog}>
-              {t('common.actions.cancel')}
+              {t("common.actions.cancel")}
             </Button>
             <Button disabled={isSubmitting} type="submit" variant="primary">
-              {t(editingId ? 'common.actions.save' : 'common.actions.create')}
+              {t(editingId ? "common.actions.save" : "common.actions.create")}
             </Button>
           </div>
         </form>
       </Dialog>
 
       <ConfirmDialog
-        cancelLabel={t('common.actions.cancel')}
-        confirmLabel={t('common.actions.delete')}
-        description={t('forms.delete.description')}
+        cancelLabel={t("common.actions.cancel")}
+        confirmLabel={t("common.actions.delete")}
+        description={t("forms.delete.description")}
         isLoading={isSubmitting}
         onConfirm={() => void handleDelete()}
         onOpenChange={(open) => {
           if (!open) {
-            setDeleteTarget(null)
+            setDeleteTarget(null);
           }
         }}
         open={Boolean(deleteTarget)}
-        title={t('forms.delete.title')}
+        title={t("forms.delete.title")}
       />
     </div>
-  )
-}
-
-interface RelatedRecordsHeaderProps {
-  actionLabel: string
-  description: string
-  icon: ReactNode
-  onAction: () => void
-  recordCount: number
-  title: string
-}
-
-function RelatedRecordsHeader({
-  actionLabel,
-  description,
-  icon,
-  onAction,
-  recordCount,
-  title,
-}: RelatedRecordsHeaderProps): JSX.Element {
-  return (
-    <header className="app-surface-muted app-border relative overflow-hidden rounded-[28px] border p-5 sm:p-6">
-      <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[var(--accent-soft)] opacity-70" />
-
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-start gap-4">
-          <span className="app-accent-soft flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
-            {icon}
-          </span>
-
-          <div className="min-w-0 pt-0.5">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="app-text text-2xl font-black tracking-tight">{title}</h2>
-              <span className="app-surface app-muted inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-2.5 text-xs font-black">
-                {recordCount}
-              </span>
-            </div>
-            <p className="app-muted mt-1.5 max-w-2xl text-sm leading-6">{description}</p>
-          </div>
-        </div>
-
-        <Button
-          className="w-full shrink-0 sm:w-auto"
-          leftIcon={<FiPlus className="h-4 w-4" />}
-          onClick={onAction}
-          type="button"
-          variant="primary"
-        >
-          {actionLabel}
-        </Button>
-      </div>
-    </header>
-  )
-}
-
-interface TextFieldProps {
-  disabled?: boolean
-  label: string
-  onChange: (value: string) => void
-  required?: boolean
-  type?: string
-  value: string
-}
-
-function TextField({
-  disabled = false,
-  label,
-  onChange,
-  required = false,
-  type = 'text',
-  value,
-}: TextFieldProps): JSX.Element {
-  return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">
-        {label}
-        {required && <span className="text-rose-500"> *</span>}
-      </span>
-      <Input
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        type={type}
-        value={value}
-      />
-    </label>
-  )
-}
-
-interface TextareaFieldProps {
-  label: string
-  onChange: (value: string) => void
-  value: string
-}
-
-function TextareaField({ label, onChange, value }: TextareaFieldProps): JSX.Element {
-  return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">{label}</span>
-      <Textarea onChange={(event) => onChange(event.target.value)} value={value} />
-    </label>
-  )
-}
-
-interface SelectFieldProps {
-  label: string
-  onValueChange: (value: string) => void
-  options: SelectOption[]
-  placeholder: string
-  value: string
-}
-
-function SelectField({
-  label,
-  onValueChange,
-  options,
-  placeholder,
-  value,
-}: SelectFieldProps): JSX.Element {
-  return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">{label}</span>
-      <Select
-        onValueChange={onValueChange}
-        options={options}
-        placeholder={placeholder}
-        value={value}
-      />
-    </label>
-  )
-}
-
-interface ToggleFieldProps {
-  checked: boolean
-  label: string
-  onCheckedChange: (checked: boolean) => void
-}
-
-function ToggleField({ checked, label, onCheckedChange }: ToggleFieldProps): JSX.Element {
-  return (
-    <button
-      aria-checked={checked}
-      className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition hover:bg-[var(--color-surface-hover)]"
-      onClick={() => onCheckedChange(!checked)}
-      role="switch"
-      type="button"
-    >
-      <span className="app-text text-sm font-bold">{label}</span>
-      <span
-        className={[
-          'relative h-7 w-12 rounded-full transition',
-          checked ? 'bg-[var(--accent)]' : 'bg-[var(--color-border)]',
-        ].join(' ')}
-      >
-        <span
-          className={[
-            'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
-            checked ? 'translate-x-6' : 'translate-x-1',
-          ].join(' ')}
-        />
-      </span>
-    </button>
-  )
-}
-
-interface RecordsListProps {
-  emptyTitle: string
-  isLoading: boolean
-  loadingLabel: string
-  records: HrRecord[]
-  renderRecord: (record: HrRecord) => JSX.Element
-}
-
-function RecordsList({
-  emptyTitle,
-  isLoading,
-  loadingLabel,
-  records,
-  renderRecord,
-}: RecordsListProps): JSX.Element {
-  if (isLoading) {
-    return (
-      <div className="app-surface-muted app-border min-h-[280px] rounded-[28px] border border-dashed">
-        <LoadingState label={loadingLabel} />
-      </div>
-    )
-  }
-
-  if (records.length === 0) {
-    return (
-      <div className="app-surface-muted app-border min-h-[280px] rounded-[28px] border border-dashed">
-        <EmptyState title={emptyTitle} />
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative space-y-4 before:absolute before:bottom-8 before:left-[27px] before:top-8 before:w-px before:bg-[var(--color-border)] sm:before:left-[31px]">
-      {records.map((record, index) => (
-        <div className="relative pl-[68px] sm:pl-[78px]" key={String(record.id ?? index)}>
-          <span className="app-surface app-accent-text absolute left-3 top-7 z-10 flex h-8 w-8 items-center justify-center rounded-full border-4 border-[var(--color-page)] text-[10px] font-black sm:left-[15px]">
-            {index + 1}
-          </span>
-          {renderRecord(record)}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-interface RecordCardProps {
-  locale: string
-  onDelete: () => void
-  onEdit: () => void
-  record: HrRecord
-  t: TFunction
-}
-
-function EducationRecordCard({
-  locale,
-  onDelete,
-  onEdit,
-  record,
-  t,
-}: RecordCardProps): JSX.Element {
-  const educationType = getString(record.education_type)
-  const educationDegree = getString(record.education_degree)
-  const speciality = getString(record.speciality)
-
-  return (
-    <article className="app-surface app-border group relative overflow-hidden rounded-[26px] border p-5 transition-colors hover:border-[var(--accent-border)] sm:p-6">
-      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" />
-      <RecordCardHeader
-        badges={
-          <>
-            <SoftBadge>{getEducationTypeLabel(educationType, t)}</SoftBadge>
-            {educationType === 'university' && (
-              <SoftBadge>{getEducationDegreeLabel(educationDegree, t)}</SoftBadge>
-            )}
-          </>
-        }
-        deleteLabel={t('common.actions.delete')}
-        editLabel={t('common.actions.edit')}
-        icon={<FiBookOpen className="h-5 w-5" />}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        title={valueOrEmpty(getString(record.institution_name), t)}
-      />
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {speciality && (
-          <MetaItem
-            icon={<FiAward className="h-4 w-4" />}
-            label={t('forms.fields.speciality')}
-            value={speciality}
-          />
-        )}
-        <MetaItem
-          icon={<FiCalendar className="h-4 w-4" />}
-          label={t('forms.fields.startedAt')}
-          value={formatRelatedDate(record.started_at, locale, t)}
-        />
-        <MetaItem
-          icon={<FiCalendar className="h-4 w-4" />}
-          label={t('forms.fields.endedAt')}
-          value={formatRelatedDate(record.ended_at, locale, t)}
-        />
-        <MetaItem
-          icon={<FiFileText className="h-4 w-4" />}
-          label={t('forms.fields.documentNumber')}
-          value={valueOrEmpty(getString(record.document_number), t)}
-        />
-      </div>
-
-      {getString(record.note) && (
-        <div className="app-border-soft app-muted mt-4 whitespace-pre-line border-t pt-4 text-sm leading-6">
-          {getString(record.note)}
-        </div>
-      )}
-    </article>
-  )
-}
-
-function ExperienceRecordCard({
-  locale,
-  onDelete,
-  onEdit,
-  record,
-  t,
-}: RecordCardProps): JSX.Element {
-  const isCurrent = Number(record.is_current ?? 0) === 1
-
-  return (
-    <article className="app-surface app-border group relative overflow-hidden rounded-[26px] border p-5 transition-colors hover:border-[var(--accent-border)] sm:p-6">
-      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" />
-      <RecordCardHeader
-        badges={isCurrent ? <SoftBadge tone="accent">{t('employeesDetails.experience.current')}</SoftBadge> : null}
-        deleteLabel={t('common.actions.delete')}
-        editLabel={t('common.actions.edit')}
-        icon={<FiBriefcase className="h-5 w-5" />}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        title={valueOrEmpty(getString(record.company_name), t)}
-      />
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <MetaItem
-          icon={<FiBriefcase className="h-4 w-4" />}
-          label={t('forms.fields.experiencePositionName')}
-          value={valueOrEmpty(getString(record.position_name), t)}
-        />
-        <MetaItem
-          icon={<FiCalendar className="h-4 w-4" />}
-          label={t('forms.fields.startedAt')}
-          value={formatRelatedDate(record.started_at, locale, t)}
-        />
-        <MetaItem
-          icon={<FiCalendar className="h-4 w-4" />}
-          label={t('forms.fields.endedAt')}
-          value={isCurrent ? t('employeesDetails.experience.current') : formatRelatedDate(record.ended_at, locale, t)}
-        />
-      </div>
-
-      {getString(record.responsibilities) && (
-        <div className="app-surface-muted app-border mt-4 rounded-2xl border p-4">
-          <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">
-            {t('forms.fields.responsibilities')}
-          </p>
-          <p className="app-text mt-2 whitespace-pre-line text-sm font-medium leading-6">
-            {getString(record.responsibilities)}
-          </p>
-        </div>
-      )}
-      {getString(record.note) && (
-        <div className="app-border-soft app-muted mt-4 whitespace-pre-line border-t pt-4 text-sm leading-6">
-          {getString(record.note)}
-        </div>
-      )}
-    </article>
-  )
-}
-
-interface RecordCardHeaderProps {
-  badges: ReactNode
-  deleteLabel: string
-  editLabel: string
-  icon: ReactNode
-  onDelete: () => void
-  onEdit: () => void
-  title: string
-}
-
-function RecordCardHeader({
-  badges,
-  deleteLabel,
-  editLabel,
-  icon,
-  onDelete,
-  onEdit,
-  title,
-}: RecordCardHeaderProps): JSX.Element {
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex min-w-0 items-start gap-3.5">
-        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-          {icon}
-        </span>
-        <div className="min-w-0 pt-0.5">
-          <h3 className="app-text break-words text-lg font-black leading-snug">{title}</h3>
-          {badges && <div className="mt-2 flex flex-wrap gap-2">{badges}</div>}
-        </div>
-      </div>
-      <div className="flex shrink-0 gap-2 self-end sm:self-auto">
-        <Button
-          aria-label={editLabel}
-          className="app-table-action-button app-table-action-button--edit h-10 w-10 rounded-xl border p-0"
-          onClick={onEdit}
-          type="button"
-          variant="ghost"
-        >
-          <FiEdit2 className="h-4 w-4" />
-        </Button>
-        <Button
-          aria-label={deleteLabel}
-          className="app-table-action-button app-table-action-button--delete h-10 w-10 rounded-xl border p-0"
-          onClick={onDelete}
-          type="button"
-          variant="ghost"
-        >
-          <FiTrash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-interface SoftBadgeProps {
-  children: ReactNode
-  tone?: 'accent' | 'neutral'
-}
-
-function SoftBadge({ children, tone = 'neutral' }: SoftBadgeProps): JSX.Element {
-  return (
-    <span
-      className={[
-        'inline-flex min-h-7 items-center rounded-full border px-3 text-xs font-black',
-        tone === 'accent'
-          ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
-          : 'app-surface-muted app-muted app-border',
-      ].join(' ')}
-    >
-      {children}
-    </span>
-  )
-}
-
-interface MetaItemProps {
-  icon: ReactNode
-  label: string
-  value: string
-}
-
-function MetaItem({ icon, label, value }: MetaItemProps): JSX.Element {
-  return (
-    <div className="app-surface-muted app-border min-w-0 rounded-2xl border p-4">
-      <div className="app-muted flex items-center gap-2">
-        <span className="app-accent-text">{icon}</span>
-        <p className="truncate text-[11px] font-black uppercase tracking-[0.1em]">{label}</p>
-      </div>
-      <p className="app-text mt-2 break-words text-sm font-black leading-5">{value}</p>
-    </div>
-  )
-}
-
-function validateEducation(values: EducationFormValues, t: TFunction): string {
-  if (!values.institution_name.trim()) {
-    return t('forms.validation.required')
-  }
-
-  if (values.education_type === 'university' && !values.education_degree.trim()) {
-    return t('forms.validation.required')
-  }
-
-  if (hasInvalidDateRange(values.started_at, values.ended_at)) {
-    return t('forms.validation.dateRange')
-  }
-
-  return ''
-}
-
-function validateExperience(values: ExperienceFormValues, t: TFunction): string {
-  if (!values.company_name.trim() || !values.position_name.trim()) {
-    return t('forms.validation.required')
-  }
-
-  if (values.is_current !== '1' && hasInvalidDateRange(values.started_at, values.ended_at)) {
-    return t('forms.validation.dateRange')
-  }
-
-  return ''
-}
-
-function mapEducationFormToRecord(employeeId: number, values: EducationFormValues): HrRecord {
-  return {
-    employee_id: employeeId,
-    education_type: values.education_type,
-    education_degree: values.education_type === 'university' ? nullableString(values.education_degree) : null,
-    institution_name: values.institution_name.trim(),
-    speciality: nullableString(values.speciality),
-    started_at: nullableString(values.started_at),
-    ended_at: nullableString(values.ended_at),
-    document_number: nullableString(values.document_number),
-    note: nullableString(values.note),
-  }
-}
-
-function mapExperienceFormToRecord(employeeId: number, values: ExperienceFormValues): HrRecord {
-  return {
-    employee_id: employeeId,
-    company_name: values.company_name.trim(),
-    position_name: values.position_name.trim(),
-    started_at: nullableString(values.started_at),
-    ended_at: values.is_current === '1' ? null : nullableString(values.ended_at),
-    is_current: Number(values.is_current),
-    responsibilities: nullableString(values.responsibilities),
-    note: nullableString(values.note),
-  }
-}
-
-function getEducationTypeLabel(value: string, t: TFunction): string {
-  if (value === 'school') {
-    return t('employeesDetails.education.types.school')
-  }
-
-  if (value === 'university') {
-    return t('employeesDetails.education.types.university')
-  }
-
-  return valueOrEmpty(value, t)
-}
-
-function getEducationDegreeLabel(value: string, t: TFunction): string {
-  const translationKey = `employeesDetails.education.degrees.${value}`
-  const translated = t(translationKey)
-
-  return translated === translationKey ? valueOrEmpty(value, t) : translated
-}
-
-function getRecordId(record: HrRecord | null): number | null {
-  const id = Number(record?.id)
-
-  return Number.isFinite(id) && id > 0 ? id : null
-}
-
-function getString(value: unknown): string {
-  if (value === null || value === undefined) {
-    return ''
-  }
-
-  return String(value)
-}
-
-function nullableString(value: string): string | null {
-  const trimmedValue = value.trim()
-
-  return trimmedValue === '' ? null : trimmedValue
-}
-
-function formatRelatedDate(value: unknown, locale: string, t: TFunction): string {
-  return value ? formatDate(value, locale) : t('employeesDetails.emptyValue')
-}
-
-function hasInvalidDateRange(startedAt: string, endedAt: string): boolean {
-  if (!startedAt || !endedAt) {
-    return false
-  }
-
-  const startTime = new Date(`${startedAt}T00:00:00`).getTime()
-  const endTime = new Date(`${endedAt}T00:00:00`).getTime()
-
-  return Number.isFinite(startTime) && Number.isFinite(endTime) && endTime < startTime
-}
-
-function valueOrEmpty(value: string, t: TFunction): string {
-  return value.trim() || t('employeesDetails.emptyValue')
+  );
 }

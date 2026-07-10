@@ -1,28 +1,40 @@
-import { Controller, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
-import type { TFunction } from 'i18next'
-import type { ReactNode } from 'react'
-import { FieldError, Input, Select, Textarea, type SelectOption } from '../../../shared/ui'
-import type { EmployeeFormValues } from '../types'
+import {
+  Controller,
+  type Control,
+  type FieldErrors,
+  type UseFormRegister,
+} from "react-hook-form";
+import type { TFunction } from "i18next";
+import type { ReactNode } from "react";
+import { FiBriefcase, FiFileText, FiHome, FiUser } from "react-icons/fi";
+import {
+  FieldError,
+  Input,
+  Select,
+  Textarea,
+  type SelectOption,
+} from "../../../shared/ui";
+import type { EmployeeFormValues } from "../types";
 
 export interface EmployeeFormSectionCommonProps {
-  control: Control<EmployeeFormValues>
-  errors: FieldErrors<EmployeeFormValues>
-  register: UseFormRegister<EmployeeFormValues>
-  t: TFunction
+  control: Control<EmployeeFormValues>;
+  errors: FieldErrors<EmployeeFormValues>;
+  register: UseFormRegister<EmployeeFormValues>;
+  t: TFunction;
 }
 
 export interface EmployeePersonalFormSectionProps extends EmployeeFormSectionCommonProps {
-  genderOptions: SelectOption[]
-  normalizeField: (name: keyof EmployeeFormValues) => void
+  genderOptions: SelectOption[];
+  normalizeField: (name: keyof EmployeeFormValues) => void;
 }
 
 export interface EmployeeAddressFormSectionProps extends EmployeeFormSectionCommonProps {}
 
 export interface EmployeeCompanyFormSectionProps extends EmployeeFormSectionCommonProps {
-  departments: SelectOption[]
-  isRelationsLoading: boolean
-  positions: SelectOption[]
-  statusOptions: SelectOption[]
+  departments: SelectOption[];
+  isRelationsLoading: boolean;
+  positions: SelectOption[];
+  statusOptions: SelectOption[];
 }
 
 export interface EmployeeNotesFormSectionProps extends EmployeeFormSectionCommonProps {}
@@ -36,52 +48,66 @@ export function EmployeePersonalFormSection({
   t,
 }: EmployeePersonalFormSectionProps): JSX.Element {
   return (
-    <FormCard title={t('employeesCreate.steps.personal')}>
+    <FormCard
+      description={t("employeesCreate.stepDescriptions.personal")}
+      icon={<FiUser className="h-5 w-5" />}
+      title={t("employeesCreate.steps.personal")}
+    >
       <TextField
-        error={getError('last_name', errors, t)}
-        label={t('forms.fields.lastName')}
-        registration={register('last_name', { onBlur: () => normalizeField('last_name') })}
+        error={getError("last_name", errors, t)}
+        label={t("forms.fields.lastName")}
+        registration={register("last_name", {
+          onBlur: () => normalizeField("last_name"),
+        })}
         required
       />
       <TextField
-        error={getError('first_name', errors, t)}
-        label={t('forms.fields.firstName')}
-        registration={register('first_name', { onBlur: () => normalizeField('first_name') })}
+        error={getError("first_name", errors, t)}
+        label={t("forms.fields.firstName")}
+        registration={register("first_name", {
+          onBlur: () => normalizeField("first_name"),
+        })}
         required
       />
       <TextField
-        error={getError('middle_name', errors, t)}
-        label={t('forms.fields.middleName')}
-        registration={register('middle_name', { onBlur: () => normalizeField('middle_name') })}
+        error={getError("middle_name", errors, t)}
+        label={t("forms.fields.middleName")}
+        registration={register("middle_name", {
+          onBlur: () => normalizeField("middle_name"),
+        })}
       />
       <TextField
-        error={getError('birth_date', errors, t)}
-        label={t('forms.fields.birthDate')}
-        registration={register('birth_date')}
+        error={getError("birth_date", errors, t)}
+        label={t("forms.fields.birthDate")}
+        registration={register("birth_date")}
         type="date"
       />
       <SelectField
         control={control}
-        error={getError('gender', errors, t)}
-        label={t('forms.fields.gender')}
+        error={getError("gender", errors, t)}
+        label={t("forms.fields.gender")}
         name="gender"
         options={genderOptions}
-        placeholder={t('forms.placeholders.select')}
+        placeholder={t("forms.placeholders.select")}
       />
       <TextField
-        error={getError('phone', errors, t)}
-        label={t('forms.fields.phone')}
-        registration={register('phone', { onBlur: () => normalizeField('phone') })}
+        error={getError("phone", errors, t)}
+        label={t("forms.fields.phone")}
+        registration={register("phone", {
+          onBlur: () => normalizeField("phone"),
+        })}
         type="tel"
       />
       <TextField
-        error={getError('email', errors, t)}
-        label={t('forms.fields.email')}
-        registration={register('email', { onBlur: () => normalizeField('email') })}
+        error={getError("email", errors, t)}
+        label={t("forms.fields.email")}
+        registration={register("email", {
+          onBlur: () => normalizeField("email"),
+        })}
         type="email"
       />
     </FormCard>
-  )
+  );
 }
 
 export function EmployeeAddressFormSection({
@@ -90,39 +116,43 @@ export function EmployeeAddressFormSection({
   t,
 }: EmployeeAddressFormSectionProps): JSX.Element {
   return (
-    <FormCard title={t('employeesCreate.steps.address')}>
+    <FormCard
+      description={t("employeesCreate.stepDescriptions.address")}
+      icon={<FiHome className="h-5 w-5" />}
+      title={t("employeesCreate.steps.address")}
+    >
       <TextField
-        error={getError('address_country', errors, t)}
-        label={t('forms.fields.addressCountry')}
-        registration={register('address_country')}
+        error={getError("address_country", errors, t)}
+        label={t("forms.fields.addressCountry")}
+        registration={register("address_country")}
       />
       <TextField
-        error={getError('address_city', errors, t)}
-        label={t('forms.fields.addressCity')}
-        registration={register('address_city')}
+        error={getError("address_city", errors, t)}
+        label={t("forms.fields.addressCity")}
+        registration={register("address_city")}
       />
       <TextField
-        error={getError('address_street', errors, t)}
-        label={t('forms.fields.addressStreet')}
-        registration={register('address_street')}
+        error={getError("address_street", errors, t)}
+        label={t("forms.fields.addressStreet")}
+        registration={register("address_street")}
       />
       <TextField
-        error={getError('address_house', errors, t)}
-        label={t('forms.fields.addressHouse')}
-        registration={register('address_house')}
+        error={getError("address_house", errors, t)}
+        label={t("forms.fields.addressHouse")}
+        registration={register("address_house")}
       />
       <TextField
-        error={getError('address_apartment', errors, t)}
-        label={t('forms.fields.addressApartment')}
-        registration={register('address_apartment')}
+        error={getError("address_apartment", errors, t)}
+        label={t("forms.fields.addressApartment")}
+        registration={register("address_apartment")}
       />
       <TextareaField
-        error={getError('address', errors, t)}
-        label={t('forms.fields.address')}
-        registration={register('address')}
+        error={getError("address", errors, t)}
+        label={t("forms.fields.address")}
+        registration={register("address")}
       />
     </FormCard>
-  )
+  );
 }
 
 export function EmployeeCompanyFormSection({
@@ -136,61 +166,65 @@ export function EmployeeCompanyFormSection({
   t,
 }: EmployeeCompanyFormSectionProps): JSX.Element {
   return (
-    <FormCard title={t('employeesCreate.steps.company')}>
+    <FormCard
+      description={t("employeesCreate.stepDescriptions.company")}
+      icon={<FiBriefcase className="h-5 w-5" />}
+      title={t("employeesCreate.steps.company")}
+    >
       <SelectField
         control={control}
         disabled={isRelationsLoading}
-        error={getError('department_id', errors, t)}
-        label={t('forms.fields.departmentId')}
+        error={getError("department_id", errors, t)}
+        label={t("forms.fields.departmentId")}
         name="department_id"
         options={departments}
         placeholder={
           isRelationsLoading
-            ? t('forms.placeholders.loadingOptions')
-            : t('forms.placeholders.selectDepartment')
+            ? t("forms.placeholders.loadingOptions")
+            : t("forms.placeholders.selectDepartment")
         }
         required
       />
       <SelectField
         control={control}
         disabled={isRelationsLoading}
-        error={getError('position_id', errors, t)}
-        label={t('forms.fields.positionId')}
+        error={getError("position_id", errors, t)}
+        label={t("forms.fields.positionId")}
         name="position_id"
         options={positions}
         placeholder={
           isRelationsLoading
-            ? t('forms.placeholders.loadingOptions')
-            : t('forms.placeholders.selectPosition')
+            ? t("forms.placeholders.loadingOptions")
+            : t("forms.placeholders.selectPosition")
         }
         required
       />
       <TextField
-        error={getError('hire_date', errors, t)}
-        label={t('forms.fields.hireDate')}
-        registration={register('hire_date')}
+        error={getError("hire_date", errors, t)}
+        label={t("forms.fields.hireDate")}
+        registration={register("hire_date")}
         required
         type="date"
       />
       <SelectField
         control={control}
-        error={getError('status', errors, t)}
-        label={t('forms.fields.status')}
+        error={getError("status", errors, t)}
+        label={t("forms.fields.status")}
         name="status"
         options={statusOptions}
-        placeholder={t('forms.placeholders.select')}
+        placeholder={t("forms.placeholders.select")}
         required
       />
       <TextField
-        error={getError('salary', errors, t)}
-        label={t('forms.fields.salary')}
+        error={getError("salary", errors, t)}
+        label={t("forms.fields.salary")}
         min={0}
-        registration={register('salary')}
+        registration={register("salary")}
         required
         type="number"
       />
     </FormCard>
-  )
+  );
 }
 
 export function EmployeeNotesFormSection({
@@ -199,37 +233,60 @@ export function EmployeeNotesFormSection({
   t,
 }: EmployeeNotesFormSectionProps): JSX.Element {
   return (
-    <FormCard title={t('forms.fields.note')}>
+    <FormCard
+      description={t("employeesCreate.stepDescriptions.notes")}
+      icon={<FiFileText className="h-5 w-5" />}
+      title={t("forms.fields.note")}
+    >
       <TextareaField
-        error={getError('note', errors, t)}
-        label={t('forms.fields.note')}
-        registration={register('note')}
+        error={getError("note", errors, t)}
+        label={t("forms.fields.note")}
+        registration={register("note")}
       />
     </FormCard>
-  )
+  );
 }
 
 interface FormCardProps {
-  children: ReactNode
-  title: string
+  children: ReactNode;
+  description: string;
+  icon: ReactNode;
+  title: string;
 }
 
-function FormCard({ children, title }: FormCardProps): JSX.Element {
+function FormCard({
+  children,
+  description,
+  icon,
+  title,
+}: FormCardProps): JSX.Element {
   return (
-    <section>
-      <h2 className="app-text text-xl font-black">{title}</h2>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">{children}</div>
+    <section className="app-surface-muted app-border rounded-[24px] border p-5 sm:p-6">
+      <header className="flex items-start gap-3.5">
+        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h2 className="app-text text-lg font-black tracking-tight">
+            {title}
+          </h2>
+          <p className="app-muted mt-1 text-sm leading-5">{description}</p>
+        </div>
+      </header>
+      <div className="app-border-soft mt-5 grid gap-4 border-t pt-5 md:grid-cols-2">
+        {children}
+      </div>
     </section>
-  )
+  );
 }
 
 interface TextFieldProps {
-  error?: string
-  label: string
-  min?: number
-  registration: ReturnType<UseFormRegister<EmployeeFormValues>>
-  required?: boolean
-  type?: string
+  error?: string;
+  label: string;
+  min?: number;
+  registration: ReturnType<UseFormRegister<EmployeeFormValues>>;
+  required?: boolean;
+  type?: string;
 }
 
 function TextField({
@@ -238,7 +295,7 @@ function TextField({
   min,
   registration,
   required = false,
-  type = 'text',
+  type = "text",
 }: TextFieldProps): JSX.Element {
   return (
     <label className="block">
@@ -249,34 +306,38 @@ function TextField({
       <Input invalid={Boolean(error)} min={min} type={type} {...registration} />
       <FieldError message={error} />
     </label>
-  )
+  );
 }
 
 interface TextareaFieldProps {
-  error?: string
-  label: string
-  registration: ReturnType<UseFormRegister<EmployeeFormValues>>
+  error?: string;
+  label: string;
+  registration: ReturnType<UseFormRegister<EmployeeFormValues>>;
 }
 
-function TextareaField({ error, label, registration }: TextareaFieldProps): JSX.Element {
+function TextareaField({
+  error,
+  label,
+  registration,
+}: TextareaFieldProps): JSX.Element {
   return (
     <label className="block md:col-span-2">
       <span className="app-text mb-2 block text-sm font-bold">{label}</span>
       <Textarea {...registration} />
       <FieldError message={error} />
     </label>
-  )
+  );
 }
 
 interface SelectFieldProps {
-  control: Control<EmployeeFormValues>
-  disabled?: boolean
-  error?: string
-  label: string
-  name: keyof EmployeeFormValues
-  options: SelectOption[]
-  placeholder: string
-  required?: boolean
+  control: Control<EmployeeFormValues>;
+  disabled?: boolean;
+  error?: string;
+  label: string;
+  name: keyof EmployeeFormValues;
+  options: SelectOption[];
+  placeholder: string;
+  required?: boolean;
 }
 
 function SelectField({
@@ -289,7 +350,7 @@ function SelectField({
   placeholder,
   required = false,
 }: SelectFieldProps): JSX.Element {
-  const allowEmpty = !required
+  const allowEmpty = !required;
 
   return (
     <label className="block">
@@ -317,7 +378,7 @@ function SelectField({
       />
       <FieldError message={error} />
     </label>
-  )
+  );
 }
 
 function getError(
@@ -325,7 +386,7 @@ function getError(
   errors: FieldErrors<EmployeeFormValues>,
   t: TFunction,
 ): string | undefined {
-  const message = errors[name]?.message
+  const message = errors[name]?.message;
 
-  return typeof message === 'string' ? t(message) : undefined
+  return typeof message === "string" ? t(message) : undefined;
 }

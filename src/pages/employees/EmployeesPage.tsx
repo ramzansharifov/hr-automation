@@ -84,6 +84,7 @@ export function EmployeesPage(): JSX.Element {
       className="h-[85vh]"
       entity="employees"
       externalFilters={appliedFilters}
+      flat
       hideToolbarSearch
       onCreateClick={() => navigate("/employees/new")}
       onRowClick={handleRowClick}
