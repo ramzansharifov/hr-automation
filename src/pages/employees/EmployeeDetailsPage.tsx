@@ -2,7 +2,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { motion } from "framer-motion";
 import type { TFunction } from "i18next";
-import { FiCalendar, FiEdit2, FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiEdit2,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiUser,
+} from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -17,9 +24,7 @@ import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import { HRLogo } from "../../app/brand/HRLogo";
-import {
-  EmployeeSectionEditDialog,
-} from "../../features/employees/forms/EmployeeSectionEditDialog";
+import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
 import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
 
 export function EmployeeDetailsPage(): JSX.Element {
@@ -34,7 +39,8 @@ export function EmployeeDetailsPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editingSection, setEditingSection] = useState<EmployeeFormSectionKey | null>(null);
+  const [editingSection, setEditingSection] =
+    useState<EmployeeFormSectionKey | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -93,7 +99,9 @@ export function EmployeeDetailsPage(): JSX.Element {
     };
   }, [employeeId, t]);
 
-  async function refreshEmployeeRelationLabels(record: HrRecord): Promise<void> {
+  async function refreshEmployeeRelationLabels(
+    record: HrRecord,
+  ): Promise<void> {
     const departmentId = toNumber(record.department_id);
     const positionId = toNumber(record.position_id);
 
@@ -313,7 +321,7 @@ function EmployeePassportCard({
       transition={{ duration: 0.42, delay: 0.12, ease: "easeOut" }}
       className="app-surface app-shadow-lg mx-auto max-w-7xl overflow-hidden rounded-[36px] border"
     >
-      <div className="grid min-h-[560px] xl:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
         <motion.aside
           initial={{ opacity: 0, x: -24 }}
           animate={{ opacity: 1, x: 0 }}
@@ -359,12 +367,12 @@ function EmployeePassportCard({
           </div>
         </motion.aside>
 
-        <div className="min-w-0 bg-[var(--color-surface-muted)]">
+        <div className="min-w-0 bg-[var(--color-surface-muted)] flex flex-col">
           <motion.header
             initial={{ opacity: 0, y: -18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.36, delay: 0.22, ease: "easeOut" }}
-            className="app-passport-header-gradient flex min-h-[132px] items-center justify-between gap-6 px-9 py-7 text-white"
+            className="app-passport-header-gradient flex min-h-[132px] items-center justify-between gap-6 px-9 py-7 text-white rounded-br-2xl"
           >
             <h2 className="min-w-0 truncate text-3xl font-black tracking-tight sm:text-4xl">
               {fullName || t("employeesDetails.title")}
@@ -375,7 +383,7 @@ function EmployeePassportCard({
             </span>
           </motion.header>
 
-          <div className="px-6 py-6 sm:px-8 xl:px-10">
+          <div className="flex-1 px-6 py-6 sm:px-8 xl:px-10">
             <div className="grid gap-4 xl:grid-cols-2">
               <CardInfoBox
                 icon={<FiPhone className="h-6 w-6" />}
