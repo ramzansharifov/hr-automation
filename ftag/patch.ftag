@@ -1,1058 +1,633 @@
-@folder src/features/employees/forms
-
-@write src/features/employees/forms/employeeFormValidation.ts
-import { z } from 'zod'
-
-export const requiredMessage = 'forms.validation.required'
-export const invalidEmailMessage = 'forms.validation.email'
-export const nonNegativeMessage = 'forms.validation.nonNegative'
-
-export function requiredString(): z.ZodString {
-  return z.string().trim().min(1, requiredMessage)
-}
-
-export function optionalString(): z.ZodOptional<z.ZodString> {
-  return z.string().optional()
-}
-
-export function optionalEmail(): z.ZodString {
-  return z
-    .string()
-    .trim()
-    .refine((value) => value === '' || z.email().safeParse(value).success, invalidEmailMessage)
-}
-
-export function requiredNumberString(): z.ZodString {
-  return z
-    .string()
-    .trim()
-    .min(1, requiredMessage)
-    .refine((value) => Number.isFinite(Number(value)), requiredMessage)
-    .refine((value) => Number(value) >= 0, nonNegativeMessage)
-}
-
-export const employeePersonalSchema = z.object({
-  last_name: requiredString(),
-  first_name: requiredString(),
-  middle_name: optionalString(),
-  birth_date: optionalString(),
-  gender: optionalString(),
-  phone: optionalString(),
-  email: optionalEmail(),
-})
-
-export const employeeAddressSchema = z.object({
-  address_country: optionalString(),
-  address_city: optionalString(),
-  address_street: optionalString(),
-  address_house: optionalString(),
-  address_apartment: optionalString(),
-  address: optionalString(),
-})
-
-export const employeeCompanySchema = z.object({
-  department_id: requiredNumberString(),
-  position_id: requiredNumberString(),
-  hire_date: requiredString(),
-  status: requiredString(),
-  salary: requiredNumberString(),
-})
-
-export const employeeNotesSchema = z.object({
-  note: optionalString(),
-})
-
-export const employeeCreateSchema = employeePersonalSchema
-  .merge(employeeAddressSchema)
-  .merge(employeeCompanySchema)
-  .merge(employeeNotesSchema)
-
-export const employeeSectionSchemas = {
-  personal: employeePersonalSchema,
-  address: employeeAddressSchema,
-  company: employeeCompanySchema,
-  notes: employeeNotesSchema,
-} as const
-
-export type EmployeeFormSectionKey = keyof typeof employeeSectionSchemas
-
-export const employeeSectionFields = {
-  personal: ['last_name', 'first_name', 'middle_name', 'birth_date', 'gender', 'phone', 'email'],
-  address: [
-    'address_country',
-    'address_city',
-    'address_street',
-    'address_house',
-    'address_apartment',
-    'address',
-  ],
-  company: ['department_id', 'position_id', 'hire_date', 'status', 'salary'],
-  notes: ['note'],
-} as const
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+import { FiEdit2, FiPlus, FiTrash2 } from 'react-icons/fi'
+@endfind
+@with
+import {
+  FiAward,
+  FiBookOpen,
+  FiBriefcase,
+  FiCalendar,
+  FiEdit2,
+  FiFileText,
+  FiPlus,
+  FiTrash2,
+} from 'react-icons/fi'
+@endwith
 @end
 
-@write src/features/employees/forms/employeeFormRecordMapper.ts
-import type { HrRecord } from '../../../shared/types/hr'
-import { employeeDefaultValues, type EmployeeFormValues } from '../types'
-import {
-  mapEmployeeFormValuesToRecord,
-  normalizeEmployeeFormValues,
-} from '../lib/employeeFormatters'
-import {
-  employeeSectionFields,
-  type EmployeeFormSectionKey,
-} from './employeeFormValidation'
-
-function valueToString(value: unknown): string {
-  if (value === null || value === undefined) {
-    return ''
-  }
-
-  return String(value)
-}
-
-export function mapEmployeeRecordToFormValues(record: HrRecord | null | undefined): EmployeeFormValues {
-  if (!record) {
-    return employeeDefaultValues
-  }
-
-  return {
-    last_name: valueToString(record.last_name),
-    first_name: valueToString(record.first_name),
-    middle_name: valueToString(record.middle_name),
-    birth_date: valueToString(record.birth_date),
-    gender: valueToString(record.gender),
-    phone: valueToString(record.phone),
-    email: valueToString(record.email),
-    address_country: valueToString(record.address_country),
-    address_city: valueToString(record.address_city),
-    address_street: valueToString(record.address_street),
-    address_house: valueToString(record.address_house),
-    address_apartment: valueToString(record.address_apartment),
-    address: valueToString(record.address),
-    department_id: valueToString(record.department_id),
-    position_id: valueToString(record.position_id),
-    hire_date: valueToString(record.hire_date),
-    status: valueToString(record.status) || employeeDefaultValues.status,
-    salary: valueToString(record.salary) || employeeDefaultValues.salary,
-    note: valueToString(record.note),
-  }
-}
-
-export function mapEmployeeFormSectionToRecord(
-  section: EmployeeFormSectionKey,
-  values: EmployeeFormValues,
-): HrRecord {
-  const normalizedValues = normalizeEmployeeFormValues(values)
-  const fullRecord = mapEmployeeFormValuesToRecord(normalizedValues)
-  const sectionRecord: HrRecord = {}
-
-  employeeSectionFields[section].forEach((field) => {
-    sectionRecord[field] = fullRecord[field]
-  })
-
-  return sectionRecord
-}
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+      <RelatedRecordsHeader
+        actionLabel={t('employeesDetails.education.formTitle')}
+        description={t('employeesDetails.education.description')}
+        onAction={openCreateDialog}
+        title={t('employeesDetails.sections.education')}
+      />
+@endfind
+@with
+      <RelatedRecordsHeader
+        actionLabel={t('employeesDetails.education.formTitle')}
+        description={t('employeesDetails.education.description')}
+        icon={<FiBookOpen className="h-6 w-6" />}
+        onAction={openCreateDialog}
+        recordCount={records.length}
+        title={t('employeesDetails.sections.education')}
+      />
+@endwith
 @end
 
-@write src/features/employees/forms/EmployeeFormSections.tsx
-import { Controller, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
-import type { TFunction } from 'i18next'
-import type { ReactNode } from 'react'
-import { FieldError, Input, Select, Textarea, type SelectOption } from '../../../shared/ui'
-import type { EmployeeFormValues } from '../types'
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+      <RelatedRecordsHeader
+        actionLabel={t('employeesDetails.experience.formTitle')}
+        description={t('employeesDetails.experience.description')}
+        onAction={openCreateDialog}
+        title={t('employeesDetails.sections.experience')}
+      />
+@endfind
+@with
+      <RelatedRecordsHeader
+        actionLabel={t('employeesDetails.experience.formTitle')}
+        description={t('employeesDetails.experience.description')}
+        icon={<FiBriefcase className="h-6 w-6" />}
+        onAction={openCreateDialog}
+        recordCount={records.length}
+        title={t('employeesDetails.sections.experience')}
+      />
+@endwith
+@end
 
-export interface EmployeeFormSectionCommonProps {
-  control: Control<EmployeeFormValues>
-  errors: FieldErrors<EmployeeFormValues>
-  register: UseFormRegister<EmployeeFormValues>
-  t: TFunction
-}
-
-export interface EmployeePersonalFormSectionProps extends EmployeeFormSectionCommonProps {
-  genderOptions: SelectOption[]
-  normalizeField: (name: keyof EmployeeFormValues) => void
-}
-
-export interface EmployeeAddressFormSectionProps extends EmployeeFormSectionCommonProps {}
-
-export interface EmployeeCompanyFormSectionProps extends EmployeeFormSectionCommonProps {
-  departments: SelectOption[]
-  isRelationsLoading: boolean
-  positions: SelectOption[]
-  statusOptions: SelectOption[]
-}
-
-export interface EmployeeNotesFormSectionProps extends EmployeeFormSectionCommonProps {}
-
-export function EmployeePersonalFormSection({
-  control,
-  errors,
-  genderOptions,
-  normalizeField,
-  register,
-  t,
-}: EmployeePersonalFormSectionProps): JSX.Element {
-  return (
-    <FormCard title={t('employeesCreate.steps.personal')}>
-      <TextField
-        error={getError('last_name', errors, t)}
-        label={t('forms.fields.lastName')}
-        registration={register('last_name', { onBlur: () => normalizeField('last_name') })}
-        required
-      />
-      <TextField
-        error={getError('first_name', errors, t)}
-        label={t('forms.fields.firstName')}
-        registration={register('first_name', { onBlur: () => normalizeField('first_name') })}
-        required
-      />
-      <TextField
-        error={getError('middle_name', errors, t)}
-        label={t('forms.fields.middleName')}
-        registration={register('middle_name', { onBlur: () => normalizeField('middle_name') })}
-      />
-      <TextField
-        error={getError('birth_date', errors, t)}
-        label={t('forms.fields.birthDate')}
-        registration={register('birth_date')}
-        type="date"
-      />
-      <SelectField
-        control={control}
-        error={getError('gender', errors, t)}
-        label={t('forms.fields.gender')}
-        name="gender"
-        options={genderOptions}
-        placeholder={t('forms.placeholders.select')}
-      />
-      <TextField
-        error={getError('phone', errors, t)}
-        label={t('forms.fields.phone')}
-        registration={register('phone', { onBlur: () => normalizeField('phone') })}
-        type="tel"
-      />
-      <TextField
-        error={getError('email', errors, t)}
-        label={t('forms.fields.email')}
-        registration={register('email', { onBlur: () => normalizeField('email') })}
-        type="email"
-      />
-    </FormCard>
-  )
-}
-
-export function EmployeeAddressFormSection({
-  errors,
-  register,
-  t,
-}: EmployeeAddressFormSectionProps): JSX.Element {
-  return (
-    <FormCard title={t('employeesCreate.steps.address')}>
-      <TextField
-        error={getError('address_country', errors, t)}
-        label={t('forms.fields.addressCountry')}
-        registration={register('address_country')}
-      />
-      <TextField
-        error={getError('address_city', errors, t)}
-        label={t('forms.fields.addressCity')}
-        registration={register('address_city')}
-      />
-      <TextField
-        error={getError('address_street', errors, t)}
-        label={t('forms.fields.addressStreet')}
-        registration={register('address_street')}
-      />
-      <TextField
-        error={getError('address_house', errors, t)}
-        label={t('forms.fields.addressHouse')}
-        registration={register('address_house')}
-      />
-      <TextField
-        error={getError('address_apartment', errors, t)}
-        label={t('forms.fields.addressApartment')}
-        registration={register('address_apartment')}
-      />
-      <TextareaField
-        error={getError('address', errors, t)}
-        label={t('forms.fields.address')}
-        registration={register('address')}
-      />
-    </FormCard>
-  )
-}
-
-export function EmployeeCompanyFormSection({
-  control,
-  departments,
-  errors,
-  isRelationsLoading,
-  positions,
-  register,
-  statusOptions,
-  t,
-}: EmployeeCompanyFormSectionProps): JSX.Element {
-  return (
-    <FormCard title={t('employeesCreate.steps.company')}>
-      <SelectField
-        control={control}
-        disabled={isRelationsLoading}
-        error={getError('department_id', errors, t)}
-        label={t('forms.fields.departmentId')}
-        name="department_id"
-        options={departments}
-        placeholder={
-          isRelationsLoading
-            ? t('forms.placeholders.loadingOptions')
-            : t('forms.placeholders.selectDepartment')
-        }
-        required
-      />
-      <SelectField
-        control={control}
-        disabled={isRelationsLoading}
-        error={getError('position_id', errors, t)}
-        label={t('forms.fields.positionId')}
-        name="position_id"
-        options={positions}
-        placeholder={
-          isRelationsLoading
-            ? t('forms.placeholders.loadingOptions')
-            : t('forms.placeholders.selectPosition')
-        }
-        required
-      />
-      <TextField
-        error={getError('hire_date', errors, t)}
-        label={t('forms.fields.hireDate')}
-        registration={register('hire_date')}
-        required
-        type="date"
-      />
-      <SelectField
-        control={control}
-        error={getError('status', errors, t)}
-        label={t('forms.fields.status')}
-        name="status"
-        options={statusOptions}
-        placeholder={t('forms.placeholders.select')}
-        required
-      />
-      <TextField
-        error={getError('salary', errors, t)}
-        label={t('forms.fields.salary')}
-        min={0}
-        registration={register('salary')}
-        required
-        type="number"
-      />
-    </FormCard>
-  )
-}
-
-export function EmployeeNotesFormSection({
-  errors,
-  register,
-  t,
-}: EmployeeNotesFormSectionProps): JSX.Element {
-  return (
-    <FormCard title={t('forms.fields.note')}>
-      <TextareaField
-        error={getError('note', errors, t)}
-        label={t('forms.fields.note')}
-        registration={register('note')}
-      />
-    </FormCard>
-  )
-}
-
-interface FormCardProps {
-  children: ReactNode
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+interface RelatedRecordsHeaderProps {
+  actionLabel: string
+  description: string
+  onAction: () => void
   title: string
 }
 
-function FormCard({ children, title }: FormCardProps): JSX.Element {
+function RelatedRecordsHeader({
+  actionLabel,
+  description,
+  onAction,
+  title,
+}: RelatedRecordsHeaderProps): JSX.Element {
   return (
-    <section>
-      <h2 className="app-text text-xl font-black">{title}</h2>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
+    <div className="app-border-soft flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <h2 className="app-text text-2xl font-black">{title}</h2>
+        <p className="app-muted mt-1 max-w-2xl text-sm">{description}</p>
+      </div>
+      <Button
+        className="shrink-0"
+        leftIcon={<FiPlus className="h-4 w-4" />}
+        onClick={onAction}
+        type="button"
+        variant="primary"
+      >
+        {actionLabel}
+      </Button>
+    </div>
   )
 }
-
-interface TextFieldProps {
-  error?: string
-  label: string
-  min?: number
-  registration: ReturnType<UseFormRegister<EmployeeFormValues>>
-  required?: boolean
-  type?: string
+@endfind
+@with
+interface RelatedRecordsHeaderProps {
+  actionLabel: string
+  description: string
+  icon: ReactNode
+  onAction: () => void
+  recordCount: number
+  title: string
 }
 
-function TextField({
-  error,
-  label,
-  min,
-  registration,
-  required = false,
-  type = 'text',
-}: TextFieldProps): JSX.Element {
+function RelatedRecordsHeader({
+  actionLabel,
+  description,
+  icon,
+  onAction,
+  recordCount,
+  title,
+}: RelatedRecordsHeaderProps): JSX.Element {
   return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">
-        {label}
-        {required && <span className="text-rose-500"> *</span>}
-      </span>
-      <Input invalid={Boolean(error)} min={min} type={type} {...registration} />
-      <FieldError message={error} />
-    </label>
-  )
-}
+    <header className="app-surface-muted app-border relative overflow-hidden rounded-[28px] border p-5 sm:p-6">
+      <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[var(--accent-soft)] opacity-70" />
 
-interface TextareaFieldProps {
-  error?: string
-  label: string
-  registration: ReturnType<UseFormRegister<EmployeeFormValues>>
-}
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="app-accent-soft flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
+            {icon}
+          </span>
 
-function TextareaField({ error, label, registration }: TextareaFieldProps): JSX.Element {
-  return (
-    <label className="block md:col-span-2">
-      <span className="app-text mb-2 block text-sm font-bold">{label}</span>
-      <Textarea {...registration} />
-      <FieldError message={error} />
-    </label>
-  )
-}
-
-interface SelectFieldProps {
-  control: Control<EmployeeFormValues>
-  disabled?: boolean
-  error?: string
-  label: string
-  name: keyof EmployeeFormValues
-  options: SelectOption[]
-  placeholder: string
-  required?: boolean
-}
-
-function SelectField({
-  control,
-  disabled = false,
-  error,
-  label,
-  name,
-  options,
-  placeholder,
-  required = false,
-}: SelectFieldProps): JSX.Element {
-  const allowEmpty = !required
-
-  return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">
-        {label}
-        {required && <span className="text-rose-500"> *</span>}
-      </span>
-      <Controller
-        control={control}
-        name={name}
-        render={({ field }) => (
-          <Select
-            allowEmpty={allowEmpty}
-            disabled={disabled}
-            emptyOptionLabel="Не выбрано"
-            invalid={Boolean(error)}
-            name={field.name}
-            onBlur={field.onBlur}
-            onValueChange={field.onChange}
-            options={options}
-            placeholder={placeholder}
-            value={field.value}
-          />
-        )}
-      />
-      <FieldError message={error} />
-    </label>
-  )
-}
-
-function getError(
-  name: keyof EmployeeFormValues,
-  errors: FieldErrors<EmployeeFormValues>,
-  t: TFunction,
-): string | undefined {
-  const message = errors[name]?.message
-
-  return typeof message === 'string' ? t(message) : undefined
-}
-@end
-
-@write src/features/employees/forms/EmployeeSectionEditDialog.tsx
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState } from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'react-toastify'
-import type { HrRecord } from '../../../shared/types/hr'
-import { Button, Dialog, type SelectOption } from '../../../shared/ui'
-import { hrApiClient } from '../../../shared/lib/hrApiClient'
-import {
-  normalizeEmail,
-  normalizePersonName,
-  normalizePhone,
-} from '../lib/employeeFormatters'
-import { loadEmployeeRelationOptions } from '../lib/employeeRelations'
-import type { EmployeeFormValues } from '../types'
-import {
-  EmployeeAddressFormSection,
-  EmployeeCompanyFormSection,
-  EmployeeNotesFormSection,
-  EmployeePersonalFormSection,
-} from './EmployeeFormSections'
-import {
-  employeeSectionSchemas,
-  type EmployeeFormSectionKey,
-} from './employeeFormValidation'
-import {
-  mapEmployeeFormSectionToRecord,
-  mapEmployeeRecordToFormValues,
-} from './employeeFormRecordMapper'
-
-interface EmployeeSectionEditDialogProps {
-  employee: HrRecord
-  employeeId: number
-  onOpenChange: (open: boolean) => void
-  onSaved: (employee: HrRecord) => void | Promise<void>
-  open: boolean
-  section: EmployeeFormSectionKey | null
-}
-
-export function EmployeeSectionEditDialog({
-  employee,
-  employeeId,
-  onOpenChange,
-  onSaved,
-  open,
-  section,
-}: EmployeeSectionEditDialogProps): JSX.Element {
-  const { t } = useTranslation()
-  const activeSection = section ?? 'personal'
-  const [departments, setDepartments] = useState<SelectOption[]>([])
-  const [positions, setPositions] = useState<SelectOption[]>([])
-  const [isRelationsLoading, setIsRelationsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const defaultValues = useMemo(() => mapEmployeeRecordToFormValues(employee), [employee])
-  const {
-    control,
-    formState: { errors },
-    getValues,
-    handleSubmit,
-    register,
-    reset,
-    setValue,
-  } = useForm<EmployeeFormValues>({
-    defaultValues,
-    resolver: zodResolver(employeeSectionSchemas[activeSection]) as Resolver<EmployeeFormValues>,
-  })
-
-  const statusOptions = useMemo(
-    () => [
-      { value: 'active', label: t('common.status.active') },
-      { value: 'inactive', label: t('common.status.inactive') },
-    ],
-    [t],
-  )
-
-  const genderOptions = useMemo(
-    () => [
-      { value: 'male', label: t('common.status.male') },
-      { value: 'female', label: t('common.status.female') },
-    ],
-    [t],
-  )
-
-  useEffect(() => {
-    reset(defaultValues)
-  }, [defaultValues, reset, activeSection, open])
-
-  useEffect(() => {
-    let isActive = true
-
-    setIsRelationsLoading(true)
-    loadEmployeeRelationOptions()
-      .then((options) => {
-        if (!isActive) {
-          return
-        }
-
-        setDepartments(options.departments)
-        setPositions(options.positions)
-      })
-      .catch(() => {
-        toast.error(t('forms.toasts.relationsLoadError'))
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsRelationsLoading(false)
-        }
-      })
-
-    return () => {
-      isActive = false
-    }
-  }, [t])
-
-  function normalizeField(name: keyof EmployeeFormValues): void {
-    const value = getValues(name)
-
-    if (name === 'last_name' || name === 'first_name' || name === 'middle_name') {
-      setValue(name, normalizePersonName(value), { shouldValidate: true })
-      return
-    }
-
-    if (name === 'email') {
-      setValue(name, normalizeEmail(value), { shouldValidate: true })
-      return
-    }
-
-    if (name === 'phone') {
-      setValue(name, normalizePhone(value), { shouldValidate: true })
-    }
-  }
-
-  async function handleSave(): Promise<void> {
-    if (!Number.isFinite(employeeId) || !section) {
-      return
-    }
-
-    setIsSubmitting(true)
-
-    try {
-      const updatedEmployee = await hrApiClient.update({
-        entity: 'employees',
-        id: employeeId,
-        data: mapEmployeeFormSectionToRecord(section, getValues()),
-      })
-
-      await onSaved(updatedEmployee)
-      toast.success(t('forms.toasts.updated'))
-      onOpenChange(false)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('forms.toasts.updateError')
-      toast.error(message)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog
-      description="Изменяются только поля выбранного раздела."
-      onOpenChange={onOpenChange}
-      open={open}
-      title={getSectionDialogTitle(activeSection)}
-    >
-      <form className="space-y-6" onSubmit={handleSubmit(() => void handleSave())}>
-        {activeSection === 'personal' && (
-          <EmployeePersonalFormSection
-            control={control}
-            errors={errors}
-            genderOptions={genderOptions}
-            normalizeField={normalizeField}
-            register={register}
-            t={t}
-          />
-        )}
-
-        {activeSection === 'address' && (
-          <EmployeeAddressFormSection
-            control={control}
-            errors={errors}
-            register={register}
-            t={t}
-          />
-        )}
-
-        {activeSection === 'company' && (
-          <EmployeeCompanyFormSection
-            control={control}
-            departments={departments}
-            errors={errors}
-            isRelationsLoading={isRelationsLoading}
-            positions={positions}
-            register={register}
-            statusOptions={statusOptions}
-            t={t}
-          />
-        )}
-
-        {activeSection === 'notes' && (
-          <EmployeeNotesFormSection
-            control={control}
-            errors={errors}
-            register={register}
-            t={t}
-          />
-        )}
-
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            {t('common.actions.cancel')}
-          </Button>
-          <Button disabled={isSubmitting} type="submit" variant="primary">
-            {t('common.actions.save')}
-          </Button>
+          <div className="min-w-0 pt-0.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="app-text text-2xl font-black tracking-tight">{title}</h2>
+              <span className="app-surface app-muted inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-2.5 text-xs font-black">
+                {recordCount}
+              </span>
+            </div>
+            <p className="app-muted mt-1.5 max-w-2xl text-sm leading-6">{description}</p>
+          </div>
         </div>
-      </form>
-    </Dialog>
+
+        <Button
+          className="w-full shrink-0 sm:w-auto"
+          leftIcon={<FiPlus className="h-4 w-4" />}
+          onClick={onAction}
+          type="button"
+          variant="primary"
+        >
+          {actionLabel}
+        </Button>
+      </div>
+    </header>
   )
 }
+@endwith
+@end
 
-function getSectionDialogTitle(section: EmployeeFormSectionKey): string {
-  const titles: Record<EmployeeFormSectionKey, string> = {
-    personal: 'Редактировать личные данные',
-    address: 'Редактировать адресные данные',
-    company: 'Редактировать данные по компании',
-    notes: 'Редактировать служебную информацию',
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+function RecordsList({
+  emptyTitle,
+  isLoading,
+  loadingLabel,
+  records,
+  renderRecord,
+}: RecordsListProps): JSX.Element {
+  if (isLoading) {
+    return (
+      <div className="min-h-[320px] rounded-[28px] border border-dashed">
+        <LoadingState label={loadingLabel} />
+      </div>
+    )
   }
 
-  return titles[section]
+  if (records.length === 0) {
+    return (
+      <div className="min-h-[320px] rounded-[28px] border border-dashed">
+        <EmptyState title={emptyTitle} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      {records.map((record, index) => (
+        <div key={String(record.id ?? index)}>{renderRecord(record)}</div>
+      ))}
+    </div>
+  )
 }
-@end
-
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-import {
-  Controller,
-  useForm,
-  type Control,
-  type FieldErrors,
-  type Resolver,
-  type UseFormRegisterReturn,
-} from 'react-hook-form'
-@endfrom
-@to
-} from 'react-hook-form'
-@endto
-@with
-import {
-  useForm,
-  type FieldErrors,
-  type Resolver,
-} from 'react-hook-form'
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
-@find
-import { z } from 'zod'
 @endfind
 @with
+function RecordsList({
+  emptyTitle,
+  isLoading,
+  loadingLabel,
+  records,
+  renderRecord,
+}: RecordsListProps): JSX.Element {
+  if (isLoading) {
+    return (
+      <div className="app-surface-muted app-border min-h-[280px] rounded-[28px] border border-dashed">
+        <LoadingState label={loadingLabel} />
+      </div>
+    )
+  }
+
+  if (records.length === 0) {
+    return (
+      <div className="app-surface-muted app-border min-h-[280px] rounded-[28px] border border-dashed">
+        <EmptyState title={emptyTitle} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative space-y-4 before:absolute before:bottom-8 before:left-[27px] before:top-8 before:w-px before:bg-[var(--color-border)] sm:before:left-[31px]">
+      {records.map((record, index) => (
+        <div className="relative pl-[68px] sm:pl-[78px]" key={String(record.id ?? index)}>
+          <span className="app-surface app-accent-text absolute left-3 top-7 z-10 flex h-8 w-8 items-center justify-center rounded-full border-4 border-[var(--color-page)] text-[10px] font-black sm:left-[15px]">
+            {index + 1}
+          </span>
+          {renderRecord(record)}
+        </div>
+      ))}
+    </div>
+  )
+}
 @endwith
 @end
 
-@replace-first src/pages/employees/EmployeeCreatePage.tsx
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
 @find
-import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../shared/ui'
+function EducationRecordCard({
+  locale,
+  onDelete,
+  onEdit,
+  record,
+  t,
+}: RecordCardProps): JSX.Element {
+  const educationType = getString(record.education_type)
+  const educationDegree = getString(record.education_degree)
+  const speciality = getString(record.speciality)
+
+  return (
+    <article className="app-surface app-shadow h-full rounded-[26px] border p-5">
+      <RecordCardHeader
+        badges={
+          <>
+            <SoftBadge>{getEducationTypeLabel(educationType, t)}</SoftBadge>
+            {educationType === 'university' && (
+              <SoftBadge>{getEducationDegreeLabel(educationDegree, t)}</SoftBadge>
+            )}
+          </>
+        }
+        deleteLabel={t('common.actions.delete')}
+        editLabel={t('common.actions.edit')}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        title={valueOrEmpty(getString(record.institution_name), t)}
+      />
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {speciality && <MetaItem label={t('forms.fields.speciality')} value={speciality} />}
+        <MetaItem
+          label={t('forms.fields.startedAt')}
+          value={formatRelatedDate(record.started_at, locale, t)}
+        />
+        <MetaItem
+          label={t('forms.fields.endedAt')}
+          value={formatRelatedDate(record.ended_at, locale, t)}
+        />
+        <MetaItem
+          label={t('forms.fields.documentNumber')}
+          value={valueOrEmpty(getString(record.document_number), t)}
+        />
+      </div>
+
+      {getString(record.note) && (
+        <p className="app-muted mt-4 whitespace-pre-line text-sm">{getString(record.note)}</p>
+      )}
+    </article>
+  )
+}
 @endfind
 @with
-import { Button, type SelectOption } from '../../shared/ui'
+function EducationRecordCard({
+  locale,
+  onDelete,
+  onEdit,
+  record,
+  t,
+}: RecordCardProps): JSX.Element {
+  const educationType = getString(record.education_type)
+  const educationDegree = getString(record.education_degree)
+  const speciality = getString(record.speciality)
+
+  return (
+    <article className="app-surface app-border group relative overflow-hidden rounded-[26px] border p-5 transition-colors hover:border-[var(--accent-border)] sm:p-6">
+      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" />
+      <RecordCardHeader
+        badges={
+          <>
+            <SoftBadge>{getEducationTypeLabel(educationType, t)}</SoftBadge>
+            {educationType === 'university' && (
+              <SoftBadge>{getEducationDegreeLabel(educationDegree, t)}</SoftBadge>
+            )}
+          </>
+        }
+        deleteLabel={t('common.actions.delete')}
+        editLabel={t('common.actions.edit')}
+        icon={<FiBookOpen className="h-5 w-5" />}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        title={valueOrEmpty(getString(record.institution_name), t)}
+      />
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {speciality && (
+          <MetaItem
+            icon={<FiAward className="h-4 w-4" />}
+            label={t('forms.fields.speciality')}
+            value={speciality}
+          />
+        )}
+        <MetaItem
+          icon={<FiCalendar className="h-4 w-4" />}
+          label={t('forms.fields.startedAt')}
+          value={formatRelatedDate(record.started_at, locale, t)}
+        />
+        <MetaItem
+          icon={<FiCalendar className="h-4 w-4" />}
+          label={t('forms.fields.endedAt')}
+          value={formatRelatedDate(record.ended_at, locale, t)}
+        />
+        <MetaItem
+          icon={<FiFileText className="h-4 w-4" />}
+          label={t('forms.fields.documentNumber')}
+          value={valueOrEmpty(getString(record.document_number), t)}
+        />
+      </div>
+
+      {getString(record.note) && (
+        <div className="app-border-soft app-muted mt-4 whitespace-pre-line border-t pt-4 text-sm leading-6">
+          {getString(record.note)}
+        </div>
+      )}
+    </article>
+  )
+}
 @endwith
 @end
 
-@insert-after-once src/pages/employees/EmployeeCreatePage.tsx
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
 @find
-import { employeeDefaultValues, type EmployeeFormValues } from '../../features/employees/types'
+function ExperienceRecordCard({
+  locale,
+  onDelete,
+  onEdit,
+  record,
+  t,
+}: RecordCardProps): JSX.Element {
+  const isCurrent = Number(record.is_current ?? 0) === 1
+
+  return (
+    <article className="app-surface app-shadow h-full rounded-[26px] border p-5">
+      <RecordCardHeader
+        badges={isCurrent ? <SoftBadge tone="accent">{t('employeesDetails.experience.current')}</SoftBadge> : null}
+        deleteLabel={t('common.actions.delete')}
+        editLabel={t('common.actions.edit')}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        title={valueOrEmpty(getString(record.company_name), t)}
+      />
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <MetaItem
+          label={t('forms.fields.experiencePositionName')}
+          value={valueOrEmpty(getString(record.position_name), t)}
+        />
+        <MetaItem
+          label={t('forms.fields.startedAt')}
+          value={formatRelatedDate(record.started_at, locale, t)}
+        />
+        <MetaItem
+          label={t('forms.fields.endedAt')}
+          value={isCurrent ? t('employeesDetails.experience.current') : formatRelatedDate(record.ended_at, locale, t)}
+        />
+      </div>
+
+      {getString(record.responsibilities) && (
+        <p className="app-text mt-4 whitespace-pre-line text-sm font-medium">
+          {getString(record.responsibilities)}
+        </p>
+      )}
+      {getString(record.note) && (
+        <p className="app-muted mt-3 whitespace-pre-line text-sm">{getString(record.note)}</p>
+      )}
+    </article>
+  )
+}
 @endfind
-@content
-import {
-  EmployeeAddressFormSection,
-  EmployeeCompanyFormSection,
-  EmployeePersonalFormSection,
-} from '../../features/employees/forms/EmployeeFormSections'
-import { employeeCreateSchema } from '../../features/employees/forms/employeeFormValidation'
-@endcontent
-@end
-
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-const requiredMessage = 'forms.validation.required'
-@endfrom
-@to
-})
-@endto
 @with
+function ExperienceRecordCard({
+  locale,
+  onDelete,
+  onEdit,
+  record,
+  t,
+}: RecordCardProps): JSX.Element {
+  const isCurrent = Number(record.is_current ?? 0) === 1
+
+  return (
+    <article className="app-surface app-border group relative overflow-hidden rounded-[26px] border p-5 transition-colors hover:border-[var(--accent-border)] sm:p-6">
+      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" />
+      <RecordCardHeader
+        badges={isCurrent ? <SoftBadge tone="accent">{t('employeesDetails.experience.current')}</SoftBadge> : null}
+        deleteLabel={t('common.actions.delete')}
+        editLabel={t('common.actions.edit')}
+        icon={<FiBriefcase className="h-5 w-5" />}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        title={valueOrEmpty(getString(record.company_name), t)}
+      />
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <MetaItem
+          icon={<FiBriefcase className="h-4 w-4" />}
+          label={t('forms.fields.experiencePositionName')}
+          value={valueOrEmpty(getString(record.position_name), t)}
+        />
+        <MetaItem
+          icon={<FiCalendar className="h-4 w-4" />}
+          label={t('forms.fields.startedAt')}
+          value={formatRelatedDate(record.started_at, locale, t)}
+        />
+        <MetaItem
+          icon={<FiCalendar className="h-4 w-4" />}
+          label={t('forms.fields.endedAt')}
+          value={isCurrent ? t('employeesDetails.experience.current') : formatRelatedDate(record.ended_at, locale, t)}
+        />
+      </div>
+
+      {getString(record.responsibilities) && (
+        <div className="app-surface-muted app-border mt-4 rounded-2xl border p-4">
+          <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">
+            {t('forms.fields.responsibilities')}
+          </p>
+          <p className="app-text mt-2 whitespace-pre-line text-sm font-medium leading-6">
+            {getString(record.responsibilities)}
+          </p>
+        </div>
+      )}
+      {getString(record.note) && (
+        <div className="app-border-soft app-muted mt-4 whitespace-pre-line border-t pt-4 text-sm leading-6">
+          {getString(record.note)}
+        </div>
+      )}
+    </article>
+  )
+}
 @endwith
 @end
 
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-        {activeStep === 0 && (
-@endfrom
-@to
-        {activeStep === 1 && (
-@endto
-@with
-        {activeStep === 0 && (
-          <EmployeePersonalFormSection
-            control={control}
-            errors={errors}
-            genderOptions={genderOptions}
-            normalizeField={normalizeField}
-            register={register}
-            t={t}
-          />
-        )}
-
-        {activeStep === 1 && (
-@endwith
-@end
-
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-        {activeStep === 1 && (
-          <FormCard title={t('employeesCreate.steps.address')}>
-@endfrom
-@to
-          </FormCard>
-        )}
-@endto
-@with
-        {activeStep === 1 && (
-          <EmployeeAddressFormSection
-            control={control}
-            errors={errors}
-            register={register}
-            t={t}
-          />
-        )}
-@endwith
-@end
-
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-        {activeStep === 2 && (
-          <FormCard title={t('employeesCreate.steps.company')}>
-@endfrom
-@to
-          </FormCard>
-        )}
-@endto
-@with
-        {activeStep === 2 && (
-          <EmployeeCompanyFormSection
-            control={control}
-            departments={departments}
-            errors={errors}
-            isRelationsLoading={isRelationsLoading}
-            positions={positions}
-            register={register}
-            statusOptions={statusOptions}
-            t={t}
-          />
-        )}
-@endwith
-@end
-
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-function requiredString(): z.ZodString {
-@endfrom
-@to
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+interface RecordCardHeaderProps {
+  badges: ReactNode
+  deleteLabel: string
+  editLabel: string
+  onDelete: () => void
+  onEdit: () => void
+  title: string
 }
 
-interface StepProgressProps {
-@endto
+function RecordCardHeader({
+  badges,
+  deleteLabel,
+  editLabel,
+  onDelete,
+  onEdit,
+  title,
+}: RecordCardHeaderProps): JSX.Element {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <h3 className="app-text truncate text-lg font-black">{title}</h3>
+        {badges && <div className="mt-2 flex flex-wrap gap-2">{badges}</div>}
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <Button
+          aria-label={editLabel}
+          className="h-10 w-10 rounded-xl p-0"
+          onClick={onEdit}
+          type="button"
+          variant="ghost"
+        >
+          <FiEdit2 className="h-4 w-4" />
+        </Button>
+        <Button
+          aria-label={deleteLabel}
+          className="h-10 w-10 rounded-xl p-0 text-rose-600"
+          onClick={onDelete}
+          type="button"
+          variant="ghost"
+        >
+          <FiTrash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+@endfind
 @with
-interface StepProgressProps {
+interface RecordCardHeaderProps {
+  badges: ReactNode
+  deleteLabel: string
+  editLabel: string
+  icon: ReactNode
+  onDelete: () => void
+  onEdit: () => void
+  title: string
+}
+
+function RecordCardHeader({
+  badges,
+  deleteLabel,
+  editLabel,
+  icon,
+  onDelete,
+  onEdit,
+  title,
+}: RecordCardHeaderProps): JSX.Element {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3.5">
+        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+          {icon}
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <h3 className="app-text break-words text-lg font-black leading-snug">{title}</h3>
+          {badges && <div className="mt-2 flex flex-wrap gap-2">{badges}</div>}
+        </div>
+      </div>
+      <div className="flex shrink-0 gap-2 self-end sm:self-auto">
+        <Button
+          aria-label={editLabel}
+          className="app-table-action-button app-table-action-button--edit h-10 w-10 rounded-xl border p-0"
+          onClick={onEdit}
+          type="button"
+          variant="ghost"
+        >
+          <FiEdit2 className="h-4 w-4" />
+        </Button>
+        <Button
+          aria-label={deleteLabel}
+          className="app-table-action-button app-table-action-button--delete h-10 w-10 rounded-xl border p-0"
+          onClick={onDelete}
+          type="button"
+          variant="ghost"
+        >
+          <FiTrash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
 @endwith
 @end
 
-@replace-block src/pages/employees/EmployeeCreatePage.tsx
-@from
-interface FormCardProps {
-@endfrom
-@to
-function optionLabel(options: SelectOption[], value: string, t: TFunction): string {
-@endto
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
+@find
+function SoftBadge({ children, tone = 'neutral' }: SoftBadgeProps): JSX.Element {
+  return (
+    <span
+      className={[
+        'inline-flex min-h-7 items-center rounded-full px-3 text-xs font-black',
+        tone === 'accent'
+          ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
+          : 'app-surface-muted app-muted',
+      ].join(' ')}
+    >
+      {children}
+    </span>
+  )
+}
+@endfind
 @with
-function optionLabel(options: SelectOption[], value: string, t: TFunction): string {
+function SoftBadge({ children, tone = 'neutral' }: SoftBadgeProps): JSX.Element {
+  return (
+    <span
+      className={[
+        'inline-flex min-h-7 items-center rounded-full border px-3 text-xs font-black',
+        tone === 'accent'
+          ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
+          : 'app-surface-muted app-muted app-border',
+      ].join(' ')}
+    >
+      {children}
+    </span>
+  )
+}
 @endwith
 @end
 
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
+@replace-first src/features/employees/forms/EmployeeRelatedRecords.tsx
 @find
-import { HrEntityDialog } from "../../features/hr-entities/components/HrEntityDialog";
+interface MetaItemProps {
+  label: string
+  value: string
+}
+
+function MetaItem({ label, value }: MetaItemProps): JSX.Element {
+  return (
+    <div className="app-surface-muted rounded-2xl p-4">
+      <p className="app-muted text-xs font-black uppercase tracking-wide">{label}</p>
+      <p className="app-text mt-1 break-words text-sm font-black">{value}</p>
+    </div>
+  )
+}
 @endfind
 @with
-import {
-  EmployeeSectionEditDialog,
-} from "../../features/employees/forms/EmployeeSectionEditDialog";
-import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
-@endwith
-@end
+interface MetaItemProps {
+  icon: ReactNode
+  label: string
+  value: string
+}
 
-@insert-after-once src/pages/employees/EmployeeDetailsPage.tsx
-@find
-  const [isEditOpen, setIsEditOpen] = useState(false);
-@endfind
-@content
-  const [editingSection, setEditingSection] = useState<EmployeeFormSectionKey | null>(null);
-@endcontent
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-  async function handleEmployeeUpdate(data: HrRecord): Promise<void> {
-    if (!Number.isFinite(employeeId)) {
-      throw new Error(t("forms.errors.missingId"));
-    }
-
-    await hrApiClient.update({
-      entity: "employees",
-      id: employeeId,
-      data,
-    });
-
-    const updatedEmployee = await hrApiClient.getById({
-      entity: "employees",
-      id: employeeId,
-    });
-
-    setEmployee(updatedEmployee);
-    await refreshEmployeeRelationLabels(updatedEmployee);
-  }
-@endfind
-@with
-  async function handleEmployeeSaved(updatedEmployee: HrRecord): Promise<void> {
-    setEmployee(updatedEmployee);
-    await refreshEmployeeRelationLabels(updatedEmployee);
-  }
-
-  function openSectionEditor(section: EmployeeFormSectionKey): void {
-    setEditingSection(section);
-    setIsEditOpen(true);
-  }
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => setIsEditOpen(true)}
-              >
-                Редактировать данные
-              </Button>
-            </div>
-@endfind
-@with
-            <div className="mb-4 flex flex-wrap justify-end gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("personal")}
-              >
-                Личные данные
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("address")}
-              >
-                Адресные данные
-              </Button>
-            </div>
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => setIsEditOpen(true)}
-              >
-                Редактировать данные
-              </Button>
-            </div>
-@endfind
-@with
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("company")}
-              >
-                Данные по компании
-              </Button>
-            </div>
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => setIsEditOpen(true)}
-              >
-                Редактировать данные
-              </Button>
-            </div>
-@endfind
-@with
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("notes")}
-              >
-                Служебная информация
-              </Button>
-            </div>
-@endwith
-@end
-
-@replace-first src/pages/employees/EmployeeDetailsPage.tsx
-@find
-      <HrEntityDialog
-        entity="employees"
-        initialRecord={employee}
-        mode="edit"
-        onOpenChange={setIsEditOpen}
-        onSubmit={handleEmployeeUpdate}
-        open={isEditOpen}
-      />
-@endfind
-@with
-      <EmployeeSectionEditDialog
-        employee={employee}
-        employeeId={employeeId}
-        onOpenChange={(open) => {
-          setIsEditOpen(open);
-
-          if (!open) {
-            setEditingSection(null);
-          }
-        }}
-        onSaved={handleEmployeeSaved}
-        open={isEditOpen}
-        section={editingSection}
-      />
+function MetaItem({ icon, label, value }: MetaItemProps): JSX.Element {
+  return (
+    <div className="app-surface-muted app-border min-w-0 rounded-2xl border p-4">
+      <div className="app-muted flex items-center gap-2">
+        <span className="app-accent-text">{icon}</span>
+        <p className="truncate text-[11px] font-black uppercase tracking-[0.1em]">{label}</p>
+      </div>
+      <p className="app-text mt-2 break-words text-sm font-black leading-5">{value}</p>
+    </div>
+  )
+}
 @endwith
 @end
