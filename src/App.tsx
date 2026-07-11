@@ -1,13 +1,13 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { AppLayout } from './app/AppLayout'
-import { DashboardPage } from './pages/DashboardPage'
-import { EntityPage } from './pages/EntityPage'
-import { FiltersPage } from './pages/FiltersPage'
-import { EmployeeCreatePage } from './pages/employees/EmployeeCreatePage'
-import { EmployeeDetailsPage } from './pages/employees/EmployeeDetailsPage'
-import { EmployeesPage } from './pages/employees/EmployeesPage'
-import { ProfilePage } from './pages/ProfilePage'
-import { SettingsPage } from './pages/SettingsPage'
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AppLayout } from "./app/AppLayout";
+import { DashboardPage } from "./pages/DashboardPage";
+import { EntityPage } from "./pages/EntityPage";
+import { FiltersPage } from "./pages/FiltersPage";
+import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
+import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
+import { EmployeesPage } from "./pages/employees/EmployeesPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function App(): JSX.Element {
   return (
@@ -18,7 +18,14 @@ function App(): JSX.Element {
         <Route path="employees/new" element={<EmployeeCreatePage />} />
         <Route path="employees/:id" element={<EmployeeDetailsPage />} />
         <Route path="filters" element={<FiltersPage />} />
-        <Route path="departments" element={<EntityPage entity="departments" />} />
+        <Route
+          path="enterprises"
+          element={<EntityPage entity="enterprises" />}
+        />
+        <Route
+          path="departments"
+          element={<EntityPage entity="departments" />}
+        />
         <Route path="positions" element={<EntityPage entity="positions" />} />
         <Route path="vacations" element={<EntityPage entity="vacations" />} />
         <Route path="payroll" element={<EntityPage entity="payroll" />} />
@@ -28,7 +35,7 @@ function App(): JSX.Element {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

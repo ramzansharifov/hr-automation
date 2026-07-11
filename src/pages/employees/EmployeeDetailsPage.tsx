@@ -6,6 +6,7 @@ import {
   FiBriefcase,
   FiEdit2,
   FiFileText,
+  FiTrendingUp,
   FiUser,
 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,7 @@ import {
   EmployeePassportCard,
   EmployeeProfileHeader,
 } from "../../features/employees/components/EmployeeDetailsCards";
+import { EmployeeLifecyclePanel } from "../../features/employees/components/EmployeeLifecyclePanel";
 import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
 import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
 import {
@@ -210,6 +212,11 @@ export function EmployeeDetailsPage(): JSX.Element {
               {t("employeesDetails.sections.experience")}
             </Tabs.Trigger>
 
+            <Tabs.Trigger className={detailsTabTriggerClass} value="career">
+              <FiTrendingUp className="h-4 w-4" />
+              Карьера и отпуска
+            </Tabs.Trigger>
+
             <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
               <FiFileText className="h-4 w-4" />
               {t("employeesDetails.sections.notes")}
@@ -291,6 +298,15 @@ export function EmployeeDetailsPage(): JSX.Element {
 
           <Tabs.Content value="experience" className="outline-none">
             <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
+          </Tabs.Content>
+
+          <Tabs.Content value="career" className="outline-none">
+            <EmployeeLifecyclePanel
+              employee={employee}
+              employeeId={employeeId}
+              locale={locale}
+              onEmployeeUpdated={handleEmployeeSaved}
+            />
           </Tabs.Content>
 
           <Tabs.Content value="notes" className="outline-none">
