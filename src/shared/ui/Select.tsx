@@ -70,7 +70,7 @@ export function Select({
 
       <RadixSelect.Portal>
         <RadixSelect.Content
-          className="app-surface app-shadow-lg z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-2xl border p-1"
+          className="app-surface app-border z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-2xl border p-1"
           position="popper"
           sideOffset={8}
         >

@@ -13,7 +13,7 @@ const EXPANDED_SIDEBAR_WIDTH = '276px'
 const COLLAPSED_SIDEBAR_WIDTH = '84px'
 
 const tooltipContentClass =
-  'z-50 select-none rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-xl'
+  'z-50 select-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-white'
 
 const sidebarDividerClass = 'h-px bg-white/10'
 
@@ -22,7 +22,7 @@ function getExpandedLinkClass(isActive: boolean): string {
     'group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
     isActive
-      ? 'app-accent-shadow border-[var(--accent-border)] bg-[var(--accent)] text-white'
+      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
       : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
   ].join(' ')
 }
@@ -37,9 +37,9 @@ function getCollapsedLinkClass(isActive: boolean): string {
 
 function getCollapsedIconButtonClass(isActive: boolean): string {
   return [
-    'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 shadow-sm transition-colors duration-200',
+    'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 transition-colors duration-200',
     isActive
-      ? 'app-accent-shadow border-[var(--accent-border)] bg-[var(--accent)] text-white'
+      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
       : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
   ].join(' ')
 }
@@ -228,7 +228,7 @@ export function AppLayout(): JSX.Element {
 
   return (
     <Tooltip.Provider delayDuration={120}>
-      <div className="app-page app-theme-transition app-no-shadows min-h-screen overflow-x-hidden">
+      <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
         <motion.aside
           layout
           initial={{ x: -18, opacity: 0 }}
@@ -248,7 +248,7 @@ export function AppLayout(): JSX.Element {
                 }
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
                 className={[
-                  'app-accent-shadow-sm absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 transition-all duration-200',
+                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 transition-all duration-200',
                   'pointer-events-none opacity-0',
                   'group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100',
                   'hover:border-[var(--accent-border)] hover:bg-[var(--sidebar-button-hover)] hover:text-white',
@@ -364,7 +364,7 @@ export function AppLayout(): JSX.Element {
           <header className="app-topbar sticky top-0 z-20 flex h-[85px] items-center border-b px-8 backdrop-blur-xl">
             <div className="flex w-full items-center justify-between gap-6">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="app-accent-soft app-accent-shadow-sm flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
+                <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
                   <TopbarIcon className="h-5 w-5" />
                 </span>
 

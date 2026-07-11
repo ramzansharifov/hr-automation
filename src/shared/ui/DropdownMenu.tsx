@@ -32,7 +32,7 @@ export function DropdownMenu({
       <RadixDropdownMenu.Portal>
         <RadixDropdownMenu.Content
           align={align}
-          className="app-surface app-shadow-lg z-50 min-w-48 rounded-2xl border p-1"
+          className="app-surface app-border z-50 min-w-48 rounded-2xl border p-1"
           sideOffset={8}
         >
           {actions.map((action) => (

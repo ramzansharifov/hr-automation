@@ -10,7 +10,7 @@ interface StatCardProps {
 
 export function StatCard({ title, value, description, icon: Icon }: StatCardProps): JSX.Element {
   return (
-    <article className="app-surface app-shadow rounded-[24px] border p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="app-surface app-border rounded-[24px] border p-5 transition-colors hover:border-[var(--accent-border)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="app-muted text-sm font-bold">{title}</p>

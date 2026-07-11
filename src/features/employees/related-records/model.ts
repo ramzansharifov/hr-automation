@@ -4,8 +4,7 @@ import { formatDate } from "../../../shared/lib/format";
 import type { HrRecord } from "../../../shared/types/hr";
 
 export interface EducationFormValues {
-  education_type: string;
-  education_degree: string;
+  education_level: string;
   institution_name: string;
   speciality: string;
   started_at: string;
@@ -25,8 +24,7 @@ export interface ExperienceFormValues {
 }
 
 export const educationDefaults: EducationFormValues = {
-  education_type: "university",
-  education_degree: "bachelor",
+  education_level: "",
   institution_name: "",
   speciality: "",
   started_at: "",
@@ -51,10 +49,7 @@ export function validateEducation(
 ): string {
   if (!values.institution_name.trim()) return t("forms.validation.required");
 
-  if (
-    values.education_type === "university" &&
-    !values.education_degree.trim()
-  ) {
+  if (!values.education_level.trim()) {
     return t("forms.validation.required");
   }
 
@@ -83,11 +78,8 @@ export function mapEducationFormToRecord(
 ): HrRecord {
   return {
     employee_id: employeeId,
-    education_type: values.education_type,
-    education_degree:
-      values.education_type === "university"
-        ? nullableString(values.education_degree)
-        : null,
+    education_type: getEducationCategory(values.education_level),
+    education_degree: values.education_level,
     institution_name: values.institution_name.trim(),
     speciality: nullableString(values.speciality),
     started_at: nullableString(values.started_at),
@@ -114,19 +106,33 @@ export function mapExperienceFormToRecord(
   };
 }
 
-export function getEducationTypeLabel(value: string, t: TFunction): string {
-  if (value === "school") return t("employeesDetails.education.types.school");
-  if (value === "university")
-    return t("employeesDetails.education.types.university");
-
-  return valueOrEmpty(value, t);
-}
-
-export function getEducationDegreeLabel(value: string, t: TFunction): string {
-  const translationKey = `employeesDetails.education.degrees.${value}`;
+export function getEducationLevelLabel(value: string, t: TFunction): string {
+  const translationKey = `employeesDetails.education.degrees.${educationLevelTranslationKeys[value] ?? value}`;
   const translated = t(translationKey);
 
   return translated === translationKey ? valueOrEmpty(value, t) : translated;
+}
+
+const educationLevelTranslationKeys: Record<string, string> = {
+  basic_general: "basicGeneral",
+  secondary_general: "secondaryGeneral",
+  secondary_vocational: "secondaryVocational",
+  incomplete_higher: "incompleteHigher",
+  bachelor: "bachelor",
+  specialist: "specialist",
+  master: "master",
+  postgraduate: "postgraduate",
+  academic_degree: "academicDegree",
+};
+
+export function getEducationLevelFromRecord(record: HrRecord): string {
+  const storedLevel = getString(record.education_degree);
+
+  if (storedLevel) return storedLevel;
+
+  return getString(record.education_type) === "school"
+    ? "secondary_general"
+    : "incomplete_higher";
 }
 
 export function getRecordId(record: HrRecord | null): number | null {
@@ -153,6 +159,18 @@ export function valueOrEmpty(value: string, t: TFunction): string {
 function nullableString(value: string): string | null {
   const trimmedValue = value.trim();
   return trimmedValue === "" ? null : trimmedValue;
+}
+
+function getEducationCategory(level: string): string {
+  if (level === "basic_general" || level === "secondary_general") {
+    return "general";
+  }
+
+  if (level === "secondary_vocational") {
+    return "vocational";
+  }
+
+  return "higher";
 }
 
 function hasInvalidDateRange(startedAt: string, endedAt: string): boolean {

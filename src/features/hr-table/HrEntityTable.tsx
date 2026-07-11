@@ -33,7 +33,6 @@ interface HrEntityTableProps {
   className?: string
   entity: HrEntityKey
   externalFilters?: Record<string, HrFilterValue | HrFilterCondition>
-  flat?: boolean
   hideCreateButton?: boolean
   hideToolbar?: boolean
   hideToolbarSearch?: boolean
@@ -115,7 +114,6 @@ export function HrEntityTable({
   className = '',
   entity,
   externalFilters,
-  flat = false,
   hideCreateButton = false,
   hideToolbar = false,
   hideToolbarSearch = false,
@@ -300,7 +298,6 @@ export function HrEntityTable({
       transition={{ duration: 0.28, ease: 'easeOut' }}
       className={[
         'app-surface app-border flex flex-col overflow-hidden rounded-[28px] border',
-        flat ? '' : 'app-shadow',
         className,
       ].join(' ')}
     >

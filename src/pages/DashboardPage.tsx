@@ -72,7 +72,7 @@ export function DashboardPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="app-surface app-shadow rounded-[28px] border p-6">
+      <section className="app-surface app-border rounded-[28px] border p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
@@ -111,7 +111,7 @@ export function DashboardPage(): JSX.Element {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
-        <article className="app-surface app-shadow rounded-[28px] border p-6">
+        <article className="app-surface app-border rounded-[28px] border p-6">
           <div className="flex items-center justify-between gap-4">
             <h2 className="app-text text-lg font-black">{t('dashboard.sections.latestEmployees')}</h2>
 
@@ -147,7 +147,7 @@ export function DashboardPage(): JSX.Element {
           </div>
         </article>
 
-        <article className="app-surface app-shadow rounded-[28px] border p-6">
+        <article className="app-surface app-border rounded-[28px] border p-6">
           <div className="flex items-center justify-between gap-4">
             <h2 className="app-text text-lg font-black">{t('dashboard.sections.upcomingVacations')}</h2>
 

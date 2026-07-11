@@ -117,8 +117,7 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
     editTitleKey: 'forms.employeeEducation.editTitle',
     fields: [
       { name: 'employee_id', labelKey: 'forms.fields.employeeId', required: true, type: 'number' },
-      { name: 'education_type', labelKey: 'forms.fields.educationType', required: true, type: 'text' },
-      { name: 'education_degree', labelKey: 'forms.fields.educationDegree', type: 'text' },
+      { name: 'education_degree', labelKey: 'forms.fields.educationDegree', required: true, type: 'text' },
       { name: 'institution_name', labelKey: 'forms.fields.institutionName', required: true, type: 'text' },
       { name: 'speciality', labelKey: 'forms.fields.speciality', type: 'text' },
       { name: 'started_at', labelKey: 'forms.fields.startedAt', type: 'date' },

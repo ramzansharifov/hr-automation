@@ -29,7 +29,7 @@ export function SettingsPage(): JSX.Element {
     <div className="space-y-6">
       <h1 className="app-text text-3xl font-black tracking-tight">{t('settings.title')}</h1>
 
-      <section className="app-surface app-shadow rounded-[28px] border p-7">
+      <section className="app-surface app-border rounded-[28px] border p-7">
         <div>
           <h2 className="app-text text-xl font-black">{t('settings.appearance.title')}</h2>
           <p className="app-muted mt-2 text-sm">
@@ -97,7 +97,7 @@ export function SettingsPage(): JSX.Element {
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <span
-                        className="h-5 w-5 shrink-0 rounded-full border border-white/40 shadow-sm"
+                        className="h-5 w-5 shrink-0 rounded-full border border-white/40"
                         style={{ backgroundColor: option.value }}
                       />
                       <span className="truncate">
@@ -144,7 +144,7 @@ export function SettingsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="app-surface app-shadow rounded-[28px] border p-7">
+      <section className="app-surface app-border rounded-[28px] border p-7">
         <h2 className="app-text text-xl font-black">{t('settings.system.title')}</h2>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
