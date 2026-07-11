@@ -25,8 +25,8 @@ export const hrEntityDefaults: Record<HrEntityKey, HrEntityFormValues> = {
   },
   employee_education: {
     employee_id: '',
-    education_type: 'university',
-    education_degree: '',
+    education_type: 'general',
+    education_degree: 'secondary_general',
     institution_name: '',
     speciality: '',
     started_at: '',

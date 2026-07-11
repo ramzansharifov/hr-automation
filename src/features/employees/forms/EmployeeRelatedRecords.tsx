@@ -28,6 +28,7 @@ import {
 import {
   educationDefaults,
   experienceDefaults,
+  getEducationLevelFromRecord,
   getRecordId,
   getString,
   mapEducationFormToRecord,
@@ -58,18 +59,24 @@ export function EmployeeEducationPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const educationTypeOptions = useMemo<SelectOption[]>(
+  const educationLevelOptions = useMemo<SelectOption[]>(
     () => [
-      { value: "school", label: t("employeesDetails.education.types.school") },
       {
-        value: "university",
-        label: t("employeesDetails.education.types.university"),
+        value: "basic_general",
+        label: t("employeesDetails.education.degrees.basicGeneral"),
       },
-    ],
-    [t],
-  );
-  const educationDegreeOptions = useMemo<SelectOption[]>(
-    () => [
+      {
+        value: "secondary_general",
+        label: t("employeesDetails.education.degrees.secondaryGeneral"),
+      },
+      {
+        value: "secondary_vocational",
+        label: t("employeesDetails.education.degrees.secondaryVocational"),
+      },
+      {
+        value: "incomplete_higher",
+        label: t("employeesDetails.education.degrees.incompleteHigher"),
+      },
       {
         value: "bachelor",
         label: t("employeesDetails.education.degrees.bachelor"),
@@ -86,7 +93,10 @@ export function EmployeeEducationPanel({
         value: "postgraduate",
         label: t("employeesDetails.education.degrees.postgraduate"),
       },
-      { value: "phd", label: t("employeesDetails.education.degrees.phd") },
+      {
+        value: "academic_degree",
+        label: t("employeesDetails.education.degrees.academicDegree"),
+      },
     ],
     [t],
   );
@@ -125,14 +135,6 @@ export function EmployeeEducationPanel({
     setFormValues((current) => ({
       ...current,
       [name]: value,
-      ...(name === "education_type" && value === "school"
-        ? { education_degree: "" }
-        : {}),
-      ...(name === "education_type" &&
-      value === "university" &&
-      !current.education_degree
-        ? { education_degree: "bachelor" }
-        : {}),
     }));
   }
 
@@ -153,8 +155,7 @@ export function EmployeeEducationPanel({
     setEditingId(id);
     setError("");
     setFormValues({
-      education_type: getString(record.education_type) || "university",
-      education_degree: getString(record.education_degree),
+      education_level: getEducationLevelFromRecord(record),
       institution_name: getString(record.institution_name),
       speciality: getString(record.speciality),
       started_at: getString(record.started_at),
@@ -241,8 +242,6 @@ export function EmployeeEducationPanel({
     }
   }
 
-  const isUniversity = formValues.education_type === "university";
-
   return (
     <div className="space-y-5">
       <RelatedRecordsHeader
@@ -289,41 +288,25 @@ export function EmployeeEducationPanel({
       >
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <RelatedSelectField
-            label={t("forms.fields.educationType")}
-            onValueChange={(value) => updateField("education_type", value)}
-            options={educationTypeOptions}
+            label={t("forms.fields.educationDegree")}
+            onValueChange={(value) => updateField("education_level", value)}
+            options={educationLevelOptions}
             placeholder={t("forms.placeholders.select")}
-            value={formValues.education_type}
+            value={formValues.education_level}
           />
 
-          {isUniversity && (
-            <RelatedSelectField
-              label={t("forms.fields.educationDegree")}
-              onValueChange={(value) => updateField("education_degree", value)}
-              options={educationDegreeOptions}
-              placeholder={t("forms.placeholders.select")}
-              value={formValues.education_degree}
-            />
-          )}
-
           <RelatedTextField
-            label={t(
-              isUniversity
-                ? "forms.fields.universityName"
-                : "forms.fields.schoolName",
-            )}
+            label={t("forms.fields.institutionName")}
             onChange={(value) => updateField("institution_name", value)}
             required
             value={formValues.institution_name}
           />
 
-          {isUniversity && (
-            <RelatedTextField
-              label={t("forms.fields.speciality")}
-              onChange={(value) => updateField("speciality", value)}
-              value={formValues.speciality}
-            />
-          )}
+          <RelatedTextField
+            label={t("forms.fields.speciality")}
+            onChange={(value) => updateField("speciality", value)}
+            value={formValues.speciality}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <RelatedTextField

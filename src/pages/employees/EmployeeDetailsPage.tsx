@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { motion } from "framer-motion";
-import { FiEdit2 } from "react-icons/fi";
+import {
+  FiBookOpen,
+  FiBriefcase,
+  FiEdit2,
+  FiFileText,
+  FiUser,
+} from "react-icons/fi";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Button, EmptyState, LoadingState } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
@@ -19,6 +25,7 @@ import {
   EmployeeInfoField,
   EmployeeInfoPanel,
   EmployeePassportCard,
+  EmployeeProfileHeader,
 } from "../../features/employees/components/EmployeeDetailsCards";
 import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
 import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
@@ -30,6 +37,7 @@ import {
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const locale = getAppLocale(i18n.language);
+  const navigate = useNavigate();
   const params = useParams();
   const employeeId = Number(params.id);
 
@@ -150,41 +158,60 @@ export function EmployeeDetailsPage(): JSX.Element {
     .join(" ");
 
   return (
-    <motion.section
+    <motion.div
       key={employeeId}
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38, ease: "easeOut" }}
-      className="app-surface app-border overflow-hidden rounded-[28px] border"
+      className="space-y-4"
     >
-      <Tabs.Root defaultValue="card">
+      <EmployeeProfileHeader
+        department={valueOrEmpty(departmentName, t)}
+        fullName={fullName}
+        isActive={getString(employee.status) === "active"}
+        onBack={() => navigate("/employees")}
+        onEdit={() => openSectionEditor("personal")}
+        position={valueOrEmpty(positionName, t)}
+        status={humanizeStatus(employee.status, t)}
+        t={t}
+      />
+
+      <Tabs.Root
+        className="app-surface app-border overflow-hidden rounded-[28px] border"
+        defaultValue="card"
+      >
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, delay: 0.08, ease: "easeOut" }}
-          className="app-surface-muted app-border-soft border-b p-4 sm:px-6"
+          className="app-surface-muted app-border-soft overflow-x-auto border-b p-3 sm:px-5"
         >
           <Tabs.List
-            className="flex flex-wrap gap-2"
+            className="flex min-w-max gap-2"
             aria-label={t("employeesDetails.title")}
           >
             <Tabs.Trigger className={detailsTabTriggerClass} value="card">
+              <FiUser className="h-4 w-4" />
               {t("employeesDetails.card.title")}
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="company">
+              <FiBriefcase className="h-4 w-4" />
               {t("employeesDetails.sections.company")}
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="education">
+              <FiBookOpen className="h-4 w-4" />
               {t("employeesDetails.sections.education")}
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="experience">
+              <FiBriefcase className="h-4 w-4" />
               {t("employeesDetails.sections.experience")}
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
+              <FiFileText className="h-4 w-4" />
               {t("employeesDetails.sections.notes")}
             </Tabs.Trigger>
           </Tabs.List>
@@ -306,12 +333,12 @@ export function EmployeeDetailsPage(): JSX.Element {
         open={isEditOpen}
         section={editingSection}
       />
-    </motion.section>
+    </motion.div>
   );
 }
 
 const detailsTabTriggerClass = [
-  "app-tab-trigger rounded-xl border border-transparent px-4 py-2.5 text-sm font-black transition",
+  "app-tab-trigger inline-flex items-center gap-2 rounded-xl border border-transparent px-4 py-2.5 text-sm font-black transition",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
 ].join(" ");
 

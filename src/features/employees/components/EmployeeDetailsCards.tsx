@@ -1,11 +1,99 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import type { TFunction } from "i18next";
-import { FiCalendar, FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiBriefcase,
+  FiCalendar,
+  FiEdit2,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiUser,
+} from "react-icons/fi";
 
 import { HRLogo } from "../../../app/brand/HRLogo";
 import { formatDate, humanizeStatus } from "../../../shared/lib/format";
 import type { HrRecord } from "../../../shared/types/hr";
+import { Button } from "../../../shared/ui";
+
+interface EmployeeProfileHeaderProps {
+  department: string;
+  fullName: string;
+  isActive: boolean;
+  onBack: () => void;
+  onEdit: () => void;
+  position: string;
+  status: string;
+  t: TFunction;
+}
+
+export function EmployeeProfileHeader({
+  department,
+  fullName,
+  isActive,
+  onBack,
+  onEdit,
+  position,
+  status,
+  t,
+}: EmployeeProfileHeaderProps): JSX.Element {
+  return (
+    <header className="app-surface app-border overflow-hidden rounded-[28px] border">
+      <div className="app-surface-muted app-border-soft flex flex-col gap-5 border-b p-5 lg:flex-row lg:items-center lg:justify-between sm:p-6">
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="app-accent flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
+            <FiUser className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="app-text break-words text-2xl font-black tracking-tight sm:text-3xl">
+                {fullName || t("employeesDetails.title")}
+              </h1>
+              <span
+                className={[
+                  "inline-flex min-h-7 items-center rounded-full border px-3 text-xs font-black",
+                  isActive
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : "app-surface app-border app-muted",
+                ].join(" ")}
+              >
+                {status}
+              </span>
+            </div>
+            <div className="app-muted mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold">
+              <span className="inline-flex items-center gap-2">
+                <FiBriefcase className="h-4 w-4" />
+                {position}
+              </span>
+              <span className="h-1 w-1 rounded-full bg-[var(--color-text-muted)]" />
+              <span>{department}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            leftIcon={<FiArrowLeft className="h-4 w-4" />}
+            onClick={onBack}
+            type="button"
+            variant="secondary"
+          >
+            {t("employeesDetails.backToList")}
+          </Button>
+          <Button
+            leftIcon={<FiEdit2 className="h-4 w-4" />}
+            onClick={onEdit}
+            type="button"
+            variant="primary"
+          >
+            {t("common.actions.edit")}
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 interface EmployeePassportCardProps {
   employee: HrRecord;

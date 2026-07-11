@@ -65,7 +65,6 @@ const hrEntityConfigDefinitions: Record<HrEntityKey, HrEntityPageConfigDefinitio
     defaultOrderBy: 'started_at',
     columns: [
       { key: 'institution_name', labelKey: 'entities.employeeEducation.columns.institution' },
-      { key: 'education_type', labelKey: 'entities.employeeEducation.columns.type' },
       { key: 'education_degree', labelKey: 'entities.employeeEducation.columns.degree' },
       { key: 'speciality', labelKey: 'entities.employeeEducation.columns.speciality' },
       { key: 'started_at', labelKey: 'entities.employeeEducation.columns.startedAt', format: 'date' },

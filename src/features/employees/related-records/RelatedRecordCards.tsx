@@ -15,8 +15,8 @@ import type { HrRecord } from "../../../shared/types/hr";
 import { Button, EmptyState, LoadingState } from "../../../shared/ui";
 import {
   formatRelatedDate,
-  getEducationDegreeLabel,
-  getEducationTypeLabel,
+  getEducationLevelFromRecord,
+  getEducationLevelLabel,
   getString,
   valueOrEmpty,
 } from "./model";
@@ -137,21 +137,16 @@ export function EducationRecordCard({
   record,
   t,
 }: RecordCardProps): JSX.Element {
-  const educationType = getString(record.education_type);
   const speciality = getString(record.speciality);
+  const educationLevel = getEducationLevelFromRecord(record);
 
   return (
     <RecordShell>
       <RecordCardHeader
         badges={
-          <>
-            <SoftBadge>{getEducationTypeLabel(educationType, t)}</SoftBadge>
-            {educationType === "university" && (
-              <SoftBadge>
-                {getEducationDegreeLabel(getString(record.education_degree), t)}
-              </SoftBadge>
-            )}
-          </>
+          <SoftBadge tone="accent">
+            {getEducationLevelLabel(educationLevel, t)}
+          </SoftBadge>
         }
         deleteLabel={t("common.actions.delete")}
         editLabel={t("common.actions.edit")}

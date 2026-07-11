@@ -80,23 +80,6 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
           <stop offset="100%" stopColor="var(--hr-logo-circuit-end)" />
         </linearGradient>
 
-        <filter id="hrLogoShadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow
-            dx="0"
-            dy="18"
-            stdDeviation="18"
-            floodColor="var(--hr-logo-shadow)"
-            floodOpacity="0.30"
-          />
-        </filter>
-
-        <filter id="hrLogoNodeGlow" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="8" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
 
       <motion.circle
@@ -104,7 +87,6 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         cy="256"
         r="220"
         fill="url(#hrLogoOuterRing)"
-        filter="url(#hrLogoShadow)"
         style={{ transformOrigin: '256px 256px' }}
         animate={{ scale: [1, 1.025, 1] }}
         transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
@@ -179,7 +161,6 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         cy="138"
         r="18"
         fill="var(--hr-logo-node)"
-        filter="url(#hrLogoNodeGlow)"
         animate={{ scale: [1, 1.2, 1], opacity: [0.9, 1, 0.9] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
         style={{ transformOrigin: '373px 138px' }}
@@ -190,7 +171,6 @@ export function HRLogo({ className = '' }: HRLogoProps): JSX.Element {
         cy="373"
         r="18"
         fill="var(--hr-logo-node)"
-        filter="url(#hrLogoNodeGlow)"
         animate={{ scale: [1, 1.2, 1], opacity: [0.9, 1, 0.9] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
         style={{ transformOrigin: '138px 373px' }}
