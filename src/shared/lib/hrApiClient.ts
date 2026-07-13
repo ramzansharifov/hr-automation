@@ -3,85 +3,94 @@ import type {
   HrCreateParams,
   HrDashboardStats,
   HrDeleteParams,
+  HrEmploymentChangeParams,
   HrGetByIdParams,
   HrListParams,
   HrListResult,
   HrRecord,
   HrUpdateParams,
-} from '../types/hr'
+} from "../types/hr";
 
 function getHrApi(): HrApi {
   if (window.hrApi) {
-    return window.hrApi
+    return window.hrApi;
   }
 
   if (window.ipcRenderer) {
-    return createHrApiFromIpcRenderer()
+    return createHrApiFromIpcRenderer();
   }
 
   throw new Error(
-    'HR API недоступен. Закрой браузерное окно, останови dev-сервер через Ctrl+C и заново запусти npm run dev. Работать нужно именно в Electron-окне.',
-  )
+    "HR API недоступен. Закрой браузерное окно, останови dev-сервер через Ctrl+C и заново запусти npm run dev. Работать нужно именно в Electron-окне.",
+  );
 }
 
 function createHrApiFromIpcRenderer(): HrApi {
   return {
     list(params: HrListParams) {
-      return invoke<HrListResult>('hr:list', params)
+      return invoke<HrListResult>("hr:list", params);
     },
 
     getById(params: HrGetByIdParams) {
-      return invoke<HrRecord | null>('hr:getById', params)
+      return invoke<HrRecord | null>("hr:getById", params);
     },
 
     create(params: HrCreateParams) {
-      return invoke<HrRecord>('hr:create', params)
+      return invoke<HrRecord>("hr:create", params);
     },
 
     update(params: HrUpdateParams) {
-      return invoke<HrRecord>('hr:update', params)
+      return invoke<HrRecord>("hr:update", params);
+    },
+
+    changeEmployment(params: HrEmploymentChangeParams) {
+      return invoke<HrRecord>("hr:changeEmployment", params);
     },
 
     delete(params: HrDeleteParams) {
-      return invoke<{ success: true }>('hr:delete', params)
+      return invoke<{ success: true }>("hr:delete", params);
     },
 
     dashboard() {
-      return invoke<HrDashboardStats>('hr:dashboard')
+      return invoke<HrDashboardStats>("hr:dashboard");
     },
-  }
+  };
 }
 
 function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
   if (!window.ipcRenderer) {
-    return Promise.reject(new Error(`IPC канал ${channel} недоступен`))
+    return Promise.reject(new Error(`IPC канал ${channel} недоступен`));
   }
 
-  return window.ipcRenderer.invoke(channel, ...args) as Promise<T>
+  return window.ipcRenderer.invoke(channel, ...args) as Promise<T>;
 }
 
 export const hrApiClient = {
   list(params: HrListParams) {
-    return getHrApi().list(params)
+    return getHrApi().list(params);
   },
 
   getById(params: HrGetByIdParams) {
-    return getHrApi().getById(params)
+    return getHrApi().getById(params);
   },
 
   create(params: HrCreateParams) {
-    return getHrApi().create(params)
+    return getHrApi().create(params);
   },
 
   update(params: HrUpdateParams) {
-    return getHrApi().update(params)
+    return getHrApi().update(params);
+  },
+
+  changeEmployment(params: HrEmploymentChangeParams) {
+    return getHrApi().changeEmployment(params);
   },
 
   delete(params: HrDeleteParams) {
-    return getHrApi().delete(params)
+    return getHrApi().delete(params);
   },
 
   dashboard() {
-    return getHrApi().dashboard()
+    return getHrApi().dashboard();
   },
-}
+};
