@@ -254,17 +254,6 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="company" className="outline-none">
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("company")}
-              >
-                {t("employeesDetails.sections.company")}
-              </Button>
-            </div>
-
             <EmployeeInfoPanel
               eyebrow={t("employeesDetails.sections.company")}
               title={fullName || t("employeesDetails.title")}

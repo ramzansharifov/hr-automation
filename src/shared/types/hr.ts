@@ -62,6 +62,17 @@ export interface HrDeleteParams {
   id: number;
 }
 
+export interface HrEmploymentChangeParams {
+  employeeId: number;
+  departmentId: number;
+  positionId: number;
+  salaryMode: "keep" | "position" | "custom";
+  salary?: number;
+  effectiveAt: string;
+  reason: string;
+  note?: string;
+}
+
 export interface HrDashboardStats {
   employeesTotal: number;
   departmentsTotal: number;
@@ -75,6 +86,7 @@ export interface HrApi {
   getById(params: HrGetByIdParams): Promise<HrRecord | null>;
   create(params: HrCreateParams): Promise<HrRecord>;
   update(params: HrUpdateParams): Promise<HrRecord>;
+  changeEmployment(params: HrEmploymentChangeParams): Promise<HrRecord>;
   delete(params: HrDeleteParams): Promise<{ success: true }>;
   dashboard(): Promise<HrDashboardStats>;
 }

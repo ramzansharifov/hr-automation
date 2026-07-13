@@ -40,6 +40,9 @@ export function EmployeeLifecyclePanel({
     positionId: String(employee.position_id ?? ""),
     salaryMode: "keep",
     salary: String(employee.salary ?? 0),
+    effectiveAt: new Date().toISOString().slice(0, 10),
+    reason: "",
+    note: "",
   });
   const [vacation, setVacation] = useState({
     vacationType: "annual",
@@ -130,24 +133,25 @@ export function EmployeeLifecyclePanel({
     }
     setSaving(true);
     try {
-      const updated = await hrApiClient.update({
-        entity: "employees",
-        id: employeeId,
-        data: {
-          department_id: Number(career.departmentId),
-          position_id: Number(career.positionId),
-          salary:
-            career.salaryMode === "keep"
-              ? Number(employee.salary ?? 0)
-              : Number(career.salary),
-        },
+      const updated = await hrApiClient.changeEmployment({
+        employeeId,
+        departmentId: Number(career.departmentId),
+        positionId: Number(career.positionId),
+        salaryMode: career.salaryMode as "keep" | "position" | "custom",
+        salary:
+          career.salaryMode === "custom" ? Number(career.salary) : undefined,
+        effectiveAt: career.effectiveAt,
+        reason: career.reason,
+        note: career.note,
       });
       await onEmployeeUpdated(updated);
       await loadData();
       setCareerOpen(false);
       toast.success("Кадровое изменение сохранено в журнале");
-    } catch {
-      toast.error("Не удалось сохранить кадровое изменение");
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, "Не удалось сохранить кадровое изменение"),
+      );
     } finally {
       setSaving(false);
     }
@@ -192,8 +196,8 @@ export function EmployeeLifecyclePanel({
         reason: "",
       });
       toast.success("Отпуск добавлен");
-    } catch {
-      toast.error("Не удалось добавить отпуск");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось добавить отпуск"));
     } finally {
       setSaving(false);
     }
@@ -327,11 +331,12 @@ export function EmployeeLifecyclePanel({
               }
               options={[
                 { value: "keep", label: "Оставить без изменений" },
-                { value: "position", label: "Изменить вручную / по должности" },
+                { value: "position", label: "Установить оклад должности" },
+                { value: "custom", label: "Указать вручную" },
               ]}
             />
           </Field>
-          {career.salaryMode === "position" && (
+          {career.salaryMode === "custom" && (
             <Field label="Новая зарплата">
               <Input
                 min="0"
@@ -343,6 +348,34 @@ export function EmployeeLifecyclePanel({
               />
             </Field>
           )}
+          <Field label="Дата вступления в силу">
+            <Input
+              required
+              type="date"
+              value={career.effectiveAt}
+              onChange={(e) =>
+                setCareer((v) => ({ ...v, effectiveAt: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Основание изменения">
+            <Input
+              required
+              placeholder="Например: приказ №12 от 13.07.2026"
+              value={career.reason}
+              onChange={(e) =>
+                setCareer((v) => ({ ...v, reason: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Комментарий">
+            <Input
+              value={career.note}
+              onChange={(e) =>
+                setCareer((v) => ({ ...v, note: e.target.value }))
+              }
+            />
+          </Field>
           <div className="flex justify-end gap-3">
             <Button
               type="button"
@@ -582,4 +615,14 @@ function vacationTypeLabel(value: string): string {
       } as Record<string, string>
     )[value] ?? value
   );
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+
+  const marker = "Error: ";
+  const markerIndex = error.message.lastIndexOf(marker);
+  return markerIndex >= 0
+    ? error.message.slice(markerIndex + marker.length)
+    : error.message;
 }
