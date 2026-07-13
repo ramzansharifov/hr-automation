@@ -1,6 +1,10 @@
 import type Database from "better-sqlite3";
 
 export function seedDatabase(database: Database.Database): void {
+  if (hasBusinessData(database)) {
+    return;
+  }
+
   const transaction = database.transaction(() => {
     const enterpriseId = seedEnterprise(database);
     seedDepartments(database, enterpriseId);
@@ -11,6 +15,22 @@ export function seedDatabase(database: Database.Database): void {
   });
 
   transaction();
+}
+
+function hasBusinessData(database: Database.Database): boolean {
+  const result = database
+    .prepare(
+      `SELECT
+         EXISTS(SELECT 1 FROM enterprises) OR
+         EXISTS(SELECT 1 FROM departments) OR
+         EXISTS(SELECT 1 FROM positions) OR
+         EXISTS(SELECT 1 FROM employees) OR
+         EXISTS(SELECT 1 FROM vacations) OR
+         EXISTS(SELECT 1 FROM payroll) AS has_data`,
+    )
+    .get() as { has_data: 0 | 1 };
+
+  return result.has_data === 1;
 }
 
 function seedEnterprise(database: Database.Database): number {
@@ -181,10 +201,39 @@ function seedEmployees(database: Database.Database): void {
     )
   `);
 
+  const assignment = (
+    positionName: string,
+  ): { departmentId: number; positionId: number } => {
+    const record = database
+      .prepare(
+        `SELECT
+           positions.id AS positionId,
+           positions.department_id AS departmentId
+         FROM positions
+         WHERE positions.name = ?
+         LIMIT 1`,
+      )
+      .get(positionName) as
+      | { departmentId: number; positionId: number }
+      | undefined;
+
+    if (!record || record.departmentId === null) {
+      throw new Error(
+        `Не удалось определить отдел для демонстрационной должности «${positionName}»`,
+      );
+    }
+
+    return record;
+  };
+
+  const hrAssignment = assignment("HR-специалист");
+  const accountantAssignment = assignment("Бухгалтер");
+  const administratorAssignment = assignment("Системный администратор");
+
   insertEmployee.run({
     id: 1,
-    departmentId: 1,
-    positionId: 1,
+    departmentId: hrAssignment.departmentId,
+    positionId: hrAssignment.positionId,
     lastName: "Саидова",
     firstName: "Малика",
     middleName: "Алишеровна",
@@ -200,8 +249,8 @@ function seedEmployees(database: Database.Database): void {
 
   insertEmployee.run({
     id: 2,
-    departmentId: 2,
-    positionId: 2,
+    departmentId: accountantAssignment.departmentId,
+    positionId: accountantAssignment.positionId,
     lastName: "Каримов",
     firstName: "Фарид",
     middleName: "Насимович",
@@ -217,8 +266,8 @@ function seedEmployees(database: Database.Database): void {
 
   insertEmployee.run({
     id: 3,
-    departmentId: 3,
-    positionId: 3,
+    departmentId: administratorAssignment.departmentId,
+    positionId: administratorAssignment.positionId,
     lastName: "Рахмонов",
     firstName: "Азиз",
     middleName: "Шарифович",
