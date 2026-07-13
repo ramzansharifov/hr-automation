@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +58,35 @@ export function EmployeeCreatePage(): JSX.Element {
     resolver: zodResolver(employeeCreateSchema) as Resolver<EmployeeFormValues>,
   });
   const watchedValues = watch();
+  const availablePositions = positions.filter(
+    (position) =>
+      !watchedValues.department_id ||
+      position.departmentId === watchedValues.department_id,
+  );
+
+  useEffect(() => {
+    if (!watchedValues.position_id) return;
+
+    const selectedPosition = positions.find(
+      (position) => position.value === watchedValues.position_id,
+    );
+
+    if (
+      !selectedPosition ||
+      (watchedValues.department_id &&
+        selectedPosition.departmentId !== watchedValues.department_id)
+    ) {
+      setValue("position_id", "");
+      return;
+    }
+
+    setValue("salary", selectedPosition.baseSalary);
+  }, [
+    positions,
+    setValue,
+    watchedValues.department_id,
+    watchedValues.position_id,
+  ]);
 
   async function handleNext(): Promise<void> {
     if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) {
@@ -195,7 +224,7 @@ export function EmployeeCreatePage(): JSX.Element {
               departments={departments}
               errors={errors}
               isRelationsLoading={isRelationsLoading}
-              positions={positions}
+              positions={availablePositions}
               register={register}
               statusOptions={statusOptions}
               t={t}

@@ -1,168 +1,179 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import * as Tooltip from '@radix-ui/react-tooltip'
-import { motion } from 'framer-motion'
-import { FiChevronLeft, FiChevronRight, FiUser } from 'react-icons/fi'
-import { useTranslation } from 'react-i18next'
-import type { AppNavigationItem } from './navigation'
-import { bottomNavigationItems, navigationItems } from './navigation'
-import { HRLogo } from './brand/HRLogo'
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { motion } from "framer-motion";
+import { FiChevronLeft, FiChevronRight, FiUser } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
+import type { AppNavigationItem } from "./navigation";
+import { bottomNavigationItems, navigationItems } from "./navigation";
+import { HRLogo } from "./brand/HRLogo";
 
-const EXPANDED_SIDEBAR_WIDTH = '276px'
-const COLLAPSED_SIDEBAR_WIDTH = '84px'
+const EXPANDED_SIDEBAR_WIDTH = "276px";
+const COLLAPSED_SIDEBAR_WIDTH = "84px";
 
 const tooltipContentClass =
-  'z-50 select-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-white'
+  "z-50 select-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-white";
 
-const sidebarDividerClass = 'h-px bg-white/10'
+const sidebarDividerClass = "h-px bg-white/10";
 
 function getExpandedLinkClass(isActive: boolean): string {
   return [
-    'group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
+    "group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
     isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
-      : 'border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white',
-  ].join(' ')
+      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
+      : "border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white",
+  ].join(" ");
 }
 
 function getCollapsedLinkClass(isActive: boolean): string {
   return [
-    'group box-border flex h-12 w-12 shrink-0 items-center justify-center rounded-xl p-0 transition-colors duration-200',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
-    isActive ? 'text-white' : 'text-slate-300 hover:text-white',
-  ].join(' ')
+    "group box-border flex h-12 w-12 shrink-0 items-center justify-center rounded-xl p-0 transition-colors duration-200",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
+    isActive ? "text-white" : "text-slate-300 hover:text-white",
+  ].join(" ");
 }
 
 function getCollapsedIconButtonClass(isActive: boolean): string {
   return [
-    'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 transition-colors duration-200',
+    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 transition-colors duration-200",
     isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
-      : 'border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white',
-  ].join(' ')
+      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
+      : "border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white",
+  ].join(" ");
 }
 
-
 function getActiveNavigationItem(pathname: string): AppNavigationItem {
-  const allItems = [...navigationItems, ...bottomNavigationItems]
+  const allItems = [...navigationItems, ...bottomNavigationItems];
 
   return (
     allItems.find((item) =>
-      item.path === '/'
-        ? pathname === '/'
+      item.path === "/"
+        ? pathname === "/"
         : pathname === item.path || pathname.startsWith(`${item.path}/`),
     ) ?? navigationItems[0]
-  )
+  );
 }
 
 interface AppTopbarContent {
-  titleKey: string
-  descriptionKey?: string
-  icon: AppNavigationItem['icon']
+  titleKey: string;
+  descriptionKey?: string;
+  icon: AppNavigationItem["icon"];
 }
 
 function getTopbarContent(
   pathname: string,
   fallbackItem: AppNavigationItem,
 ): AppTopbarContent {
-  if (pathname === '/employees/new') {
+  if (pathname === "/employees/new") {
     return {
-      titleKey: 'employeesCreate.title',
-      descriptionKey: 'employeesCreate.description',
+      titleKey: "employeesCreate.title",
+      descriptionKey: "employeesCreate.description",
       icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname.startsWith('/employees/') && pathname !== '/employees') {
+  if (pathname.startsWith("/employees/") && pathname !== "/employees") {
     return {
-      titleKey: 'employeesDetails.title',
+      titleKey: "employeesDetails.title",
       icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname === '/employees') {
+  if (pathname === "/employees") {
     return {
-      titleKey: 'employeesPage.title',
-      descriptionKey: 'employeesPage.description',
+      titleKey: "employeesPage.title",
+      descriptionKey: "employeesPage.description",
       icon: fallbackItem.icon,
-    }
+    };
   }
-  if (pathname === '/filters') {
+  if (pathname === "/filters") {
     return {
-      titleKey: 'filtersPage.title',
-      descriptionKey: 'filtersPage.description',
+      titleKey: "filtersPage.title",
+      descriptionKey: "filtersPage.description",
       icon: fallbackItem.icon,
-    }
-  }
-
-  if (pathname === '/departments') {
-    return {
-      titleKey: 'entities.departments.title',
-      descriptionKey: 'entities.departments.description',
-      icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname === '/positions') {
+  if (pathname === "/departments") {
     return {
-      titleKey: 'entities.positions.title',
-      descriptionKey: 'entities.positions.description',
+      titleKey: "entities.departments.title",
+      descriptionKey: "entities.departments.description",
       icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname === '/vacations') {
+  if (pathname === "/enterprises") {
     return {
-      titleKey: 'entities.vacations.title',
-      descriptionKey: 'entities.vacations.description',
+      titleKey: "entities.enterprises.title",
+      descriptionKey: "entities.enterprises.description",
       icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname === '/payroll') {
+  if (pathname === "/positions") {
     return {
-      titleKey: 'entities.payroll.title',
-      descriptionKey: 'entities.payroll.description',
+      titleKey: "entities.positions.title",
+      descriptionKey: "entities.positions.description",
       icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname === '/profile') {
+  if (pathname === "/vacations") {
     return {
-      titleKey: 'profile.title',
+      titleKey: "entities.vacations.title",
+      descriptionKey: "entities.vacations.description",
       icon: fallbackItem.icon,
-    }
+    };
   }
 
-  if (pathname === '/settings') {
+  if (pathname === "/payroll") {
     return {
-      titleKey: 'settings.title',
+      titleKey: "entities.payroll.title",
+      descriptionKey: "entities.payroll.description",
       icon: fallbackItem.icon,
-    }
+    };
+  }
+
+  if (pathname === "/profile") {
+    return {
+      titleKey: "profile.title",
+      icon: fallbackItem.icon,
+    };
+  }
+
+  if (pathname === "/settings") {
+    return {
+      titleKey: "settings.title",
+      icon: fallbackItem.icon,
+    };
   }
 
   return {
     titleKey: fallbackItem.titleKey,
     icon: fallbackItem.icon,
-  }
+  };
 }
 interface SidebarItemProps {
-  item: AppNavigationItem
-  isCollapsed: boolean
-  end?: boolean
+  item: AppNavigationItem;
+  isCollapsed: boolean;
+  end?: boolean;
 }
 
-function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element {
-  const Icon = item.icon
-  const { t } = useTranslation()
-  const { pathname } = useLocation()
-  const itemTitle = t(item.titleKey)
+function SidebarItem({
+  item,
+  isCollapsed,
+  end,
+}: SidebarItemProps): JSX.Element {
+  const Icon = item.icon;
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const itemTitle = t(item.titleKey);
   const isActive =
-    item.path === '/'
-      ? pathname === '/'
-      : pathname === item.path || pathname.startsWith(`${item.path}/`)
+    item.path === "/"
+      ? pathname === "/"
+      : pathname === item.path || pathname.startsWith(`${item.path}/`);
 
   const link = (
     <NavLink
@@ -170,15 +181,21 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
       end={end}
       aria-label={itemTitle}
       className={() =>
-        isCollapsed ? getCollapsedLinkClass(isActive) : getExpandedLinkClass(isActive)
+        isCollapsed
+          ? getCollapsedLinkClass(isActive)
+          : getExpandedLinkClass(isActive)
       }
     >
       {isCollapsed ? (
         <span
           className={getCollapsedIconButtonClass(isActive)}
           style={{
-            backgroundColor: isActive ? 'var(--accent)' : 'var(--sidebar-button)',
-            borderColor: isActive ? 'var(--accent-border)' : 'var(--sidebar-button-border)',
+            backgroundColor: isActive
+              ? "var(--accent)"
+              : "var(--sidebar-button)",
+            borderColor: isActive
+              ? "var(--accent-border)"
+              : "var(--sidebar-button-border)",
           }}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -189,10 +206,10 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
 
       {!isCollapsed && <span className="truncate">{itemTitle}</span>}
     </NavLink>
-  )
+  );
 
   if (!isCollapsed) {
-    return link
+    return link;
   }
 
   return (
@@ -210,21 +227,27 @@ function SidebarItem({ item, isCollapsed, end }: SidebarItemProps): JSX.Element 
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
-  )
+  );
 }
 
 export function AppLayout(): JSX.Element {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const { t } = useTranslation()
-  const location = useLocation()
+  const { t } = useTranslation();
+  const location = useLocation();
 
-  const sidebarWidth = isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH
-  const activeNavigationItem = getActiveNavigationItem(location.pathname)
-  const topbarContent = getTopbarContent(location.pathname, activeNavigationItem)
-  const TopbarIcon = topbarContent.icon
-  const topbarDescription = topbarContent.descriptionKey ? t(topbarContent.descriptionKey) : undefined
-
+  const sidebarWidth = isSidebarCollapsed
+    ? COLLAPSED_SIDEBAR_WIDTH
+    : EXPANDED_SIDEBAR_WIDTH;
+  const activeNavigationItem = getActiveNavigationItem(location.pathname);
+  const topbarContent = getTopbarContent(
+    location.pathname,
+    activeNavigationItem,
+  );
+  const TopbarIcon = topbarContent.icon;
+  const topbarDescription = topbarContent.descriptionKey
+    ? t(topbarContent.descriptionKey)
+    : undefined;
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -233,7 +256,7 @@ export function AppLayout(): JSX.Element {
           layout
           initial={{ x: -18, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
           className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] text-white transition-[width] duration-300 ease-out"
           style={{ width: sidebarWidth }}
         >
@@ -243,18 +266,18 @@ export function AppLayout(): JSX.Element {
                 type="button"
                 aria-label={
                   isSidebarCollapsed
-                    ? t('app.sidebar.expandSidebar')
-                    : t('app.sidebar.collapseSidebar')
+                    ? t("app.sidebar.expandSidebar")
+                    : t("app.sidebar.collapseSidebar")
                 }
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
                 className={[
-                  'absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 transition-all duration-200',
-                  'pointer-events-none opacity-0',
-                  'group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100',
-                  'hover:border-[var(--accent-border)] hover:bg-[var(--sidebar-button-hover)] hover:text-white',
-                  'focus-visible:pointer-events-auto focus-visible:opacity-100',
-                  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
-                ].join(' ')}
+                  "absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 transition-all duration-200",
+                  "pointer-events-none opacity-0",
+                  "group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100",
+                  "hover:border-[var(--accent-border)] hover:bg-[var(--sidebar-button-hover)] hover:text-white",
+                  "focus-visible:pointer-events-auto focus-visible:opacity-100",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
+                ].join(" ")}
               >
                 {isSidebarCollapsed ? (
                   <FiChevronRight className="h-4 w-4" />
@@ -271,7 +294,9 @@ export function AppLayout(): JSX.Element {
                 sideOffset={12}
                 className={tooltipContentClass}
               >
-                {isSidebarCollapsed ? t('app.sidebar.expand') : t('app.sidebar.collapse')}
+                {isSidebarCollapsed
+                  ? t("app.sidebar.expand")
+                  : t("app.sidebar.collapse")}
                 <Tooltip.Arrow className="fill-slate-950" />
               </Tooltip.Content>
             </Tooltip.Portal>
@@ -280,19 +305,19 @@ export function AppLayout(): JSX.Element {
           <header className="px-5 py-5">
             <div
               className={[
-                'flex min-w-0 items-center',
-                isSidebarCollapsed ? 'justify-center' : 'gap-3',
-              ].join(' ')}
+                "flex min-w-0 items-center",
+                isSidebarCollapsed ? "justify-center" : "gap-3",
+              ].join(" ")}
             >
               <HRLogo className="h-11 w-11 shrink-0" />
 
               {!isSidebarCollapsed && (
                 <div className="min-w-0">
                   <h1 className="truncate text-[15px] font-black tracking-tight">
-                    {t('app.brand.title')}
+                    {t("app.brand.title")}
                   </h1>
                   <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-                    {t('app.brand.subtitle')}
+                    {t("app.brand.subtitle")}
                   </p>
                 </div>
               )}
@@ -304,23 +329,27 @@ export function AppLayout(): JSX.Element {
           </div>
 
           <nav
-            aria-label={t('app.sidebar.mainNavigation')}
+            aria-label={t("app.sidebar.mainNavigation")}
             className={[
-              'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-5',
-              isSidebarCollapsed ? 'items-center px-4' : 'px-5',
-            ].join(' ')}
+              "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-5",
+              isSidebarCollapsed ? "items-center px-4" : "px-5",
+            ].join(" ")}
           >
             {navigationItems.map((item, index) => (
               <motion.div
                 key={item.path}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.24, delay: index * 0.035, ease: 'easeOut' }}
-                className={isSidebarCollapsed ? 'w-12' : 'w-full'}
+                transition={{
+                  duration: 0.24,
+                  delay: index * 0.035,
+                  ease: "easeOut",
+                }}
+                className={isSidebarCollapsed ? "w-12" : "w-full"}
               >
                 <SidebarItem
                   item={item}
-                  end={item.path === '/'}
+                  end={item.path === "/"}
                   isCollapsed={isSidebarCollapsed}
                 />
               </motion.div>
@@ -334,9 +363,9 @@ export function AppLayout(): JSX.Element {
 
             <div
               className={[
-                'flex flex-col gap-3 py-5',
-                isSidebarCollapsed ? 'items-center px-4' : 'px-5',
-              ].join(' ')}
+                "flex flex-col gap-3 py-5",
+                isSidebarCollapsed ? "items-center px-4" : "px-5",
+              ].join(" ")}
             >
               {bottomNavigationItems.map((item, index) => (
                 <motion.div
@@ -346,9 +375,9 @@ export function AppLayout(): JSX.Element {
                   transition={{
                     duration: 0.24,
                     delay: (navigationItems.length + index) * 0.035,
-                    ease: 'easeOut',
+                    ease: "easeOut",
                   }}
-                  className={isSidebarCollapsed ? 'w-12' : 'w-full'}
+                  className={isSidebarCollapsed ? "w-12" : "w-full"}
                 >
                   <SidebarItem item={item} isCollapsed={isSidebarCollapsed} />
                 </motion.div>
@@ -387,8 +416,12 @@ export function AppLayout(): JSX.Element {
                 </span>
 
                 <div className="min-w-0 text-left">
-                  <p className="app-text truncate text-sm font-black">Администратор</p>
-                  <p className="app-muted mt-0.5 truncate text-xs font-semibold">HR Manager</p>
+                  <p className="app-text truncate text-sm font-black">
+                    Администратор
+                  </p>
+                  <p className="app-muted mt-0.5 truncate text-xs font-semibold">
+                    HR Manager
+                  </p>
                 </div>
               </div>
             </div>
@@ -400,5 +433,5 @@ export function AppLayout(): JSX.Element {
         </div>
       </div>
     </Tooltip.Provider>
-  )
+  );
 }

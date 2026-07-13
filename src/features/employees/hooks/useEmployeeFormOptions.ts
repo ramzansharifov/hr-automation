@@ -4,19 +4,20 @@ import { toast } from "react-toastify";
 
 import type { SelectOption } from "../../../shared/ui";
 import { loadEmployeeRelationOptions } from "../lib/employeeRelations";
+import type { PositionOption } from "../lib/employeeRelations";
 
 interface EmployeeFormOptions {
   departments: SelectOption[];
   genderOptions: SelectOption[];
   isRelationsLoading: boolean;
-  positions: SelectOption[];
+  positions: PositionOption[];
   statusOptions: SelectOption[];
 }
 
 export function useEmployeeFormOptions(): EmployeeFormOptions {
   const { t } = useTranslation();
   const [departments, setDepartments] = useState<SelectOption[]>([]);
-  const [positions, setPositions] = useState<SelectOption[]>([]);
+  const [positions, setPositions] = useState<PositionOption[]>([]);
   const [isRelationsLoading, setIsRelationsLoading] = useState(true);
 
   const statusOptions = useMemo<SelectOption[]>(

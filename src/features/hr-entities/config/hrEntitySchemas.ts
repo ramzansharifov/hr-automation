@@ -1,25 +1,28 @@
-import { z } from 'zod'
-import type { HrEntityKey } from '../../../shared/types/hr'
-import type { HrEntityFormValues } from '../lib/hrEntityFormMapper'
+import { z } from "zod";
+import type { HrEntityKey } from "../../../shared/types/hr";
+import type { HrEntityFormValues } from "../lib/hrEntityFormMapper";
 
-const requiredMessage = 'forms.validation.required'
-const invalidEmailMessage = 'forms.validation.email'
-const nonNegativeMessage = 'forms.validation.nonNegative'
-const invalidDateRangeMessage = 'forms.validation.dateRange'
+const requiredMessage = "forms.validation.required";
+const invalidEmailMessage = "forms.validation.email";
+const nonNegativeMessage = "forms.validation.nonNegative";
+const invalidDateRangeMessage = "forms.validation.dateRange";
 
 function requiredString(): z.ZodString {
-  return z.string().trim().min(1, requiredMessage)
+  return z.string().trim().min(1, requiredMessage);
 }
 
 function optionalString(): z.ZodOptional<z.ZodString> {
-  return z.string().optional()
+  return z.string().optional();
 }
 
 function optionalEmail(): z.ZodString {
   return z
     .string()
     .trim()
-    .refine((value) => value === '' || z.email().safeParse(value).success, invalidEmailMessage)
+    .refine(
+      (value) => value === "" || z.email().safeParse(value).success,
+      invalidEmailMessage,
+    );
 }
 
 function requiredNumberString(): z.ZodString {
@@ -28,15 +31,18 @@ function requiredNumberString(): z.ZodString {
     .trim()
     .min(1, requiredMessage)
     .refine((value) => Number.isFinite(Number(value)), requiredMessage)
-    .refine((value) => Number(value) >= 0, nonNegativeMessage)
+    .refine((value) => Number(value) >= 0, nonNegativeMessage);
 }
 
 function optionalNumberString(): z.ZodString {
   return z
     .string()
     .trim()
-    .refine((value) => value === '' || Number.isFinite(Number(value)), requiredMessage)
-    .refine((value) => value === '' || Number(value) >= 0, nonNegativeMessage)
+    .refine(
+      (value) => value === "" || Number.isFinite(Number(value)),
+      requiredMessage,
+    )
+    .refine((value) => value === "" || Number(value) >= 0, nonNegativeMessage);
 }
 
 const employeesSchema = z.object({
@@ -59,7 +65,18 @@ const employeesSchema = z.object({
   address_apartment: optionalString(),
   address: optionalString(),
   note: optionalString(),
-})
+});
+
+const enterprisesSchema = z.object({
+  name: requiredString(),
+  legal_name: optionalString(),
+  registration_number: optionalString(),
+  general_director_employee_id: optionalNumberString(),
+  phone: optionalString(),
+  email: optionalEmail(),
+  address: optionalString(),
+  note: optionalString(),
+});
 
 const employeeEducationSchema = z.object({
   employee_id: requiredNumberString(),
@@ -71,7 +88,7 @@ const employeeEducationSchema = z.object({
   ended_at: optionalString(),
   document_number: optionalString(),
   note: optionalString(),
-})
+});
 
 const employeeExperienceSchema = z.object({
   employee_id: requiredNumberString(),
@@ -82,9 +99,11 @@ const employeeExperienceSchema = z.object({
   is_current: optionalNumberString(),
   responsibilities: optionalString(),
   note: optionalString(),
-})
+});
 
 const departmentsSchema = z.object({
+  enterprise_id: requiredNumberString(),
+  director_employee_id: optionalNumberString(),
   name: requiredString(),
   manager_name: optionalString(),
   phone: optionalString(),
@@ -92,9 +111,10 @@ const departmentsSchema = z.object({
   location: optionalString(),
   created_on: optionalString(),
   note: optionalString(),
-})
+});
 
 const positionsSchema = z.object({
+  department_id: requiredNumberString(),
   name: requiredString(),
   base_salary: requiredNumberString(),
   allowance: optionalNumberString(),
@@ -102,7 +122,7 @@ const positionsSchema = z.object({
   responsibilities: optionalString(),
   requirements: optionalString(),
   note: optionalString(),
-})
+});
 
 const vacationsSchema = z
   .object({
@@ -111,17 +131,21 @@ const vacationsSchema = z
     starts_at: requiredString(),
     ends_at: requiredString(),
     days_count: requiredNumberString(),
+    is_paid: requiredNumberString(),
+    payment_amount: optionalNumberString(),
     reason: optionalString(),
     status: requiredString(),
+    approved_at: optionalString(),
     note: optionalString(),
   })
   .refine(
-    (value) => !value.starts_at || !value.ends_at || value.ends_at >= value.starts_at,
+    (value) =>
+      !value.starts_at || !value.ends_at || value.ends_at >= value.starts_at,
     {
       message: invalidDateRangeMessage,
-      path: ['ends_at'],
+      path: ["ends_at"],
     },
-  )
+  );
 
 const payrollSchema = z.object({
   employee_id: requiredNumberString(),
@@ -133,18 +157,36 @@ const payrollSchema = z.object({
   taxes: optionalNumberString(),
   paid_at: optionalString(),
   note: optionalString(),
-})
+});
+
+const employmentHistorySchema = z.object({
+  employee_id: requiredNumberString(),
+  change_type: requiredString(),
+  effective_at: requiredString(),
+  previous_department_id: optionalNumberString(),
+  new_department_id: optionalNumberString(),
+  previous_position_id: optionalNumberString(),
+  new_position_id: optionalNumberString(),
+  previous_salary: optionalNumberString(),
+  new_salary: optionalNumberString(),
+  reason: optionalString(),
+  note: optionalString(),
+});
 
 export const hrEntitySchemas = {
+  enterprises: enterprisesSchema,
   employees: employeesSchema,
   employee_education: employeeEducationSchema,
   employee_experience: employeeExperienceSchema,
+  employment_history: employmentHistorySchema,
   departments: departmentsSchema,
   positions: positionsSchema,
   vacations: vacationsSchema,
   payroll: payrollSchema,
-} satisfies Record<HrEntityKey, z.ZodType<unknown>>
+} satisfies Record<HrEntityKey, z.ZodType<unknown>>;
 
-export function getHrEntitySchema(entity: HrEntityKey): z.ZodType<unknown, HrEntityFormValues> {
-  return hrEntitySchemas[entity] as z.ZodType<unknown, HrEntityFormValues>
+export function getHrEntitySchema(
+  entity: HrEntityKey,
+): z.ZodType<unknown, HrEntityFormValues> {
+  return hrEntitySchemas[entity] as z.ZodType<unknown, HrEntityFormValues>;
 }
