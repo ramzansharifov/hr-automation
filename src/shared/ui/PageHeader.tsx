@@ -6,12 +6,11 @@ interface PageHeaderProps {
   title: string
 }
 
-export function PageHeader({ actions, description, title }: PageHeaderProps): JSX.Element {
+export function PageHeader({ actions, title }: PageHeaderProps): JSX.Element {
   return (
-    <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <h1 className="app-text text-3xl font-black tracking-tight">{title}</h1>
-        {description && <p className="app-muted mt-2 max-w-3xl text-sm">{description}</p>}
+        <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">{title}</h1>
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </section>
