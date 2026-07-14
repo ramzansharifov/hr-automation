@@ -1,48 +1,18 @@
 import { useState } from "react";
-
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { motion } from "framer-motion";
 import { FiChevronLeft, FiChevronRight, FiUser } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
+
 import type { AppNavigationItem } from "./navigation";
 import { bottomNavigationItems, navigationItems } from "./navigation";
 import { HRLogo } from "./brand/HRLogo";
 
-const EXPANDED_SIDEBAR_WIDTH = "276px";
-const COLLAPSED_SIDEBAR_WIDTH = "84px";
-
+const EXPANDED_SIDEBAR_WIDTH = "252px";
+const COLLAPSED_SIDEBAR_WIDTH = "76px";
 const tooltipContentClass =
-  "z-50 select-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-white";
-
-const sidebarDividerClass = "h-px bg-white/10";
-
-function getExpandedLinkClass(isActive: boolean): string {
-  return [
-    "group flex h-12 w-full items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200",
-    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
-    isActive
-      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
-      : "border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.07] hover:text-white",
-  ].join(" ");
-}
-
-function getCollapsedLinkClass(isActive: boolean): string {
-  return [
-    "group box-border flex h-12 w-12 shrink-0 items-center justify-center rounded-xl p-0 transition-colors duration-200",
-    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
-    isActive ? "text-white" : "text-slate-300 hover:text-white",
-  ].join(" ");
-}
-
-function getCollapsedIconButtonClass(isActive: boolean): string {
-  return [
-    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border p-3 transition-colors duration-200",
-    isActive
-      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
-      : "border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 group-hover:border-[var(--sidebar-button-border-hover)] group-hover:bg-[var(--sidebar-button-hover)] group-hover:text-white",
-  ].join(" ");
-}
+  "z-50 select-none rounded-xl border border-slate-700/80 bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-2xl";
 
 function getActiveNavigationItem(pathname: string): AppNavigationItem {
   const allItems = [...navigationItems, ...bottomNavigationItems];
@@ -56,103 +26,57 @@ function getActiveNavigationItem(pathname: string): AppNavigationItem {
   );
 }
 
-interface AppTopbarContent {
-  titleKey: string;
-  descriptionKey?: string;
-  icon: AppNavigationItem["icon"];
-}
-
-function getTopbarContent(
+function getTopbarTitleKey(
   pathname: string,
   fallbackItem: AppNavigationItem,
-): AppTopbarContent {
-  if (pathname === "/employees/new") {
-    return {
-      titleKey: "employeesCreate.title",
-      descriptionKey: "employeesCreate.description",
-      icon: fallbackItem.icon,
-    };
-  }
-
+): string {
+  if (pathname === "/employees/new") return "employeesCreate.title";
   if (pathname.startsWith("/employees/") && pathname !== "/employees") {
-    return {
-      titleKey: "employeesDetails.title",
-      icon: fallbackItem.icon,
-    };
+    return "employeesDetails.title";
   }
-
-  if (pathname === "/employees") {
-    return {
-      titleKey: "employeesPage.title",
-      descriptionKey: "employeesPage.description",
-      icon: fallbackItem.icon,
-    };
-  }
-  if (pathname === "/filters") {
-    return {
-      titleKey: "filtersPage.title",
-      descriptionKey: "filtersPage.description",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname === "/vacancies") {
-    return {
-      titleKey: "navigation.vacancies",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname === "/candidates") {
-    return {
-      titleKey: "navigation.candidates",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname.startsWith("/enterprises")) {
-    return {
-      titleKey: "entities.enterprises.title",
-      descriptionKey: "entities.enterprises.description",
-      icon: fallbackItem.icon,
-    };
-  }
-
-
-  if (pathname === "/profile") {
-    return {
-      titleKey: "profile.title",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname === "/settings") {
-    return {
-      titleKey: "settings.title",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  return {
-    titleKey: fallbackItem.titleKey,
-    icon: fallbackItem.icon,
-  };
+  if (pathname === "/employees") return "employeesPage.title";
+  if (pathname === "/filters") return "filtersPage.title";
+  if (pathname.startsWith("/vacancies")) return "navigation.vacancies";
+  if (pathname.startsWith("/candidates")) return "navigation.candidates";
+  if (pathname.startsWith("/enterprises")) return "entities.enterprises.title";
+  if (pathname === "/profile") return "profile.title";
+  if (pathname === "/settings") return "settings.title";
+  return fallbackItem.titleKey;
 }
-interface SidebarItemProps {
-  item: AppNavigationItem;
-  isCollapsed: boolean;
-  end?: boolean;
+
+function expandedLinkClass(isActive: boolean): string {
+  return [
+    "group relative flex h-11 w-full items-center gap-3 overflow-hidden rounded-2xl px-3 text-sm font-bold transition-all duration-200",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
+    isActive
+      ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
+      : "text-slate-400 hover:bg-white/[0.055] hover:text-white",
+  ].join(" ");
+}
+
+function collapsedLinkClass(isActive: boolean): string {
+  return [
+    "group flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
+    isActive
+      ? "bg-gradient-to-br from-[var(--accent-border)] to-[var(--accent-hover)] text-white shadow-lg"
+      : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
+  ].join(" ");
 }
 
 function SidebarItem({
   item,
   isCollapsed,
   end,
-}: SidebarItemProps): JSX.Element {
+}: {
+  item: AppNavigationItem;
+  isCollapsed: boolean;
+  end?: boolean;
+}): JSX.Element {
   const Icon = item.icon;
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const itemTitle = t(item.titleKey);
+  const title = t(item.titleKey);
   const isActive =
     item.path === "/"
       ? pathname === "/"
@@ -160,52 +84,29 @@ function SidebarItem({
 
   const link = (
     <NavLink
-      to={item.path}
+      aria-label={title}
+      className={isCollapsed ? collapsedLinkClass(isActive) : expandedLinkClass(isActive)}
       end={end}
-      aria-label={itemTitle}
-      className={() =>
-        isCollapsed
-          ? getCollapsedLinkClass(isActive)
-          : getExpandedLinkClass(isActive)
-      }
+      to={item.path}
     >
-      {isCollapsed ? (
-        <span
-          className={getCollapsedIconButtonClass(isActive)}
-          style={{
-            backgroundColor: isActive
-              ? "var(--accent)"
-              : "var(--sidebar-button)",
-            borderColor: isActive
-              ? "var(--accent-border)"
-              : "var(--sidebar-button-border)",
-          }}
-        >
-          <Icon className="h-[18px] w-[18px] shrink-0" />
-        </span>
-      ) : (
-        <Icon className="h-[18px] w-[18px] shrink-0" />
-      )}
-
-      {!isCollapsed && <span className="truncate">{itemTitle}</span>}
+      <Icon className="h-[18px] w-[18px] shrink-0" />
+      {!isCollapsed && <span className="truncate">{title}</span>}
     </NavLink>
   );
 
-  if (!isCollapsed) {
-    return link;
-  }
+  if (!isCollapsed) return link;
 
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>{link}</Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          side="right"
           align="center"
-          sideOffset={12}
           className={tooltipContentClass}
+          side="right"
+          sideOffset={12}
         >
-          {itemTitle}
+          {title}
           <Tooltip.Arrow className="fill-slate-950" />
         </Tooltip.Content>
       </Tooltip.Portal>
@@ -215,52 +116,36 @@ function SidebarItem({
 
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
   const { t } = useTranslation();
   const location = useLocation();
-
+  const activeNavigationItem = getActiveNavigationItem(location.pathname);
+  const TopbarIcon = activeNavigationItem.icon;
   const sidebarWidth = isSidebarCollapsed
     ? COLLAPSED_SIDEBAR_WIDTH
     : EXPANDED_SIDEBAR_WIDTH;
-  const activeNavigationItem = getActiveNavigationItem(location.pathname);
-  const topbarContent = getTopbarContent(
-    location.pathname,
-    activeNavigationItem,
-  );
-  const TopbarIcon = topbarContent.icon;
-  const topbarDescription = topbarContent.descriptionKey
-    ? t(topbarContent.descriptionKey)
-    : undefined;
 
   return (
     <Tooltip.Provider delayDuration={120}>
       <div className="app-page app-theme-transition min-h-screen overflow-x-hidden">
         <motion.aside
-          layout
-          initial={{ x: -18, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
           className="group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-visible border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] text-white transition-[width] duration-300 ease-out"
+          initial={{ x: -14, opacity: 0 }}
+          layout
           style={{ width: sidebarWidth }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
-                type="button"
                 aria-label={
                   isSidebarCollapsed
                     ? t("app.sidebar.expandSidebar")
                     : t("app.sidebar.collapseSidebar")
                 }
+                className="absolute right-0 top-6 z-40 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-bg)] text-slate-400 opacity-0 shadow-xl transition group-hover/sidebar:opacity-100 hover:border-[var(--accent-border)] hover:text-white focus-visible:opacity-100"
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
-                className={[
-                  "absolute right-0 top-6 z-40 flex h-10 w-10 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-button)] text-slate-300 transition-all duration-200",
-                  "pointer-events-none opacity-0",
-                  "group-hover/sidebar:pointer-events-auto group-hover/sidebar:opacity-100",
-                  "hover:border-[var(--accent-border)] hover:bg-[var(--sidebar-button-hover)] hover:text-white",
-                  "focus-visible:pointer-events-auto focus-visible:opacity-100",
-                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
-                ].join(" ")}
+                type="button"
               >
                 {isSidebarCollapsed ? (
                   <FiChevronRight className="h-4 w-4" />
@@ -269,13 +154,12 @@ export function AppLayout(): JSX.Element {
                 )}
               </button>
             </Tooltip.Trigger>
-
             <Tooltip.Portal>
               <Tooltip.Content
-                side="right"
                 align="center"
-                sideOffset={12}
                 className={tooltipContentClass}
+                side="right"
+                sideOffset={12}
               >
                 {isSidebarCollapsed
                   ? t("app.sidebar.expand")
@@ -285,85 +169,57 @@ export function AppLayout(): JSX.Element {
             </Tooltip.Portal>
           </Tooltip.Root>
 
-          <header className="px-5 py-5">
+          <header className={isSidebarCollapsed ? "px-4 py-5" : "px-5 py-5"}>
             <div
               className={[
                 "flex min-w-0 items-center",
                 isSidebarCollapsed ? "justify-center" : "gap-3",
               ].join(" ")}
             >
-              <HRLogo className="h-11 w-11 shrink-0" />
-
+              <HRLogo className="h-10 w-10 shrink-0" />
               {!isSidebarCollapsed && (
-                <div className="min-w-0">
-                  <h1 className="truncate text-[15px] font-black tracking-tight">
-                    {t("app.brand.title")}
-                  </h1>
-                  <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-                    {t("app.brand.subtitle")}
-                  </p>
-                </div>
+                <h1 className="truncate text-[15px] font-black tracking-tight">
+                  {t("app.brand.title")}
+                </h1>
               )}
             </div>
           </header>
 
-          <div className="px-5">
-            <div className={sidebarDividerClass} />
-          </div>
+          <div className="mx-5 h-px bg-white/[0.08]" />
 
           <nav
             aria-label={t("app.sidebar.mainNavigation")}
             className={[
-              "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-5",
-              isSidebarCollapsed ? "items-center px-4" : "px-5",
+              "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-4",
+              isSidebarCollapsed ? "items-center px-3" : "px-4",
             ].join(" ")}
           >
             {navigationItems.map((item, index) => (
               <motion.div
-                key={item.path}
-                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  duration: 0.24,
-                  delay: index * 0.035,
-                  ease: "easeOut",
-                }}
-                className={isSidebarCollapsed ? "w-12" : "w-full"}
+                className={isSidebarCollapsed ? "w-11" : "w-full"}
+                initial={{ opacity: 0, x: -8 }}
+                key={item.path}
+                transition={{ duration: 0.2, delay: index * 0.025 }}
               >
                 <SidebarItem
-                  item={item}
                   end={item.path === "/"}
                   isCollapsed={isSidebarCollapsed}
+                  item={item}
                 />
               </motion.div>
             ))}
           </nav>
 
-          <footer>
-            <div className="px-5">
-              <div className={sidebarDividerClass} />
-            </div>
-
-            <div
-              className={[
-                "flex flex-col gap-3 py-5",
-                isSidebarCollapsed ? "items-center px-4" : "px-5",
-              ].join(" ")}
-            >
-              {bottomNavigationItems.map((item, index) => (
-                <motion.div
+          <footer className={isSidebarCollapsed ? "px-3 pb-4" : "px-4 pb-4"}>
+            <div className="mb-3 h-px bg-white/[0.08]" />
+            <div className={isSidebarCollapsed ? "space-y-1.5" : "space-y-1.5"}>
+              {bottomNavigationItems.map((item) => (
+                <SidebarItem
+                  isCollapsed={isSidebarCollapsed}
+                  item={item}
                   key={item.path}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    duration: 0.24,
-                    delay: (navigationItems.length + index) * 0.035,
-                    ease: "easeOut",
-                  }}
-                  className={isSidebarCollapsed ? "w-12" : "w-full"}
-                >
-                  <SidebarItem item={item} isCollapsed={isSidebarCollapsed} />
-                </motion.div>
+                />
               ))}
             </div>
           </footer>
@@ -373,44 +229,29 @@ export function AppLayout(): JSX.Element {
           className="min-h-screen min-w-0 transition-[padding] duration-300 ease-out"
           style={{ paddingLeft: sidebarWidth }}
         >
-          <header className="app-topbar sticky top-0 z-20 flex h-[85px] items-center border-b px-8 backdrop-blur-xl">
-            <div className="flex w-full items-center justify-between gap-6">
+          <header className="app-topbar sticky top-0 z-20 flex h-[74px] items-center border-b px-6 backdrop-blur-2xl lg:px-8">
+            <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-5">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
-                  <TopbarIcon className="h-5 w-5" />
+                <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border">
+                  <TopbarIcon className="h-[18px] w-[18px]" />
                 </span>
-
-                <div className="min-w-0">
-                  <h2 className="app-text truncate text-xl font-black tracking-tight">
-                    {t(topbarContent.titleKey)}
-                  </h2>
-
-                  {topbarDescription && (
-                    <p className="app-muted mt-1 truncate text-xs font-semibold">
-                      {topbarDescription}
-                    </p>
-                  )}
-                </div>
+                <h2 className="app-text truncate text-lg font-black tracking-tight">
+                  {t(getTopbarTitleKey(location.pathname, activeNavigationItem))}
+                </h2>
               </div>
 
-              <div className="app-surface flex shrink-0 items-center gap-3 rounded-2xl border px-3 py-2">
-                <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)]">
-                  <FiUser className="h-5 w-5" />
+              <div className="app-surface app-border flex shrink-0 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-none">
+                <span className="app-accent-soft flex h-9 w-9 items-center justify-center rounded-xl border">
+                  <FiUser className="h-[18px] w-[18px]" />
                 </span>
-
-                <div className="min-w-0 text-left">
-                  <p className="app-text truncate text-sm font-black">
-                    Администратор
-                  </p>
-                  <p className="app-muted mt-0.5 truncate text-xs font-semibold">
-                    HR Manager
-                  </p>
-                </div>
+                <span className="app-text hidden pr-2 text-sm font-black sm:block">
+                  Администратор
+                </span>
               </div>
             </div>
           </header>
 
-          <main className="min-w-0 px-8 py-7">
+          <main className="mx-auto min-w-0 max-w-[1680px] px-6 py-6 lg:px-8 lg:py-7">
             <Outlet />
           </main>
         </div>
