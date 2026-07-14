@@ -85,64 +85,54 @@ export function OrganizationHierarchyPage(): JSX.Element {
     [department, enterprise, level],
   );
 
-  if (isLoading) {
-    return <LoadingState label="Загрузка организационной структуры..." />;
-  }
+  if (isLoading) return <LoadingState label="Загрузка организационной структуры..." />;
 
   if (hasError) {
     return (
       <EmptyState
-        title="Элемент структуры не найден"
         description="Вернитесь к предприятиям и выберите существующую запись."
+        title="Элемент структуры не найден"
       />
     );
   }
 
   return (
     <div className="space-y-6">
-      <nav
-        aria-label="Организационная структура"
-        className="app-muted flex flex-wrap items-center gap-2 text-sm font-bold"
-      >
-        <Link className="app-link-accent" to="/enterprises">
-          Предприятия
-        </Link>
-        {enterprise && (
-          <>
-            <FiChevronRight className="h-4 w-4" />
-            <Link
-              className={level === "departments" ? "app-text" : "app-link-accent"}
-              to={`/enterprises/${enterpriseId}/departments`}
-            >
-              {recordName(enterprise)}
-            </Link>
-          </>
-        )}
-        {department && (
-          <>
-            <FiChevronRight className="h-4 w-4" />
-            <span className="app-text">{recordName(department)}</span>
-          </>
-        )}
-      </nav>
-
-      <section className="app-surface app-border flex flex-col gap-4 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex min-w-0 items-start gap-4">
-          <span className="app-accent-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
-            <page.icon className="h-5 w-5" />
+      <section className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur">
+            <page.icon className="h-6 w-6" />
           </span>
-          <div className="min-w-0">
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">
-              Организационная структура
-            </p>
-            <h1 className="app-text mt-1 text-3xl font-black tracking-tight">
-              {page.title}
-            </h1>
-            <p className="app-muted mt-2 max-w-3xl text-sm font-medium leading-6">
-              {page.description}
-            </p>
-          </div>
+          <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
+            {page.title}
+          </h1>
         </div>
+
+        <nav
+          aria-label="Организационная структура"
+          className="flex flex-wrap items-center gap-2 text-sm font-bold text-white/75"
+        >
+          <Link className="transition hover:text-white" to="/enterprises">
+            Предприятия
+          </Link>
+          {enterprise && (
+            <>
+              <FiChevronRight className="h-4 w-4" />
+              <Link
+                className="transition hover:text-white"
+                to={`/enterprises/${enterpriseId}/departments`}
+              >
+                {recordName(enterprise)}
+              </Link>
+            </>
+          )}
+          {department && (
+            <>
+              <FiChevronRight className="h-4 w-4" />
+              <span className="text-white">{recordName(department)}</span>
+            </>
+          )}
+        </nav>
       </section>
 
       <HrEntityTable
@@ -152,8 +142,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
         hiddenColumnKeys={page.hiddenColumnKeys}
         onRowClick={
           level === "enterprises"
-            ? (record) =>
-                navigate(`/enterprises/${toId(record.id)}/departments`)
+            ? (record) => navigate(`/enterprises/${toId(record.id)}/departments`)
             : level === "departments"
               ? (record) =>
                   navigate(
@@ -172,7 +161,6 @@ function getPageContent(
   department: HrRecord | null,
 ): {
   createInitialRecord?: HrRecord;
-  description: string;
   entity: Extract<HrEntityKey, "enterprises" | "departments" | "positions">;
   filters?: Record<string, number>;
   hiddenColumnKeys?: string[];
@@ -183,7 +171,6 @@ function getPageContent(
     const id = toId(enterprise?.id)!;
     return {
       createInitialRecord: { enterprise_id: id },
-      description: `Отделы предприятия «${recordName(enterprise)}». Нажмите на отдел, чтобы перейти к его должностям.`,
       entity: "departments",
       filters: { enterprise_id: id },
       hiddenColumnKeys: ["enterprise_name"],
@@ -196,7 +183,6 @@ function getPageContent(
     const id = toId(department?.id)!;
     return {
       createInitialRecord: { department_id: id },
-      description: `Должности отдела «${recordName(department)}» предприятия «${recordName(enterprise)}».`,
       entity: "positions",
       filters: { department_id: id },
       hiddenColumnKeys: ["department_name"],
@@ -206,8 +192,6 @@ function getPageContent(
   }
 
   return {
-    description:
-      "Выберите предприятие, чтобы открыть его отделы и перейти дальше к должностям.",
     entity: "enterprises",
     icon: FiLayers,
     title: "Предприятия",
