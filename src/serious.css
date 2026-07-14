@@ -1,0 +1,146 @@
+/* A stricter visual pass loaded after modern.css. */
+
+:root {
+  --serious-radius-panel: 16px;
+  --serious-radius-control: 10px;
+  --serious-radius-small: 8px;
+}
+
+/* Flatter hierarchy: less glow, less inflated rounding. */
+.app-accent-gradient-panel {
+  border-radius: var(--serious-radius-panel) !important;
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 14%, transparent) !important;
+}
+
+.app-surface {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+:root[data-theme="dark"] .app-surface {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+}
+
+main section.app-surface,
+main article.app-surface,
+main form.app-surface,
+main .rounded-\[28px\],
+main .rounded-\[26px\],
+[role="dialog"] {
+  border-radius: var(--serious-radius-panel) !important;
+}
+
+main .rounded-\[24px\] {
+  border-radius: 14px !important;
+}
+
+main .rounded-2xl,
+header .rounded-2xl,
+aside .rounded-2xl {
+  border-radius: 12px !important;
+}
+
+main .rounded-xl,
+header .rounded-xl,
+aside .rounded-xl {
+  border-radius: var(--serious-radius-small) !important;
+}
+
+.app-input,
+.app-button-primary,
+.app-button-secondary,
+.app-tab-trigger {
+  border-radius: var(--serious-radius-control) !important;
+}
+
+.app-button-primary {
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent) !important;
+}
+
+.app-button-secondary {
+  box-shadow: none !important;
+}
+
+/* View switch is a compact control, not a separate floating card. */
+[aria-label="Режим отображения"][role="group"] {
+  border-radius: var(--serious-radius-control) !important;
+  padding: 3px !important;
+}
+
+[aria-label="Режим отображения"][role="group"] > button {
+  min-height: 36px;
+  border-radius: 7px !important;
+  padding-inline: 14px;
+  font-weight: 700;
+}
+
+/* In entity tables keep the view switch immediately before Refresh. */
+@media (min-width: 640px) {
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface) {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+  }
+
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface)
+    > div:first-child {
+    order: 1;
+    margin-left: auto;
+  }
+
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface)
+    > div:last-child {
+    order: 2;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 10px !important;
+  }
+
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface)
+    > div:first-child
+    > .app-surface {
+    border-radius: var(--serious-radius-control) !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface)
+    > div,
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface)
+    > div:last-child {
+    width: 100%;
+  }
+
+  main section.app-surface
+    > .app-border-soft:first-child:has(> div:first-child > .app-surface)
+    > div:last-child {
+    justify-content: flex-end;
+  }
+}
+
+/* Tables should read as business software, not floating bubbles. */
+table thead tr {
+  background: color-mix(in srgb, var(--color-surface-muted) 97%, transparent) !important;
+}
+
+table th,
+table td {
+  padding-top: 13px !important;
+  padding-bottom: 13px !important;
+}
+
+table tbody tr:hover {
+  transform: none !important;
+}
+
+/* Keep pills for statuses only; regular controls stay rectangular. */
+.app-table-action-button {
+  border-radius: var(--serious-radius-small) !important;
+}

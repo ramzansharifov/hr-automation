@@ -39,7 +39,7 @@ export function ViewModeToggle({
   return (
     <div
       aria-label="Режим отображения"
-      className={`app-surface app-border inline-flex items-center gap-1 rounded-2xl border p-1 shadow-none ${className}`}
+      className={`app-border inline-flex items-center gap-1 rounded-xl border bg-[var(--color-surface)] p-1 ${className}`}
       role="group"
     >
       <button
@@ -66,10 +66,10 @@ export function ViewModeToggle({
 
 function getButtonClass(isActive: boolean): string {
   return [
-    "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition",
+    "inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-3.5 text-sm font-bold transition",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
     isActive
-      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-sm"
+      ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
       : "border-transparent bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]",
   ].join(" ");
 }
