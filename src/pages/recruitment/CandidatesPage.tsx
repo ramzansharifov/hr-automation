@@ -3,6 +3,7 @@ import {
   FiEdit2,
   FiMail,
   FiPhone,
+  FiRefreshCw,
   FiTrash2,
   FiUserPlus,
 } from "react-icons/fi";
@@ -250,45 +251,59 @@ export function CandidatesPage(): JSX.Element {
         title="Кандидаты"
       />
 
-      <div className="flex justify-start">
-        <ViewModeToggle onChange={setViewMode} value={viewMode} />
-      </div>
+      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+          <ViewModeToggle onChange={setViewMode} value={viewMode} />
+          <Button
+            leftIcon={
+              <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            }
+            onClick={() => void loadData()}
+            type="button"
+            variant="secondary"
+          >
+            Обновить
+          </Button>
+        </div>
 
-      {isLoading ? (
-        <LoadingState label="Загрузка кандидатов..." />
-      ) : filteredCandidates.length === 0 ? (
-        <div className="app-surface app-border rounded-[28px] border py-12">
-          <EmptyState
-            title={
-              candidates.length === 0
-                ? "Кандидатов пока нет"
-                : "Нет кандидатов по выбранным фильтрам"
-            }
-            description={
-              candidates.length === 0
-                ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
-                : "Измените или очистите фильтры в модуле «Фильтры»."
-            }
-          />
-        </div>
-      ) : viewMode === "cards" ? (
-        <div className="space-y-4">
-          {filteredCandidates.map((candidate) => (
-            <CandidateCard
-              candidate={candidate}
-              key={String(candidate.id)}
-              onDelete={() => setDeleteTarget(candidate)}
-              onEdit={() => void openEdit(candidate)}
+        {isLoading ? (
+          <div className="px-5 py-16">
+            <LoadingState label="Загрузка кандидатов..." />
+          </div>
+        ) : filteredCandidates.length === 0 ? (
+          <div className="py-16">
+            <EmptyState
+              title={
+                candidates.length === 0
+                  ? "Кандидатов пока нет"
+                  : "Нет кандидатов по выбранным фильтрам"
+              }
+              description={
+                candidates.length === 0
+                  ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
+                  : "Измените или очистите фильтры в модуле «Фильтры»."
+              }
             />
-          ))}
-        </div>
-      ) : (
-        <CandidatesTable
-          candidates={filteredCandidates}
-          onDelete={setDeleteTarget}
-          onEdit={(candidate) => void openEdit(candidate)}
-        />
-      )}
+          </div>
+        ) : viewMode === "cards" ? (
+          <div className="space-y-4 p-5">
+            {filteredCandidates.map((candidate) => (
+              <CandidateCard
+                candidate={candidate}
+                key={String(candidate.id)}
+                onDelete={() => setDeleteTarget(candidate)}
+                onEdit={() => void openEdit(candidate)}
+              />
+            ))}
+          </div>
+        ) : (
+          <CandidatesTable
+            candidates={filteredCandidates}
+            onDelete={setDeleteTarget}
+            onEdit={(candidate) => void openEdit(candidate)}
+          />
+        )}
+      </section>
 
       <Dialog
         description="Выберите вакансию и оцените кандидата по каждому требуемому навыку от 0 до 10."
@@ -492,7 +507,7 @@ function CandidatesTable({
   onEdit: (candidate: HrRecord) => void;
 }): JSX.Element {
   return (
-    <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+    <>
       <div className="overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
@@ -570,7 +585,7 @@ function CandidatesTable({
       <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
         Всего: <span className="app-text font-black">{candidates.length}</span>
       </div>
-    </section>
+    </>
   );
 }
 

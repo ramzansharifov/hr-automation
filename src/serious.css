@@ -142,30 +142,6 @@ main > div.space-y-6:has(> .organization-entity-table)
   margin-top: 0 !important;
 }
 
-/* Custom recruitment tables join their view switch to the table surface. */
-main > div.space-y-6
-  > .flex.justify-start:has(> [aria-label="Режим отображения"]):not(:has(+ .organization-entity-table)):has(+ section.app-surface) {
-  width: 100%;
-  min-height: 70px;
-  margin-bottom: -24px !important;
-  padding: 16px 20px;
-  align-items: center;
-  background: var(--color-surface);
-  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
-  border-bottom: 0;
-  border-radius: var(--serious-radius-panel) var(--serious-radius-panel) 0 0;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
-  position: relative;
-  z-index: 2;
-}
-
-main > div.space-y-6
-  > .flex.justify-start:has(> [aria-label="Режим отображения"]):not(:has(+ .organization-entity-table))
-  + section.app-surface {
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
-}
-
 @media (max-width: 639px) {
   main section.app-surface
     > .app-border-soft:first-child:has(> div:first-child > .app-surface)
