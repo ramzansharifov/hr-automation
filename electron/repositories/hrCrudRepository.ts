@@ -28,11 +28,15 @@ export class HrCrudRepository {
     const where = this.buildWhere(config, params);
     const orderBy = this.normalizeOrderBy(config, params.orderBy);
     const orderDirection = params.orderDirection === "desc" ? "DESC" : "ASC";
+    const listColumnEntries = Object.entries(config.listColumns);
+    const computedSelect = listColumnEntries
+      .map(([alias, expression]) => `${expression} AS ${alias}`)
+      .join(",\n          ");
 
     const items = this.database
       .prepare(
         `
-        SELECT *
+        SELECT ${config.tableName}.*${computedSelect ? `,\n          ${computedSelect}` : ""}
         FROM ${config.tableName}
         ${where.sql}
         ORDER BY ${orderBy} ${orderDirection}
@@ -310,7 +314,11 @@ export class HrCrudRepository {
     const values: Record<string, unknown> = {};
 
     if (params.search && config.searchableColumns.length > 0) {
-      const searchConditions = config.searchableColumns.map((column, index) => {
+      const searchableColumns = [
+        ...config.searchableColumns,
+        ...Object.values(config.listColumns),
+      ];
+      const searchConditions = searchableColumns.map((column, index) => {
         const key = `search_${index}`;
         values[key] = `%${params.search}%`;
 
@@ -397,7 +405,10 @@ export class HrCrudRepository {
     config: HrCrudEntityConfig,
     orderBy?: string,
   ): string {
-    if (orderBy && config.allowedColumns.includes(orderBy)) {
+    if (
+      orderBy &&
+      (config.allowedColumns.includes(orderBy) || orderBy in config.listColumns)
+    ) {
       return orderBy;
     }
 

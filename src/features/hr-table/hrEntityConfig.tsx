@@ -60,7 +60,7 @@ const hrEntityConfigDefinitions: Record<
       },
       { key: "legal_name", labelKey: "entities.enterprises.columns.legalName" },
       {
-        key: "general_director_employee_id",
+        key: "general_director_name",
         labelKey: "entities.enterprises.columns.generalDirector",
       },
       { key: "phone", labelKey: "entities.enterprises.columns.phone" },
@@ -158,7 +158,7 @@ const hrEntityConfigDefinitions: Record<
     defaultOrderBy: "effective_at",
     columns: [
       {
-        key: "employee_id",
+        key: "employee_name",
         labelKey: "entities.employmentHistory.columns.employee",
       },
       {
@@ -166,7 +166,7 @@ const hrEntityConfigDefinitions: Record<
         labelKey: "entities.employmentHistory.columns.changeType",
       },
       {
-        key: "new_position_id",
+        key: "new_position_name",
         labelKey: "entities.employmentHistory.columns.position",
       },
       {
@@ -191,12 +191,12 @@ const hrEntityConfigDefinitions: Record<
     defaultOrderBy: "name",
     columns: [
       {
-        key: "enterprise_id",
+        key: "enterprise_name",
         labelKey: "entities.departments.columns.enterprise",
       },
       { key: "name", labelKey: "entities.departments.columns.name" },
       {
-        key: "director_employee_id",
+        key: "director_name",
         labelKey: "entities.departments.columns.director",
       },
       { key: "phone", labelKey: "entities.departments.columns.phone" },
@@ -219,7 +219,7 @@ const hrEntityConfigDefinitions: Record<
     defaultOrderBy: "name",
     columns: [
       {
-        key: "department_id",
+        key: "department_name",
         labelKey: "entities.positions.columns.department",
       },
       { key: "name", labelKey: "entities.positions.columns.name" },
@@ -256,7 +256,7 @@ const hrEntityConfigDefinitions: Record<
     createLabelKey: "entities.vacations.createLabel",
     defaultOrderBy: "starts_at",
     columns: [
-      { key: "employee_id", labelKey: "entities.vacations.columns.employee" },
+      { key: "employee_name", labelKey: "entities.vacations.columns.employee" },
       {
         key: "vacation_type",
         labelKey: "entities.vacations.columns.vacationType",
@@ -298,7 +298,7 @@ const hrEntityConfigDefinitions: Record<
     createLabelKey: "entities.payroll.createLabel",
     defaultOrderBy: "accrual_month",
     columns: [
-      { key: "employee_id", labelKey: "entities.payroll.columns.employee" },
+      { key: "employee_name", labelKey: "entities.payroll.columns.employee" },
       {
         key: "accrual_month",
         labelKey: "entities.payroll.columns.accrualMonth",

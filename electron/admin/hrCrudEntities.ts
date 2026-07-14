@@ -8,6 +8,7 @@ export interface HrCrudEntityConfig {
   searchableColumns: string[];
   defaultOrderBy: string;
   hasUpdatedAt: boolean;
+  listColumns: Record<string, string>;
 }
 
 function entity(
@@ -15,7 +16,10 @@ function entity(
   allowedColumns: string[],
   searchableColumns: string[],
   options: Partial<
-    Pick<HrCrudEntityConfig, "defaultOrderBy" | "hasUpdatedAt">
+    Pick<
+      HrCrudEntityConfig,
+      "defaultOrderBy" | "hasUpdatedAt" | "listColumns"
+    >
   > = {},
 ): HrCrudEntityConfig {
   return {
@@ -26,8 +30,16 @@ function entity(
     searchableColumns,
     defaultOrderBy: options.defaultOrderBy ?? "id",
     hasUpdatedAt: options.hasUpdatedAt ?? true,
+    listColumns: options.listColumns ?? {},
   };
 }
+
+const employeeFullName = (employeeAlias: string): string =>
+  `TRIM(
+    COALESCE(${employeeAlias}.last_name, '') || ' ' ||
+    COALESCE(${employeeAlias}.first_name, '') || ' ' ||
+    COALESCE(${employeeAlias}.middle_name, '')
+  )`;
 
 export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
   enterprises: entity(
@@ -43,7 +55,14 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "note",
     ],
     ["name", "legal_name", "registration_number", "phone", "email", "address"],
-    { defaultOrderBy: "name" },
+    {
+      defaultOrderBy: "name",
+      listColumns: {
+        general_director_name: `(SELECT ${employeeFullName("director")}
+          FROM employees AS director
+          WHERE director.id = enterprises.general_director_employee_id)`,
+      },
+    },
   ),
 
   departments: entity(
@@ -60,7 +79,20 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "note",
     ],
     ["name", "manager_name", "phone", "email", "location"],
-    { defaultOrderBy: "name" },
+    {
+      defaultOrderBy: "name",
+      listColumns: {
+        enterprise_name: `(SELECT enterprise.name
+          FROM enterprises AS enterprise
+          WHERE enterprise.id = departments.enterprise_id)`,
+        director_name: `COALESCE(
+          (SELECT ${employeeFullName("director")}
+            FROM employees AS director
+            WHERE director.id = departments.director_employee_id),
+          NULLIF(departments.manager_name, '')
+        )`,
+      },
+    },
   ),
 
   positions: entity(
@@ -76,7 +108,14 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "note",
     ],
     ["name", "responsibilities", "requirements"],
-    { defaultOrderBy: "name" },
+    {
+      defaultOrderBy: "name",
+      listColumns: {
+        department_name: `(SELECT department.name
+          FROM departments AS department
+          WHERE department.id = positions.department_id)`,
+      },
+    },
   ),
 
   employees: entity(
@@ -164,7 +203,21 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "note",
     ],
     ["change_type", "reason", "note"],
-    { defaultOrderBy: "effective_at", hasUpdatedAt: false },
+    {
+      defaultOrderBy: "effective_at",
+      hasUpdatedAt: false,
+      listColumns: {
+        employee_name: `(SELECT ${employeeFullName("employee")}
+          FROM employees AS employee
+          WHERE employee.id = employment_history.employee_id)`,
+        new_department_name: `(SELECT department.name
+          FROM departments AS department
+          WHERE department.id = employment_history.new_department_id)`,
+        new_position_name: `(SELECT position.name
+          FROM positions AS position
+          WHERE position.id = employment_history.new_position_id)`,
+      },
+    },
   ),
 
   vacations: entity(
@@ -183,7 +236,14 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "note",
     ],
     ["vacation_type", "reason", "status", "note"],
-    { defaultOrderBy: "starts_at" },
+    {
+      defaultOrderBy: "starts_at",
+      listColumns: {
+        employee_name: `(SELECT ${employeeFullName("employee")}
+          FROM employees AS employee
+          WHERE employee.id = vacations.employee_id)`,
+      },
+    },
   ),
 
   payroll: entity(
@@ -201,7 +261,14 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "note",
     ],
     ["accrual_month", "note"],
-    { defaultOrderBy: "accrual_month" },
+    {
+      defaultOrderBy: "accrual_month",
+      listColumns: {
+        employee_name: `(SELECT ${employeeFullName("employee")}
+          FROM employees AS employee
+          WHERE employee.id = payroll.employee_id)`,
+      },
+    },
   ),
 };
 
