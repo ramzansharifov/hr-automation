@@ -79,6 +79,7 @@ export function EmployeesPage(): JSX.Element {
             className="border-white/20 bg-white text-slate-950 shadow-xl hover:bg-white/90"
             leftIcon={<FiPlus className="h-4 w-4" />}
             onClick={() => navigate("/employees/new")}
+            variant="ghost"
           >
             Добавить сотрудника
           </Button>
