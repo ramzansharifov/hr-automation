@@ -96,6 +96,20 @@ function getTopbarContent(
     };
   }
 
+  if (pathname === "/vacancies") {
+    return {
+      titleKey: "navigation.vacancies",
+      icon: fallbackItem.icon,
+    };
+  }
+
+  if (pathname === "/candidates") {
+    return {
+      titleKey: "navigation.candidates",
+      icon: fallbackItem.icon,
+    };
+  }
+
   if (pathname.startsWith("/enterprises")) {
     return {
       titleKey: "entities.enterprises.title",

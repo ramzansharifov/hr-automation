@@ -22,6 +22,8 @@ export const ru = {
     employees: "Сотрудники",
     filters: "Фильтры",
     enterprises: "Предприятия",
+    vacancies: "Вакансии",
+    candidates: "Кандидаты",
     departments: "Отделы",
     positions: "Должности",
     vacations: "Отпуска",

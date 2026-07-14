@@ -8,6 +8,11 @@ import type {
   HrListParams,
   HrListResult,
   HrRecord,
+  CandidateProfile,
+  RecruitmentListParams,
+  SaveCandidateParams,
+  SaveVacancyParams,
+  VacancyProfile,
   HrUpdateParams,
 } from "../types/hr";
 
@@ -54,6 +59,31 @@ function createHrApiFromIpcRenderer(): HrApi {
     dashboard() {
       return invoke<HrDashboardStats>("hr:dashboard");
     },
+
+    listVacancies(params: RecruitmentListParams) {
+      return invoke<HrRecord[]>("recruitment:listVacancies", params);
+    },
+    getVacancy(id: number) {
+      return invoke<VacancyProfile | null>("recruitment:getVacancy", id);
+    },
+    saveVacancy(params: SaveVacancyParams) {
+      return invoke<VacancyProfile>("recruitment:saveVacancy", params);
+    },
+    deleteVacancy(id: number) {
+      return invoke<{ success: true }>("recruitment:deleteVacancy", id);
+    },
+    listCandidates(params: RecruitmentListParams) {
+      return invoke<HrRecord[]>("recruitment:listCandidates", params);
+    },
+    getCandidate(id: number) {
+      return invoke<CandidateProfile | null>("recruitment:getCandidate", id);
+    },
+    saveCandidate(params: SaveCandidateParams) {
+      return invoke<CandidateProfile>("recruitment:saveCandidate", params);
+    },
+    deleteCandidate(id: number) {
+      return invoke<{ success: true }>("recruitment:deleteCandidate", id);
+    },
   };
 }
 
@@ -92,5 +122,29 @@ export const hrApiClient = {
 
   dashboard() {
     return getHrApi().dashboard();
+  },
+  listVacancies(params: RecruitmentListParams) {
+    return getHrApi().listVacancies(params);
+  },
+  getVacancy(id: number) {
+    return getHrApi().getVacancy(id);
+  },
+  saveVacancy(params: SaveVacancyParams) {
+    return getHrApi().saveVacancy(params);
+  },
+  deleteVacancy(id: number) {
+    return getHrApi().deleteVacancy(id);
+  },
+  listCandidates(params: RecruitmentListParams) {
+    return getHrApi().listCandidates(params);
+  },
+  getCandidate(id: number) {
+    return getHrApi().getCandidate(id);
+  },
+  saveCandidate(params: SaveCandidateParams) {
+    return getHrApi().saveCandidate(params);
+  },
+  deleteCandidate(id: number) {
+    return getHrApi().deleteCandidate(id);
   },
 };
