@@ -5,7 +5,6 @@ import { Button, Input } from "../../shared/ui";
 
 export function RecruitmentPageHeader({
   actionLabel,
-  description,
   icon,
   onAction,
   title,
@@ -17,25 +16,17 @@ export function RecruitmentPageHeader({
   title: string;
 }): JSX.Element {
   return (
-    <section className="app-surface app-border flex flex-col gap-5 rounded-[28px] border p-6 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-start gap-4">
-        <span className="app-accent-soft flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent-border)]">
+    <section className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur">
           {icon}
         </span>
-        <div>
-          <p className="app-accent-text text-xs font-black uppercase tracking-[0.18em]">
-            Подбор персонала
-          </p>
-          <h1 className="app-text mt-1 text-3xl font-black tracking-tight">
-            {title}
-          </h1>
-          <p className="app-muted mt-2 max-w-3xl text-sm font-medium leading-6">
-            {description}
-          </p>
-        </div>
+        <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
+          {title}
+        </h1>
       </div>
       <Button
-        className="w-full shrink-0 lg:w-auto"
+        className="w-full shrink-0 border-white/20 bg-white text-slate-950 shadow-xl hover:bg-white/90 lg:w-auto"
         leftIcon={<FiPlus className="h-4 w-4" />}
         onClick={onAction}
       >
@@ -55,10 +46,10 @@ export function RecruitmentSearch({
   value: string;
 }): JSX.Element {
   return (
-    <div className="app-surface app-border relative rounded-2xl border p-2">
+    <div className="app-surface app-border relative rounded-2xl border p-2 shadow-none">
       <FiSearch className="app-muted pointer-events-none absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2" />
       <Input
-        className="border-transparent pl-11"
+        className="border-transparent bg-transparent pl-11 shadow-none"
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         value={value}
@@ -76,11 +67,12 @@ export function RecruitmentBadge({
 }): JSX.Element {
   const tones = {
     accent:
-      "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]",
-    neutral: "app-surface-muted app-border app-muted",
-    success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
-    warning: "border-amber-500/30 bg-amber-500/10 text-amber-500",
+      "border-[color-mix(in_srgb,var(--accent-border)_36%,var(--color-border))] bg-[color-mix(in_srgb,var(--accent)_12%,var(--color-surface))] text-[var(--color-text)]",
+    neutral: "app-surface-muted app-border app-text-soft",
+    success: "border-emerald-500/25 bg-emerald-500/10 text-emerald-500",
+    warning: "border-amber-500/25 bg-amber-500/10 text-amber-500",
   };
+
   return (
     <span
       className={`inline-flex min-h-7 items-center rounded-full border px-3 text-xs font-black ${tones[tone]}`}
@@ -107,15 +99,16 @@ export function FormField({
 
 export function MatchBar({ value }: { value: number }): JSX.Element {
   const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+
   return (
     <div className="min-w-[150px]">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="app-muted text-xs font-bold">Соответствие</span>
+        <span className="app-text-soft text-xs font-bold">Соответствие</span>
         <span className="app-text text-sm font-black">{safeValue}%</span>
       </div>
       <div className="app-surface-muted h-2 overflow-hidden rounded-full">
         <div
-          className="h-full rounded-full bg-[var(--accent)] transition-[width]"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--accent-border)] to-[var(--accent-hover)] transition-[width]"
           style={{ width: `${safeValue}%` }}
         />
       </div>
