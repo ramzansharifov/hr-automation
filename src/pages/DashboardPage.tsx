@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiUsers } from 'react-icons/fi'
+import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiRefreshCw, FiUsers } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
+
 import type { HrDashboardStats, HrListResult } from '../shared/types/hr'
 import { formatCurrency, formatDate, humanizeStatus } from '../shared/lib/format'
 import { hrApiClient } from '../shared/lib/hrApiClient'
@@ -72,118 +73,122 @@ export function DashboardPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="app-surface app-border rounded-[28px] border p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.24em]">
-              {t('dashboard.hero.productName')}
-            </p>
-            <h1 className="app-text mt-3 text-3xl font-black tracking-tight">
-              {t('dashboard.hero.title')}
-            </h1>
-          </div>
+      <section className="app-accent-gradient-panel flex flex-col gap-6 overflow-hidden rounded-[30px] border p-7 lg:flex-row lg:items-center lg:justify-between lg:p-8">
+        <h1 className="max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
+          {t('dashboard.hero.title')}
+        </h1>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/employees"
-              className="app-button-primary rounded-2xl px-5 py-3 text-sm font-black transition"
-            >
-              {t('dashboard.hero.employeesButton')}
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => void loadDashboard()}
-              className="app-button-secondary rounded-2xl border px-5 py-3 text-sm font-black transition"
-            >
-              {t('common.actions.refresh')}
-            </button>
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-5 text-sm font-black text-slate-950 shadow-xl transition hover:-translate-y-0.5 hover:bg-white/90"
+            to="/employees"
+          >
+            {t('dashboard.hero.employeesButton')}
+          </Link>
+          <button
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
+            onClick={() => void loadDashboard()}
+            type="button"
+          >
+            <FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            {t('common.actions.refresh')}
+          </button>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard title={t('dashboard.stats.employees')} value={stats.employeesTotal} description={t('dashboard.stats.total')} icon={FiUsers} />
-        <StatCard title={t('dashboard.stats.departments')} value={stats.departmentsTotal} description={t('dashboard.stats.total')} icon={FiGrid} />
-        <StatCard title={t('dashboard.stats.positions')} value={stats.positionsTotal} description={t('dashboard.stats.total')} icon={FiBriefcase} />
-        <StatCard title={t('dashboard.stats.vacations')} value={stats.activeVacations} description={t('dashboard.stats.active')} icon={FiCalendar} />
-        <StatCard title={t('dashboard.stats.payroll')} value={formatCurrency(stats.payrollMonthTotal, locale)} description={t('dashboard.stats.month')} icon={FiCreditCard} />
+        <StatCard title={t('dashboard.stats.employees')} value={stats.employeesTotal} icon={FiUsers} />
+        <StatCard title={t('dashboard.stats.departments')} value={stats.departmentsTotal} icon={FiGrid} />
+        <StatCard title={t('dashboard.stats.positions')} value={stats.positionsTotal} icon={FiBriefcase} />
+        <StatCard title={t('dashboard.stats.vacations')} value={stats.activeVacations} icon={FiCalendar} />
+        <StatCard title={t('dashboard.stats.payroll')} value={formatCurrency(stats.payrollMonthTotal, locale)} icon={FiCreditCard} />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
-        <article className="app-surface app-border rounded-[28px] border p-6">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="app-text text-lg font-black">{t('dashboard.sections.latestEmployees')}</h2>
-
-            <Link to="/employees" className="app-link-accent text-sm font-black">
-              {t('common.actions.open')}
-            </Link>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {employees.items.map((employee) => (
-              <div
-                key={String(employee.id)}
-                className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5"
-              >
-                <div>
-                  <p className="app-text font-black">
-                    {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
-                  </p>
-                  <p className="app-muted mt-1 text-sm font-medium">{formatDate(employee.hire_date, locale)}</p>
-                </div>
-
-                <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
-                  {humanizeStatus(employee.status, t)}
-                </span>
+        <DashboardListCard
+          emptyLabel={t('common.table.noRecords')}
+          linkLabel={t('common.actions.open')}
+          linkTo="/employees"
+          title={t('dashboard.sections.latestEmployees')}
+        >
+          {employees.items.map((employee) => (
+            <div
+              className="app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5"
+              key={String(employee.id)}
+            >
+              <div className="min-w-0">
+                <p className="app-text truncate font-black">
+                  {String(employee.last_name ?? '')} {String(employee.first_name ?? '')}
+                </p>
+                <p className="app-muted mt-1 text-sm font-medium">{formatDate(employee.hire_date, locale)}</p>
               </div>
-            ))}
+              <span className="app-accent-soft shrink-0 rounded-full border px-3 py-1 text-xs font-black">
+                {humanizeStatus(employee.status, t)}
+              </span>
+            </div>
+          ))}
+          {!isLoading && employees.items.length === 0 && (
+            <div className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
+              {t('common.table.noRecords')}
+            </div>
+          )}
+        </DashboardListCard>
 
-            {!isLoading && employees.items.length === 0 && (
-              <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
-                {t('common.table.noRecords')}
-              </p>
-            )}
-          </div>
-        </article>
-
-        <article className="app-surface app-border rounded-[28px] border p-6">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="app-text text-lg font-black">{t('dashboard.sections.upcomingVacations')}</h2>
-
-            <Link to="/employees" className="app-link-accent text-sm font-black">
-              {t('common.actions.open')}
+        <DashboardListCard
+          emptyLabel={t('common.table.noRecords')}
+          linkLabel={t('common.actions.open')}
+          linkTo="/employees"
+          title={t('dashboard.sections.upcomingVacations')}
+        >
+          {vacations.items.map((vacation) => (
+            <Link
+              className="app-surface-muted app-border app-hover-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 transition"
+              key={String(vacation.id)}
+              to={`/employees/${String(vacation.employee_id)}`}
+            >
+              <div className="min-w-0">
+                <p className="app-text truncate font-black">{String(vacation.employee_name ?? '—')}</p>
+                <p className="app-muted mt-1 line-clamp-2 text-sm font-medium">
+                  {String(vacation.vacation_type ?? '—')} · {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
+                </p>
+              </div>
+              <span className="app-accent-soft shrink-0 rounded-full border px-3 py-1 text-xs font-black">
+                {humanizeStatus(vacation.status, t)}
+              </span>
             </Link>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {vacations.items.map((vacation) => (
-              <Link
-                key={String(vacation.id)}
-                to={`/employees/${String(vacation.employee_id)}`}
-                className="app-surface-muted app-hover-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5 transition"
-              >
-                <div>
-                  <p className="app-text font-black">{String(vacation.employee_name ?? '—')}</p>
-                  <p className="app-muted mt-1 text-sm font-medium">
-                    {String(vacation.vacation_type ?? '—')} · {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
-                  </p>
-                </div>
-
-                <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
-                  {humanizeStatus(vacation.status, t)}
-                </span>
-              </Link>
-            ))}
-
-            {!isLoading && vacations.items.length === 0 && (
-              <p className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
-                {t('common.table.noRecords')}
-              </p>
-            )}
-          </div>
-        </article>
+          ))}
+          {!isLoading && vacations.items.length === 0 && (
+            <div className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
+              {t('common.table.noRecords')}
+            </div>
+          )}
+        </DashboardListCard>
       </section>
     </div>
+  )
+}
+
+function DashboardListCard({
+  children,
+  linkLabel,
+  linkTo,
+  title,
+}: {
+  children: React.ReactNode
+  emptyLabel: string
+  linkLabel: string
+  linkTo: string
+  title: string
+}): JSX.Element {
+  return (
+    <article className="app-surface app-border rounded-[28px] border p-6">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="app-text text-lg font-black">{title}</h2>
+        <Link className="app-link-accent text-sm font-black" to={linkTo}>
+          {linkLabel}
+        </Link>
+      </div>
+      <div className="mt-5 space-y-3">{children}</div>
+    </article>
   )
 }
