@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiRefreshCw, FiUsers } from 'react-icons/fi'
@@ -106,7 +107,6 @@ export function DashboardPage(): JSX.Element {
 
       <section className="grid gap-5 xl:grid-cols-2">
         <DashboardListCard
-          emptyLabel={t('common.table.noRecords')}
           linkLabel={t('common.actions.open')}
           linkTo="/employees"
           title={t('dashboard.sections.latestEmployees')}
@@ -135,7 +135,6 @@ export function DashboardPage(): JSX.Element {
         </DashboardListCard>
 
         <DashboardListCard
-          emptyLabel={t('common.table.noRecords')}
           linkLabel={t('common.actions.open')}
           linkTo="/employees"
           title={t('dashboard.sections.upcomingVacations')}
@@ -174,8 +173,7 @@ function DashboardListCard({
   linkTo,
   title,
 }: {
-  children: React.ReactNode
-  emptyLabel: string
+  children: ReactNode
   linkLabel: string
   linkTo: string
   title: string
