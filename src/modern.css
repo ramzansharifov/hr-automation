@@ -203,6 +203,15 @@ table th {
   font-size: 0.75rem !important;
 }
 
+/* Collection pages use one title in the hero, never a duplicate in the table toolbar. */
+.organization-entity-table > .app-border-soft:first-child > div:first-child {
+  display: none;
+}
+
+.organization-entity-table > .app-border-soft:first-child {
+  justify-content: flex-end;
+}
+
 /* Tabs */
 .app-tab-trigger {
   border-radius: 14px;
