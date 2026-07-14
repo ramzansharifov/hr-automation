@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiChevronRight } from "react-icons/fi";
+import { FiChevronRight, FiPlus } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { HrEntityTable } from "../features/hr-table/HrEntityTable";
+import {
+  ENTERPRISE_FILTERS_EVENT,
+  getStoredEnterpriseHrFilters,
+} from "../features/filters/moduleFiltersStore";
 import { hrApiClient } from "../shared/lib/hrApiClient";
-import type { HrEntityKey, HrRecord } from "../shared/types/hr";
-import { EmptyState, LoadingState, PageHeader } from "../shared/ui";
+import type {
+  HrEntityKey,
+  HrFilterCondition,
+  HrRecord,
+} from "../shared/types/hr";
+import { Button, EmptyState, LoadingState, PageHeader } from "../shared/ui";
 
 type HierarchyLevel = "enterprises" | "departments" | "positions";
 
@@ -24,6 +32,9 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const [department, setDepartment] = useState<HrRecord | null>(null);
   const [isLoading, setIsLoading] = useState(level !== "enterprises");
   const [hasError, setHasError] = useState(false);
+  const [enterpriseFilters, setEnterpriseFilters] = useState<
+    Record<string, HrFilterCondition> | undefined
+  >(getStoredEnterpriseHrFilters);
 
   useEffect(() => {
     let isActive = true;
@@ -80,6 +91,22 @@ export function OrganizationHierarchyPage(): JSX.Element {
     };
   }, [departmentId, enterpriseId, level]);
 
+  useEffect(() => {
+    function refreshEnterpriseFilters(): void {
+      setEnterpriseFilters(getStoredEnterpriseHrFilters());
+    }
+
+    window.addEventListener(ENTERPRISE_FILTERS_EVENT, refreshEnterpriseFilters);
+    window.addEventListener("storage", refreshEnterpriseFilters);
+    return () => {
+      window.removeEventListener(
+        ENTERPRISE_FILTERS_EVENT,
+        refreshEnterpriseFilters,
+      );
+      window.removeEventListener("storage", refreshEnterpriseFilters);
+    };
+  }, []);
+
   const page = useMemo(
     () => getPageContent(level, enterprise, department),
     [department, enterprise, level],
@@ -125,16 +152,40 @@ export function OrganizationHierarchyPage(): JSX.Element {
       </nav>
     ) : undefined;
 
+  const headerActions = (
+    <div className="flex flex-wrap items-center justify-end gap-3">
+      {breadcrumbs}
+      <Button
+        className="border-white/20 shadow-xl hover:opacity-90"
+        leftIcon={<FiPlus className="h-4 w-4" />}
+        onClick={() =>
+          document
+            .querySelector<HTMLButtonElement>(
+              ".organization-entity-table .app-button-primary",
+            )
+            ?.click()
+        }
+        style={{ background: "#ffffff", color: "#0f172a" }}
+        variant="ghost"
+      >
+        {page.createLabel}
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <PageHeader actions={breadcrumbs} title={page.title} />
+      <PageHeader actions={headerActions} title={page.title} />
 
       <HrEntityTable
         className="organization-entity-table"
         createInitialRecord={page.createInitialRecord}
         entity={page.entity}
-        externalFilters={page.filters}
+        externalFilters={
+          level === "enterprises" ? enterpriseFilters : page.filters
+        }
         hiddenColumnKeys={page.hiddenColumnKeys}
+        hideToolbarSearch
         onRowClick={
           level === "enterprises"
             ? (record) => navigate(`/enterprises/${toId(record.id)}/departments`)
@@ -156,6 +207,7 @@ function getPageContent(
   department: HrRecord | null,
 ): {
   createInitialRecord?: HrRecord;
+  createLabel: string;
   entity: Extract<HrEntityKey, "enterprises" | "departments" | "positions">;
   filters?: Record<string, number>;
   hiddenColumnKeys?: string[];
@@ -165,6 +217,7 @@ function getPageContent(
     const id = toId(enterprise?.id)!;
     return {
       createInitialRecord: { enterprise_id: id },
+      createLabel: "Добавить отдел",
       entity: "departments",
       filters: { enterprise_id: id },
       hiddenColumnKeys: ["enterprise_name"],
@@ -176,6 +229,7 @@ function getPageContent(
     const id = toId(department?.id)!;
     return {
       createInitialRecord: { department_id: id },
+      createLabel: "Добавить должность",
       entity: "positions",
       filters: { department_id: id },
       hiddenColumnKeys: ["department_name"],
@@ -184,6 +238,7 @@ function getPageContent(
   }
 
   return {
+    createLabel: "Добавить предприятие",
     entity: "enterprises",
     title: "Предприятия",
   };
