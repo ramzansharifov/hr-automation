@@ -3,14 +3,14 @@ import type {
   HrRecord,
 } from "../../shared/types/hr";
 
-export interface EnterpriseFilterValues {
+export interface EnterpriseFilterValues extends Record<string, string> {
   name: string;
   legal_name: string;
   phone: string;
   email: string;
 }
 
-export interface VacancyFilterValues {
+export interface VacancyFilterValues extends Record<string, string> {
   status: string;
   employment_type: string;
   enterprise_name: string;
@@ -18,7 +18,7 @@ export interface VacancyFilterValues {
   position_name: string;
 }
 
-export interface CandidateFilterValues {
+export interface CandidateFilterValues extends Record<string, string> {
   status: string;
   source: string;
   vacancy_id: string;
