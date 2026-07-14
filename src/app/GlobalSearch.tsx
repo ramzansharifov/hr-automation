@@ -5,7 +5,6 @@ import {
   FiClipboard,
   FiLayers,
   FiSearch,
-  FiUser,
   FiUsers,
   FiX,
 } from "react-icons/fi";
