@@ -36,6 +36,8 @@ import {
   LoadingState,
   Select,
   Textarea,
+  ViewModeToggle,
+  useStoredViewMode,
   type SelectOption,
 } from "../../shared/ui";
 
@@ -82,6 +84,7 @@ export function CandidatesPage(): JSX.Element {
   const [filters, setFilters] = useState<CandidateFilterValues>(
     getStoredCandidateFilterValues,
   );
+  const [viewMode, setViewMode] = useStoredViewMode("candidates", "cards");
   const [form, setForm] = useState<CandidateFormState>(emptyForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -247,6 +250,10 @@ export function CandidatesPage(): JSX.Element {
         title="Кандидаты"
       />
 
+      <div className="flex justify-start">
+        <ViewModeToggle onChange={setViewMode} value={viewMode} />
+      </div>
+
       {isLoading ? (
         <LoadingState label="Загрузка кандидатов..." />
       ) : filteredCandidates.length === 0 ? (
@@ -264,7 +271,7 @@ export function CandidatesPage(): JSX.Element {
             }
           />
         </div>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="space-y-4">
           {filteredCandidates.map((candidate) => (
             <CandidateCard
@@ -275,6 +282,12 @@ export function CandidatesPage(): JSX.Element {
             />
           ))}
         </div>
+      ) : (
+        <CandidatesTable
+          candidates={filteredCandidates}
+          onDelete={setDeleteTarget}
+          onEdit={(candidate) => void openEdit(candidate)}
+        />
       )}
 
       <Dialog
@@ -469,6 +482,98 @@ export function CandidatesPage(): JSX.Element {
   );
 }
 
+function CandidatesTable({
+  candidates,
+  onDelete,
+  onEdit,
+}: {
+  candidates: HrRecord[];
+  onDelete: (candidate: HrRecord) => void;
+  onEdit: (candidate: HrRecord) => void;
+}): JSX.Element {
+  return (
+    <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+          <thead>
+            <tr className="app-surface-muted app-muted text-xs">
+              <th className="app-border-soft border-b px-5 py-4 font-black">ФИО</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Вакансия</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Контакты</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Статус</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Соответствие</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Источник</th>
+              <th className="app-border-soft border-b px-5 py-4 text-center font-black">Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            {candidates.map((candidate) => (
+              <tr
+                className="app-hover-muted cursor-pointer transition"
+                key={String(candidate.id)}
+                onClick={() => onEdit(candidate)}
+              >
+                <td className="app-border-soft app-text border-b px-5 py-4 font-black">
+                  {candidateFullName(candidate)}
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  {String(candidate.position_name ?? candidate.vacancy_title ?? "—")}
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  <div className="grid gap-1">
+                    {candidate.phone ? <span>{String(candidate.phone)}</span> : null}
+                    {candidate.email ? <span>{String(candidate.email)}</span> : null}
+                    {!candidate.phone && !candidate.email ? <span>—</span> : null}
+                  </div>
+                </td>
+                <td className="app-border-soft border-b px-5 py-4">
+                  <RecruitmentBadge tone="accent">
+                    {candidateStatusLabel(String(candidate.status))}
+                  </RecruitmentBadge>
+                </td>
+                <td className="app-border-soft border-b px-5 py-4">
+                  <div className="min-w-[180px]">
+                    <MatchBar value={Number(candidate.match_percentage ?? 0)} />
+                  </div>
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  {String(candidate.source ?? "—")}
+                </td>
+                <td className="app-border-soft border-b px-5 py-4">
+                  <div
+                    className="flex items-center justify-center gap-2"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <Button
+                      aria-label="Редактировать кандидата"
+                      className="h-9 w-9 p-0"
+                      onClick={() => onEdit(candidate)}
+                      variant="ghost"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      aria-label="Удалить кандидата"
+                      className="h-9 w-9 p-0"
+                      onClick={() => onDelete(candidate)}
+                      variant="ghost"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
+        Всего: <span className="app-text font-black">{candidates.length}</span>
+      </div>
+    </section>
+  );
+}
+
 function CandidateCard({
   candidate,
   onDelete,
@@ -478,13 +583,6 @@ function CandidateCard({
   onDelete: () => void;
   onEdit: () => void;
 }): JSX.Element {
-  const fullName = [
-    candidate.last_name,
-    candidate.first_name,
-    candidate.middle_name,
-  ]
-    .filter(Boolean)
-    .join(" ");
   const skills = String(candidate.skills_summary ?? "")
     .split("\u001f")
     .filter(Boolean);
@@ -499,7 +597,9 @@ function CandidateCard({
             <RecruitmentBadge>{String(candidate.source)}</RecruitmentBadge>
           )}
         </div>
-        <h2 className="app-text mt-3 text-xl font-black">{fullName}</h2>
+        <h2 className="app-text mt-3 text-xl font-black">
+          {candidateFullName(candidate)}
+        </h2>
         <p className="app-muted mt-1 text-sm font-bold">
           {String(candidate.vacancy_title)} · {String(candidate.position_name)}
         </p>
@@ -535,6 +635,13 @@ function CandidateCard({
       </div>
     </article>
   );
+}
+
+function candidateFullName(candidate: HrRecord): string {
+  return [candidate.last_name, candidate.first_name, candidate.middle_name]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ") || "Без имени";
 }
 
 function profileToForm(profile: CandidateProfile): CandidateFormState {
