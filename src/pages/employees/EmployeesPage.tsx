@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { FiPlus } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+
 import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
+import { Button, PageHeader } from "../../shared/ui";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import {
   EMPLOYEE_FILTERS_EVENT,
@@ -25,20 +28,12 @@ export function EmployeesPage(): JSX.Element {
 
   useEffect(() => {
     function handleViewModeChange(event: Event): void {
-      if (!(event instanceof CustomEvent)) {
-        return;
-      }
-
-      if (isEmployeesViewMode(event.detail)) {
-        setViewMode(event.detail);
-      }
+      if (!(event instanceof CustomEvent)) return;
+      if (isEmployeesViewMode(event.detail)) setViewMode(event.detail);
     }
 
     function handleFiltersChange(event: Event): void {
-      if (!(event instanceof CustomEvent)) {
-        return;
-      }
-
+      if (!(event instanceof CustomEvent)) return;
       setAppliedFilters(
         event.detail as Record<string, HrFilterCondition> | undefined,
       );
@@ -73,22 +68,36 @@ export function EmployeesPage(): JSX.Element {
 
   function handleRowClick(record: HrRecord): void {
     const id = Number(record.id);
-
-    if (Number.isFinite(id)) {
-      navigate(`/employees/${id}`);
-    }
+    if (Number.isFinite(id)) navigate(`/employees/${id}`);
   }
 
   return (
-    <HrEntityTable
-      className="h-[85vh]"
-      entity="employees"
-      externalFilters={appliedFilters}
-      hideToolbarSearch
-      onCreateClick={() => navigate("/employees/new")}
-      onRowClick={handleRowClick}
-      viewMode={viewMode}
-      onViewModeChange={handleViewModeChange}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        actions={
+          <Button
+            className="border-white/20 shadow-xl hover:opacity-90"
+            leftIcon={<FiPlus className="h-4 w-4" />}
+            onClick={() => navigate("/employees/new")}
+            style={{ background: "#ffffff", color: "#0f172a" }}
+            variant="ghost"
+          >
+            Добавить сотрудника
+          </Button>
+        }
+        title="Сотрудники"
+      />
+
+      <HrEntityTable
+        className="h-[72vh]"
+        entity="employees"
+        externalFilters={appliedFilters}
+        hideCreateButton
+        hideToolbarSearch
+        onRowClick={handleRowClick}
+        onViewModeChange={handleViewModeChange}
+        viewMode={viewMode}
+      />
+    </div>
   );
 }

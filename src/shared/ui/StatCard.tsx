@@ -8,27 +8,19 @@ interface StatCardProps {
   icon: IconType
 }
 
-export function StatCard({ title, value, description, icon: Icon }: StatCardProps): JSX.Element {
+export function StatCard({ title, value, icon: Icon }: StatCardProps): JSX.Element {
   return (
-    <article className="app-surface app-border rounded-[24px] border p-5 transition-colors hover:border-[var(--accent-border)]">
+    <article className="app-surface app-border group relative overflow-hidden rounded-[24px] border p-5 transition duration-200 hover:-translate-y-0.5 hover:border-[var(--accent-border)]">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--accent-border)] to-[var(--accent-hover)] opacity-80" />
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="app-muted text-sm font-bold">{title}</p>
-          <div className="app-text mt-3 text-3xl font-black tracking-tight">
-            {value}
-          </div>
+          <div className="app-text mt-3 truncate text-3xl font-black tracking-tight">{value}</div>
         </div>
-
-        <div className="app-accent-soft flex h-11 w-11 items-center justify-center rounded-2xl">
+        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition group-hover:scale-105">
           <Icon className="h-5 w-5" />
-        </div>
+        </span>
       </div>
-
-      {description && (
-        <p className="app-muted mt-4 text-sm font-medium">
-          {description}
-        </p>
-      )}
     </article>
   )
 }

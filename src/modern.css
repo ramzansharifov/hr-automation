@@ -1,0 +1,238 @@
+/* Unified visual language for the entire application. Loaded after index.css. */
+
+:root {
+  --color-page: #f3f6fc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f9fd;
+  --color-surface-hover: #eef3fb;
+  --color-border: #dbe3f0;
+  --color-border-soft: #e9eef7;
+  --color-text: #101828;
+  --color-text-soft: #344054;
+  --color-text-muted: #667085;
+  --color-placeholder: #98a2b3;
+  --shell-panel: rgba(255, 255, 255, 0.82);
+  --shell-shadow: 0 22px 55px rgba(22, 34, 64, 0.08);
+  --shell-shadow-soft: 0 10px 30px rgba(22, 34, 64, 0.06);
+  --sidebar-bg: #080d1e;
+  --sidebar-border: rgba(148, 163, 184, 0.14);
+  --sidebar-button: rgba(255, 255, 255, 0.04);
+  --sidebar-button-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-button-border: rgba(148, 163, 184, 0.12);
+  --sidebar-button-border-hover: rgba(148, 163, 184, 0.26);
+}
+
+:root[data-theme="dark"] {
+  --color-page: #070b17;
+  --color-surface: #10172a;
+  --color-surface-muted: #151e34;
+  --color-surface-hover: #1a2743;
+  --color-border: #273551;
+  --color-border-soft: #202c45;
+  --color-text: #f7f9ff;
+  --color-text-soft: #d4dbea;
+  --color-text-muted: #8f9db8;
+  --color-placeholder: #63718e;
+  --shell-panel: rgba(16, 23, 42, 0.86);
+  --shell-shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+  --shell-shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.22);
+  --sidebar-bg: #050815;
+  --sidebar-border: rgba(148, 163, 184, 0.12);
+  --sidebar-button: rgba(255, 255, 255, 0.035);
+  --sidebar-button-hover: rgba(255, 255, 255, 0.075);
+  --sidebar-button-border: rgba(148, 163, 184, 0.1);
+  --sidebar-button-border-hover: rgba(148, 163, 184, 0.24);
+}
+
+html {
+  background: var(--color-page);
+}
+
+body {
+  background:
+    radial-gradient(circle at 80% -10%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 34rem),
+    radial-gradient(circle at 12% 12%, color-mix(in srgb, var(--accent-border) 8%, transparent), transparent 28rem),
+    var(--color-page);
+}
+
+.app-page {
+  background:
+    radial-gradient(circle at 82% 4%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 34rem),
+    var(--color-page);
+}
+
+.app-topbar {
+  background: color-mix(in srgb, var(--shell-panel) 94%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 72%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.app-surface {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 98%, var(--accent) 2%), var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-border) 88%, transparent);
+  box-shadow: var(--shell-shadow-soft);
+}
+
+.app-surface-muted {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface-muted) 97%, var(--accent) 3%), var(--color-surface-muted));
+}
+
+.app-border {
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent);
+}
+
+.app-border-soft {
+  border-color: color-mix(in srgb, var(--color-border-soft) 82%, transparent);
+}
+
+.app-accent-gradient-panel {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.17), transparent 32%),
+    radial-gradient(circle at 12% 110%, color-mix(in srgb, var(--accent-border) 42%, transparent), transparent 42%),
+    linear-gradient(125deg, color-mix(in srgb, var(--accent-hover) 78%, #10172a) 0%, color-mix(in srgb, var(--accent) 62%, #172044) 52%, color-mix(in srgb, var(--accent) 36%, #111827) 100%);
+  border-color: color-mix(in srgb, var(--accent-border) 38%, transparent);
+  box-shadow: 0 26px 60px color-mix(in srgb, var(--accent) 18%, transparent);
+  color: #fff;
+}
+
+.app-input {
+  background: color-mix(in srgb, var(--color-surface-muted) 92%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 88%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.app-input:hover {
+  border-color: color-mix(in srgb, var(--accent-border) 45%, var(--color-border));
+}
+
+.app-input:focus {
+  background: var(--color-surface);
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.app-button-primary {
+  background: linear-gradient(135deg, var(--accent-border), var(--accent-hover));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.app-button-primary:hover {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  transform: translateY(-1px);
+}
+
+.app-button-secondary {
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
+}
+
+.app-button-secondary:hover {
+  background: var(--color-surface-hover);
+  border-color: color-mix(in srgb, var(--accent-border) 42%, var(--color-border));
+}
+
+.app-accent-soft {
+  background: color-mix(in srgb, var(--accent) 12%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--accent-border) 34%, var(--color-border));
+  color: color-mix(in srgb, var(--accent-border) 78%, var(--color-text));
+}
+
+:root[data-theme="dark"] .app-accent-soft {
+  background: color-mix(in srgb, var(--accent) 17%, var(--color-surface));
+  color: #f7f9ff;
+}
+
+/* Decorative micro-captions are hidden; field and data labels remain. */
+main p.app-accent-text.text-xs.font-black.uppercase,
+main p.app-accent-text.text-xs.font-black[class*="tracking-"],
+main p.text-xs.font-black.uppercase[class*="tracking-"],
+main span.app-accent-text.text-xs.font-black.uppercase,
+main span.text-\[11px\].font-black.uppercase[class*="tracking-"] {
+  display: none;
+}
+
+/* Vacancy editor: preserve the layout, remove repetitive explanatory text. */
+main .max-w-\[1440px\] > section:first-child .mb-3.flex.flex-wrap.items-center.gap-2,
+main .max-w-\[1440px\] > section:first-child h1 + p,
+main .max-w-\[1440px\] section .app-muted.mt-1.max-w-3xl,
+main .max-w-\[1440px\] section p.app-muted.mt-1.text-sm.leading-5,
+main .max-w-\[1440px\] .mt-5.flex.items-center.gap-2.text-xs.font-bold,
+main .max-w-\[1440px\] aside h3 + p,
+main .max-w-\[1440px\] aside section:last-child > p,
+main .max-w-\[1440px\] article p.app-muted.text-xs {
+  display: none;
+}
+
+/* Repeated section descriptions inside forms are intentionally concise. */
+main form section header p.app-muted,
+main section.app-surface > div.app-surface-muted.app-border-soft.border-b p.app-muted {
+  display: none;
+}
+
+/* Shared cards, panels and dialogs */
+main section.app-surface,
+main article.app-surface,
+main form.app-surface,
+[role="dialog"] {
+  backdrop-filter: blur(18px);
+}
+
+[role="dialog"] {
+  box-shadow: var(--shell-shadow);
+}
+
+/* Tables */
+table thead tr {
+  background: color-mix(in srgb, var(--color-surface-muted) 94%, transparent) !important;
+}
+
+table tbody tr {
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 5%, var(--color-surface)) !important;
+}
+
+table th {
+  letter-spacing: 0.025em !important;
+  text-transform: none !important;
+  font-size: 0.75rem !important;
+}
+
+/* Tabs */
+.app-tab-trigger {
+  border-radius: 14px;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 38%, var(--color-border)) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 34%, var(--color-border));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  main {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
