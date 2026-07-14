@@ -10,3 +10,8 @@ export { PageHeader } from './PageHeader'
 export { Select, type SelectOption } from './Select'
 export { StatCard } from './StatCard'
 export { Textarea } from './Textarea'
+export {
+  ViewModeToggle,
+  useStoredViewMode,
+  type CollectionViewMode,
+} from './ViewModeToggle'

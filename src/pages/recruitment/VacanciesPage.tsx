@@ -26,6 +26,8 @@ import {
   ConfirmDialog,
   EmptyState,
   LoadingState,
+  ViewModeToggle,
+  useStoredViewMode,
 } from "../../shared/ui";
 
 export function VacanciesPage(): JSX.Element {
@@ -34,6 +36,7 @@ export function VacanciesPage(): JSX.Element {
   const [filters, setFilters] = useState<VacancyFilterValues>(
     getStoredVacancyFilterValues,
   );
+  const [viewMode, setViewMode] = useStoredViewMode("vacancies", "cards");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
@@ -86,6 +89,10 @@ export function VacanciesPage(): JSX.Element {
     }
   }
 
+  function editVacancy(vacancy: HrRecord): void {
+    navigate(`/vacancies/${String(vacancy.id)}/edit`);
+  }
+
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
@@ -95,6 +102,10 @@ export function VacanciesPage(): JSX.Element {
         onAction={() => navigate("/vacancies/new")}
         title="Вакансии"
       />
+
+      <div className="flex justify-start">
+        <ViewModeToggle onChange={setViewMode} value={viewMode} />
+      </div>
 
       {isLoading ? (
         <LoadingState label="Загрузка вакансий..." />
@@ -109,17 +120,23 @@ export function VacanciesPage(): JSX.Element {
             }
           />
         </div>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="grid gap-5 xl:grid-cols-2">
           {filteredVacancies.map((vacancy) => (
             <VacancyCard
               key={String(vacancy.id)}
               onDelete={() => setDeleteTarget(vacancy)}
-              onEdit={() => navigate(`/vacancies/${String(vacancy.id)}/edit`)}
+              onEdit={() => editVacancy(vacancy)}
               vacancy={vacancy}
             />
           ))}
         </div>
+      ) : (
+        <VacanciesTable
+          onDelete={setDeleteTarget}
+          onEdit={editVacancy}
+          vacancies={filteredVacancies}
+        />
       )}
 
       <ConfirmDialog
@@ -133,6 +150,94 @@ export function VacanciesPage(): JSX.Element {
         title="Удалить вакансию?"
       />
     </div>
+  );
+}
+
+function VacanciesTable({
+  onDelete,
+  onEdit,
+  vacancies,
+}: {
+  onDelete: (vacancy: HrRecord) => void;
+  onEdit: (vacancy: HrRecord) => void;
+  vacancies: HrRecord[];
+}): JSX.Element {
+  return (
+    <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+          <thead>
+            <tr className="app-surface-muted app-muted text-xs">
+              <th className="app-border-soft border-b px-5 py-4 font-black">Должность</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Структура</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Статус</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Занятость</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Мест</th>
+              <th className="app-border-soft border-b px-5 py-4 font-black">Кандидатов</th>
+              <th className="app-border-soft border-b px-5 py-4 text-center font-black">Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            {vacancies.map((vacancy) => (
+              <tr
+                className="app-hover-muted cursor-pointer transition"
+                key={String(vacancy.id)}
+                onClick={() => onEdit(vacancy)}
+              >
+                <td className="app-border-soft app-text border-b px-5 py-4 font-black">
+                  {String(vacancy.position_name ?? "Должность не указана")}
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  {[vacancy.enterprise_name, vacancy.department_name]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </td>
+                <td className="app-border-soft border-b px-5 py-4">
+                  <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
+                    {vacancyStatusLabel(String(vacancy.status))}
+                  </RecruitmentBadge>
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  {employmentTypeLabel(String(vacancy.employment_type))}
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  {String(vacancy.openings_count ?? 1)}
+                </td>
+                <td className="app-border-soft app-text-soft border-b px-5 py-4">
+                  {String(vacancy.candidates_count ?? 0)}
+                </td>
+                <td className="app-border-soft border-b px-5 py-4">
+                  <div
+                    className="flex items-center justify-center gap-2"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <Button
+                      aria-label="Редактировать вакансию"
+                      className="h-9 w-9 p-0"
+                      onClick={() => onEdit(vacancy)}
+                      variant="ghost"
+                    >
+                      <FiEdit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      aria-label="Удалить вакансию"
+                      className="h-9 w-9 p-0"
+                      onClick={() => onDelete(vacancy)}
+                      variant="ghost"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
+        Всего: <span className="app-text font-black">{vacancies.length}</span>
+      </div>
+    </section>
   );
 }
 

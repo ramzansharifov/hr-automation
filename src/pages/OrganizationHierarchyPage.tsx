@@ -14,7 +14,14 @@ import type {
   HrFilterCondition,
   HrRecord,
 } from "../shared/types/hr";
-import { Button, EmptyState, LoadingState, PageHeader } from "../shared/ui";
+import {
+  Button,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  ViewModeToggle,
+  useStoredViewMode,
+} from "../shared/ui";
 
 type HierarchyLevel = "enterprises" | "departments" | "positions";
 
@@ -111,6 +118,9 @@ export function OrganizationHierarchyPage(): JSX.Element {
     () => getPageContent(level, enterprise, department),
     [department, enterprise, level],
   );
+  const [viewMode, setViewMode] = useStoredViewMode(
+    `organization-${page.entity}`,
+  );
 
   if (isLoading) return <LoadingState label="Загрузка организационной структуры..." />;
 
@@ -177,6 +187,10 @@ export function OrganizationHierarchyPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader actions={headerActions} title={page.title} />
 
+      <div className="flex justify-start">
+        <ViewModeToggle onChange={setViewMode} value={viewMode} />
+      </div>
+
       <HrEntityTable
         className="organization-entity-table"
         createInitialRecord={page.createInitialRecord}
@@ -196,6 +210,8 @@ export function OrganizationHierarchyPage(): JSX.Element {
                   )
               : undefined
         }
+        onViewModeChange={setViewMode}
+        viewMode={viewMode}
       />
     </div>
   );
