@@ -73,27 +73,29 @@ aside .rounded-xl {
   font-weight: 700;
 }
 
-/* In entity tables keep the view switch immediately before Refresh. */
+/* Entity list toolbar: view mode stays on the left, Refresh stays on the right. */
 @media (min-width: 640px) {
   main section.app-surface
     > .app-border-soft:first-child:has(> div:first-child > .app-surface) {
     flex-direction: row !important;
     align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 10px !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
   }
 
   main section.app-surface
     > .app-border-soft:first-child:has(> div:first-child > .app-surface)
     > div:first-child {
     order: 1;
-    margin-left: auto;
+    margin-left: 0 !important;
+    margin-right: auto;
   }
 
   main section.app-surface
     > .app-border-soft:first-child:has(> div:first-child > .app-surface)
     > div:last-child {
     order: 2;
+    margin-left: auto;
     flex-direction: row !important;
     align-items: center;
     gap: 10px !important;
@@ -106,6 +108,62 @@ aside .rounded-xl {
     border-radius: var(--serious-radius-control) !important;
     box-shadow: none !important;
   }
+}
+
+/* Organization hierarchy uses the same toolbar composition as Employees. */
+main > div.space-y-6:has(> .organization-entity-table) {
+  display: grid;
+  gap: 24px;
+}
+
+main > div.space-y-6:has(> .organization-entity-table) > * {
+  margin-top: 0 !important;
+}
+
+main > div.space-y-6:has(> .organization-entity-table) > :first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+main > div.space-y-6:has(> .organization-entity-table)
+  > .flex.justify-start:has(> [aria-label="Режим отображения"]) {
+  grid-column: 1;
+  grid-row: 2;
+  z-index: 3;
+  align-self: start;
+  justify-self: start;
+  margin: 20px 0 0 20px !important;
+}
+
+main > div.space-y-6:has(> .organization-entity-table)
+  > .organization-entity-table {
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: 0 !important;
+}
+
+/* Custom recruitment tables join their view switch to the table surface. */
+main > div.space-y-6
+  > .flex.justify-start:has(> [aria-label="Режим отображения"]):not(:has(+ .organization-entity-table)):has(+ section.app-surface) {
+  width: 100%;
+  min-height: 70px;
+  margin-bottom: -24px !important;
+  padding: 16px 20px;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-bottom: 0;
+  border-radius: var(--serious-radius-panel) var(--serious-radius-panel) 0 0;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+  position: relative;
+  z-index: 2;
+}
+
+main > div.space-y-6
+  > .flex.justify-start:has(> [aria-label="Режим отображения"]):not(:has(+ .organization-entity-table))
+  + section.app-surface {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
 }
 
 @media (max-width: 639px) {
@@ -122,6 +180,11 @@ aside .rounded-xl {
     > .app-border-soft:first-child:has(> div:first-child > .app-surface)
     > div:last-child {
     justify-content: flex-end;
+  }
+
+  main > div.space-y-6:has(> .organization-entity-table)
+    > .flex.justify-start:has(> [aria-label="Режим отображения"]) {
+    margin: 16px 0 0 16px !important;
   }
 }
 
