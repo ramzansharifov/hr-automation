@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiBriefcase, FiChevronRight, FiGrid, FiLayers } from "react-icons/fi";
+import { FiChevronRight } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { HrEntityTable } from "../features/hr-table/HrEntityTable";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrEntityKey, HrRecord } from "../shared/types/hr";
-import { EmptyState, LoadingState } from "../shared/ui";
+import { EmptyState, LoadingState, PageHeader } from "../shared/ui";
 
 type HierarchyLevel = "enterprises" | "departments" | "positions";
 
@@ -96,46 +96,41 @@ export function OrganizationHierarchyPage(): JSX.Element {
     );
   }
 
+  const breadcrumbs =
+    enterprise || department ? (
+      <nav
+        aria-label="Организационная структура"
+        className="flex flex-wrap items-center gap-2 text-sm font-bold text-white/80"
+      >
+        <Link className="transition hover:text-white" to="/enterprises">
+          Предприятия
+        </Link>
+        {enterprise && (
+          <>
+            <FiChevronRight className="h-4 w-4" />
+            <Link
+              className="transition hover:text-white"
+              to={`/enterprises/${enterpriseId}/departments`}
+            >
+              {recordName(enterprise)}
+            </Link>
+          </>
+        )}
+        {department && (
+          <>
+            <FiChevronRight className="h-4 w-4" />
+            <span className="text-white">{recordName(department)}</span>
+          </>
+        )}
+      </nav>
+    ) : undefined;
+
   return (
     <div className="space-y-6">
-      <section className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur">
-            <page.icon className="h-6 w-6" />
-          </span>
-          <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
-            {page.title}
-          </h1>
-        </div>
-
-        <nav
-          aria-label="Организационная структура"
-          className="flex flex-wrap items-center gap-2 text-sm font-bold text-white/75"
-        >
-          <Link className="transition hover:text-white" to="/enterprises">
-            Предприятия
-          </Link>
-          {enterprise && (
-            <>
-              <FiChevronRight className="h-4 w-4" />
-              <Link
-                className="transition hover:text-white"
-                to={`/enterprises/${enterpriseId}/departments`}
-              >
-                {recordName(enterprise)}
-              </Link>
-            </>
-          )}
-          {department && (
-            <>
-              <FiChevronRight className="h-4 w-4" />
-              <span className="text-white">{recordName(department)}</span>
-            </>
-          )}
-        </nav>
-      </section>
+      <PageHeader actions={breadcrumbs} title={page.title} />
 
       <HrEntityTable
+        className="organization-entity-table"
         createInitialRecord={page.createInitialRecord}
         entity={page.entity}
         externalFilters={page.filters}
@@ -164,7 +159,6 @@ function getPageContent(
   entity: Extract<HrEntityKey, "enterprises" | "departments" | "positions">;
   filters?: Record<string, number>;
   hiddenColumnKeys?: string[];
-  icon: typeof FiLayers;
   title: string;
 } {
   if (level === "departments") {
@@ -174,7 +168,6 @@ function getPageContent(
       entity: "departments",
       filters: { enterprise_id: id },
       hiddenColumnKeys: ["enterprise_name"],
-      icon: FiGrid,
       title: `Отделы · ${recordName(enterprise)}`,
     };
   }
@@ -186,14 +179,12 @@ function getPageContent(
       entity: "positions",
       filters: { department_id: id },
       hiddenColumnKeys: ["department_name"],
-      icon: FiBriefcase,
       title: `Должности · ${recordName(department)}`,
     };
   }
 
   return {
     entity: "enterprises",
-    icon: FiLayers,
     title: "Предприятия",
   };
 }
