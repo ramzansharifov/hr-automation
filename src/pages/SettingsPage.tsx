@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { FiCheck, FiGlobe, FiMonitor, FiMoon, FiSettings, FiSun } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 
@@ -135,8 +136,8 @@ function SettingsCard({
   icon,
   title,
 }: {
-  children: React.ReactNode
-  icon: React.ReactNode
+  children: ReactNode
+  icon: ReactNode
   title: string
 }): JSX.Element {
   return (
