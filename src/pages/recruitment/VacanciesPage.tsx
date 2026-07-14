@@ -3,6 +3,7 @@ import {
   FiBriefcase,
   FiEdit2,
   FiMapPin,
+  FiRefreshCw,
   FiTrash2,
   FiUsers,
 } from "react-icons/fi";
@@ -103,41 +104,55 @@ export function VacanciesPage(): JSX.Element {
         title="Вакансии"
       />
 
-      <div className="flex justify-start">
-        <ViewModeToggle onChange={setViewMode} value={viewMode} />
-      </div>
-
-      {isLoading ? (
-        <LoadingState label="Загрузка вакансий..." />
-      ) : filteredVacancies.length === 0 ? (
-        <div className="app-surface app-border rounded-[28px] border py-12">
-          <EmptyState
-            title={vacancies.length === 0 ? "Вакансий пока нет" : "Нет вакансий по выбранным фильтрам"}
-            description={
-              vacancies.length === 0
-                ? "Создайте первую вакансию и разделите требования на hard и soft skills."
-                : "Измените или очистите фильтры в модуле «Фильтры»."
+      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+          <ViewModeToggle onChange={setViewMode} value={viewMode} />
+          <Button
+            leftIcon={
+              <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             }
-          />
+            onClick={() => void loadData()}
+            type="button"
+            variant="secondary"
+          >
+            Обновить
+          </Button>
         </div>
-      ) : viewMode === "cards" ? (
-        <div className="grid gap-5 xl:grid-cols-2">
-          {filteredVacancies.map((vacancy) => (
-            <VacancyCard
-              key={String(vacancy.id)}
-              onDelete={() => setDeleteTarget(vacancy)}
-              onEdit={() => editVacancy(vacancy)}
-              vacancy={vacancy}
+
+        {isLoading ? (
+          <div className="px-5 py-16">
+            <LoadingState label="Загрузка вакансий..." />
+          </div>
+        ) : filteredVacancies.length === 0 ? (
+          <div className="py-16">
+            <EmptyState
+              title={vacancies.length === 0 ? "Вакансий пока нет" : "Нет вакансий по выбранным фильтрам"}
+              description={
+                vacancies.length === 0
+                  ? "Создайте первую вакансию и разделите требования на hard и soft skills."
+                  : "Измените или очистите фильтры в модуле «Фильтры»."
+              }
             />
-          ))}
-        </div>
-      ) : (
-        <VacanciesTable
-          onDelete={setDeleteTarget}
-          onEdit={editVacancy}
-          vacancies={filteredVacancies}
-        />
-      )}
+          </div>
+        ) : viewMode === "cards" ? (
+          <div className="grid gap-5 p-5 xl:grid-cols-2">
+            {filteredVacancies.map((vacancy) => (
+              <VacancyCard
+                key={String(vacancy.id)}
+                onDelete={() => setDeleteTarget(vacancy)}
+                onEdit={() => editVacancy(vacancy)}
+                vacancy={vacancy}
+              />
+            ))}
+          </div>
+        ) : (
+          <VacanciesTable
+            onDelete={setDeleteTarget}
+            onEdit={editVacancy}
+            vacancies={filteredVacancies}
+          />
+        )}
+      </section>
 
       <ConfirmDialog
         cancelLabel="Отмена"
@@ -163,7 +178,7 @@ function VacanciesTable({
   vacancies: HrRecord[];
 }): JSX.Element {
   return (
-    <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+    <>
       <div className="overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
@@ -237,7 +252,7 @@ function VacanciesTable({
       <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
         Всего: <span className="app-text font-black">{vacancies.length}</span>
       </div>
-    </section>
+    </>
   );
 }
 
