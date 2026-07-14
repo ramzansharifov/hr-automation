@@ -17,17 +17,19 @@ export class RecruitmentService {
   }
 
   saveVacancy(params: SaveVacancyParams) {
-    if (!params.title.trim()) throw new Error("Укажите название вакансии");
     assertId(params.positionId, "должности");
     if (!Number.isInteger(params.openingsCount) || params.openingsCount < 1) {
       throw new Error("Количество открытых мест должно быть не меньше 1");
     }
     if (params.skills.length === 0) {
-      throw new Error("Добавьте хотя бы один навык вакансии");
+      throw new Error("Добавьте хотя бы один hard или soft skill");
     }
     const names = new Set<string>();
     const skillIds = new Set<number>();
     params.skills.forEach((skill) => {
+      if (skill.type !== "hard" && skill.type !== "soft") {
+        throw new Error("Укажите корректный тип навыка");
+      }
       const name = skill.name.trim().toLocaleLowerCase("ru");
       if (!name) throw new Error("Название навыка не может быть пустым");
       if (names.has(name)) throw new Error(`Навык «${skill.name}» повторяется`);
