@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiBriefcase,
   FiEdit2,
@@ -12,8 +12,13 @@ import { toast } from "react-toastify";
 import {
   RecruitmentBadge,
   RecruitmentPageHeader,
-  RecruitmentSearch,
 } from "../../features/recruitment/RecruitmentUi";
+import {
+  filterVacancies,
+  getStoredVacancyFilterValues,
+  VACANCY_FILTERS_EVENT,
+  type VacancyFilterValues,
+} from "../../features/filters/moduleFiltersStore";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import {
@@ -26,26 +31,45 @@ import {
 export function VacanciesPage(): JSX.Element {
   const navigate = useNavigate();
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<VacancyFilterValues>(
+    getStoredVacancyFilterValues,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
 
+  const filteredVacancies = useMemo(
+    () => filterVacancies(vacancies, filters),
+    [filters, vacancies],
+  );
+
   const loadData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      setVacancies(await hrApiClient.listVacancies({ search }));
+      setVacancies(await hrApiClient.listVacancies({}));
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось загрузить вакансии"));
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, []);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => void loadData(), 180);
-    return () => window.clearTimeout(timeout);
+    void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    function refreshFilters(): void {
+      setFilters(getStoredVacancyFilterValues());
+    }
+
+    window.addEventListener(VACANCY_FILTERS_EVENT, refreshFilters);
+    window.addEventListener("storage", refreshFilters);
+    return () => {
+      window.removeEventListener(VACANCY_FILTERS_EVENT, refreshFilters);
+      window.removeEventListener("storage", refreshFilters);
+    };
+  }, []);
 
   async function deleteVacancy(): Promise<void> {
     if (!deleteTarget) return;
@@ -71,24 +95,23 @@ export function VacanciesPage(): JSX.Element {
         onAction={() => navigate("/vacancies/new")}
         title="Вакансии"
       />
-      <RecruitmentSearch
-        onChange={setSearch}
-        placeholder="Поиск по должности, отделу, предприятию или навыку"
-        value={search}
-      />
 
       {isLoading ? (
         <LoadingState label="Загрузка вакансий..." />
-      ) : vacancies.length === 0 ? (
+      ) : filteredVacancies.length === 0 ? (
         <div className="app-surface app-border rounded-[28px] border py-12">
           <EmptyState
-            title="Вакансий пока нет"
-            description="Создайте первую вакансию и разделите требования на hard и soft skills."
+            title={vacancies.length === 0 ? "Вакансий пока нет" : "Нет вакансий по выбранным фильтрам"}
+            description={
+              vacancies.length === 0
+                ? "Создайте первую вакансию и разделите требования на hard и soft skills."
+                : "Измените или очистите фильтры в модуле «Фильтры»."
+            }
           />
         </div>
       ) : (
         <div className="grid gap-5 xl:grid-cols-2">
-          {vacancies.map((vacancy) => (
+          {filteredVacancies.map((vacancy) => (
             <VacancyCard
               key={String(vacancy.id)}
               onDelete={() => setDeleteTarget(vacancy)}

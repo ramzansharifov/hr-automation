@@ -31,11 +31,6 @@ export const navigationItems: AppNavigationItem[] = [
     entity: "employees",
   },
   {
-    titleKey: "navigation.filters",
-    path: "/filters",
-    icon: FiFilter,
-  },
-  {
     titleKey: "navigation.enterprises",
     path: "/enterprises",
     icon: FiLayers,
@@ -50,6 +45,11 @@ export const navigationItems: AppNavigationItem[] = [
     titleKey: "navigation.candidates",
     path: "/candidates",
     icon: FiClipboard,
+  },
+  {
+    titleKey: "navigation.filters",
+    path: "/filters",
+    icon: FiFilter,
   },
 ];
 

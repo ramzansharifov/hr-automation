@@ -1,6 +1,6 @@
 import type { HrFilterCondition } from '../../shared/types/hr'
 
-export interface EmployeeFilterValues {
+export interface EmployeeFilterValues extends Record<string, string> {
   last_name: string
   first_name: string
   middle_name: string

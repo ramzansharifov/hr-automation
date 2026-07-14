@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { FiPlus } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
-import { PageHeader } from "../../shared/ui";
+import { Button, PageHeader } from "../../shared/ui";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import {
   EMPLOYEE_FILTERS_EVENT,
@@ -72,13 +73,26 @@ export function EmployeesPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Сотрудники" />
+      <PageHeader
+        actions={
+          <Button
+            className="border-white/20 shadow-xl hover:opacity-90"
+            leftIcon={<FiPlus className="h-4 w-4" />}
+            onClick={() => navigate("/employees/new")}
+            style={{ background: "#ffffff", color: "#0f172a" }}
+            variant="ghost"
+          >
+            Добавить сотрудника
+          </Button>
+        }
+        title="Сотрудники"
+      />
 
       <HrEntityTable
         entity="employees"
         externalFilters={appliedFilters}
+        hideCreateButton
         hideToolbarSearch
-        onCreateClick={() => navigate("/employees/new")}
         onRowClick={handleRowClick}
         onViewModeChange={handleViewModeChange}
         viewMode={viewMode}

@@ -6,6 +6,7 @@ import {
   FiTrash2,
   FiUserPlus,
 } from "react-icons/fi";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import {
@@ -13,8 +14,13 @@ import {
   MatchBar,
   RecruitmentBadge,
   RecruitmentPageHeader,
-  RecruitmentSearch,
 } from "../../features/recruitment/RecruitmentUi";
+import {
+  CANDIDATE_FILTERS_EVENT,
+  filterCandidates,
+  getStoredCandidateFilterValues,
+  type CandidateFilterValues,
+} from "../../features/filters/moduleFiltersStore";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   CandidateProfile,
@@ -70,20 +76,28 @@ const emptyForm = (): CandidateFormState => ({
 });
 
 export function CandidatesPage(): JSX.Element {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<CandidateFilterValues>(
+    getStoredCandidateFilterValues,
+  );
   const [form, setForm] = useState<CandidateFormState>(emptyForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
 
+  const filteredCandidates = useMemo(
+    () => filterCandidates(candidates, filters),
+    [candidates, filters],
+  );
+
   const vacancyOptions = useMemo<SelectOption[]>(
     () =>
       vacancies.map((vacancy) => ({
         value: String(vacancy.id),
-        label: [vacancy.title, vacancy.position_name]
+        label: [vacancy.position_name, vacancy.department_name, vacancy.enterprise_name]
           .filter(Boolean)
           .join(" · "),
       })),
@@ -94,7 +108,7 @@ export function CandidatesPage(): JSX.Element {
     setIsLoading(true);
     try {
       const [candidateRows, vacancyRows] = await Promise.all([
-        hrApiClient.listCandidates({ search }),
+        hrApiClient.listCandidates({}),
         hrApiClient.listVacancies({}),
       ]);
       setCandidates(candidateRows);
@@ -104,12 +118,33 @@ export function CandidatesPage(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, []);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => void loadData(), 180);
-    return () => window.clearTimeout(timeout);
+    void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    function refreshFilters(): void {
+      setFilters(getStoredCandidateFilterValues());
+    }
+
+    window.addEventListener(CANDIDATE_FILTERS_EVENT, refreshFilters);
+    window.addEventListener("storage", refreshFilters);
+    return () => {
+      window.removeEventListener(CANDIDATE_FILTERS_EVENT, refreshFilters);
+      window.removeEventListener("storage", refreshFilters);
+    };
+  }, []);
+
+  useEffect(() => {
+    const candidateId = Number(searchParams.get("candidate"));
+    if (isLoading || !Number.isInteger(candidateId) || candidateId <= 0) return;
+
+    void openEdit({ id: candidateId }).finally(() => {
+      setSearchParams(new URLSearchParams(), { replace: true });
+    });
+  }, [isLoading, searchParams, setSearchParams]);
 
   function openCreate(): void {
     if (vacancies.length === 0) {
@@ -211,24 +246,27 @@ export function CandidatesPage(): JSX.Element {
         onAction={openCreate}
         title="Кандидаты"
       />
-      <RecruitmentSearch
-        onChange={setSearch}
-        placeholder="Поиск по ФИО, контактам, вакансии или должности"
-        value={search}
-      />
 
       {isLoading ? (
         <LoadingState label="Загрузка кандидатов..." />
-      ) : candidates.length === 0 ? (
+      ) : filteredCandidates.length === 0 ? (
         <div className="app-surface app-border rounded-[28px] border py-12">
           <EmptyState
-            title="Кандидатов пока нет"
-            description="Добавьте кандидата к существующей вакансии и оцените его навыки."
+            title={
+              candidates.length === 0
+                ? "Кандидатов пока нет"
+                : "Нет кандидатов по выбранным фильтрам"
+            }
+            description={
+              candidates.length === 0
+                ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
+                : "Измените или очистите фильтры в модуле «Фильтры»."
+            }
           />
         </div>
       ) : (
         <div className="space-y-4">
-          {candidates.map((candidate) => (
+          {filteredCandidates.map((candidate) => (
             <CandidateCard
               candidate={candidate}
               key={String(candidate.id)}

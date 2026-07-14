@@ -203,13 +203,22 @@ table th {
   font-size: 0.75rem !important;
 }
 
-/* Collection pages use one title in the hero, never a duplicate in the table toolbar. */
+/* Search is global in the top bar, so table toolbars never repeat it. */
+main section.app-surface > .app-border-soft:first-child form.relative {
+  display: none;
+}
+
+/* Collection pages use one title and one primary action in the hero. */
 .organization-entity-table > .app-border-soft:first-child > div:first-child {
   display: none;
 }
 
 .organization-entity-table > .app-border-soft:first-child {
   justify-content: flex-end;
+}
+
+.organization-entity-table > .app-border-soft:first-child > div:last-child > .app-button-primary {
+  display: none;
 }
 
 /* Tabs */

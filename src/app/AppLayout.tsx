@@ -8,41 +8,12 @@ import { useTranslation } from "react-i18next";
 import type { AppNavigationItem } from "./navigation";
 import { bottomNavigationItems, navigationItems } from "./navigation";
 import { HRLogo } from "./brand/HRLogo";
+import { GlobalSearch } from "./GlobalSearch";
 
 const EXPANDED_SIDEBAR_WIDTH = "252px";
 const COLLAPSED_SIDEBAR_WIDTH = "76px";
 const tooltipContentClass =
   "z-50 select-none rounded-xl border border-slate-700/80 bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-2xl";
-
-function getActiveNavigationItem(pathname: string): AppNavigationItem {
-  const allItems = [...navigationItems, ...bottomNavigationItems];
-
-  return (
-    allItems.find((item) =>
-      item.path === "/"
-        ? pathname === "/"
-        : pathname === item.path || pathname.startsWith(`${item.path}/`),
-    ) ?? navigationItems[0]
-  );
-}
-
-function getTopbarTitleKey(
-  pathname: string,
-  fallbackItem: AppNavigationItem,
-): string {
-  if (pathname === "/employees/new") return "employeesCreate.title";
-  if (pathname.startsWith("/employees/") && pathname !== "/employees") {
-    return "employeesDetails.title";
-  }
-  if (pathname === "/employees") return "employeesPage.title";
-  if (pathname === "/filters") return "filtersPage.title";
-  if (pathname.startsWith("/vacancies")) return "navigation.vacancies";
-  if (pathname.startsWith("/candidates")) return "navigation.candidates";
-  if (pathname.startsWith("/enterprises")) return "entities.enterprises.title";
-  if (pathname === "/profile") return "profile.title";
-  if (pathname === "/settings") return "settings.title";
-  return fallbackItem.titleKey;
-}
 
 function expandedLinkClass(isActive: boolean): string {
   return [
@@ -117,9 +88,6 @@ function SidebarItem({
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { t } = useTranslation();
-  const location = useLocation();
-  const activeNavigationItem = getActiveNavigationItem(location.pathname);
-  const TopbarIcon = activeNavigationItem.icon;
   const sidebarWidth = isSidebarCollapsed
     ? COLLAPSED_SIDEBAR_WIDTH
     : EXPANDED_SIDEBAR_WIDTH;
@@ -213,7 +181,7 @@ export function AppLayout(): JSX.Element {
 
           <footer className={isSidebarCollapsed ? "px-3 pb-4" : "px-4 pb-4"}>
             <div className="mb-3 h-px bg-white/[0.08]" />
-            <div className={isSidebarCollapsed ? "space-y-1.5" : "space-y-1.5"}>
+            <div className="space-y-1.5">
               {bottomNavigationItems.map((item) => (
                 <SidebarItem
                   isCollapsed={isSidebarCollapsed}
@@ -231,14 +199,7 @@ export function AppLayout(): JSX.Element {
         >
           <header className="app-topbar sticky top-0 z-20 flex h-[74px] items-center border-b px-6 backdrop-blur-2xl lg:px-8">
             <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-5">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border">
-                  <TopbarIcon className="h-[18px] w-[18px]" />
-                </span>
-                <h2 className="app-text truncate text-lg font-black tracking-tight">
-                  {t(getTopbarTitleKey(location.pathname, activeNavigationItem))}
-                </h2>
-              </div>
+              <GlobalSearch />
 
               <div className="app-surface app-border flex shrink-0 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-none">
                 <span className="app-accent-soft flex h-9 w-9 items-center justify-center rounded-xl border">
