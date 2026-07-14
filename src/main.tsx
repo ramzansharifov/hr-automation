@@ -7,6 +7,7 @@ import { ThemedToastContainer } from './app/ThemedToastContainer'
 import { ThemeProvider } from './app/theme'
 import './index.css'
 import './modern.css'
+import './serious.css'
 import 'react-toastify/dist/ReactToastify.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
