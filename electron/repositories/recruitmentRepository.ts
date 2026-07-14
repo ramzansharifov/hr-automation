@@ -17,13 +17,31 @@ export class RecruitmentRepository {
     return this.database
       .prepare(
         `SELECT
-           vacancies.*,
+           vacancies.id,
+           vacancies.position_id,
+           vacancies.status,
+           vacancies.employment_type,
+           vacancies.openings_count,
+           vacancies.note,
+           vacancies.created_at,
+           vacancies.updated_at,
            positions.name AS position_name,
            departments.name AS department_name,
            enterprises.name AS enterprise_name,
            COUNT(DISTINCT vacancy_skills.id) AS skills_count,
+           COUNT(DISTINCT CASE
+             WHEN vacancy_skills.skill_type = 'hard' THEN vacancy_skills.id
+           END) AS hard_skills_count,
+           COUNT(DISTINCT CASE
+             WHEN vacancy_skills.skill_type = 'soft' THEN vacancy_skills.id
+           END) AS soft_skills_count,
            COUNT(DISTINCT candidates.id) AS candidates_count,
-           GROUP_CONCAT(DISTINCT vacancy_skills.name) AS skills_summary
+           GROUP_CONCAT(DISTINCT CASE
+             WHEN vacancy_skills.skill_type = 'hard' THEN vacancy_skills.name
+           END) AS hard_skills_summary,
+           GROUP_CONCAT(DISTINCT CASE
+             WHEN vacancy_skills.skill_type = 'soft' THEN vacancy_skills.name
+           END) AS soft_skills_summary
          FROM vacancies
          JOIN positions ON positions.id = vacancies.position_id
          LEFT JOIN departments ON departments.id = positions.department_id
@@ -31,7 +49,6 @@ export class RecruitmentRepository {
          LEFT JOIN vacancy_skills ON vacancy_skills.vacancy_id = vacancies.id
          LEFT JOIN candidates ON candidates.vacancy_id = vacancies.id
          WHERE @search = ''
-           OR vacancies.title LIKE @pattern
            OR positions.name LIKE @pattern
            OR departments.name LIKE @pattern
            OR enterprises.name LIKE @pattern
@@ -59,7 +76,14 @@ export class RecruitmentRepository {
     const vacancy = this.database
       .prepare(
         `SELECT
-           vacancies.*,
+           vacancies.id,
+           vacancies.position_id,
+           vacancies.status,
+           vacancies.employment_type,
+           vacancies.openings_count,
+           vacancies.note,
+           vacancies.created_at,
+           vacancies.updated_at,
            positions.name AS position_name,
            departments.name AS department_name,
            enterprises.name AS enterprise_name
@@ -79,7 +103,11 @@ export class RecruitmentRepository {
         `SELECT *
          FROM vacancy_skills
          WHERE vacancy_id = ?
-         ORDER BY weight DESC, required_level DESC, name ASC`,
+         ORDER BY
+           CASE skill_type WHEN 'hard' THEN 1 ELSE 2 END,
+           weight DESC,
+           required_level DESC,
+           name ASC`,
       )
       .all(id) as HrRecord[];
 
@@ -123,7 +151,7 @@ export class RecruitmentRepository {
       .prepare(
         `SELECT
            candidates.*,
-           vacancies.title AS vacancy_title,
+           departments.name AS vacancy_title,
            positions.name AS position_name,
            departments.name AS department_name,
            COALESCE(
@@ -168,7 +196,6 @@ export class RecruitmentRepository {
            OR candidates.middle_name LIKE @pattern
            OR candidates.phone LIKE @pattern
            OR candidates.email LIKE @pattern
-           OR vacancies.title LIKE @pattern
            OR positions.name LIKE @pattern
          ORDER BY match_percentage DESC, candidates.updated_at DESC, candidates.id DESC`,
       )
@@ -180,11 +207,12 @@ export class RecruitmentRepository {
       .prepare(
         `SELECT
            candidates.*,
-           vacancies.title AS vacancy_title,
+           departments.name AS vacancy_title,
            positions.name AS position_name
          FROM candidates
          JOIN vacancies ON vacancies.id = candidates.vacancy_id
          JOIN positions ON positions.id = vacancies.position_id
+         LEFT JOIN departments ON departments.id = positions.department_id
          WHERE candidates.id = ?
          LIMIT 1`,
       )
@@ -198,7 +226,11 @@ export class RecruitmentRepository {
         `SELECT *
          FROM vacancy_skills
          WHERE vacancy_id = ?
-         ORDER BY weight DESC, required_level DESC, name ASC`,
+         ORDER BY
+           CASE skill_type WHEN 'hard' THEN 1 ELSE 2 END,
+           weight DESC,
+           required_level DESC,
+           name ASC`,
       )
       .all(vacancyId) as HrRecord[];
     const skillScores = this.database
@@ -250,21 +282,19 @@ export class RecruitmentRepository {
   }
 
   private insertVacancy(params: SaveVacancyParams): number {
+    const positionName = this.getPositionName(params.positionId);
     const result = this.database
       .prepare(
         `INSERT INTO vacancies (
-           position_id, title, status, employment_type, openings_count,
-           description, requirements, note
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           position_id, title, status, employment_type, openings_count, note
+         ) VALUES (?, ?, ?, ?, ?, ?)`,
       )
       .run(
         params.positionId,
-        params.title.trim(),
+        positionName,
         params.status,
         params.employmentType,
         params.openingsCount,
-        params.description?.trim() || null,
-        params.requirements?.trim() || null,
         params.note?.trim() || null,
       );
     return Number(result.lastInsertRowid);
@@ -272,27 +302,35 @@ export class RecruitmentRepository {
 
   private updateVacancy(params: SaveVacancyParams): number {
     const id = params.id!;
+    const positionName = this.getPositionName(params.positionId);
     const result = this.database
       .prepare(
         `UPDATE vacancies
          SET position_id = ?, title = ?, status = ?, employment_type = ?,
-             openings_count = ?, description = ?, requirements = ?, note = ?,
-             updated_at = CURRENT_TIMESTAMP
+             openings_count = ?, description = NULL, requirements = NULL,
+             note = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
       )
       .run(
         params.positionId,
-        params.title.trim(),
+        positionName,
         params.status,
         params.employmentType,
         params.openingsCount,
-        params.description?.trim() || null,
-        params.requirements?.trim() || null,
         params.note?.trim() || null,
         id,
       );
     if (result.changes === 0) throw new Error("Вакансия не найдена");
     return id;
+  }
+
+  private getPositionName(positionId: number): string {
+    const name = this.database
+      .prepare("SELECT name FROM positions WHERE id = ?")
+      .pluck()
+      .get(positionId) as string | undefined;
+    if (!name) throw new Error("Выбранная должность не найдена");
+    return name;
   }
 
   private syncVacancySkills(
@@ -321,14 +359,14 @@ export class RecruitmentRepository {
 
     const updateSkill = this.database.prepare(
       `UPDATE vacancy_skills
-       SET name = ?, required_level = ?, weight = ?, note = ?,
+       SET skill_type = ?, name = ?, required_level = ?, weight = ?, note = ?,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND vacancy_id = ?`,
     );
     const insertSkill = this.database.prepare(
       `INSERT INTO vacancy_skills (
-         vacancy_id, name, required_level, weight, note
-       ) VALUES (?, ?, ?, ?, ?)`,
+         vacancy_id, skill_type, name, required_level, weight, note
+       ) VALUES (?, ?, ?, ?, ?, ?)`,
     );
 
     retainedIds.forEach((id) => {
@@ -343,6 +381,7 @@ export class RecruitmentRepository {
 
     skills.forEach((skill) => {
       const values = [
+        skill.type,
         skill.name.trim(),
         skill.requiredLevel,
         skill.weight,

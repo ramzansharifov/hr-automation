@@ -8,8 +8,9 @@ import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
 import { CandidatesPage } from "./pages/recruitment/CandidatesPage";
+import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
+import { VacancyFormPage } from "./pages/recruitment/VacancyFormPage";
 
 function App(): JSX.Element {
   return (
@@ -21,6 +22,8 @@ function App(): JSX.Element {
         <Route path="employees/:id" element={<EmployeeDetailsPage />} />
         <Route path="filters" element={<FiltersPage />} />
         <Route path="vacancies" element={<VacanciesPage />} />
+        <Route path="vacancies/new" element={<VacancyFormPage />} />
+        <Route path="vacancies/:id/edit" element={<VacancyFormPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
         <Route path="enterprises" element={<OrganizationHierarchyPage />} />
         <Route
