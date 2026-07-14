@@ -96,15 +96,7 @@ function getTopbarContent(
     };
   }
 
-  if (pathname === "/departments") {
-    return {
-      titleKey: "entities.departments.title",
-      descriptionKey: "entities.departments.description",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname === "/enterprises") {
+  if (pathname.startsWith("/enterprises")) {
     return {
       titleKey: "entities.enterprises.title",
       descriptionKey: "entities.enterprises.description",
@@ -112,29 +104,6 @@ function getTopbarContent(
     };
   }
 
-  if (pathname === "/positions") {
-    return {
-      titleKey: "entities.positions.title",
-      descriptionKey: "entities.positions.description",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname === "/vacations") {
-    return {
-      titleKey: "entities.vacations.title",
-      descriptionKey: "entities.vacations.description",
-      icon: fallbackItem.icon,
-    };
-  }
-
-  if (pathname === "/payroll") {
-    return {
-      titleKey: "entities.payroll.title",
-      descriptionKey: "entities.payroll.description",
-      icon: fallbackItem.icon,
-    };
-  }
 
   if (pathname === "/profile") {
     return {

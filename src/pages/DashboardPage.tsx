@@ -151,28 +151,29 @@ export function DashboardPage(): JSX.Element {
           <div className="flex items-center justify-between gap-4">
             <h2 className="app-text text-lg font-black">{t('dashboard.sections.upcomingVacations')}</h2>
 
-            <Link to="/vacations" className="app-link-accent text-sm font-black">
+            <Link to="/employees" className="app-link-accent text-sm font-black">
               {t('common.actions.open')}
             </Link>
           </div>
 
           <div className="mt-5 space-y-3">
             {vacations.items.map((vacation) => (
-              <div
+              <Link
                 key={String(vacation.id)}
-                className="app-surface-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5"
+                to={`/employees/${String(vacation.employee_id)}`}
+                className="app-surface-muted app-hover-muted flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5 transition"
               >
                 <div>
-                  <p className="app-text font-black">{String(vacation.vacation_type ?? '—')}</p>
+                  <p className="app-text font-black">{String(vacation.employee_name ?? '—')}</p>
                   <p className="app-muted mt-1 text-sm font-medium">
-                    {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
+                    {String(vacation.vacation_type ?? '—')} · {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
                   </p>
                 </div>
 
                 <span className="app-accent-soft rounded-full px-3 py-1 text-xs font-black">
                   {humanizeStatus(vacation.status, t)}
                 </span>
-              </div>
+              </Link>
             ))}
 
             {!isLoading && vacations.items.length === 0 && (
