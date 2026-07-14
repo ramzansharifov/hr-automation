@@ -1,9 +1,5 @@
 import type { IconType } from "react-icons";
 import {
-  FiBriefcase,
-  FiCalendar,
-  FiCreditCard,
-  FiGrid,
   FiHome,
   FiLayers,
   FiFilter,
@@ -42,30 +38,6 @@ export const navigationItems: AppNavigationItem[] = [
     path: "/enterprises",
     icon: FiLayers,
     entity: "enterprises",
-  },
-  {
-    titleKey: "navigation.departments",
-    path: "/departments",
-    icon: FiGrid,
-    entity: "departments",
-  },
-  {
-    titleKey: "navigation.positions",
-    path: "/positions",
-    icon: FiBriefcase,
-    entity: "positions",
-  },
-  {
-    titleKey: "navigation.vacations",
-    path: "/vacations",
-    icon: FiCalendar,
-    entity: "vacations",
-  },
-  {
-    titleKey: "navigation.payroll",
-    path: "/payroll",
-    icon: FiCreditCard,
-    entity: "payroll",
   },
 ];
 

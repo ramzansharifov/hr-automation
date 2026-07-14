@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./app/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
-import { EntityPage } from "./pages/EntityPage";
+import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { FiltersPage } from "./pages/FiltersPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
@@ -18,17 +18,19 @@ function App(): JSX.Element {
         <Route path="employees/new" element={<EmployeeCreatePage />} />
         <Route path="employees/:id" element={<EmployeeDetailsPage />} />
         <Route path="filters" element={<FiltersPage />} />
+        <Route path="enterprises" element={<OrganizationHierarchyPage />} />
         <Route
-          path="enterprises"
-          element={<EntityPage entity="enterprises" />}
+          path="enterprises/:enterpriseId/departments"
+          element={<OrganizationHierarchyPage />}
         />
         <Route
-          path="departments"
-          element={<EntityPage entity="departments" />}
+          path="enterprises/:enterpriseId/departments/:departmentId/positions"
+          element={<OrganizationHierarchyPage />}
         />
-        <Route path="positions" element={<EntityPage entity="positions" />} />
-        <Route path="vacations" element={<EntityPage entity="vacations" />} />
-        <Route path="payroll" element={<EntityPage entity="payroll" />} />
+        <Route path="departments" element={<Navigate to="/enterprises" replace />} />
+        <Route path="positions" element={<Navigate to="/enterprises" replace />} />
+        <Route path="vacations" element={<Navigate to="/employees" replace />} />
+        <Route path="payroll" element={<Navigate to="/employees" replace />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

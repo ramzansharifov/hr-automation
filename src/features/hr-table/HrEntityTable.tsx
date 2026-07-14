@@ -31,8 +31,10 @@ import { getEntityConfig, renderCell } from './hrEntityConfig'
 
 interface HrEntityTableProps {
   className?: string
+  createInitialRecord?: HrRecord
   entity: HrEntityKey
   externalFilters?: Record<string, HrFilterValue | HrFilterCondition>
+  hiddenColumnKeys?: string[]
   hideCreateButton?: boolean
   hideToolbar?: boolean
   hideToolbarSearch?: boolean
@@ -112,8 +114,10 @@ function getTableViewModeButtonClass(isActive: boolean): string {
 
 export function HrEntityTable({
   className = '',
+  createInitialRecord,
   entity,
   externalFilters,
+  hiddenColumnKeys = [],
   hideCreateButton = false,
   hideToolbar = false,
   hideToolbarSearch = false,
@@ -125,6 +129,10 @@ export function HrEntityTable({
   const { i18n, t } = useTranslation()
   const locale = getAppLocale(i18n.language)
   const config = useMemo(() => getEntityConfig(entity, t, locale), [entity, locale, t])
+  const visibleColumns = useMemo(
+    () => config.columns.filter((column) => !hiddenColumnKeys.includes(column.key)),
+    [config.columns, hiddenColumnKeys],
+  )
   const [result, setResult] = useState<HrListResult>(emptyResult)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -288,8 +296,8 @@ export function HrEntityTable({
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
   const hasActions = entity !== 'employees'
-  const tableColumnCount = config.columns.length + (hasActions ? 1 : 0)
-  const cardMetaColumns = config.columns.slice(1, 4)
+  const tableColumnCount = visibleColumns.length + (hasActions ? 1 : 0)
+  const cardMetaColumns = visibleColumns.slice(1, 4)
 
   return (
     <motion.section
@@ -369,7 +377,7 @@ export function HrEntityTable({
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
             <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
-              {config.columns.map((column) => (
+              {visibleColumns.map((column) => (
                 <th key={column.key} className="app-border-soft border-b px-5 py-4 font-black">
                   <button
                     type="button"
@@ -413,7 +421,7 @@ export function HrEntityTable({
                 role={onRowClick ? 'button' : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
               >
-                {config.columns.map((column) => (
+                {visibleColumns.map((column) => (
                   <td
                     key={column.key}
                     className={[
@@ -661,7 +669,7 @@ export function HrEntityTable({
 
       <HrEntityDialog
         entity={entity}
-        initialRecord={editingRecord}
+        initialRecord={dialogMode === 'create' ? createInitialRecord : editingRecord}
         mode={dialogMode}
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
