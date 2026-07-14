@@ -1,5 +1,7 @@
 import type { IconType } from "react-icons";
 import {
+  FiBriefcase,
+  FiClipboard,
   FiHome,
   FiLayers,
   FiFilter,
@@ -38,6 +40,16 @@ export const navigationItems: AppNavigationItem[] = [
     path: "/enterprises",
     icon: FiLayers,
     entity: "enterprises",
+  },
+  {
+    titleKey: "navigation.vacancies",
+    path: "/vacancies",
+    icon: FiBriefcase,
+  },
+  {
+    titleKey: "navigation.candidates",
+    path: "/candidates",
+    icon: FiClipboard,
   },
 ];
 

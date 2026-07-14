@@ -6,6 +6,9 @@ import type {
   HrEmploymentChangeParams,
   HrGetByIdParams,
   HrListParams,
+  RecruitmentListParams,
+  SaveCandidateParams,
+  SaveVacancyParams,
   HrUpdateParams,
 } from "../src/shared/types/hr";
 
@@ -36,6 +39,31 @@ const hrApi: HrApi = {
 
   dashboard() {
     return ipcRenderer.invoke("hr:dashboard");
+  },
+
+  listVacancies(params: RecruitmentListParams) {
+    return ipcRenderer.invoke("recruitment:listVacancies", params);
+  },
+  getVacancy(id: number) {
+    return ipcRenderer.invoke("recruitment:getVacancy", id);
+  },
+  saveVacancy(params: SaveVacancyParams) {
+    return ipcRenderer.invoke("recruitment:saveVacancy", params);
+  },
+  deleteVacancy(id: number) {
+    return ipcRenderer.invoke("recruitment:deleteVacancy", id);
+  },
+  listCandidates(params: RecruitmentListParams) {
+    return ipcRenderer.invoke("recruitment:listCandidates", params);
+  },
+  getCandidate(id: number) {
+    return ipcRenderer.invoke("recruitment:getCandidate", id);
+  },
+  saveCandidate(params: SaveCandidateParams) {
+    return ipcRenderer.invoke("recruitment:saveCandidate", params);
+  },
+  deleteCandidate(id: number) {
+    return ipcRenderer.invoke("recruitment:deleteCandidate", id);
   },
 };
 
