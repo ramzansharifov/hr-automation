@@ -85,8 +85,11 @@ export interface RecruitmentListParams {
   search?: string;
 }
 
+export type VacancySkillType = "hard" | "soft";
+
 export interface VacancySkillInput {
   id?: number;
+  type: VacancySkillType;
   name: string;
   requiredLevel: number;
   weight: number;
@@ -96,12 +99,9 @@ export interface VacancySkillInput {
 export interface SaveVacancyParams {
   id?: number;
   positionId: number;
-  title: string;
   status: "draft" | "open" | "paused" | "closed";
   employmentType: "full_time" | "part_time" | "temporary" | "internship";
   openingsCount: number;
-  description?: string;
-  requirements?: string;
   note?: string;
   skills: VacancySkillInput[];
 }
