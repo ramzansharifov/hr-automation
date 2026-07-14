@@ -145,9 +145,30 @@ body {
   color: #f7f9ff;
 }
 
-/* Hide decorative micro-captions. Content labels and field labels remain visible. */
+/* Decorative micro-captions are hidden; field and data labels remain. */
 main p.app-accent-text.text-xs.font-black.uppercase,
-main p.app-accent-text.text-xs.font-black[class*="tracking-"] {
+main p.app-accent-text.text-xs.font-black[class*="tracking-"],
+main p.text-xs.font-black.uppercase[class*="tracking-"],
+main span.app-accent-text.text-xs.font-black.uppercase,
+main span.text-\[11px\].font-black.uppercase[class*="tracking-"] {
+  display: none;
+}
+
+/* Vacancy editor: preserve the layout, remove repetitive explanatory text. */
+main .max-w-\[1440px\] > section:first-child .mb-3.flex.flex-wrap.items-center.gap-2,
+main .max-w-\[1440px\] > section:first-child h1 + p,
+main .max-w-\[1440px\] section .app-muted.mt-1.max-w-3xl,
+main .max-w-\[1440px\] section p.app-muted.mt-1.text-sm.leading-5,
+main .max-w-\[1440px\] .mt-5.flex.items-center.gap-2.text-xs.font-bold,
+main .max-w-\[1440px\] aside h3 + p,
+main .max-w-\[1440px\] aside section:last-child > p,
+main .max-w-\[1440px\] article p.app-muted.text-xs {
+  display: none;
+}
+
+/* Repeated section descriptions inside forms are intentionally concise. */
+main form section header p.app-muted,
+main section.app-surface > div.app-surface-muted.app-border-soft.border-b p.app-muted {
   display: none;
 }
 
