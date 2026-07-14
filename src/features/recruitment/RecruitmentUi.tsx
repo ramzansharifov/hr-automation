@@ -29,6 +29,7 @@ export function RecruitmentPageHeader({
         className="w-full shrink-0 border-white/20 bg-white text-slate-950 shadow-xl hover:bg-white/90 lg:w-auto"
         leftIcon={<FiPlus className="h-4 w-4" />}
         onClick={onAction}
+        variant="ghost"
       >
         {actionLabel}
       </Button>
