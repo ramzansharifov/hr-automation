@@ -24,7 +24,13 @@ export function DropdownMenu({
   return (
     <RadixDropdownMenu.Root>
       <RadixDropdownMenu.Trigger asChild>
-        <Button aria-label={triggerLabel} className="h-10 w-10 rounded-xl p-0" size="sm" variant="ghost">
+        <Button
+          aria-label={triggerLabel}
+          className="h-10 w-10 rounded-xl p-0"
+          size="sm"
+          tooltipSide="left"
+          variant="ghost"
+        >
           <FiMoreVertical className="h-4 w-4" />
         </Button>
       </RadixDropdownMenu.Trigger>
@@ -32,7 +38,8 @@ export function DropdownMenu({
       <RadixDropdownMenu.Portal>
         <RadixDropdownMenu.Content
           align={align}
-          className="app-surface app-border z-50 min-w-48 rounded-2xl border p-1"
+          className="radix-dropdown-content app-surface app-border z-50 min-w-48 rounded-xl border p-1 shadow-2xl"
+          collisionPadding={12}
           sideOffset={8}
         >
           {actions.map((action) => (
@@ -40,9 +47,9 @@ export function DropdownMenu({
               key={action.label}
               onSelect={action.onSelect}
               className={[
-                'flex min-h-10 cursor-pointer select-none items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold outline-none transition',
+                'radix-menu-item flex min-h-10 cursor-pointer select-none items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold outline-none transition',
                 action.danger
-                  ? 'text-rose-600 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-700'
+                  ? 'text-rose-600 data-[highlighted]:bg-rose-500/10 data-[highlighted]:text-rose-500'
                   : 'app-text-soft data-[highlighted]:bg-[var(--color-surface-hover)] data-[highlighted]:text-[var(--color-text)]',
               ].join(' ')}
             >
