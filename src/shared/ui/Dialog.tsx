@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { FiX } from "react-icons/fi";
 import { Button } from "./Button";
+import { ScrollArea } from "./ScrollArea";
 
 interface DialogProps {
   children: ReactNode;
@@ -50,9 +51,9 @@ export function Dialog({
             </RadixDialog.Close>
           </div>
 
-          <div className="max-h-[calc(86vh-93px)] overflow-y-auto p-6">
-            {children}
-          </div>
+          <ScrollArea className="max-h-[calc(86vh-93px)]">
+            <div className="p-6">{children}</div>
+          </ScrollArea>
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
