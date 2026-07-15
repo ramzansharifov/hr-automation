@@ -1,4 +1,9 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from 'react'
+import { Tooltip } from './Tooltip'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md'
@@ -8,6 +13,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize
   leftIcon?: ReactNode
   rightIcon?: ReactNode
+  tooltip?: ReactNode
+  tooltipSide?: 'top' | 'right' | 'bottom' | 'left'
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -25,33 +32,48 @@ const sizeClasses: Record<ButtonSize, string> = {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
+      'aria-label': ariaLabel,
       children,
       className = '',
       leftIcon,
       rightIcon,
       size = 'md',
+      tooltip,
+      tooltipSide = 'top',
       type = 'button',
       variant = 'secondary',
       ...props
     },
     ref,
-  ) => (
-    <button
-      ref={ref}
-      type={type}
-      className={[
-        'inline-flex items-center justify-center gap-2 rounded-2xl font-bold transition disabled:cursor-not-allowed disabled:opacity-50',
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      ].join(' ')}
-      {...props}
-    >
-      {leftIcon}
-      {children}
-      {rightIcon}
-    </button>
-  ),
+  ) => {
+    const button = (
+      <button
+        aria-label={ariaLabel}
+        ref={ref}
+        type={type}
+        className={[
+          'inline-flex items-center justify-center gap-2 rounded-2xl font-bold transition disabled:cursor-not-allowed disabled:opacity-50',
+          variantClasses[variant],
+          sizeClasses[size],
+          className,
+        ].join(' ')}
+        {...props}
+      >
+        {leftIcon}
+        {children}
+        {rightIcon}
+      </button>
+    )
+
+    const tooltipContent = tooltip ?? ariaLabel
+    if (!tooltipContent) return button
+
+    return (
+      <Tooltip content={tooltipContent} side={tooltipSide}>
+        {button}
+      </Tooltip>
+    )
+  },
 )
 
 Button.displayName = 'Button'
