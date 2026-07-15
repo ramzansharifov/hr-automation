@@ -1,3 +1,5 @@
+import * as Popover from "@radix-ui/react-popover";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { IconType } from "react-icons";
 import {
@@ -12,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
+import { ScrollArea, Tooltip } from "../shared/ui";
 
 type SearchResultKind =
   | "employee"
@@ -43,7 +46,9 @@ const resultMeta: Record<
 
 export function GlobalSearch(): JSX.Element {
   const navigate = useNavigate();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [anchorWidth, setAnchorWidth] = useState<number>();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,28 +59,24 @@ export function GlobalSearch(): JSX.Element {
   const visibleResults = useMemo(() => results.slice(0, 18), [results]);
 
   useEffect(() => {
-    function handleOutsidePointer(event: MouseEvent): void {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+
+    function updateWidth(): void {
+      setAnchorWidth(anchor.getBoundingClientRect().width);
     }
 
-    function handleEscape(event: KeyboardEvent): void {
-      if (event.key === "Escape") setIsOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleOutsidePointer);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsidePointer);
-      document.removeEventListener("keydown", handleEscape);
-    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(anchor);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
     if (!hasQuery) {
       setResults([]);
       setIsLoading(false);
+      setIsOpen(false);
       return;
     }
 
@@ -262,81 +263,108 @@ export function GlobalSearch(): JSX.Element {
   }
 
   return (
-    <div className="relative min-w-0 flex-1" ref={containerRef}>
-      <div className="relative max-w-2xl">
-        <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
-        <input
-          aria-label="Глобальный поиск"
-          className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-11 text-sm font-semibold outline-none transition"
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setIsOpen(true);
-          }}
-          onFocus={() => hasQuery && setIsOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && visibleResults[0]) {
-              event.preventDefault();
-              void openResult(visibleResults[0]);
-            }
-          }}
-          placeholder="Поиск сотрудников, структуры, вакансий и кандидатов"
-          value={query}
-        />
-        {query && (
-          <button
-            aria-label="Очистить поиск"
-            className="app-muted absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-            onClick={clearSearch}
-            type="button"
-          >
-            <FiX className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+    <Popover.Root
+      onOpenChange={(nextOpen) => setIsOpen(nextOpen && hasQuery)}
+      open={isOpen && hasQuery}
+    >
+      <div className="relative min-w-0 flex-1">
+        <Popover.Anchor asChild>
+          <div className="relative max-w-2xl" ref={anchorRef}>
+            <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <input
+              aria-label="Глобальный поиск"
+              className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-11 text-sm font-semibold outline-none transition"
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIsOpen(true);
+              }}
+              onFocus={() => hasQuery && setIsOpen(true)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && visibleResults[0]) {
+                  event.preventDefault();
+                  void openResult(visibleResults[0]);
+                }
+              }}
+              placeholder="Поиск сотрудников, структуры, вакансий и кандидатов"
+              value={query}
+            />
+            {query && (
+              <Tooltip content="Очистить поиск" side="bottom">
+                <button
+                  aria-label="Очистить поиск"
+                  className="app-muted absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                  onClick={clearSearch}
+                  type="button"
+                >
+                  <FiX className="h-4 w-4" />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        </Popover.Anchor>
 
-      {isOpen && hasQuery && (
-        <div className="app-surface app-border absolute left-0 top-[calc(100%+10px)] z-50 max-h-[min(560px,70vh)] w-full max-w-2xl overflow-y-auto rounded-[24px] border p-2 shadow-2xl">
-          {isLoading ? (
-            <div className="app-muted px-4 py-8 text-center text-sm font-semibold">
-              Поиск...
-            </div>
-          ) : visibleResults.length === 0 ? (
-            <div className="px-5 py-8 text-center">
-              <FiSearch className="app-muted mx-auto h-5 w-5" />
-              <p className="app-text mt-3 text-sm font-black">Ничего не найдено</p>
-              <p className="app-muted mt-1 text-xs">Попробуйте изменить запрос</p>
-            </div>
-          ) : (
-            <div className="grid gap-1">
-              {visibleResults.map((result) => {
-                const meta = resultMeta[result.kind];
-                const Icon = meta.icon;
-                return (
-                  <button
-                    className="app-hover-muted flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition"
-                    key={`${result.kind}-${result.id}`}
-                    onClick={() => void openResult(result)}
-                    type="button"
-                  >
-                    <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="app-text block truncate text-sm font-black">
-                        {result.title}
-                      </span>
-                      <span className="app-muted mt-0.5 block truncate text-xs font-semibold">
-                        {meta.label}{result.subtitle ? ` · ${result.subtitle}` : ""}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        <Popover.Portal>
+          <Popover.Content
+            align="start"
+            className="radix-popover-content app-surface app-border z-50 overflow-hidden rounded-[20px] border shadow-2xl"
+            collisionPadding={16}
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            side="bottom"
+            sideOffset={10}
+            style={{ width: anchorWidth }}
+          >
+            <ScrollArea className="max-h-[min(560px,70vh)]" viewportClassName="p-2">
+              {isLoading ? (
+                <div className="app-muted px-4 py-8 text-center text-sm font-semibold">
+                  Поиск...
+                </div>
+              ) : visibleResults.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <FiSearch className="app-muted mx-auto h-5 w-5" />
+                  <p className="app-text mt-3 text-sm font-black">Ничего не найдено</p>
+                  <p className="app-muted mt-1 text-xs">Попробуйте изменить запрос</p>
+                </div>
+              ) : (
+                <div className="grid gap-1">
+                  {visibleResults.map((result, index) => {
+                    const meta = resultMeta[result.kind];
+                    const Icon = meta.icon;
+                    return (
+                      <motion.button
+                        animate={{ opacity: 1, x: 0 }}
+                        className="app-hover-muted flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition"
+                        initial={reduceMotion ? false : { opacity: 0, x: -7 }}
+                        key={`${result.kind}-${result.id}`}
+                        onClick={() => void openResult(result)}
+                        transition={{
+                          duration: reduceMotion ? 0 : 0.18,
+                          delay: reduceMotion ? 0 : Math.min(index * 0.025, 0.2),
+                        }}
+                        type="button"
+                        whileHover={reduceMotion ? undefined : { x: 2 }}
+                      >
+                        <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="app-text block truncate text-sm font-black">
+                            {result.title}
+                          </span>
+                          <span className="app-muted mt-0.5 block truncate text-xs font-semibold">
+                            {meta.label}{result.subtitle ? ` · ${result.subtitle}` : ""}
+                          </span>
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </Popover.Content>
+        </Popover.Portal>
+      </div>
+    </Popover.Root>
   );
 }
 
