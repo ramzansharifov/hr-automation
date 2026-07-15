@@ -183,3 +183,188 @@ table tbody tr:hover {
 .app-table-action-button {
   border-radius: var(--serious-radius-small) !important;
 }
+
+/* Radix interaction states. */
+.app-tab-trigger[data-state="inactive"] {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.app-tab-trigger[data-state="inactive"]:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.radix-menu-item[data-highlighted],
+.radix-select-item[data-highlighted] {
+  transform: translateX(2px);
+}
+
+.radix-scrollbar[data-state="visible"] {
+  animation: radix-fade-in 160ms ease-out;
+}
+
+/* Coordinated opening and closing animations for Radix surfaces. */
+@keyframes radix-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes radix-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes radix-dialog-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.965);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes radix-dialog-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translate(-50%, calc(-50% + 8px)) scale(0.98);
+  }
+}
+
+@keyframes radix-floating-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(-5px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes radix-floating-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(-3px) scale(0.985);
+  }
+}
+
+@keyframes radix-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes radix-tabs-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.radix-dialog-overlay[data-state="open"] {
+  animation: radix-fade-in 180ms ease-out;
+}
+
+.radix-dialog-overlay[data-state="closed"] {
+  animation: radix-fade-out 140ms ease-in;
+}
+
+.radix-dialog-content[data-state="open"],
+.radix-alert-dialog-content[data-state="open"] {
+  animation: radix-dialog-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.radix-dialog-content[data-state="closed"],
+.radix-alert-dialog-content[data-state="closed"] {
+  animation: radix-dialog-out 150ms ease-in;
+}
+
+.radix-dropdown-content,
+.radix-select-content,
+.radix-popover-content {
+  transform-origin: var(--radix-popper-transform-origin);
+  will-change: transform, opacity, filter;
+}
+
+.radix-dropdown-content[data-state="open"],
+.radix-select-content[data-state="open"],
+.radix-popover-content[data-state="open"] {
+  animation: radix-floating-in 190ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.radix-dropdown-content[data-state="closed"],
+.radix-select-content[data-state="closed"],
+.radix-popover-content[data-state="closed"] {
+  animation: radix-floating-out 120ms ease-in;
+}
+
+.radix-tooltip-content[data-state="delayed-open"],
+.radix-tooltip-content[data-state="instant-open"] {
+  animation: radix-tooltip-in 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+}
+
+.radix-tabs-content[data-state="active"] {
+  animation: radix-tabs-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .app-button-primary:not(:disabled),
+  .app-button-secondary:not(:disabled),
+  .app-table-action-button:not(:disabled) {
+    transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+    transition-duration: 160ms;
+  }
+
+  .app-button-primary:not(:disabled):hover,
+  .app-button-secondary:not(:disabled):hover,
+  .app-table-action-button:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .app-button-primary:not(:disabled):active,
+  .app-button-secondary:not(:disabled):active,
+  .app-table-action-button:not(:disabled):active {
+    transform: translateY(0) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
