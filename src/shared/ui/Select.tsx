@@ -1,5 +1,5 @@
 import * as RadixSelect from '@radix-ui/react-select'
-import { FiCheck, FiChevronDown } from 'react-icons/fi'
+import { FiCheck, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 
 const CLEAR_VALUE = '__empty__'
 
@@ -64,17 +64,22 @@ export function Select({
       >
         <RadixSelect.Value placeholder={placeholder} />
         <RadixSelect.Icon asChild>
-          <FiChevronDown className="app-muted h-4 w-4 shrink-0" />
+          <FiChevronDown className="app-muted h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal>
         <RadixSelect.Content
-          className="app-surface app-border z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-2xl border p-1"
+          className="radix-select-content app-surface app-border z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border p-1 shadow-2xl"
+          collisionPadding={12}
           position="popper"
           sideOffset={8}
         >
-          <RadixSelect.Viewport className="max-h-72 overflow-y-auto">
+          <RadixSelect.ScrollUpButton className="app-text-soft flex h-8 cursor-default items-center justify-center">
+            <FiChevronUp className="h-4 w-4" />
+          </RadixSelect.ScrollUpButton>
+
+          <RadixSelect.Viewport className="max-h-60">
             {allowEmpty && emptyOptionLabel && (
               <SelectItem value={CLEAR_VALUE}>{emptyOptionLabel}</SelectItem>
             )}
@@ -85,6 +90,10 @@ export function Select({
               </SelectItem>
             ))}
           </RadixSelect.Viewport>
+
+          <RadixSelect.ScrollDownButton className="app-text-soft flex h-8 cursor-default items-center justify-center">
+            <FiChevronDown className="h-4 w-4" />
+          </RadixSelect.ScrollDownButton>
         </RadixSelect.Content>
       </RadixSelect.Portal>
     </RadixSelect.Root>
@@ -100,7 +109,7 @@ function SelectItem({ children, value }: SelectItemProps): JSX.Element {
   return (
     <RadixSelect.Item
       className={[
-        'relative flex min-h-10 cursor-pointer select-none items-center rounded-xl py-2 pl-9 pr-3 text-sm outline-none transition',
+        'radix-select-item relative flex min-h-10 cursor-pointer select-none items-center rounded-lg py-2 pl-9 pr-3 text-sm outline-none transition',
         'data-[highlighted]:bg-[var(--color-surface-hover)] data-[highlighted]:text-[var(--color-text)]',
         'data-[state=checked]:bg-[var(--accent-soft)] data-[state=checked]:text-[var(--accent-soft-text)]',
       ].join(' ')}
