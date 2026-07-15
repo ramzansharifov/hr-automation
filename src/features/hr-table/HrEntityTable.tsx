@@ -10,8 +10,6 @@ import {
   FiSearch,
   FiTrash2,
   FiUser,
-  FiGrid,
-  FiList,
 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
@@ -24,7 +22,14 @@ import type {
 } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
-import { Button, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
+import {
+  Button,
+  EmptyState,
+  LoadingState,
+  Select,
+  ViewModeToggle,
+  type SelectOption,
+} from '../../shared/ui'
 import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
 import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
@@ -77,6 +82,7 @@ function getPageNumbers(currentPage: number, totalPages: number): number[] {
 
   return pages
 }
+
 function getRecordTitle(record: HrRecord, entity: HrEntityKey): string {
   if (entity === 'employees') {
     const fullName = [record.last_name, record.first_name, record.middle_name]
@@ -101,15 +107,6 @@ function getRecordInitials(title: string): string {
     .toUpperCase()
 
   return initials || 'HR'
-}
-function getTableViewModeButtonClass(isActive: boolean): string {
-  return [
-    'inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
-    isActive
-      ? 'border-[var(--accent-border)] bg-[var(--accent)] text-white'
-      : 'app-button-secondary',
-  ].join(' ')
 }
 
 export function HrEntityTable({
@@ -186,6 +183,7 @@ export function HrEntityTable({
   useEffect(() => {
     void loadData()
   }, [loadData, refreshIndex])
+
   useEffect(() => {
     const safeTotalPages = Math.max(result.totalPages, 1)
 
@@ -199,12 +197,11 @@ export function HrEntityTable({
     setPage(1)
     setSearch(draftSearch.trim())
   }
+
   function handlePageSizeChange(value: string): void {
     const nextPageSize = Number(value)
 
-    if (!Number.isFinite(nextPageSize)) {
-      return
-    }
+    if (!Number.isFinite(nextPageSize)) return
 
     setPage(1)
     setPageSize(nextPageSize)
@@ -275,9 +272,7 @@ export function HrEntityTable({
   }
 
   function handleRowKeyDown(event: KeyboardEvent<HTMLElement>, record: HrRecord): void {
-    if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) {
-      return
-    }
+    if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) return
 
     event.preventDefault()
     onRowClick(record)
@@ -301,37 +296,19 @@ export function HrEntityTable({
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
       className={[
         'app-surface app-border flex flex-col overflow-hidden rounded-[28px] border',
         className,
       ].join(' ')}
+      initial={{ opacity: 0, y: 12 }}
+      transition={{ duration: 0.28, ease: 'easeOut' }}
     >
       {!hideToolbar && (
         <div className="app-border-soft flex flex-col gap-4 border-b p-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             {entity === 'employees' && onViewModeChange ? (
-              <div className="app-surface flex items-center gap-2 rounded-2xl border p-1">
-                <button
-                  type="button"
-                  className={getTableViewModeButtonClass(viewMode === 'table')}
-                  onClick={() => onViewModeChange('table')}
-                >
-                  <FiList className="h-4 w-4" />
-                  Таблица
-                </button>
-
-                <button
-                  type="button"
-                  className={getTableViewModeButtonClass(viewMode === 'cards')}
-                  onClick={() => onViewModeChange('cards')}
-                >
-                  <FiGrid className="h-4 w-4" />
-                  Карточки
-                </button>
-              </div>
+              <ViewModeToggle onChange={onViewModeChange} value={viewMode} />
             ) : (
               <h3 className="app-text text-lg font-black">{config.title}</h3>
             )}
@@ -339,21 +316,25 @@ export function HrEntityTable({
 
           <div className="flex flex-col gap-3 sm:flex-row">
             {!hideToolbarSearch && (
-              <form onSubmit={handleSearchSubmit} className="relative">
+              <form className="relative" onSubmit={handleSearchSubmit}>
                 <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
                 <input
-                  value={draftSearch}
+                  className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition sm:w-72"
                   onChange={(event) => setDraftSearch(event.target.value)}
                   placeholder={t('common.fields.search')}
-                  className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition sm:w-72"
+                  value={draftSearch}
                 />
               </form>
             )}
 
             <Button
-              type="button"
+              leftIcon={
+                <FiRefreshCw
+                  className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'}
+                />
+              }
               onClick={handleRefresh}
-              leftIcon={<FiRefreshCw className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />}
+              type="button"
               variant="secondary"
             >
               {t('common.actions.refresh')}
@@ -361,9 +342,9 @@ export function HrEntityTable({
 
             {!hideCreateButton && (
               <Button
-                type="button"
-                onClick={handleCreateClick}
                 leftIcon={<FiPlus className="h-4 w-4" />}
+                onClick={handleCreateClick}
+                type="button"
                 variant="primary"
               >
                 {config.createLabel}
@@ -378,11 +359,14 @@ export function HrEntityTable({
           <thead>
             <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
               {visibleColumns.map((column) => (
-                <th key={column.key} className="app-border-soft border-b px-5 py-4 font-black">
+                <th
+                  className="app-border-soft border-b px-5 py-4 font-black"
+                  key={column.key}
+                >
                   <button
-                    type="button"
-                    onClick={() => handleSort(column.key)}
                     className="flex items-center gap-2 text-left transition hover:text-[var(--accent)]"
+                    onClick={() => handleSort(column.key)}
+                    type="button"
                   >
                     {column.label}
                     {orderBy === column.key && (
@@ -406,54 +390,62 @@ export function HrEntityTable({
           <tbody>
             {result.items.map((record, index) => (
               <motion.tr
-                key={String(record.id ?? index)}
-                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
+                className={[
+                  'app-hover-muted transition',
+                  onRowClick ? 'cursor-pointer' : '',
+                ].join(' ')}
+                initial={{ opacity: 0, y: 8 }}
+                key={String(record.id ?? index)}
+                onClick={onRowClick ? () => onRowClick(record) : undefined}
+                onKeyDown={(event) => handleRowKeyDown(event, record)}
+                role={onRowClick ? 'button' : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
                 transition={{
                   duration: 0.22,
                   delay: Math.min(index * 0.035, 0.18),
                   ease: 'easeOut',
                 }}
                 whileHover={{ scale: onRowClick ? 1.002 : 1 }}
-                className={['app-hover-muted transition', onRowClick ? 'cursor-pointer' : ''].join(' ')}
-                onClick={onRowClick ? () => onRowClick(record) : undefined}
-                onKeyDown={(event) => handleRowKeyDown(event, record)}
-                role={onRowClick ? 'button' : undefined}
-                tabIndex={onRowClick ? 0 : undefined}
               >
                 {visibleColumns.map((column) => (
                   <td
-                    key={column.key}
                     className={[
                       'app-border-soft app-text-soft max-w-[280px] border-b px-5 py-4 align-top',
                       column.className ?? '',
                     ].join(' ')}
+                    key={column.key}
                   >
-                    <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
+                    <span className="line-clamp-2">
+                      {renderCell(record, column, locale)}
+                    </span>
                   </td>
                 ))}
                 {hasActions && (
                   <td className="app-border-soft border-b px-5 py-4 align-top">
-                    <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
+                    <div
+                      className="flex items-center justify-center gap-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Button
                         aria-label={t('common.actions.edit')}
-                        title={t('common.actions.edit')}
+                        className="app-table-action-button app-table-action-button--edit h-9 w-9 rounded-xl border p-0"
                         onClick={() => handleEditClick(record)}
-                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                        size="sm"
+                        variant="ghost"
                       >
                         <FiEdit2 className="h-4 w-4" />
-                      </button>
+                      </Button>
 
-                      <button
-                        type="button"
+                      <Button
                         aria-label={t('common.actions.delete')}
-                        title={t('common.actions.delete')}
+                        className="app-table-action-button app-table-action-button--delete h-9 w-9 rounded-xl border p-0"
                         onClick={() => handleDeleteClick(record)}
-                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                        size="sm"
+                        variant="ghost"
                       >
                         <FiTrash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 )}
@@ -462,7 +454,7 @@ export function HrEntityTable({
 
             {!isLoading && result.items.length === 0 && (
               <tr>
-                <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
+                <td className="px-5 py-16 text-center" colSpan={tableColumnCount}>
                   <EmptyState title={t('common.table.empty')} />
                 </td>
               </tr>
@@ -470,7 +462,7 @@ export function HrEntityTable({
 
             {isLoading && (
               <tr>
-                <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
+                <td className="px-5 py-16 text-center" colSpan={tableColumnCount}>
                   <LoadingState label={t('common.table.loading')} />
                 </td>
               </tr>
@@ -487,23 +479,23 @@ export function HrEntityTable({
 
               return (
                 <motion.article
-                  key={String(record.id ?? index)}
-                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  className={[
+                    'app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4 transition',
+                    onRowClick ? 'cursor-pointer' : '',
+                  ].join(' ')}
+                  initial={{ opacity: 0, y: 8 }}
+                  key={String(record.id ?? index)}
+                  onClick={onRowClick ? () => onRowClick(record) : undefined}
+                  onKeyDown={(event) => handleRowKeyDown(event, record)}
+                  role={onRowClick ? 'button' : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
                   transition={{
                     duration: 0.22,
                     delay: Math.min(index * 0.035, 0.18),
                     ease: 'easeOut',
                   }}
                   whileHover={{ y: onRowClick ? -2 : 0 }}
-                  className={[
-                    'app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4 transition',
-                    onRowClick ? 'cursor-pointer' : '',
-                  ].join(' ')}
-                  onClick={onRowClick ? () => onRowClick(record) : undefined}
-                  onKeyDown={(event) => handleRowKeyDown(event, record)}
-                  role={onRowClick ? 'button' : undefined}
-                  tabIndex={onRowClick ? 0 : undefined}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="app-accent-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-black">
@@ -515,14 +507,12 @@ export function HrEntityTable({
                     </span>
 
                     <div className="min-w-0">
-                      <h4 className="app-text truncate text-sm font-black">
-                        {title}
-                      </h4>
+                      <h4 className="app-text truncate text-sm font-black">{title}</h4>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                         {cardMetaColumns.map((column) => (
                           <span
-                            key={column.key}
                             className="app-text-soft min-w-0 text-xs font-semibold"
+                            key={column.key}
                           >
                             <span className="app-muted">{column.label}: </span>
                             {renderCell(record, column, locale)}
@@ -537,25 +527,25 @@ export function HrEntityTable({
                       className="flex shrink-0 items-center justify-center gap-2"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <button
-                        type="button"
+                      <Button
                         aria-label={t('common.actions.edit')}
-                        title={t('common.actions.edit')}
+                        className="app-table-action-button app-table-action-button--edit h-9 w-9 rounded-xl border p-0"
                         onClick={() => handleEditClick(record)}
-                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
+                        size="sm"
+                        variant="ghost"
                       >
                         <FiEdit2 className="h-4 w-4" />
-                      </button>
+                      </Button>
 
-                      <button
-                        type="button"
+                      <Button
                         aria-label={t('common.actions.delete')}
-                        title={t('common.actions.delete')}
+                        className="app-table-action-button app-table-action-button--delete h-9 w-9 rounded-xl border p-0"
                         onClick={() => handleDeleteClick(record)}
-                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                        size="sm"
+                        variant="ghost"
                       >
                         <FiTrash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </motion.article>
@@ -580,11 +570,14 @@ export function HrEntityTable({
       <div className="app-border-soft flex flex-col gap-4 border-t px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
           <p className="app-muted text-sm">
-            {t('common.table.total')}: <span className="app-text font-bold">{result.total}</span>
+            {t('common.table.total')}:{' '}
+            <span className="app-text font-bold">{result.total}</span>
           </p>
 
           <div className="flex items-center gap-2">
-            <span className="app-muted text-sm font-medium">{t('common.table.pageSize')}</span>
+            <span className="app-muted text-sm font-medium">
+              {t('common.table.pageSize')}
+            </span>
             <Select
               ariaLabel={t('common.table.pageSize')}
               className="h-10 w-24 rounded-xl"
@@ -592,17 +585,19 @@ export function HrEntityTable({
               options={pageSizeOptions}
               value={String(pageSize)}
             />
-            <span className="app-muted text-sm font-medium">{t('common.table.pageSizeSuffix')}</span>
+            <span className="app-muted text-sm font-medium">
+              {t('common.table.pageSizeSuffix')}
+            </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
-            type="button"
             disabled={!canGoBack}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
             leftIcon={<FiChevronLeft className="h-4 w-4" />}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
             size="sm"
+            type="button"
             variant="secondary"
           >
             {t('common.actions.back')}
@@ -612,11 +607,11 @@ export function HrEntityTable({
             {pageNumbers[0] > 1 && (
               <>
                 <Button
-                  type="button"
+                  className="min-w-10 px-3"
                   onClick={() => setPage(1)}
                   size="sm"
+                  type="button"
                   variant={result.page === 1 ? 'primary' : 'secondary'}
-                  className="min-w-10 px-3"
                 >
                   1
                 </Button>
@@ -626,13 +621,13 @@ export function HrEntityTable({
 
             {pageNumbers.map((pageNumber) => (
               <Button
+                aria-current={pageNumber === result.page ? 'page' : undefined}
+                className="min-w-10 px-3"
                 key={pageNumber}
-                type="button"
                 onClick={() => setPage(pageNumber)}
                 size="sm"
+                type="button"
                 variant={pageNumber === result.page ? 'primary' : 'secondary'}
-                className="min-w-10 px-3"
-                aria-current={pageNumber === result.page ? 'page' : undefined}
               >
                 {pageNumber}
               </Button>
@@ -642,11 +637,11 @@ export function HrEntityTable({
               <>
                 <span className="app-muted px-1 text-sm">...</span>
                 <Button
-                  type="button"
+                  className="min-w-10 px-3"
                   onClick={() => setPage(totalPages)}
                   size="sm"
+                  type="button"
                   variant={result.page === totalPages ? 'primary' : 'secondary'}
-                  className="min-w-10 px-3"
                 >
                   {totalPages}
                 </Button>
@@ -655,11 +650,11 @@ export function HrEntityTable({
           </div>
 
           <Button
-            type="button"
             disabled={!canGoForward}
             onClick={() => setPage((current) => current + 1)}
             rightIcon={<FiChevronRight className="h-4 w-4" />}
             size="sm"
+            type="button"
             variant="secondary"
           >
             {t('common.actions.next')}
