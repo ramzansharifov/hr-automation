@@ -1,7 +1,8 @@
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import { FiPlus, FiSearch } from "react-icons/fi";
 
-import { Button, Input } from "../../shared/ui";
+import { Button, Input, Label } from "../../shared/ui";
 
 export function RecruitmentPageHeader({
   actionLabel,
@@ -15,12 +16,22 @@ export function RecruitmentPageHeader({
   onAction: () => void;
   title: string;
 }): JSX.Element {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <section className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+    <motion.section
+      animate={{ opacity: 1, y: 0 }}
+      className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between"
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+    >
       <div className="flex min-w-0 items-center gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur">
+        <motion.span
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur"
+          whileHover={reduceMotion ? undefined : { rotate: -4, scale: 1.04 }}
+        >
           {icon}
-        </span>
+        </motion.span>
         <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
           {title}
         </h1>
@@ -34,7 +45,7 @@ export function RecruitmentPageHeader({
       >
         {actionLabel}
       </Button>
-    </section>
+    </motion.section>
   );
 }
 
@@ -92,26 +103,40 @@ export function FormField({
   label: string;
 }): JSX.Element {
   return (
-    <label className="grid gap-2">
+    <Label className="grid gap-2">
       <span className="app-text text-sm font-bold">{label}</span>
       {children}
-    </label>
+    </Label>
   );
 }
 
 export function MatchBar({ value }: { value: number }): JSX.Element {
+  const reduceMotion = useReducedMotion();
   const safeValue = Math.max(0, Math.min(100, Math.round(value)));
 
   return (
     <div className="min-w-[150px]">
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="app-text-soft text-xs font-bold">Соответствие</span>
-        <span className="app-text text-sm font-black">{safeValue}%</span>
+        <motion.span
+          animate={{ opacity: 1, scale: 1 }}
+          className="app-text text-sm font-black"
+          initial={reduceMotion ? false : { opacity: 0.4, scale: 0.92 }}
+          key={safeValue}
+        >
+          {safeValue}%
+        </motion.span>
       </div>
       <div className="app-surface-muted h-2 overflow-hidden rounded-full">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[var(--accent-border)] to-[var(--accent-hover)] transition-[width]"
-          style={{ width: `${safeValue}%` }}
+        <motion.div
+          animate={{ width: `${safeValue}%` }}
+          className="h-full rounded-full bg-gradient-to-r from-[var(--accent-border)] to-[var(--accent-hover)]"
+          initial={reduceMotion ? false : { width: 0 }}
+          transition={
+            reduceMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 120, damping: 22 }
+          }
         />
       </div>
     </div>
