@@ -1,5 +1,6 @@
+import * as Tabs from "@radix-ui/react-tabs";
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   FiBriefcase,
   FiClipboard,
@@ -14,6 +15,7 @@ import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import {
   Button,
   Input,
+  Label,
   Select,
   type SelectOption,
 } from "../../../shared/ui";
@@ -169,262 +171,270 @@ export function ModuleFiltersPanel(): JSX.Element {
   }
 
   return (
-    <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-      <div className="app-border-soft overflow-x-auto border-b p-3 sm:p-4">
-        <div className="flex min-w-max gap-2">
-          {moduleTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeModule === tab.id;
-            const count = activeCounts[tab.id];
-            return (
-              <button
-                className={[
-                  "flex h-11 items-center gap-2 rounded-2xl border px-4 text-sm font-black transition",
-                  isActive
-                    ? "border-[var(--accent-border)] bg-[var(--accent)] text-white shadow-lg"
-                    : "app-button-secondary",
-                ].join(" ")}
-                key={tab.id}
-                onClick={() => setActiveModule(tab.id)}
-                type="button"
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-                {count > 0 && (
-                  <span
-                    className={[
-                      "rounded-full px-2 py-0.5 text-[11px]",
-                      isActive ? "bg-white/20 text-white" : "app-accent-soft",
-                    ].join(" ")}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <form className="p-5 sm:p-7" onSubmit={applyFilters}>
-        {activeModule === "employees" && (
-          <FilterGrid>
-            <FilterInput
-              label="Фамилия"
-              onChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, last_name: value }))
-              }
-              value={employeeFilters.last_name}
-            />
-            <FilterInput
-              label="Имя"
-              onChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, first_name: value }))
-              }
-              value={employeeFilters.first_name}
-            />
-            <FilterInput
-              label="Отчество"
-              onChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, middle_name: value }))
-              }
-              value={employeeFilters.middle_name}
-            />
-            <FilterInput
-              label="Телефон"
-              onChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, phone: value }))
-              }
-              value={employeeFilters.phone}
-            />
-            <FilterInput
-              label="Email"
-              onChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, email: value }))
-              }
-              value={employeeFilters.email}
-            />
-            <FilterSelect
-              disabled={isRelationsLoading}
-              label="Отдел"
-              onValueChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, department_id: value }))
-              }
-              options={departments}
-              value={employeeFilters.department_id}
-            />
-            <FilterSelect
-              disabled={isRelationsLoading}
-              label="Должность"
-              onValueChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, position_id: value }))
-              }
-              options={positions}
-              value={employeeFilters.position_id}
-            />
-            <FilterSelect
-              label="Статус"
-              onValueChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, status: value }))
-              }
-              options={statusOptions}
-              value={employeeFilters.status}
-            />
-            <FilterSelect
-              label="Пол"
-              onValueChange={(value) =>
-                setEmployeeFilters((current) => ({ ...current, gender: value }))
-              }
-              options={genderOptions}
-              value={employeeFilters.gender}
-            />
-          </FilterGrid>
-        )}
-
-        {activeModule === "enterprises" && (
-          <FilterGrid>
-            <FilterInput
-              label="Название"
-              onChange={(value) =>
-                setEnterpriseFilters((current) => ({ ...current, name: value }))
-              }
-              value={enterpriseFilters.name}
-            />
-            <FilterInput
-              label="Юридическое наименование"
-              onChange={(value) =>
-                setEnterpriseFilters((current) => ({ ...current, legal_name: value }))
-              }
-              value={enterpriseFilters.legal_name}
-            />
-            <FilterInput
-              label="Телефон"
-              onChange={(value) =>
-                setEnterpriseFilters((current) => ({ ...current, phone: value }))
-              }
-              value={enterpriseFilters.phone}
-            />
-            <FilterInput
-              label="Email"
-              onChange={(value) =>
-                setEnterpriseFilters((current) => ({ ...current, email: value }))
-              }
-              value={enterpriseFilters.email}
-            />
-          </FilterGrid>
-        )}
-
-        {activeModule === "vacancies" && (
-          <FilterGrid>
-            <FilterSelect
-              label="Статус"
-              onValueChange={(value) =>
-                setVacancyFilters((current) => ({ ...current, status: value }))
-              }
-              options={vacancyStatusOptions}
-              value={vacancyFilters.status}
-            />
-            <FilterSelect
-              label="Формат занятости"
-              onValueChange={(value) =>
-                setVacancyFilters((current) => ({
-                  ...current,
-                  employment_type: value,
-                }))
-              }
-              options={employmentTypeOptions}
-              value={vacancyFilters.employment_type}
-            />
-            <FilterInput
-              label="Предприятие"
-              onChange={(value) =>
-                setVacancyFilters((current) => ({
-                  ...current,
-                  enterprise_name: value,
-                }))
-              }
-              value={vacancyFilters.enterprise_name}
-            />
-            <FilterInput
-              label="Отдел"
-              onChange={(value) =>
-                setVacancyFilters((current) => ({
-                  ...current,
-                  department_name: value,
-                }))
-              }
-              value={vacancyFilters.department_name}
-            />
-            <FilterInput
-              label="Должность"
-              onChange={(value) =>
-                setVacancyFilters((current) => ({
-                  ...current,
-                  position_name: value,
-                }))
-              }
-              value={vacancyFilters.position_name}
-            />
-          </FilterGrid>
-        )}
-
-        {activeModule === "candidates" && (
-          <FilterGrid>
-            <FilterSelect
-              label="Статус"
-              onValueChange={(value) =>
-                setCandidateFilters((current) => ({ ...current, status: value }))
-              }
-              options={candidateStatusOptions}
-              value={candidateFilters.status}
-            />
-            <FilterSelect
-              label="Вакансия"
-              onValueChange={(value) =>
-                setCandidateFilters((current) => ({ ...current, vacancy_id: value }))
-              }
-              options={vacancyOptions}
-              value={candidateFilters.vacancy_id}
-            />
-            <FilterInput
-              label="Источник"
-              onChange={(value) =>
-                setCandidateFilters((current) => ({ ...current, source: value }))
-              }
-              value={candidateFilters.source}
-            />
-            <FilterInput
-              label="Минимальное соответствие, %"
-              max="100"
-              min="0"
-              onChange={(value) =>
-                setCandidateFilters((current) => ({ ...current, min_match: value }))
-              }
-              type="number"
-              value={candidateFilters.min_match}
-            />
-          </FilterGrid>
-        )}
-
-        <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
-          <Button
-            leftIcon={<FiRotateCcw className="h-4 w-4" />}
-            onClick={clearFilters}
-            type="button"
-            variant="secondary"
+    <Tabs.Root
+      asChild
+      onValueChange={(value) => setActiveModule(value as FilterModule)}
+      value={activeModule}
+    >
+      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+        <div className="app-border-soft overflow-x-auto border-b p-3 sm:p-4">
+          <Tabs.List
+            aria-label="Модуль фильтрации"
+            className="flex min-w-max gap-2"
           >
-            Очистить
-          </Button>
-          <Button
-            leftIcon={<FiSearch className="h-4 w-4" />}
-            type="submit"
-            variant="primary"
-          >
-            Применить
-          </Button>
+            {moduleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeModule === tab.id;
+              const count = activeCounts[tab.id];
+              return (
+                <Tabs.Trigger
+                  className={[
+                    "app-tab-trigger group flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-black outline-none transition",
+                    "focus-visible:ring-2 focus-visible:ring-[var(--accent-border)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]",
+                    "data-[state=active]:border-[var(--accent-border)] data-[state=active]:bg-[var(--accent)] data-[state=active]:text-white data-[state=active]:shadow-lg",
+                    "data-[state=inactive]:app-button-secondary",
+                  ].join(" ")}
+                  key={tab.id}
+                  value={tab.id}
+                >
+                  <Icon className="h-4 w-4 transition-transform duration-200 group-data-[state=active]:scale-110" />
+                  {tab.label}
+                  {count > 0 && (
+                    <span
+                      className={[
+                        "rounded-full px-2 py-0.5 text-[11px] transition-colors",
+                        isActive ? "bg-white/20 text-white" : "app-accent-soft",
+                      ].join(" ")}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </Tabs.Trigger>
+              );
+            })}
+          </Tabs.List>
         </div>
-      </form>
-    </section>
+
+        <form className="p-5 sm:p-7" onSubmit={applyFilters}>
+          <Tabs.Content className="radix-tabs-content outline-none" value="employees">
+            <FilterGrid>
+              <FilterInput
+                label="Фамилия"
+                onChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, last_name: value }))
+                }
+                value={employeeFilters.last_name}
+              />
+              <FilterInput
+                label="Имя"
+                onChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, first_name: value }))
+                }
+                value={employeeFilters.first_name}
+              />
+              <FilterInput
+                label="Отчество"
+                onChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, middle_name: value }))
+                }
+                value={employeeFilters.middle_name}
+              />
+              <FilterInput
+                label="Телефон"
+                onChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, phone: value }))
+                }
+                value={employeeFilters.phone}
+              />
+              <FilterInput
+                label="Email"
+                onChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, email: value }))
+                }
+                value={employeeFilters.email}
+              />
+              <FilterSelect
+                disabled={isRelationsLoading}
+                label="Отдел"
+                onValueChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, department_id: value }))
+                }
+                options={departments}
+                value={employeeFilters.department_id}
+              />
+              <FilterSelect
+                disabled={isRelationsLoading}
+                label="Должность"
+                onValueChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, position_id: value }))
+                }
+                options={positions}
+                value={employeeFilters.position_id}
+              />
+              <FilterSelect
+                label="Статус"
+                onValueChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, status: value }))
+                }
+                options={statusOptions}
+                value={employeeFilters.status}
+              />
+              <FilterSelect
+                label="Пол"
+                onValueChange={(value) =>
+                  setEmployeeFilters((current) => ({ ...current, gender: value }))
+                }
+                options={genderOptions}
+                value={employeeFilters.gender}
+              />
+            </FilterGrid>
+          </Tabs.Content>
+
+          <Tabs.Content className="radix-tabs-content outline-none" value="enterprises">
+            <FilterGrid>
+              <FilterInput
+                label="Название"
+                onChange={(value) =>
+                  setEnterpriseFilters((current) => ({ ...current, name: value }))
+                }
+                value={enterpriseFilters.name}
+              />
+              <FilterInput
+                label="Юридическое наименование"
+                onChange={(value) =>
+                  setEnterpriseFilters((current) => ({ ...current, legal_name: value }))
+                }
+                value={enterpriseFilters.legal_name}
+              />
+              <FilterInput
+                label="Телефон"
+                onChange={(value) =>
+                  setEnterpriseFilters((current) => ({ ...current, phone: value }))
+                }
+                value={enterpriseFilters.phone}
+              />
+              <FilterInput
+                label="Email"
+                onChange={(value) =>
+                  setEnterpriseFilters((current) => ({ ...current, email: value }))
+                }
+                value={enterpriseFilters.email}
+              />
+            </FilterGrid>
+          </Tabs.Content>
+
+          <Tabs.Content className="radix-tabs-content outline-none" value="vacancies">
+            <FilterGrid>
+              <FilterSelect
+                label="Статус"
+                onValueChange={(value) =>
+                  setVacancyFilters((current) => ({ ...current, status: value }))
+                }
+                options={vacancyStatusOptions}
+                value={vacancyFilters.status}
+              />
+              <FilterSelect
+                label="Формат занятости"
+                onValueChange={(value) =>
+                  setVacancyFilters((current) => ({
+                    ...current,
+                    employment_type: value,
+                  }))
+                }
+                options={employmentTypeOptions}
+                value={vacancyFilters.employment_type}
+              />
+              <FilterInput
+                label="Предприятие"
+                onChange={(value) =>
+                  setVacancyFilters((current) => ({
+                    ...current,
+                    enterprise_name: value,
+                  }))
+                }
+                value={vacancyFilters.enterprise_name}
+              />
+              <FilterInput
+                label="Отдел"
+                onChange={(value) =>
+                  setVacancyFilters((current) => ({
+                    ...current,
+                    department_name: value,
+                  }))
+                }
+                value={vacancyFilters.department_name}
+              />
+              <FilterInput
+                label="Должность"
+                onChange={(value) =>
+                  setVacancyFilters((current) => ({
+                    ...current,
+                    position_name: value,
+                  }))
+                }
+                value={vacancyFilters.position_name}
+              />
+            </FilterGrid>
+          </Tabs.Content>
+
+          <Tabs.Content className="radix-tabs-content outline-none" value="candidates">
+            <FilterGrid>
+              <FilterSelect
+                label="Статус"
+                onValueChange={(value) =>
+                  setCandidateFilters((current) => ({ ...current, status: value }))
+                }
+                options={candidateStatusOptions}
+                value={candidateFilters.status}
+              />
+              <FilterSelect
+                label="Вакансия"
+                onValueChange={(value) =>
+                  setCandidateFilters((current) => ({ ...current, vacancy_id: value }))
+                }
+                options={vacancyOptions}
+                value={candidateFilters.vacancy_id}
+              />
+              <FilterInput
+                label="Источник"
+                onChange={(value) =>
+                  setCandidateFilters((current) => ({ ...current, source: value }))
+                }
+                value={candidateFilters.source}
+              />
+              <FilterInput
+                label="Минимальное соответствие, %"
+                max="100"
+                min="0"
+                onChange={(value) =>
+                  setCandidateFilters((current) => ({ ...current, min_match: value }))
+                }
+                type="number"
+                value={candidateFilters.min_match}
+              />
+            </FilterGrid>
+          </Tabs.Content>
+
+          <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+            <Button
+              leftIcon={<FiRotateCcw className="h-4 w-4" />}
+              onClick={clearFilters}
+              type="button"
+              variant="secondary"
+            >
+              Очистить
+            </Button>
+            <Button
+              leftIcon={<FiSearch className="h-4 w-4" />}
+              type="submit"
+              variant="primary"
+            >
+              Применить
+            </Button>
+          </div>
+        </form>
+      </section>
+    </Tabs.Root>
   );
 }
 
@@ -447,11 +457,16 @@ function FilterInput({
   min?: string;
   max?: string;
 }): JSX.Element {
+  const id = useId();
+
   return (
-    <label className="grid gap-2">
-      <span className="app-text text-sm font-bold">{label}</span>
+    <div className="grid gap-2">
+      <Label className="app-text text-sm font-bold" htmlFor={id}>
+        {label}
+      </Label>
       <Input
         aria-label={label}
+        id={id}
         max={max}
         min={min}
         onChange={(event) => onChange(event.target.value)}
@@ -459,7 +474,7 @@ function FilterInput({
         type={type}
         value={value}
       />
-    </label>
+    </div>
   );
 }
 
@@ -476,20 +491,25 @@ function FilterSelect({
   options: SelectOption[];
   value: string;
 }): JSX.Element {
+  const id = useId();
+
   return (
-    <label className="grid gap-2">
-      <span className="app-text text-sm font-bold">{label}</span>
+    <div className="grid gap-2">
+      <Label className="app-text text-sm font-bold" htmlFor={id}>
+        {label}
+      </Label>
       <Select
         allowEmpty
         ariaLabel={label}
         disabled={disabled}
         emptyOptionLabel="Все"
+        id={id}
         onValueChange={onValueChange}
         options={options}
         placeholder="Все"
         value={value}
       />
-    </label>
+    </div>
   );
 }
 
