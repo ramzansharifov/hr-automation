@@ -6,10 +6,12 @@ import {
 } from "react-hook-form";
 import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
+import { useId } from "react";
 import { FiBriefcase, FiFileText, FiHome, FiUser } from "react-icons/fi";
 import {
   FieldError,
   Input,
+  Label,
   Select,
   Textarea,
   type SelectOption,
@@ -297,15 +299,23 @@ function TextField({
   required = false,
   type = "text",
 }: TextFieldProps): JSX.Element {
+  const id = useId();
+
   return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">
+    <div className="block">
+      <Label className="app-text mb-2 block text-sm font-bold" htmlFor={id}>
         {label}
         {required && <span className="text-rose-500"> *</span>}
-      </span>
-      <Input invalid={Boolean(error)} min={min} type={type} {...registration} />
+      </Label>
+      <Input
+        id={id}
+        invalid={Boolean(error)}
+        min={min}
+        type={type}
+        {...registration}
+      />
       <FieldError message={error} />
-    </label>
+    </div>
   );
 }
 
@@ -320,12 +330,16 @@ function TextareaField({
   label,
   registration,
 }: TextareaFieldProps): JSX.Element {
+  const id = useId();
+
   return (
-    <label className="block md:col-span-2">
-      <span className="app-text mb-2 block text-sm font-bold">{label}</span>
-      <Textarea {...registration} />
+    <div className="block md:col-span-2">
+      <Label className="app-text mb-2 block text-sm font-bold" htmlFor={id}>
+        {label}
+      </Label>
+      <Textarea id={id} {...registration} />
       <FieldError message={error} />
-    </label>
+    </div>
   );
 }
 
@@ -351,13 +365,14 @@ function SelectField({
   required = false,
 }: SelectFieldProps): JSX.Element {
   const allowEmpty = !required;
+  const id = useId();
 
   return (
-    <label className="block">
-      <span className="app-text mb-2 block text-sm font-bold">
+    <div className="block">
+      <Label className="app-text mb-2 block text-sm font-bold" htmlFor={id}>
         {label}
         {required && <span className="text-rose-500"> *</span>}
-      </span>
+      </Label>
       <Controller
         control={control}
         name={name}
@@ -366,6 +381,7 @@ function SelectField({
             allowEmpty={allowEmpty}
             disabled={disabled}
             emptyOptionLabel="Не выбрано"
+            id={id}
             invalid={Boolean(error)}
             name={field.name}
             onBlur={field.onBlur}
@@ -377,7 +393,7 @@ function SelectField({
         )}
       />
       <FieldError message={error} />
-    </label>
+    </div>
   );
 }
 
