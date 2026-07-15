@@ -3,35 +3,21 @@ import { FiPlus } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
-import { Button, PageHeader } from "../../shared/ui";
+import { Button, PageHeader, useStoredViewMode } from "../../shared/ui";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import {
   EMPLOYEE_FILTERS_EVENT,
   getStoredEmployeeHrFilters,
 } from "../../features/filters/employeeFiltersStore";
-import {
-  EMPLOYEES_VIEW_MODE_EVENT,
-  getStoredEmployeesViewMode,
-  setStoredEmployeesViewMode,
-  isEmployeesViewMode,
-  type EmployeesViewMode,
-} from "../../features/employees/viewMode";
 
 export function EmployeesPage(): JSX.Element {
   const navigate = useNavigate();
   const [appliedFilters, setAppliedFilters] = useState<
     Record<string, HrFilterCondition> | undefined
   >(getStoredEmployeeHrFilters);
-  const [viewMode, setViewMode] = useState<EmployeesViewMode>(
-    getStoredEmployeesViewMode,
-  );
+  const [viewMode, setViewMode] = useStoredViewMode("employees");
 
   useEffect(() => {
-    function handleViewModeChange(event: Event): void {
-      if (!(event instanceof CustomEvent)) return;
-      if (isEmployeesViewMode(event.detail)) setViewMode(event.detail);
-    }
-
     function handleFiltersChange(event: Event): void {
       if (!(event instanceof CustomEvent)) return;
       setAppliedFilters(
@@ -40,31 +26,17 @@ export function EmployeesPage(): JSX.Element {
     }
 
     function handleStorageChange(): void {
-      setViewMode(getStoredEmployeesViewMode());
       setAppliedFilters(getStoredEmployeeHrFilters());
     }
 
-    window.addEventListener(EMPLOYEES_VIEW_MODE_EVENT, handleViewModeChange);
     window.addEventListener(EMPLOYEE_FILTERS_EVENT, handleFiltersChange);
     window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener(
-        EMPLOYEES_VIEW_MODE_EVENT,
-        handleViewModeChange,
-      );
       window.removeEventListener(EMPLOYEE_FILTERS_EVENT, handleFiltersChange);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
-
-  function handleViewModeChange(nextMode: EmployeesViewMode): void {
-    setViewMode(nextMode);
-    setStoredEmployeesViewMode(nextMode);
-    window.dispatchEvent(
-      new CustomEvent(EMPLOYEES_VIEW_MODE_EVENT, { detail: nextMode }),
-    );
-  }
 
   function handleRowClick(record: HrRecord): void {
     const id = Number(record.id);
@@ -94,7 +66,7 @@ export function EmployeesPage(): JSX.Element {
         hideCreateButton
         hideToolbarSearch
         onRowClick={handleRowClick}
-        onViewModeChange={handleViewModeChange}
+        onViewModeChange={setViewMode}
         viewMode={viewMode}
       />
     </div>
