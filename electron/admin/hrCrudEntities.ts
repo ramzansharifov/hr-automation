@@ -26,7 +26,7 @@ function entity(
     key,
     tableName: key,
     primaryKey: "id",
-    allowedColumns,
+    allowedColumns: ["id", ...allowedColumns],
     searchableColumns,
     defaultOrderBy: options.defaultOrderBy ?? "id",
     hasUpdatedAt: options.hasUpdatedAt ?? true,
