@@ -1,12 +1,10 @@
 import type Database from "better-sqlite3";
-import type {
-  AuthSession,
-  AccessScopeType,
-} from "../../src/shared/types/access";
+import type { AuthSession } from "../../src/shared/types/access";
 import type {
   HrDashboardStats,
   HrEntityKey,
   HrFilterCondition,
+  HrFilterValue,
   HrListParams,
   HrRecord,
 } from "../../src/shared/types/hr";
@@ -163,9 +161,12 @@ export class AuthorizationService {
     const session = this.authenticationService.requireSession();
     const regularPermission = entityPermissions[entity].view;
     const canUseProfilePermission =
-      ["employees", "employee_education", "employee_experience", "employment_history"].includes(
-        entity,
-      ) &&
+      [
+        "employees",
+        "employee_education",
+        "employee_experience",
+        "employment_history",
+      ].includes(entity) &&
       session.permissionCodes.includes("profile.view") &&
       (!record || this.resolveEmployeeId(entity, record) === session.employeeId);
 
@@ -261,9 +262,13 @@ export class AuthorizationService {
     }
 
     if (
-      ["employee_education", "employee_experience", "employment_history", "vacations", "payroll"].includes(
-        entity,
-      )
+      [
+        "employee_education",
+        "employee_experience",
+        "employment_history",
+        "vacations",
+        "payroll",
+      ].includes(entity)
     ) {
       return this.getEmployeeContext(toPositiveNumber(record.employee_id));
     }
@@ -442,9 +447,7 @@ export class AuthorizationService {
 }
 
 function intersectFilter(
-  existing: HrListParams["filters"] extends Record<string, infer Value>
-    ? Value | undefined
-    : never,
+  existing: HrFilterValue | HrFilterCondition | undefined,
   allowedValues: number[],
 ): HrFilterCondition {
   const allowed = new Set(allowedValues);
@@ -463,7 +466,10 @@ function intersectFilter(
     .map(Number)
     .filter(Number.isFinite);
   const intersection = requested.filter((value) => allowed.has(value));
-  return { operator: "in", value: intersection.length > 0 ? intersection : [-1] };
+  return {
+    operator: "in",
+    value: intersection.length > 0 ? intersection : [-1],
+  };
 }
 
 function compactIds(values: Array<number | null>): number[] {
