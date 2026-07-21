@@ -136,14 +136,14 @@ export function DashboardPage(): JSX.Element {
 
         <DashboardListCard
           linkLabel={t('common.actions.open')}
-          linkTo="/employees"
+          linkTo="/filters?module=vacations"
           title={t('dashboard.sections.upcomingVacations')}
         >
           {vacations.items.map((vacation) => (
             <Link
               className="app-surface-muted app-border app-hover-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 transition"
               key={String(vacation.id)}
-              to={`/employees/${String(vacation.employee_id)}`}
+              to={`/filters?module=vacations&employee=${String(vacation.employee_id)}`}
             >
               <div className="min-w-0">
                 <p className="app-text truncate font-black">{String(vacation.employee_name ?? '—')}</p>
