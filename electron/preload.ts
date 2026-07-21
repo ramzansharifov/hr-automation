@@ -11,6 +11,11 @@ import type {
   SaveVacancyParams,
   HrUpdateParams,
 } from "../src/shared/types/hr";
+import type {
+  ResetAccessPasswordParams,
+  SaveAccessRoleParams,
+  SaveAccessUserParams,
+} from "../src/shared/types/access";
 
 const hrApi: HrApi = {
   list(params: HrListParams) {
@@ -64,6 +69,25 @@ const hrApi: HrApi = {
   },
   deleteCandidate(id: number) {
     return ipcRenderer.invoke("recruitment:deleteCandidate", id);
+  },
+
+  getAccessOverview() {
+    return ipcRenderer.invoke("access:overview");
+  },
+  saveAccessRole(params: SaveAccessRoleParams) {
+    return ipcRenderer.invoke("access:saveRole", params);
+  },
+  deleteAccessRole(id: number) {
+    return ipcRenderer.invoke("access:deleteRole", id);
+  },
+  saveAccessUser(params: SaveAccessUserParams) {
+    return ipcRenderer.invoke("access:saveUser", params);
+  },
+  resetAccessPassword(params: ResetAccessPasswordParams) {
+    return ipcRenderer.invoke("access:resetPassword", params);
+  },
+  deleteAccessUser(id: number) {
+    return ipcRenderer.invoke("access:deleteUser", id);
   },
 };
 
