@@ -1,50 +1,88 @@
 .employee-profile-content {
   --employee-tab-radius: 18px;
+  --employee-tab-inner-radius: 14px;
   --employee-tab-control-radius: 12px;
   --employee-tab-icon-size: 40px;
-  --employee-tab-section-gap: 14px;
+  --employee-tab-gap: 16px;
 }
 
-/* Общая геометрия содержимого вкладок */
-.employee-profile-content [data-state="active"] > .space-y-5,
-.employee-profile-content [data-state="active"] > .grid {
-  min-width: 0;
-}
-
-.employee-profile-content [data-state="active"] > .space-y-5 {
-  display: flex;
-  flex-direction: column;
-  gap: var(--employee-tab-section-gap);
-}
-
-.employee-profile-content [data-state="active"] > .space-y-5 > * {
-  margin-top: 0;
-}
-
-/* Заголовки образования и опыта */
-.employee-profile-content header.app-surface-muted.app-border.relative {
+/*
+ * Все разделы страницы сотрудника используют одну композицию:
+ * единая белая карточка, встроенная шапка, разделитель и контент.
+ */
+.employee-profile-content .employee-section-card,
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5:has(> header.app-surface-muted:first-child),
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5:has(> section.app-surface-muted:first-child)
+{
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--employee-tab-radius);
   box-shadow: var(--employee-card-shadow);
-  min-height: 92px;
-  padding: 18px 20px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Образование и опыт: шапка и список больше не являются отдельными карточками. */
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5:has(> header.app-surface-muted:first-child) {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5:has(> header.app-surface-muted:first-child)
+  > * {
+  margin-top: 0;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border {
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-soft);
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 78px;
+  padding: 16px 18px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   > .pointer-events-none {
   display: none;
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   > .relative {
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   .app-accent-soft.h-14.w-14 {
   border: 0;
   border-radius: 11px;
@@ -53,7 +91,10 @@
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   .app-accent-soft.h-14.w-14
   svg {
   height: 19px;
@@ -61,7 +102,10 @@
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   h2 {
   font-size: 1rem;
   font-weight: 850;
@@ -70,41 +114,137 @@
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   h2
   + span {
   background: var(--color-surface-muted);
   border-color: var(--color-border);
   color: var(--color-text-muted);
-  height: 26px;
-  min-width: 26px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0 8px;
 }
 
 .employee-profile-content
-  header.app-surface-muted.app-border.relative
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
   p {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 550;
-  line-height: 1.5;
-  margin-top: 4px;
+  line-height: 1.45;
+  margin-top: 3px;
 }
 
-/* Заголовки отпусков и оплаты */
-.employee-profile-content section.app-surface-muted.app-border {
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > header.app-surface-muted.app-border
+  .app-button-primary {
+  border-radius: var(--employee-tab-control-radius);
+  min-height: 38px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+/* Пустое состояние образования/опыта находится внутри той же карточки. */
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > div.app-surface-muted.app-border.border-dashed {
+  align-items: center;
   background: var(--color-surface);
-  border-radius: var(--employee-tab-radius);
-  box-shadow: var(--employee-card-shadow);
-  padding: 18px 20px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+  min-height: 156px;
 }
 
 .employee-profile-content
-  section.app-surface-muted.app-border
-  > div:first-child {
-  gap: 16px;
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > div.app-surface-muted.app-border.border-dashed
+  > [class~="py-16"] {
+  padding: 30px 18px;
+}
+
+/* Список образования/опыта также становится внутренним содержимым секции. */
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > .relative.space-y-4 {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
 }
 
 .employee-profile-content
-  section.app-surface-muted.app-border
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > .relative.space-y-4::before,
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > .relative.space-y-4
+  > .relative
+  > span.absolute {
+  display: none;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .grid
+  > .space-y-5
+  > .relative.space-y-4
+  > .relative {
+  margin-top: 0;
+  padding-left: 0;
+}
+
+/* Оплата и отпуска: внешний контейнер становится такой же цельной карточкой. */
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5:has(> section.app-surface-muted:first-child) {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5:has(> section.app-surface-muted:first-child)
+  > * {
+  margin-top: 0;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child {
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-soft);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 16px 18px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
   .app-accent-soft.h-12.w-12 {
   border: 0;
   border-radius: 11px;
@@ -113,7 +253,9 @@
 }
 
 .employee-profile-content
-  section.app-surface-muted.app-border
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
   .app-accent-soft.h-12.w-12
   svg {
   height: 19px;
@@ -121,40 +263,196 @@
 }
 
 .employee-profile-content
-  section.app-surface-muted.app-border
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
   h2 {
   font-size: 1rem;
   font-weight: 850;
-  letter-spacing: 0;
   line-height: 1.3;
 }
 
 .employee-profile-content
-  section.app-surface-muted.app-border
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
   h2
   + .app-accent-soft {
   background: var(--color-surface-muted);
   border-color: var(--color-border);
   color: var(--color-text-muted);
-  min-height: 26px;
-  padding: 0 9px;
+  min-height: 24px;
+  padding: 0 8px;
 }
 
 .employee-profile-content
-  section.app-surface-muted.app-border
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
   h2
   ~ p {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 550;
-  line-height: 1.5;
-  margin-top: 4px;
+  line-height: 1.45;
+  margin-top: 3px;
 }
 
-/* Единые действия */
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
+  .app-button-primary,
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:first-child
+  .app-button-secondary {
+  border-radius: var(--employee-tab-control-radius);
+  min-height: 38px;
+}
+
+/* Контент операционных вкладок располагается внутри секции. */
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5:has(> section.app-surface-muted:first-child)
+  > .grid.gap-4 {
+  gap: 12px;
+  padding: 16px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5:has(> section.app-surface-muted:first-child)
+  > [class~="py-16"] {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 156px;
+  padding: 30px 18px;
+}
+
+/* Внутренние карточки записей одинаковы во всех вкладках. */
+.employee-profile-content
+  > [data-state="active"]
+  article.app-surface.app-border {
+  background: var(--color-surface);
+  border-radius: var(--employee-tab-inner-radius);
+  box-shadow: none;
+  padding: 16px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  article.app-surface.app-border:hover {
+  border-color: var(--accent-border);
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  article.app-surface.app-border
+  > .absolute.inset-y-0 {
+  display: none;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  article.app-surface.app-border
+  .app-accent-soft.h-11.w-11 {
+  border-radius: 11px;
+  height: 40px;
+  width: 40px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  article.app-surface.app-border
+  .app-surface-muted.app-border {
+  border-radius: 12px;
+  box-shadow: none;
+  padding: 12px 13px;
+}
+
+/* История использует ту же шапку и внутренние строки, что служебная информация. */
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:not(:first-child),
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:only-child {
+  background: var(--color-surface);
+  border-radius: var(--employee-tab-radius);
+  box-shadow: var(--employee-card-shadow);
+  overflow: hidden;
+  padding: 0;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:not(:first-child)
+  > div:first-child,
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border:only-child
+  > div:first-child {
+  border-bottom: 1px solid var(--color-border-soft);
+  padding: 16px 18px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border
+  > .mt-5.space-y-3 {
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
+  padding: 16px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border
+  > .mt-5.space-y-3
+  > * {
+  margin-top: 0;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border
+  > .mt-5.space-y-3
+  > article {
+  border-radius: var(--employee-tab-inner-radius);
+  box-shadow: none;
+  padding: 14px 16px;
+}
+
+.employee-profile-content
+  > [data-state="active"]
+  > .space-y-5
+  > section.app-surface-muted.app-border
+  > .mt-5.space-y-3
+  > p.border-dashed {
+  align-items: center;
+  border-radius: var(--employee-tab-inner-radius);
+  display: flex;
+  justify-content: center;
+  min-height: 118px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* Единые кнопки действий. */
 .employee-profile-content .app-button-primary,
 .employee-profile-content .app-button-secondary {
   border-radius: var(--employee-tab-control-radius);
-  min-height: 40px;
 }
 
 .employee-profile-content .app-table-action-button,
@@ -182,171 +480,36 @@
   color: #e11d48;
 }
 
-/* Единые пустые и загрузочные состояния */
-.employee-profile-content div.app-surface-muted.app-border.border-dashed,
-.employee-profile-content [class~="py-16"][class~="text-center"] {
-  align-items: center;
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--employee-tab-radius);
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 176px;
-  padding: 36px 20px;
-}
-
-.employee-profile-content
-  div.app-surface-muted.app-border.border-dashed
-  [class~="py-16"][class~="text-center"] {
-  background: transparent;
-  border: 0;
-  min-height: 0;
-  padding: 0;
-}
-
-.employee-profile-content [class~="py-16"][class~="text-center"] p:first-child {
-  font-size: 0.9rem;
-}
-
-/* Убираем отдельную timeline-графику образования/опыта — карточки становятся как в остальных вкладках */
-.employee-profile-content .relative.space-y-4::before {
-  display: none;
-}
-
-.employee-profile-content .relative.space-y-4 > .relative {
-  padding-left: 0;
-}
-
-.employee-profile-content
-  .relative.space-y-4
-  > .relative
-  > span.absolute {
-  display: none;
-}
-
-/* Единые карточки записей */
-.employee-profile-content article.app-surface.app-border {
-  background: var(--color-surface);
-  border-radius: var(--employee-tab-radius);
-  box-shadow: var(--employee-card-shadow);
-  padding: 18px;
-}
-
-.employee-profile-content article.app-surface.app-border:hover {
-  border-color: var(--accent-border);
-}
-
-.employee-profile-content article.app-surface.app-border > .absolute.inset-y-0 {
-  display: none;
-}
-
-.employee-profile-content article.app-surface.app-border h3,
-.employee-profile-content article.app-surface.app-border p.font-black:first-of-type {
-  font-size: 1rem;
-  line-height: 1.35;
-}
-
-.employee-profile-content article.app-surface.app-border .app-accent-soft.h-11.w-11 {
-  border-radius: 11px;
-  height: 40px;
-  width: 40px;
-}
-
-.employee-profile-content article.app-surface.app-border .app-surface-muted.app-border {
-  border-radius: 12px;
-  box-shadow: none;
-  padding: 13px 14px;
-}
-
-.employee-profile-content article.app-surface.app-border .app-surface-muted.app-border p:last-child {
-  font-size: 0.86rem;
-}
-
-/* Сетка записей отпусков и начислений */
-.employee-profile-content [data-state="active"] > .space-y-5 > .grid.gap-4 {
-  gap: 14px;
-}
-
-/* История: те же карточки, заголовок и пустое состояние */
-.employee-profile-content [data-state="active"] > .space-y-5 > .grid.gap-3 {
-  gap: 14px;
-}
-
-.employee-profile-content
-  [data-state="active"]
-  > .space-y-5
-  > .grid.gap-3
-  > .app-surface.app-border {
-  border-radius: var(--employee-tab-radius);
-  box-shadow: var(--employee-card-shadow);
-  min-height: 88px;
-  padding: 16px 18px;
-}
-
-.employee-profile-content
-  section.app-surface-muted.app-border
-  .mt-5.space-y-3 {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.employee-profile-content
-  section.app-surface-muted.app-border
-  .mt-5.space-y-3
-  > * {
-  margin-top: 0;
-}
-
-.employee-profile-content
-  section.app-surface-muted.app-border
-  .mt-5.space-y-3
-  > article {
-  border-radius: 14px;
-  box-shadow: none;
-  padding: 15px 16px;
-}
-
-.employee-profile-content
-  section.app-surface-muted.app-border
-  .mt-5.space-y-3
-  > p.border-dashed {
-  align-items: center;
-  background: var(--color-surface);
-  border-color: var(--color-border);
-  border-radius: 14px;
-  display: flex;
-  justify-content: center;
-  min-height: 128px;
-  padding: 24px;
-  text-align: center;
-}
-
 @media (max-width: 760px) {
-  .employee-profile-content header.app-surface-muted.app-border.relative,
-  .employee-profile-content section.app-surface-muted.app-border {
-    padding: 16px;
-  }
-
   .employee-profile-content
-    header.app-surface-muted.app-border.relative
+    > [data-state="active"]
+    > .grid
+    > .space-y-5
+    > header.app-surface-muted.app-border
     > .relative,
   .employee-profile-content
-    section.app-surface-muted.app-border
+    > [data-state="active"]
+    > .space-y-5
+    > section.app-surface-muted.app-border:first-child
     > div:first-child {
     align-items: stretch;
   }
 
   .employee-profile-content
-    header.app-surface-muted.app-border.relative
+    > [data-state="active"]
+    > .grid
+    > .space-y-5
+    > header.app-surface-muted.app-border
     button,
   .employee-profile-content
-    section.app-surface-muted.app-border
+    > [data-state="active"]
+    > .space-y-5
+    > section.app-surface-muted.app-border:first-child
     .app-button-primary,
   .employee-profile-content
-    section.app-surface-muted.app-border
+    > [data-state="active"]
+    > .space-y-5
+    > section.app-surface-muted.app-border:first-child
     .app-button-secondary {
     width: 100%;
   }
