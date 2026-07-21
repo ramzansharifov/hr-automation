@@ -3,14 +3,17 @@ import type {
   HrCreateParams,
   HrDeleteParams,
   HrEmploymentChangeParams,
+  HrEntityKey,
   HrGetByIdParams,
   HrListParams,
+  HrRecord,
   RecruitmentListParams,
   SaveCandidateParams,
   SaveVacancyParams,
   HrUpdateParams,
 } from "../../src/shared/types/hr";
 import type {
+  AuthSession,
   BootstrapSuperadminParams,
   ChangeOwnPasswordParams,
   LoginParams,
@@ -72,7 +75,12 @@ export function registerHrCrudIpcHandlers(): void {
 
   ipcMain.handle("hr:getById", (_event, params: HrGetByIdParams) => {
     const record = service.getById(params);
-    if (record) authorizationService.assertCanViewRecord(params.entity, record);
+    if (record) {
+      const session = authenticationService.getCurrentSession();
+      if (!canViewOwnOrganizationContext(params.entity, record, session)) {
+        authorizationService.assertCanViewRecord(params.entity, record);
+      }
+    }
     return record;
   });
 
@@ -91,7 +99,10 @@ export function registerHrCrudIpcHandlers(): void {
   ipcMain.handle(
     "hr:changeEmployment",
     (_event, params: HrEmploymentChangeParams) => {
-      const employee = service.getById({ entity: "employees", id: params.employeeId });
+      const employee = service.getById({
+        entity: "employees",
+        id: params.employeeId,
+      });
       if (!employee) throw new Error("Сотрудник не найден");
       authorizationService.assertCanChangeEmployment(employee);
       return service.changeEmployment(params);
@@ -200,4 +211,22 @@ export function registerHrCrudIpcHandlers(): void {
     authorizationService.requireGlobalPermission("access.manage");
     return accessService.deleteUser(id);
   });
+}
+
+function canViewOwnOrganizationContext(
+  entity: HrEntityKey,
+  record: HrRecord,
+  session: AuthSession | null,
+): boolean {
+  if (!session || !session.permissionCodes.includes("profile.view")) return false;
+  if (entity === "departments") {
+    return Number(record.id) === session.departmentId;
+  }
+  if (entity === "positions") {
+    return Number(record.department_id) === session.departmentId;
+  }
+  if (entity === "enterprises") {
+    return Number(record.id) === session.enterpriseId;
+  }
+  return false;
 }
