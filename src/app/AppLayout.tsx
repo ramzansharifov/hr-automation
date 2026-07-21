@@ -2,9 +2,15 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { motion } from "framer-motion";
-import { FiChevronLeft, FiChevronRight, FiUser } from "react-icons/fi";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiLogOut,
+  FiUser,
+} from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "../features/auth/AuthContext";
 import type { AppNavigationItem } from "./navigation";
 import { bottomNavigationItems, navigationItems } from "./navigation";
 import { HRLogo } from "./brand/HRLogo";
@@ -56,7 +62,9 @@ function SidebarItem({
   const link = (
     <NavLink
       aria-label={title}
-      className={isCollapsed ? collapsedLinkClass(isActive) : expandedLinkClass(isActive)}
+      className={
+        isCollapsed ? collapsedLinkClass(isActive) : expandedLinkClass(isActive)
+      }
       end={end}
       to={item.path}
     >
@@ -88,9 +96,22 @@ function SidebarItem({
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { t } = useTranslation();
+  const { hasPermission, logout, session } = useAuth();
+  const visibleNavigationItems = navigationItems.filter((item) =>
+    hasPermission(item.permissionCode),
+  );
+  const visibleBottomItems = bottomNavigationItems.filter((item) =>
+    hasPermission(item.permissionCode),
+  );
+  const canSearch = [
+    "employees.view",
+    "organization.view",
+    "recruitment.view",
+  ].some(hasPermission);
   const sidebarWidth = isSidebarCollapsed
     ? COLLAPSED_SIDEBAR_WIDTH
     : EXPANDED_SIDEBAR_WIDTH;
+  const primaryRole = session.roles[0]?.name ?? "Пользователь";
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -162,7 +183,7 @@ export function AppLayout(): JSX.Element {
               isSidebarCollapsed ? "items-center px-3" : "px-4",
             ].join(" ")}
           >
-            {navigationItems.map((item, index) => (
+            {visibleNavigationItems.map((item, index) => (
               <motion.div
                 animate={{ opacity: 1, x: 0 }}
                 className={isSidebarCollapsed ? "w-11" : "w-full"}
@@ -182,7 +203,7 @@ export function AppLayout(): JSX.Element {
           <footer className={isSidebarCollapsed ? "px-3 pb-4" : "px-4 pb-4"}>
             <div className="mb-3 h-px bg-white/[0.08]" />
             <div className="space-y-1.5">
-              {bottomNavigationItems.map((item) => (
+              {visibleBottomItems.map((item) => (
                 <SidebarItem
                   isCollapsed={isSidebarCollapsed}
                   item={item}
@@ -199,15 +220,31 @@ export function AppLayout(): JSX.Element {
         >
           <header className="app-topbar sticky top-0 z-20 flex h-[74px] items-center border-b px-6 backdrop-blur-2xl lg:px-8">
             <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-5">
-              <GlobalSearch />
+              {canSearch ? <GlobalSearch /> : <div />}
 
-              <div className="app-surface app-border flex shrink-0 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-none">
-                <span className="app-accent-soft flex h-9 w-9 items-center justify-center rounded-xl border">
-                  <FiUser className="h-[18px] w-[18px]" />
-                </span>
-                <span className="app-text hidden pr-2 text-sm font-black sm:block">
-                  Администратор
-                </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="app-surface app-border flex min-w-0 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-none">
+                  <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
+                    <FiUser className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="hidden min-w-0 pr-2 sm:block">
+                    <span className="app-text block max-w-52 truncate text-sm font-black">
+                      {session.employeeName}
+                    </span>
+                    <span className="app-muted block max-w-52 truncate text-[11px] font-bold">
+                      {primaryRole}
+                    </span>
+                  </span>
+                </div>
+                <button
+                  aria-label="Выйти из системы"
+                  className="app-button-secondary app-border flex h-11 w-11 items-center justify-center rounded-2xl border transition"
+                  onClick={() => void logout()}
+                  title="Выйти"
+                  type="button"
+                >
+                  <FiLogOut className="h-[18px] w-[18px]" />
+                </button>
               </div>
             </div>
           </header>
