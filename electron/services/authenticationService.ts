@@ -38,7 +38,8 @@ export class AuthenticationService {
     );
   }
 
-  bootstrap(_params: BootstrapSuperadminParams): AuthSession {
+  bootstrap(params: BootstrapSuperadminParams): AuthSession {
+    void params;
     throw new Error(
       "Встроенный superadmin уже создан. Используйте логин superadmin и пароль superadmin",
     );
