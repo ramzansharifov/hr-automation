@@ -1,9 +1,5 @@
-import {
-  FiCalendar,
-  FiCreditCard,
-  FiFilter,
-  type IconType,
-} from "react-icons/fi";
+import type { IconType } from "react-icons";
+import { FiCalendar, FiCreditCard, FiFilter } from "react-icons/fi";
 import { useSearchParams } from "react-router-dom";
 
 import { ModuleFiltersPanel } from "../features/filters/components/ModuleFiltersPanel";
