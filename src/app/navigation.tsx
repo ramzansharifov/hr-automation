@@ -6,6 +6,7 @@ import {
   FiLayers,
   FiFilter,
   FiSettings,
+  FiShield,
   FiUser,
   FiUsers,
 } from "react-icons/fi";
@@ -50,6 +51,11 @@ export const navigationItems: AppNavigationItem[] = [
     titleKey: "navigation.filters",
     path: "/filters",
     icon: FiFilter,
+  },
+  {
+    titleKey: "navigation.access",
+    path: "/access",
+    icon: FiShield,
   },
 ];
 
