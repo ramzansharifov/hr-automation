@@ -2,6 +2,12 @@ import type {
   AccessControlOverview,
   AccessRoleSummary,
   AccessUserSummary,
+  AuthEmployeeOption,
+  AuthSession,
+  AuthState,
+  BootstrapSuperadminParams,
+  ChangeOwnPasswordParams,
+  LoginParams,
   ResetAccessPasswordParams,
   SaveAccessRoleParams,
   SaveAccessUserParams,
@@ -147,6 +153,12 @@ export interface CandidateProfile {
 }
 
 export interface HrApi {
+  getAuthState(): Promise<AuthState>;
+  listBootstrapEmployees(): Promise<AuthEmployeeOption[]>;
+  bootstrapSuperadmin(params: BootstrapSuperadminParams): Promise<AuthSession>;
+  login(params: LoginParams): Promise<AuthSession>;
+  logout(): Promise<{ success: true }>;
+  changeOwnPassword(params: ChangeOwnPasswordParams): Promise<AuthSession>;
   list(params: HrListParams): Promise<HrListResult>;
   getById(params: HrGetByIdParams): Promise<HrRecord | null>;
   create(params: HrCreateParams): Promise<HrRecord>;
