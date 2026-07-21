@@ -66,7 +66,14 @@ export class AuthenticationService {
 
     const username = normalizeUsername(params.username);
     const credentials = this.repository.findCredentialsByUsername(username);
-    if (!credentials || !verifyPassword(params.password, credentials.passwordSalt, credentials.passwordHash)) {
+    if (
+      !credentials ||
+      !verifyPassword(
+        params.password,
+        credentials.passwordSalt,
+        credentials.passwordHash,
+      )
+    ) {
       throw new Error("Неверный логин или пароль");
     }
     if (credentials.status !== "active") {
@@ -89,7 +96,8 @@ export class AuthenticationService {
   }
 
   changeOwnPassword(params: ChangeOwnPasswordParams): AuthSession {
-    const session = this.requireSession();
+    const session = this.getCurrentSession();
+    if (!session) throw new Error("Требуется вход в систему");
     const credentials = this.repository.findCredentialsByUserId(session.userId);
     if (!credentials) throw new Error("Пользователь не найден");
     if (
@@ -148,7 +156,9 @@ function normalizeUsername(username: string): string {
 
 function validatePassword(password: string): void {
   if (password.length < minimumPasswordLength) {
-    throw new Error(`Пароль должен содержать минимум ${minimumPasswordLength} символов`);
+    throw new Error(
+      `Пароль должен содержать минимум ${minimumPasswordLength} символов`,
+    );
   }
   if (!/[A-Za-zА-Яа-я]/.test(password) || !/\d/.test(password)) {
     throw new Error("Пароль должен содержать хотя бы одну букву и одну цифру");
@@ -162,7 +172,11 @@ function hashPassword(password: string): { hash: string; salt: string } {
   return { hash, salt };
 }
 
-function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
+function verifyPassword(
+  password: string,
+  salt: string,
+  expectedHash: string,
+): boolean {
   try {
     const actual = scryptSync(password, salt, 64);
     const expected = Buffer.from(expectedHash, "hex");
