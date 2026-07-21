@@ -7,7 +7,6 @@ import {
   FiCalendar,
   FiEdit2,
   FiFileText,
-  FiMail,
   FiMapPin,
   FiPhone,
   FiUser,
@@ -224,11 +223,13 @@ function ProfileRow({ label, value }: { label: string; value: string }): JSX.Ele
 }
 
 export function EmployeeInfoPanel({
+  action,
   children,
   eyebrow,
   icon,
   title,
 }: {
+  action?: ReactNode;
   children: ReactNode;
   eyebrow: string;
   icon?: ReactNode;
@@ -244,6 +245,7 @@ export function EmployeeInfoPanel({
             <p className="employee-section-card__eyebrow">{eyebrow}</p>
           </div>
         </div>
+        {action}
       </header>
       <div className="employee-section-card__body">{children}</div>
     </section>
