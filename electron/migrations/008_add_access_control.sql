@@ -165,13 +165,14 @@ END;
 
 CREATE TRIGGER users_updated_at
 AFTER UPDATE ON users
+WHEN NEW.updated_at = OLD.updated_at
 BEGIN
   UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 CREATE TRIGGER roles_updated_at
 AFTER UPDATE ON roles
-WHEN NEW.is_system = 0
+WHEN NEW.is_system = 0 AND NEW.updated_at = OLD.updated_at
 BEGIN
   UPDATE roles SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
