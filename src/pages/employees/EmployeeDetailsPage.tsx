@@ -40,6 +40,7 @@ import {
   EmployeeEducationPanel,
   EmployeeExperiencePanel,
 } from "../../features/employees/forms/EmployeeRelatedRecords";
+import "./EmployeeDetailsPage.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
@@ -170,7 +171,7 @@ export function EmployeeDetailsPage(): JSX.Element {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38, ease: "easeOut" }}
-      className="space-y-4"
+      className="employee-profile-page space-y-4"
     >
       <EmployeeProfileHeader
         department={valueOrEmpty(departmentName, t)}
@@ -183,27 +184,24 @@ export function EmployeeDetailsPage(): JSX.Element {
         t={t}
       />
 
-      <Tabs.Root
-        className="app-surface app-border overflow-hidden rounded-[28px] border"
-        defaultValue="card"
-      >
+      <Tabs.Root className="employee-profile-shell" defaultValue="card">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, delay: 0.08, ease: "easeOut" }}
-          className="app-surface-muted app-border-soft overflow-x-auto border-b p-3 sm:px-5"
+          className="employee-profile-tabs-bar"
         >
           <Tabs.List
-            className="flex min-w-max gap-2"
+            className="employee-profile-tabs-list"
             aria-label={t("employeesDetails.title")}
           >
             <Tabs.Trigger className={detailsTabTriggerClass} value="card">
-              <FiUser className="h-4 w-4" />
-              {t("employeesDetails.card.title")}
+              <FiUser />
+              Профиль
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="work">
-              <FiBriefcase className="h-4 w-4" />
+              <FiBriefcase />
               Служебная информация
             </Tabs.Trigger>
 
@@ -211,61 +209,45 @@ export function EmployeeDetailsPage(): JSX.Element {
               className={detailsTabTriggerClass}
               value="education-experience"
             >
-              <FiBookOpen className="h-4 w-4" />
+              <FiBookOpen />
               Образование и опыт
             </Tabs.Trigger>
 
-            <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
-              <FiCalendar className="h-4 w-4" />
-              Отпуска
-            </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="payroll">
-              <FiCreditCard className="h-4 w-4" />
+              <FiCreditCard />
               Начисления
             </Tabs.Trigger>
 
+            <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
+              <FiCalendar />
+              Отпуска
+            </Tabs.Trigger>
+
             <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
-              <FiFileText className="h-4 w-4" />
+              <FiFileText />
               {t("employeesDetails.sections.notes")}
             </Tabs.Trigger>
           </Tabs.List>
         </motion.div>
 
-        <div className="p-5 sm:p-7">
+        <div className="employee-profile-content">
           <Tabs.Content value="card" className="outline-none">
-            <div className="mb-4 flex flex-wrap justify-end gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("personal")}
-              >
-                {t("employeesDetails.sections.personal")}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("address")}
-              >
-                {t("employeesDetails.sections.address")}
-              </Button>
-            </div>
-
             <EmployeePassportCard
               employee={employee}
               fullName={fullName}
               locale={locale}
+              onEditAddress={() => openSectionEditor("address")}
+              onEditPersonal={() => openSectionEditor("personal")}
               t={t}
             />
           </Tabs.Content>
 
           <Tabs.Content value="work" className="outline-none">
-            <div className="space-y-6">
+            <div className="space-y-5">
               <EmployeeInfoPanel
                 eyebrow={t("employeesDetails.sections.company")}
-                title={fullName || t("employeesDetails.title")}
+                icon={<FiBriefcase />}
+                title="Текущие условия работы"
               >
                 <EmployeeInfoField
                   label={t("forms.fields.departmentId")}
@@ -299,14 +281,10 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="education-experience" className="outline-none">
-            <div className="space-y-6">
+            <div className="space-y-5">
               <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
               <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
             </div>
-          </Tabs.Content>
-
-          <Tabs.Content value="vacations" className="outline-none">
-            <EmployeeVacationsPanel employeeId={employeeId} locale={locale} />
           </Tabs.Content>
 
           <Tabs.Content value="payroll" className="outline-none">
@@ -317,6 +295,10 @@ export function EmployeeDetailsPage(): JSX.Element {
             />
           </Tabs.Content>
 
+          <Tabs.Content value="vacations" className="outline-none">
+            <EmployeeVacationsPanel employeeId={employeeId} locale={locale} />
+          </Tabs.Content>
+
           <Tabs.Content value="notes" className="outline-none">
             <div className="mb-4 flex justify-end">
               <Button
@@ -325,12 +307,13 @@ export function EmployeeDetailsPage(): JSX.Element {
                 leftIcon={<FiEdit2 className="h-4 w-4" />}
                 onClick={() => openSectionEditor("notes")}
               >
-                {t("employeesDetails.sections.notes")}
+                {t("common.actions.edit")}
               </Button>
             </div>
 
             <EmployeeInfoPanel
               eyebrow={t("employeesDetails.sections.notes")}
+              icon={<FiFileText />}
               title={t("forms.fields.note")}
             >
               <EmployeeInfoField
@@ -362,7 +345,7 @@ export function EmployeeDetailsPage(): JSX.Element {
 }
 
 const detailsTabTriggerClass = [
-  "app-tab-trigger inline-flex items-center gap-2 rounded-xl border border-transparent px-4 py-2.5 text-sm font-black transition",
+  "app-tab-trigger employee-profile-tab inline-flex items-center gap-2 text-sm font-bold transition",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]",
 ].join(" ");
 
