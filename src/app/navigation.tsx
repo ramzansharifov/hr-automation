@@ -23,7 +23,7 @@ export interface AppNavigationItem {
 export const navigationItems: AppNavigationItem[] = [
   {
     titleKey: "navigation.dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: FiHome,
     permissionCode: "dashboard.view",
   },
