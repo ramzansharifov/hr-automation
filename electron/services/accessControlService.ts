@@ -30,12 +30,31 @@ export class AccessControlService {
     const permissionCodes = [...new Set(params.permissionCodes)];
 
     if (!name) throw new Error("Укажите название роли");
-    if (name.length > 100) throw new Error("Название роли не должно превышать 100 символов");
+    if (name.length > 100) {
+      throw new Error("Название роли не должно превышать 100 символов");
+    }
     if (permissionCodes.length === 0) {
       throw new Error("Выберите хотя бы одно разрешение для роли");
     }
     if (!this.repository.permissionCodesExist(permissionCodes)) {
       throw new Error("В роли указано неизвестное разрешение");
+    }
+
+    const hasGlobalAdministrativePermission = permissionCodes.some((code) =>
+      ["access.manage", "settings.manage"].includes(code),
+    );
+    if (hasGlobalAdministrativePermission && params.scopeType !== "global") {
+      throw new Error(
+        "Управление пользователями и системными настройками требует глобальной области данных",
+      );
+    }
+    if (
+      permissionCodes.includes("access.manage") &&
+      !permissionCodes.includes("employees.view")
+    ) {
+      throw new Error(
+        "Для управления пользователями добавьте разрешение «Просмотр сотрудников»",
+      );
     }
 
     if (params.id) {
@@ -78,7 +97,9 @@ export class AccessControlService {
 
   saveUser(params: SaveAccessUserParams): AccessUserSummary {
     const username = params.username.trim().toLowerCase();
-    const roleIds = [...new Set(params.roleIds.map(Number))].filter(Number.isFinite);
+    const roleIds = [...new Set(params.roleIds.map(Number))].filter(
+      Number.isFinite,
+    );
     const existingUser = params.id ? this.repository.getUserById(params.id) : null;
     const isFirstUser = !params.id && this.repository.listUsers().length === 0;
 
@@ -100,8 +121,12 @@ export class AccessControlService {
     if (this.repository.employeeHasUser(params.employeeId, params.id)) {
       throw new Error("Для этого сотрудника уже создана учётная запись");
     }
-    if (roleIds.length === 0) throw new Error("Назначьте пользователю хотя бы одну роль");
-    if (!this.repository.rolesExist(roleIds)) throw new Error("Одна из выбранных ролей не найдена");
+    if (roleIds.length === 0) {
+      throw new Error("Назначьте пользователю хотя бы одну роль");
+    }
+    if (!this.repository.rolesExist(roleIds)) {
+      throw new Error("Одна из выбранных ролей не найдена");
+    }
     if (!params.id && !params.password) {
       throw new Error("Укажите временный пароль для нового пользователя");
     }
@@ -156,8 +181,12 @@ export class AccessControlService {
     if (!user) throw new Error("Пользователь не найден");
 
     const isActiveSuperadmin =
-      user.status === "active" && user.roles.some((role) => role.systemKey === "superadmin");
-    if (isActiveSuperadmin && this.repository.countActiveSuperadmins(id) === 0) {
+      user.status === "active" &&
+      user.roles.some((role) => role.systemKey === "superadmin");
+    if (
+      isActiveSuperadmin &&
+      this.repository.countActiveSuperadmins(id) === 0
+    ) {
       throw new Error("Нельзя удалить последнего активного superadmin");
     }
 
@@ -217,7 +246,9 @@ export class AccessControlService {
 
 function validatePassword(password: string): void {
   if (password.length < minimumPasswordLength) {
-    throw new Error(`Пароль должен содержать минимум ${minimumPasswordLength} символов`);
+    throw new Error(
+      `Пароль должен содержать минимум ${minimumPasswordLength} символов`,
+    );
   }
   if (!/[A-Za-zА-Яа-я]/.test(password) || !/\d/.test(password)) {
     throw new Error("Пароль должен содержать хотя бы одну букву и одну цифру");
@@ -236,8 +267,12 @@ function createCustomRoleCode(): string {
 
 function normalizeDatabaseError(error: unknown, fallback: string): Error {
   const message = error instanceof Error ? error.message : String(error);
-  if (message.includes("roles.name")) return new Error("Роль с таким названием уже существует");
-  if (message.includes("users.username")) return new Error("Пользователь с таким логином уже существует");
+  if (message.includes("roles.name")) {
+    return new Error("Роль с таким названием уже существует");
+  }
+  if (message.includes("users.username")) {
+    return new Error("Пользователь с таким логином уже существует");
+  }
   if (message.includes("users.employee_id")) {
     return new Error("Для этого сотрудника уже создана учётная запись");
   }
