@@ -163,6 +163,53 @@ BEGIN
   SELECT RAISE(ABORT, 'Разрешения системной роли нельзя изменять');
 END;
 
+CREATE TRIGGER employees_block_user_on_inactive
+AFTER UPDATE OF status ON employees
+WHEN NEW.status <> 'active' AND OLD.status <> NEW.status
+BEGIN
+  UPDATE users
+  SET status = 'blocked'
+  WHERE employee_id = NEW.id;
+END;
+
+CREATE TRIGGER enterprises_revoke_director_access
+AFTER UPDATE OF general_director_employee_id ON enterprises
+WHEN OLD.general_director_employee_id IS NOT NULL
+  AND OLD.general_director_employee_id IS NOT NEW.general_director_employee_id
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id = (
+    SELECT id FROM users WHERE employee_id = OLD.general_director_employee_id
+  )
+    AND role_id = (
+      SELECT id FROM roles WHERE system_key = 'enterprise_director'
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM enterprises
+      WHERE general_director_employee_id = OLD.general_director_employee_id
+    );
+END;
+
+CREATE TRIGGER departments_revoke_head_access
+AFTER UPDATE OF director_employee_id ON departments
+WHEN OLD.director_employee_id IS NOT NULL
+  AND OLD.director_employee_id IS NOT NEW.director_employee_id
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id = (
+    SELECT id FROM users WHERE employee_id = OLD.director_employee_id
+  )
+    AND role_id = (
+      SELECT id FROM roles WHERE system_key = 'department_head'
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM departments
+      WHERE director_employee_id = OLD.director_employee_id
+    );
+END;
+
 CREATE TRIGGER users_updated_at
 AFTER UPDATE ON users
 WHEN NEW.updated_at = OLD.updated_at
