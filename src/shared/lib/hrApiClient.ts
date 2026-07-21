@@ -15,6 +15,14 @@ import type {
   VacancyProfile,
   HrUpdateParams,
 } from "../types/hr";
+import type {
+  AccessControlOverview,
+  AccessRoleSummary,
+  AccessUserSummary,
+  ResetAccessPasswordParams,
+  SaveAccessRoleParams,
+  SaveAccessUserParams,
+} from "../types/access";
 
 function getHrApi(): HrApi {
   if (window.hrApi) {
@@ -84,6 +92,25 @@ function createHrApiFromIpcRenderer(): HrApi {
     deleteCandidate(id: number) {
       return invoke<{ success: true }>("recruitment:deleteCandidate", id);
     },
+
+    getAccessOverview() {
+      return invoke<AccessControlOverview>("access:overview");
+    },
+    saveAccessRole(params: SaveAccessRoleParams) {
+      return invoke<AccessRoleSummary>("access:saveRole", params);
+    },
+    deleteAccessRole(id: number) {
+      return invoke<{ success: true }>("access:deleteRole", id);
+    },
+    saveAccessUser(params: SaveAccessUserParams) {
+      return invoke<AccessUserSummary>("access:saveUser", params);
+    },
+    resetAccessPassword(params: ResetAccessPasswordParams) {
+      return invoke<{ success: true }>("access:resetPassword", params);
+    },
+    deleteAccessUser(id: number) {
+      return invoke<{ success: true }>("access:deleteUser", id);
+    },
   };
 }
 
@@ -146,5 +173,24 @@ export const hrApiClient = {
   },
   deleteCandidate(id: number) {
     return getHrApi().deleteCandidate(id);
+  },
+
+  getAccessOverview() {
+    return getHrApi().getAccessOverview();
+  },
+  saveAccessRole(params: SaveAccessRoleParams) {
+    return getHrApi().saveAccessRole(params);
+  },
+  deleteAccessRole(id: number) {
+    return getHrApi().deleteAccessRole(id);
+  },
+  saveAccessUser(params: SaveAccessUserParams) {
+    return getHrApi().saveAccessUser(params);
+  },
+  resetAccessPassword(params: ResetAccessPasswordParams) {
+    return getHrApi().resetAccessPassword(params);
+  },
+  deleteAccessUser(id: number) {
+    return getHrApi().deleteAccessUser(id);
   },
 };
