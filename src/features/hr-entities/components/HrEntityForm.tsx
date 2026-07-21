@@ -18,6 +18,7 @@ interface HrEntityFormProps {
   cancelLabel: string
   defaultValues: HrEntityFormValues
   entity: HrEntityKey
+  hiddenFieldNames?: string[]
   isSubmitting?: boolean
   onCancel: () => void
   onSubmit: (values: HrEntityFormValues) => Promise<void> | void
@@ -61,6 +62,7 @@ export function HrEntityForm({
   cancelLabel,
   defaultValues,
   entity,
+  hiddenFieldNames,
   isSubmitting = false,
   onCancel,
   onSubmit,
@@ -71,9 +73,11 @@ export function HrEntityForm({
   const visibleFields = useMemo(
     () =>
       config.fields.filter(
-        (field) => !(entity === 'vacations' && field.name === 'days_count'),
+        (field) =>
+          !hiddenFieldNames?.includes(field.name) &&
+          !(entity === 'vacations' && field.name === 'days_count'),
       ),
-    [config.fields, entity],
+    [config.fields, entity, hiddenFieldNames],
   )
   const schema = getHrEntitySchema(entity)
   const relationFields = useMemo(

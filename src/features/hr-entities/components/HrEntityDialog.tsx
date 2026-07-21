@@ -13,6 +13,7 @@ import { HrEntityForm } from './HrEntityForm'
 
 interface HrEntityDialogProps {
   entity: HrEntityKey
+  hiddenFieldNames?: string[]
   initialRecord?: HrRecord | null
   mode: 'create' | 'edit'
   onOpenChange: (open: boolean) => void
@@ -22,6 +23,7 @@ interface HrEntityDialogProps {
 
 export function HrEntityDialog({
   entity,
+  hiddenFieldNames,
   initialRecord,
   mode,
   onOpenChange,
@@ -65,6 +67,7 @@ export function HrEntityDialog({
         cancelLabel={t('common.actions.cancel')}
         defaultValues={defaultValues}
         entity={entity}
+        hiddenFieldNames={hiddenFieldNames}
         isSubmitting={isSubmitting}
         onCancel={() => onOpenChange(false)}
         onSubmit={handleSubmit}

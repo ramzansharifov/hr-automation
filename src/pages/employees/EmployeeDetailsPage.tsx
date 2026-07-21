@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import {
   FiBookOpen,
   FiBriefcase,
+  FiCalendar,
+  FiCreditCard,
   FiEdit2,
   FiFileText,
   FiTrendingUp,
@@ -29,6 +31,10 @@ import {
   EmployeeProfileHeader,
 } from "../../features/employees/components/EmployeeDetailsCards";
 import { EmployeeLifecyclePanel } from "../../features/employees/components/EmployeeLifecyclePanel";
+import {
+  EmployeePayrollPanel,
+  EmployeeVacationsPanel,
+} from "../../features/employees/components/EmployeeOperationalRecords";
 import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
 import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
 import {
@@ -217,6 +223,16 @@ export function EmployeeDetailsPage(): JSX.Element {
               Карьера
             </Tabs.Trigger>
 
+            <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
+              <FiCalendar className="h-4 w-4" />
+              Отпуска
+            </Tabs.Trigger>
+
+            <Tabs.Trigger className={detailsTabTriggerClass} value="payroll">
+              <FiCreditCard className="h-4 w-4" />
+              Начисления
+            </Tabs.Trigger>
+
             <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
               <FiFileText className="h-4 w-4" />
               {t("employeesDetails.sections.notes")}
@@ -295,6 +311,18 @@ export function EmployeeDetailsPage(): JSX.Element {
               employeeId={employeeId}
               locale={locale}
               onEmployeeUpdated={handleEmployeeSaved}
+            />
+          </Tabs.Content>
+
+          <Tabs.Content value="vacations" className="outline-none">
+            <EmployeeVacationsPanel employeeId={employeeId} locale={locale} />
+          </Tabs.Content>
+
+          <Tabs.Content value="payroll" className="outline-none">
+            <EmployeePayrollPanel
+              baseSalary={employee.salary}
+              employeeId={employeeId}
+              locale={locale}
             />
           </Tabs.Content>
 
