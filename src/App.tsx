@@ -3,6 +3,7 @@ import { AppLayout } from "./app/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { FiltersPage } from "./pages/FiltersPage";
+import { AccessControlPage } from "./pages/access/AccessControlPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
@@ -25,6 +26,7 @@ function App(): JSX.Element {
         <Route path="vacancies/new" element={<VacancyFormPage />} />
         <Route path="vacancies/:id/edit" element={<VacancyFormPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
+        <Route path="access" element={<AccessControlPage />} />
         <Route path="enterprises" element={<OrganizationHierarchyPage />} />
         <Route
           path="enterprises/:enterpriseId/departments"
