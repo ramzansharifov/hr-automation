@@ -7,61 +7,47 @@ import type {
   ChangeOwnPasswordParams,
   LoginParams,
 } from "../../src/shared/types/access";
-import { AuthenticationRepository } from "../repositories/authenticationRepository";
-import { AccessControlService } from "./accessControlService";
+import {
+  AuthenticationRepository,
+  type AuthenticationAccountType,
+} from "../repositories/authenticationRepository";
 
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
 
-export class AuthenticationService {
-  private currentUserId: number | null = null;
+interface CurrentIdentity {
+  accountId: number;
+  accountType: AuthenticationAccountType;
+}
 
-  constructor(
-    private readonly repository: AuthenticationRepository,
-    private readonly accessControlService: AccessControlService,
-  ) {}
+export class AuthenticationService {
+  private currentIdentity: CurrentIdentity | null = null;
+
+  constructor(private readonly repository: AuthenticationRepository) {}
 
   getState(): AuthState {
     return {
-      isInitialized: this.repository.countUsers() > 0,
+      isInitialized: this.repository.hasSystemAdmin(),
       session: this.getCurrentSession(),
     };
   }
 
   listBootstrapEmployees(): AuthEmployeeOption[] {
-    if (this.repository.countUsers() > 0) {
-      throw new Error("Первичная настройка уже выполнена");
-    }
-    return this.repository.listBootstrapEmployees();
+    throw new Error(
+      "Первичная настройка больше не требуется. Используйте логин superadmin и пароль superadmin",
+    );
   }
 
   bootstrap(params: BootstrapSuperadminParams): AuthSession {
-    if (this.repository.countUsers() > 0) {
-      throw new Error("Первичная настройка уже выполнена");
-    }
-
-    const roleId = this.repository.getSystemRoleId("superadmin");
-    if (!roleId) throw new Error("Системная роль superadmin не найдена");
-
-    const created = this.accessControlService.saveUser({
-      employeeId: params.employeeId,
-      username: normalizeUsername(params.username),
-      password: params.password,
-      status: "active",
-      roleIds: [roleId],
-      mustChangePassword: false,
-    });
-
-    this.currentUserId = created.id;
-    this.repository.updateLastLogin(created.id);
-    const session = this.repository.getSession(created.id);
-    if (!session) throw new Error("Не удалось открыть сессию superadmin");
-    return session;
+    void params;
+    throw new Error(
+      "Встроенный superadmin уже создан. Используйте логин superadmin и пароль superadmin",
+    );
   }
 
   login(params: LoginParams): AuthSession {
-    if (this.repository.countUsers() === 0) {
-      throw new Error("Сначала выполните первичную настройку системы");
+    if (!this.repository.hasSystemAdmin()) {
+      throw new Error("Встроенная учётная запись superadmin не создана");
     }
 
     const username = normalizeUsername(params.username);
@@ -80,25 +66,42 @@ export class AuthenticationService {
       throw new Error("Учётная запись заблокирована");
     }
 
-    const session = this.repository.getSession(credentials.userId);
+    const session = this.repository.getSession(
+      credentials.accountType,
+      credentials.accountId,
+    );
     if (!session) {
-      throw new Error("Учётная запись недоступна или сотрудник неактивен");
+      throw new Error(
+        credentials.accountType === "system_admin"
+          ? "Системная учётная запись недоступна"
+          : "Учётная запись недоступна или сотрудник неактивен",
+      );
     }
 
-    this.currentUserId = credentials.userId;
-    this.repository.updateLastLogin(credentials.userId);
+    this.currentIdentity = {
+      accountId: credentials.accountId,
+      accountType: credentials.accountType,
+    };
+    this.repository.updateLastLogin(
+      credentials.accountType,
+      credentials.accountId,
+    );
     return session;
   }
 
   logout(): { success: true } {
-    this.currentUserId = null;
+    this.currentIdentity = null;
     return { success: true };
   }
 
   changeOwnPassword(params: ChangeOwnPasswordParams): AuthSession {
-    const session = this.getCurrentSession();
-    if (!session) throw new Error("Требуется вход в систему");
-    const credentials = this.repository.findCredentialsByUserId(session.userId);
+    const identity = this.currentIdentity;
+    if (!identity) throw new Error("Требуется вход в систему");
+
+    const credentials = this.repository.findCredentialsByIdentity(
+      identity.accountType,
+      identity.accountId,
+    );
     if (!credentials) throw new Error("Пользователь не найден");
     if (
       !verifyPassword(
@@ -117,20 +120,27 @@ export class AuthenticationService {
 
     const nextPassword = hashPassword(params.newPassword);
     this.repository.updateOwnPassword(
-      session.userId,
+      identity.accountType,
+      identity.accountId,
       nextPassword.hash,
       nextPassword.salt,
     );
 
-    const updatedSession = this.repository.getSession(session.userId);
+    const updatedSession = this.repository.getSession(
+      identity.accountType,
+      identity.accountId,
+    );
     if (!updatedSession) throw new Error("Не удалось обновить сессию");
     return updatedSession;
   }
 
   getCurrentSession(): AuthSession | null {
-    if (!this.currentUserId) return null;
-    const session = this.repository.getSession(this.currentUserId);
-    if (!session) this.currentUserId = null;
+    if (!this.currentIdentity) return null;
+    const session = this.repository.getSession(
+      this.currentIdentity.accountType,
+      this.currentIdentity.accountId,
+    );
+    if (!session) this.currentIdentity = null;
     return session;
   }
 

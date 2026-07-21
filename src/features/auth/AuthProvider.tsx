@@ -1,24 +1,14 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { FiKey, FiLock, FiLogIn, FiShield, FiUser } from "react-icons/fi";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { FiKey, FiLock, FiLogIn } from "react-icons/fi";
 
 import { HRLogo } from "../../app/brand/HRLogo";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
-import type {
-  AuthEmployeeOption,
-  AuthSession,
-  AuthState,
-} from "../../shared/types/access";
-import {
-  Button,
-  Input,
-  LoadingState,
-  Select,
-  type SelectOption,
-} from "../../shared/ui";
+import type { AuthSession, AuthState } from "../../shared/types/access";
+import { Button, Input, LoadingState } from "../../shared/ui";
 import { AuthContext } from "./AuthContext";
 
 const initialState: AuthState = {
-  isInitialized: false,
+  isInitialized: true,
   session: null,
 };
 
@@ -67,11 +57,15 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
   if (!authState.isInitialized) {
     return (
-      <BootstrapScreen
-        onAuthenticated={(session) =>
-          setAuthState({ isInitialized: true, session })
-        }
-      />
+      <AuthShell>
+        <AuthCard
+          icon={<FiLock />}
+          title="Системный администратор не создан"
+          description="Не удалось найти встроенную учётную запись superadmin. Перезапустите приложение, чтобы повторно применить миграции базы данных."
+        >
+          <Button onClick={() => void refreshState()}>Проверить снова</Button>
+        </AuthCard>
+      </AuthShell>
     );
   }
 
@@ -117,142 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   );
 }
 
-function BootstrapScreen({
-  onAuthenticated,
-}: {
-  onAuthenticated: (session: AuthSession) => void;
-}): JSX.Element {
-  const [employees, setEmployees] = useState<AuthEmployeeOption[]>([]);
-  const [employeeId, setEmployeeId] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    hrApiClient
-      .listBootstrapEmployees()
-      .then(setEmployees)
-      .catch((loadError: unknown) =>
-        setError(
-          getErrorMessage(
-            loadError,
-            "Не удалось загрузить сотрудников для первичной настройки",
-          ),
-        ),
-      )
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const options = useMemo<SelectOption[]>(
-    () =>
-      employees.map((employee) => ({
-        value: String(employee.id),
-        label: [
-          employee.fullName,
-          employee.departmentName,
-          employee.enterpriseName,
-        ]
-          .filter(Boolean)
-          .join(" · "),
-      })),
-    [employees],
-  );
-
-  async function submit(): Promise<void> {
-    setError("");
-    if (password !== confirmPassword) {
-      setError("Пароли не совпадают");
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const session = await hrApiClient.bootstrapSuperadmin({
-        employeeId: Number(employeeId),
-        username,
-        password,
-      });
-      onAuthenticated(session);
-    } catch (saveError) {
-      setError(getErrorMessage(saveError, "Не удалось создать superadmin"));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  return (
-    <AuthShell>
-      <AuthCard
-        icon={<FiShield />}
-        title="Первичная настройка"
-        description="Создайте первого пользователя. Он будет неизменяемым активным superadmin и обязательно свяжется с существующим сотрудником."
-      >
-        {isLoading ? (
-          <LoadingState label="Загрузка сотрудников..." />
-        ) : employees.length === 0 ? (
-          <AuthNotice>
-            Нет активных сотрудников. Добавьте или активируйте сотрудника в базе данных,
-            затем перезапустите приложение.
-          </AuthNotice>
-        ) : (
-          <div className="grid gap-4">
-            <AuthField label="Сотрудник-superadmin">
-              <Select
-                onValueChange={setEmployeeId}
-                options={options}
-                placeholder="Выберите сотрудника"
-                value={employeeId}
-              />
-            </AuthField>
-            <AuthField label="Логин">
-              <Input
-                autoComplete="username"
-                onChange={(event) => setUsername(event.target.value)}
-                placeholder="admin"
-                value={username}
-              />
-            </AuthField>
-            <AuthField label="Пароль">
-              <Input
-                autoComplete="new-password"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Минимум 8 символов, буква и цифра"
-                type="password"
-                value={password}
-              />
-            </AuthField>
-            <AuthField label="Повторите пароль">
-              <Input
-                autoComplete="new-password"
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                type="password"
-                value={confirmPassword}
-              />
-            </AuthField>
-            <AuthError message={error} />
-            <Button
-              disabled={isSaving || !employeeId || !username || !password}
-              leftIcon={<FiShield />}
-              onClick={() => void submit()}
-            >
-              Создать superadmin
-            </Button>
-          </div>
-        )}
-      </AuthCard>
-    </AuthShell>
-  );
-}
-
 function LoginScreen({
   onAuthenticated,
 }: {
   onAuthenticated: (session: AuthSession) => void;
 }): JSX.Element {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("superadmin");
+  const [password, setPassword] = useState("superadmin");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -273,7 +138,7 @@ function LoginScreen({
       <AuthCard
         icon={<FiLogIn />}
         title="Вход в HR Automation"
-        description="Введите логин и пароль учётной записи, связанной с вашим сотрудником."
+        description="Системный администратор не является сотрудником. Для входа используйте готовую учётную запись superadmin."
       >
         <form
           className="grid gap-4"
@@ -282,6 +147,10 @@ function LoginScreen({
             void submit();
           }}
         >
+          <div className="app-surface-muted app-border rounded-2xl border px-4 py-3 text-sm font-semibold">
+            <span className="app-muted">Логин и пароль по умолчанию:</span>{" "}
+            <span className="app-text font-black">superadmin / superadmin</span>
+          </div>
           <AuthField label="Логин">
             <Input
               autoComplete="username"
@@ -435,7 +304,13 @@ function AuthCard({
   );
 }
 
-function AuthField({ children, label }: { children: ReactNode; label: string }): JSX.Element {
+function AuthField({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}): JSX.Element {
   return (
     <label className="grid gap-2">
       <span className="app-text text-sm font-black">{label}</span>
@@ -453,18 +328,11 @@ function AuthError({ message }: { message: string }): JSX.Element | null {
   );
 }
 
-function AuthNotice({ children }: { children: ReactNode }): JSX.Element {
-  return (
-    <div className="app-surface-muted app-border flex items-start gap-3 rounded-2xl border p-4">
-      <FiUser className="app-accent-text mt-0.5 h-5 w-5 shrink-0" />
-      <p className="app-text-soft text-sm font-semibold leading-6">{children}</p>
-    </div>
-  );
-}
-
 function getErrorMessage(error: unknown, fallback: string): string {
   if (!(error instanceof Error)) return fallback;
   const marker = "Error: ";
   const index = error.message.lastIndexOf(marker);
-  return index >= 0 ? error.message.slice(index + marker.length) : error.message || fallback;
+  return index >= 0
+    ? error.message.slice(index + marker.length)
+    : error.message || fallback;
 }

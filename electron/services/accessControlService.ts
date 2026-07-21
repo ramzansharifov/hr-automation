@@ -101,7 +101,6 @@ export class AccessControlService {
       Number.isFinite,
     );
     const existingUser = params.id ? this.repository.getUserById(params.id) : null;
-    const isFirstUser = !params.id && this.repository.listUsers().length === 0;
 
     if (params.id && !existingUser) throw new Error("Пользователь не найден");
     if (!Number.isFinite(params.employeeId) || params.employeeId <= 0) {
@@ -113,6 +112,11 @@ export class AccessControlService {
     if (!usernamePattern.test(username)) {
       throw new Error(
         "Логин должен содержать 3–64 символа: латинские буквы, цифры, точку, дефис или подчёркивание",
+      );
+    }
+    if (username === "superadmin") {
+      throw new Error(
+        "Логин superadmin зарезервирован для встроенного системного администратора",
       );
     }
     if (this.repository.usernameExists(username, params.id)) {
@@ -133,15 +137,13 @@ export class AccessControlService {
     if (params.password) validatePassword(params.password);
 
     const systemRoles = this.repository.getSystemRolesByIds(roleIds);
-    if (
-      isFirstUser &&
-      (params.status !== "active" || !systemRoles.includes("superadmin"))
-    ) {
-      throw new Error("Первый пользователь должен быть активным superadmin");
+    if (systemRoles.includes("superadmin")) {
+      throw new Error(
+        "Роль Superadmin принадлежит только встроенной системной учётной записи",
+      );
     }
 
     this.validateSystemRoleAssignments(params.employeeId, systemRoles);
-    this.ensureSuperadminContinuity(existingUser, params.status, systemRoles);
 
     const password = params.password ? hashPassword(params.password) : null;
 
@@ -177,17 +179,8 @@ export class AccessControlService {
   }
 
   deleteUser(id: number): { success: true } {
-    const user = this.repository.getUserById(id);
-    if (!user) throw new Error("Пользователь не найден");
-
-    const isActiveSuperadmin =
-      user.status === "active" &&
-      user.roles.some((role) => role.systemKey === "superadmin");
-    if (
-      isActiveSuperadmin &&
-      this.repository.countActiveSuperadmins(id) === 0
-    ) {
-      throw new Error("Нельзя удалить последнего активного superadmin");
+    if (!this.repository.getUserById(id)) {
+      throw new Error("Пользователь не найден");
     }
 
     try {
@@ -218,28 +211,6 @@ export class AccessControlService {
       throw new Error(
         "Роль «Начальник отдела» можно назначить только действующему директору отдела",
       );
-    }
-  }
-
-  private ensureSuperadminContinuity(
-    existingUser: AccessUserSummary | null,
-    nextStatus: SaveAccessUserParams["status"],
-    nextSystemRoles: SystemRoleKey[],
-  ): void {
-    if (!existingUser) return;
-
-    const wasActiveSuperadmin =
-      existingUser.status === "active" &&
-      existingUser.roles.some((role) => role.systemKey === "superadmin");
-    const remainsActiveSuperadmin =
-      nextStatus === "active" && nextSystemRoles.includes("superadmin");
-
-    if (
-      wasActiveSuperadmin &&
-      !remainsActiveSuperadmin &&
-      this.repository.countActiveSuperadmins(existingUser.id) === 0
-    ) {
-      throw new Error("В системе должен остаться хотя бы один активный superadmin");
     }
   }
 }
