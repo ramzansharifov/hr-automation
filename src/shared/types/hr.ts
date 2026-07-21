@@ -1,3 +1,12 @@
+import type {
+  AccessControlOverview,
+  AccessRoleSummary,
+  AccessUserSummary,
+  ResetAccessPasswordParams,
+  SaveAccessRoleParams,
+  SaveAccessUserParams,
+} from "./access";
+
 export type HrEntityKey =
   | "enterprises"
   | "departments"
@@ -153,4 +162,10 @@ export interface HrApi {
   getCandidate(id: number): Promise<CandidateProfile | null>;
   saveCandidate(params: SaveCandidateParams): Promise<CandidateProfile>;
   deleteCandidate(id: number): Promise<{ success: true }>;
+  getAccessOverview(): Promise<AccessControlOverview>;
+  saveAccessRole(params: SaveAccessRoleParams): Promise<AccessRoleSummary>;
+  deleteAccessRole(id: number): Promise<{ success: true }>;
+  saveAccessUser(params: SaveAccessUserParams): Promise<AccessUserSummary>;
+  resetAccessPassword(params: ResetAccessPasswordParams): Promise<{ success: true }>;
+  deleteAccessUser(id: number): Promise<{ success: true }>;
 }
