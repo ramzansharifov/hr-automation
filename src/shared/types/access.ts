@@ -102,6 +102,7 @@ export interface AuthSession {
   username: string;
   roles: AccessUserRole[];
   permissionCodes: string[];
+  permissionScopes: Record<string, AccessScopeType>;
   scopeType: AccessScopeType;
   mustChangePassword: boolean;
 }
