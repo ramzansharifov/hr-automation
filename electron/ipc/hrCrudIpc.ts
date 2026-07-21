@@ -10,9 +10,16 @@ import type {
   SaveVacancyParams,
   HrUpdateParams,
 } from "../../src/shared/types/hr";
+import type {
+  ResetAccessPasswordParams,
+  SaveAccessRoleParams,
+  SaveAccessUserParams,
+} from "../../src/shared/types/access";
 import { getDatabase } from "../database/connection";
+import { AccessControlRepository } from "../repositories/accessControlRepository";
 import { HrCrudRepository } from "../repositories/hrCrudRepository";
 import { RecruitmentRepository } from "../repositories/recruitmentRepository";
+import { AccessControlService } from "../services/accessControlService";
 import { HrCrudService } from "../services/hrCrudService";
 import { RecruitmentService } from "../services/recruitmentService";
 
@@ -22,6 +29,9 @@ export function registerHrCrudIpcHandlers(): void {
   const service = new HrCrudService(repository);
   const recruitmentService = new RecruitmentService(
     new RecruitmentRepository(database),
+  );
+  const accessService = new AccessControlService(
+    new AccessControlRepository(database),
   );
 
   ipcMain.handle("hr:list", (_event, params: HrListParams) =>
@@ -83,5 +93,24 @@ export function registerHrCrudIpcHandlers(): void {
   );
   ipcMain.handle("recruitment:deleteCandidate", (_event, id: number) =>
     recruitmentService.deleteCandidate(id),
+  );
+
+  ipcMain.handle("access:overview", () => accessService.getOverview());
+  ipcMain.handle("access:saveRole", (_event, params: SaveAccessRoleParams) =>
+    accessService.saveRole(params),
+  );
+  ipcMain.handle("access:deleteRole", (_event, id: number) =>
+    accessService.deleteRole(id),
+  );
+  ipcMain.handle("access:saveUser", (_event, params: SaveAccessUserParams) =>
+    accessService.saveUser(params),
+  );
+  ipcMain.handle(
+    "access:resetPassword",
+    (_event, params: ResetAccessPasswordParams) =>
+      accessService.resetPassword(params),
+  );
+  ipcMain.handle("access:deleteUser", (_event, id: number) =>
+    accessService.deleteUser(id),
   );
 }
