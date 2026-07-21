@@ -35,6 +35,11 @@ interface RoleRow {
   system_key: SystemRoleKey | null;
 }
 
+interface PermissionScopeRow {
+  code: string;
+  scope_type: AccessScopeType;
+}
+
 const scopeRank: Record<AccessScopeType, number> = {
   self: 0,
   department: 1,
@@ -174,23 +179,34 @@ export class AuthenticationRepository {
 
     if (roles.length === 0) return null;
 
-    const permissionCodes = (
-      this.database
-        .prepare(
-          `SELECT DISTINCT permission.code
-           FROM user_roles AS user_role
-           JOIN role_permissions AS role_permission ON role_permission.role_id = user_role.role_id
-           JOIN permissions AS permission ON permission.id = role_permission.permission_id
-           WHERE user_role.user_id = ?
-           ORDER BY permission.code`,
-        )
-        .all(userId) as Array<{ code: string }>
-    ).map((item) => item.code);
+    const permissionRows = this.database
+      .prepare(
+        `SELECT permission.code, role.scope_type
+         FROM user_roles AS user_role
+         JOIN roles AS role ON role.id = user_role.role_id
+         JOIN role_permissions AS role_permission ON role_permission.role_id = role.id
+         JOIN permissions AS permission ON permission.id = role_permission.permission_id
+         WHERE user_role.user_id = ?
+         ORDER BY permission.code`,
+      )
+      .all(userId) as PermissionScopeRow[];
 
-    const scopeType = roles.reduce<AccessScopeType>(
-      (current, role) =>
-        scopeRank[role.scopeType] > scopeRank[current]
-          ? role.scopeType
+    const permissionScopes: Record<string, AccessScopeType> = {};
+    for (const permission of permissionRows) {
+      const currentScope = permissionScopes[permission.code];
+      if (
+        !currentScope ||
+        scopeRank[permission.scope_type] > scopeRank[currentScope]
+      ) {
+        permissionScopes[permission.code] = permission.scope_type;
+      }
+    }
+
+    const permissionCodes = Object.keys(permissionScopes).sort();
+    const scopeType = Object.values(permissionScopes).reduce<AccessScopeType>(
+      (current, permissionScope) =>
+        scopeRank[permissionScope] > scopeRank[current]
+          ? permissionScope
           : current,
       "self",
     );
@@ -206,6 +222,7 @@ export class AuthenticationRepository {
       username: user.username,
       roles,
       permissionCodes,
+      permissionScopes,
       scopeType,
       mustChangePassword: user.must_change_password === 1,
     };
