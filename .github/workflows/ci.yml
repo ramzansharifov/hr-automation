@@ -27,6 +27,28 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Validate SQLite migrations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import sqlite3
+
+          connection = sqlite3.connect(":memory:")
+          connection.execute("PRAGMA foreign_keys = ON")
+
+          for migration_path in sorted(glob.glob("electron/migrations/*.sql")):
+              print(f"Applying {migration_path}")
+              with open(migration_path, "r", encoding="utf-8") as migration_file:
+                  connection.executescript(migration_file.read())
+
+          violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+          if violations:
+              raise SystemExit(f"Foreign key violations: {violations}")
+
+          print("All migrations applied successfully")
+          PY
+
       - name: Lint
         id: lint
         continue-on-error: true
