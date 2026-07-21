@@ -8,7 +8,6 @@ import {
   FiCreditCard,
   FiEdit2,
   FiFileText,
-  FiTrendingUp,
   FiUser,
 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
@@ -203,24 +202,17 @@ export function EmployeeDetailsPage(): JSX.Element {
               {t("employeesDetails.card.title")}
             </Tabs.Trigger>
 
-            <Tabs.Trigger className={detailsTabTriggerClass} value="company">
+            <Tabs.Trigger className={detailsTabTriggerClass} value="work">
               <FiBriefcase className="h-4 w-4" />
-              {t("employeesDetails.sections.company")}
+              Служебная информация
             </Tabs.Trigger>
 
-            <Tabs.Trigger className={detailsTabTriggerClass} value="education">
+            <Tabs.Trigger
+              className={detailsTabTriggerClass}
+              value="education-experience"
+            >
               <FiBookOpen className="h-4 w-4" />
-              {t("employeesDetails.sections.education")}
-            </Tabs.Trigger>
-
-            <Tabs.Trigger className={detailsTabTriggerClass} value="experience">
-              <FiBriefcase className="h-4 w-4" />
-              {t("employeesDetails.sections.experience")}
-            </Tabs.Trigger>
-
-            <Tabs.Trigger className={detailsTabTriggerClass} value="career">
-              <FiTrendingUp className="h-4 w-4" />
-              Карьера
+              Образование и опыт
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
@@ -269,49 +261,48 @@ export function EmployeeDetailsPage(): JSX.Element {
             />
           </Tabs.Content>
 
-          <Tabs.Content value="company" className="outline-none">
-            <EmployeeInfoPanel
-              eyebrow={t("employeesDetails.sections.company")}
-              title={fullName || t("employeesDetails.title")}
-            >
-              <EmployeeInfoField
-                label={t("forms.fields.departmentId")}
-                value={valueOrEmpty(departmentName, t)}
+          <Tabs.Content value="work" className="outline-none">
+            <div className="space-y-6">
+              <EmployeeInfoPanel
+                eyebrow={t("employeesDetails.sections.company")}
+                title={fullName || t("employeesDetails.title")}
+              >
+                <EmployeeInfoField
+                  label={t("forms.fields.departmentId")}
+                  value={valueOrEmpty(departmentName, t)}
+                />
+                <EmployeeInfoField
+                  label={t("forms.fields.positionId")}
+                  value={valueOrEmpty(positionName, t)}
+                />
+                <EmployeeInfoField
+                  label={t("forms.fields.status")}
+                  value={humanizeStatus(employee.status, t)}
+                />
+                <EmployeeInfoField
+                  label={t("forms.fields.hireDate")}
+                  value={formatDate(employee.hire_date, locale)}
+                />
+                <EmployeeInfoField
+                  label={t("forms.fields.salary")}
+                  value={formatCurrency(employee.salary, locale)}
+                />
+              </EmployeeInfoPanel>
+
+              <EmployeeLifecyclePanel
+                employee={employee}
+                employeeId={employeeId}
+                locale={locale}
+                onEmployeeUpdated={handleEmployeeSaved}
               />
-              <EmployeeInfoField
-                label={t("forms.fields.positionId")}
-                value={valueOrEmpty(positionName, t)}
-              />
-              <EmployeeInfoField
-                label={t("forms.fields.status")}
-                value={humanizeStatus(employee.status, t)}
-              />
-              <EmployeeInfoField
-                label={t("forms.fields.hireDate")}
-                value={formatDate(employee.hire_date, locale)}
-              />
-              <EmployeeInfoField
-                label={t("forms.fields.salary")}
-                value={formatCurrency(employee.salary, locale)}
-              />
-            </EmployeeInfoPanel>
+            </div>
           </Tabs.Content>
 
-          <Tabs.Content value="education" className="outline-none">
-            <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
-          </Tabs.Content>
-
-          <Tabs.Content value="experience" className="outline-none">
-            <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
-          </Tabs.Content>
-
-          <Tabs.Content value="career" className="outline-none">
-            <EmployeeLifecyclePanel
-              employee={employee}
-              employeeId={employeeId}
-              locale={locale}
-              onEmployeeUpdated={handleEmployeeSaved}
-            />
+          <Tabs.Content value="education-experience" className="outline-none">
+            <div className="space-y-6">
+              <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
+              <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
+            </div>
           </Tabs.Content>
 
           <Tabs.Content value="vacations" className="outline-none">
