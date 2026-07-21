@@ -42,6 +42,7 @@ import {
   EmployeeExperiencePanel,
 } from "../../features/employees/forms/EmployeeRelatedRecords";
 import "./EmployeeDetailsPage.css";
+import "./EmployeeTabConsistency.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
