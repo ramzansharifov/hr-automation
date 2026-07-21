@@ -30,6 +30,10 @@ interface RelationSelectState {
 }
 
 function getInputType(field: HrEntityFormField): string {
+  if (field.name === 'accrual_month') {
+    return 'month'
+  }
+
   if (field.type === 'number') {
     return 'number'
   }
@@ -64,10 +68,17 @@ export function HrEntityForm({
 }: HrEntityFormProps): JSX.Element {
   const { t } = useTranslation()
   const config = useMemo(() => getHrEntityFormConfig(entity), [entity])
+  const visibleFields = useMemo(
+    () =>
+      config.fields.filter(
+        (field) => !(entity === 'vacations' && field.name === 'days_count'),
+      ),
+    [config.fields, entity],
+  )
   const schema = getHrEntitySchema(entity)
   const relationFields = useMemo(
-    () => config.fields.filter((field) => field.type === 'relation' && field.relation),
-    [config.fields],
+    () => visibleFields.filter((field) => field.type === 'relation' && field.relation),
+    [visibleFields],
   )
   const [relationSelects, setRelationSelects] = useState<Record<string, RelationSelectState>>({})
   const {
@@ -103,20 +114,13 @@ export function HrEntityForm({
         },
       }))
 
-      hrApiClient
-        .list({
-          entity: relation.entity,
-          page: 1,
-          pageSize: 50000,
-          orderBy: relation.orderBy,
-          orderDirection: 'asc',
-        })
-        .then((result) => {
+      loadRelationRecords(relation.entity, relation.orderBy)
+        .then((records) => {
           if (!isActive) {
             return
           }
 
-          const options = result.items
+          const options = records
             .map((record) => ({
               value: String(record.id ?? ''),
               label: getRelationOptionLabel(record, relation.label),
@@ -155,7 +159,7 @@ export function HrEntityForm({
   return (
     <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-4 md:grid-cols-2">
-        {config.fields.map((field) => {
+        {visibleFields.map((field) => {
           const error = errors[field.name]?.message
           const errorMessage = typeof error === 'string' ? t(error) : undefined
           const label = t(field.labelKey)
@@ -254,4 +258,29 @@ export function HrEntityForm({
       </div>
     </form>
   )
+}
+
+async function loadRelationRecords(
+  entity: HrEntityKey,
+  orderBy: string,
+): Promise<HrRecord[]> {
+  const records: HrRecord[] = []
+  let page = 1
+  let totalPages = 1
+
+  do {
+    const result = await hrApiClient.list({
+      entity,
+      page,
+      pageSize: 100,
+      orderBy,
+      orderDirection: 'asc',
+    })
+
+    records.push(...result.items)
+    totalPages = Math.max(result.totalPages, 1)
+    page += 1
+  } while (page <= totalPages)
+
+  return records
 }

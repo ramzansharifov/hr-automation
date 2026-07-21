@@ -36,8 +36,14 @@ function App(): JSX.Element {
         />
         <Route path="departments" element={<Navigate to="/enterprises" replace />} />
         <Route path="positions" element={<Navigate to="/enterprises" replace />} />
-        <Route path="vacations" element={<Navigate to="/employees" replace />} />
-        <Route path="payroll" element={<Navigate to="/employees" replace />} />
+        <Route
+          path="vacations"
+          element={<Navigate to="/filters?module=vacations" replace />}
+        />
+        <Route
+          path="payroll"
+          element={<Navigate to="/filters?module=payroll" replace />}
+        />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
