@@ -7,11 +7,15 @@ import {
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { formatCurrency, formatDate, humanizeStatus } from "../../../shared/lib/format";
+import {
+  formatCurrency,
+  formatDate,
+  humanizeStatus,
+} from "../../../shared/lib/format";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrEntityKey, HrRecord } from "../../../shared/types/hr";
 import { Button, EmptyState, LoadingState } from "../../../shared/ui";
@@ -37,7 +41,6 @@ interface EmployeeRecordPanelProps {
   emptyTitle: string;
   entity: OperationalEntity;
   icon: ReactNode;
-  locale: string;
   orderBy: string;
   registryPath: string;
   renderRecord: (record: HrRecord, actions: RecordActions) => ReactNode;
@@ -48,6 +51,8 @@ interface RecordActions {
   onDelete: () => void;
   onEdit: () => void;
 }
+
+const hiddenEmployeeFieldNames = ["employee_id"];
 
 export function EmployeeVacationsPanel({
   employeeId,
@@ -64,7 +69,6 @@ export function EmployeeVacationsPanel({
       emptyTitle="У сотрудника пока нет отпусков"
       entity="vacations"
       icon={<FiCalendar className="h-6 w-6" />}
-      locale={locale}
       orderBy="starts_at"
       registryPath={`/filters/vacations?employee=${employeeId}`}
       title="Отпуска сотрудника"
@@ -77,21 +81,27 @@ export function EmployeeVacationsPanel({
                   {humanizeStatus(record.status, t)}
                 </span>
                 <span className="app-surface-muted app-border rounded-full border px-3 py-1 text-xs font-bold">
-                  {Number(record.is_paid) === 1 ? "Оплачиваемый" : "Неоплачиваемый"}
+                  {Number(record.is_paid) === 1
+                    ? "Оплачиваемый"
+                    : "Неоплачиваемый"}
                 </span>
               </div>
               <h3 className="app-text mt-3 text-lg font-black">
                 {getString(record.vacation_type) || "Отпуск"}
               </h3>
               <p className="app-muted mt-2 text-sm font-semibold">
-                {formatDate(record.starts_at, locale)} — {formatDate(record.ends_at, locale)}
+                {formatDate(record.starts_at, locale)} —{" "}
+                {formatDate(record.ends_at, locale)}
               </p>
             </div>
             <RecordActionsButtons actions={actions} label="отпуск" />
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <RecordMetric label="Дней" value={getString(record.days_count) || "—"} />
+            <RecordMetric
+              label="Дней"
+              value={getString(record.days_count) || "—"}
+            />
             <RecordMetric
               label="Отпускные"
               value={formatCurrency(record.payment_amount, locale)}
@@ -131,14 +141,16 @@ export function EmployeePayrollPanel({
 }: EmployeePayrollPanelProps): JSX.Element {
   return (
     <EmployeeRecordPanel
-      createInitialRecord={{ employee_id: employeeId, base_salary: baseSalary ?? 0 }}
+      createInitialRecord={{
+        employee_id: employeeId,
+        base_salary: baseSalary ?? 0,
+      }}
       description="Персональная история начислений этого сотрудника. Сведения по другим сотрудникам доступны только в общем реестре."
       employeeId={employeeId}
       emptyDescription="Добавьте первое начисление сотрудника или откройте общий реестр начислений."
       emptyTitle="У сотрудника пока нет начислений"
       entity="payroll"
       icon={<FiCreditCard className="h-6 w-6" />}
-      locale={locale}
       orderBy="accrual_month"
       registryPath={`/filters/payroll?employee=${employeeId}`}
       title="Начисления сотрудника"
@@ -160,11 +172,26 @@ export function EmployeePayrollPanel({
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <RecordMetric label="Оклад" value={formatCurrency(record.base_salary, locale)} />
-            <RecordMetric label="Премия" value={formatCurrency(record.bonus, locale)} />
-            <RecordMetric label="Надбавка" value={formatCurrency(record.allowance, locale)} />
-            <RecordMetric label="Удержания" value={formatCurrency(record.deductions, locale)} />
-            <RecordMetric label="Налоги" value={formatCurrency(record.taxes, locale)} />
+            <RecordMetric
+              label="Оклад"
+              value={formatCurrency(record.base_salary, locale)}
+            />
+            <RecordMetric
+              label="Премия"
+              value={formatCurrency(record.bonus, locale)}
+            />
+            <RecordMetric
+              label="Надбавка"
+              value={formatCurrency(record.allowance, locale)}
+            />
+            <RecordMetric
+              label="Удержания"
+              value={formatCurrency(record.deductions, locale)}
+            />
+            <RecordMetric
+              label="Налоги"
+              value={formatCurrency(record.taxes, locale)}
+            />
             <RecordMetric
               emphasized
               label="К выплате"
@@ -192,7 +219,6 @@ function EmployeeRecordPanel({
   emptyTitle,
   entity,
   icon,
-  locale,
   orderBy,
   registryPath,
   renderRecord,
@@ -244,13 +270,15 @@ function EmployeeRecordPanel({
   }
 
   async function saveRecord(data: HrRecord): Promise<void> {
+    const employeeRecord = { ...data, employee_id: employeeId };
+
     if (dialogMode === "create") {
-      await hrApiClient.create({ entity, data: { ...data, employee_id: employeeId } });
+      await hrApiClient.create({ entity, data: employeeRecord });
     } else {
       await hrApiClient.update({
         entity,
         id: getRecordId(editingRecord),
-        data: { ...data, employee_id: employeeId },
+        data: employeeRecord,
       });
     }
 
@@ -278,19 +306,24 @@ function EmployeeRecordPanel({
                   {records.length}
                 </span>
               </div>
-              <p className="app-muted mt-2 max-w-3xl text-sm font-medium">{description}</p>
+              <p className="app-muted mt-2 max-w-3xl text-sm font-medium">
+                {description}
+              </p>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiExternalLink className="h-4 w-4" />}
-              type="button"
-              variant="secondary"
+            <Link
+              className="app-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition"
+              to={registryPath}
             >
-              <Link to={registryPath}>Открыть общий реестр</Link>
-            </Button>
-            <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={openCreate}>
+              <FiExternalLink className="h-4 w-4" />
+              Открыть общий реестр
+            </Link>
+            <Button
+              leftIcon={<FiPlus className="h-4 w-4" />}
+              onClick={openCreate}
+            >
               Добавить запись
             </Button>
           </div>
@@ -303,18 +336,23 @@ function EmployeeRecordPanel({
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
-          {records.map((record) =>
-            renderRecord(record, {
-              onDelete: () => openDelete(record),
-              onEdit: () => openEdit(record),
-            }),
-          )}
+          {records.map((record) => (
+            <div key={String(record.id)}>
+              {renderRecord(record, {
+                onDelete: () => openDelete(record),
+                onEdit: () => openEdit(record),
+              })}
+            </div>
+          ))}
         </div>
       )}
 
       <HrEntityDialog
         entity={entity}
-        initialRecord={dialogMode === "edit" ? editingRecord : createInitialRecord}
+        hiddenFieldNames={hiddenEmployeeFieldNames}
+        initialRecord={
+          dialogMode === "edit" ? editingRecord : createInitialRecord
+        }
         mode={dialogMode}
         onOpenChange={(open) => {
           setIsFormOpen(open);
@@ -380,10 +418,14 @@ function RecordMetric({
     <div
       className={[
         "rounded-2xl border p-4",
-        emphasized ? "app-accent-soft app-accent-border" : "app-surface-muted app-border",
+        emphasized
+          ? "app-accent-soft app-accent-border"
+          : "app-surface-muted app-border",
       ].join(" ")}
     >
-      <p className="app-muted text-xs font-bold uppercase tracking-wide">{label}</p>
+      <p className="app-muted text-xs font-bold uppercase tracking-wide">
+        {label}
+      </p>
       <p className="app-text mt-1 text-base font-black">{value}</p>
     </div>
   );
