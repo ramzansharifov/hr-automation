@@ -39,13 +39,16 @@ export interface AccessUserSummary {
   id: number;
   employeeId: number;
   employeeName: string;
+  departmentId: number | null;
   departmentName: string;
+  enterpriseId: number | null;
   enterpriseName: string;
   username: string;
   status: AccessUserStatus;
   mustChangePassword: boolean;
   roles: AccessUserRole[];
   effectivePermissionCodes: string[];
+  effectiveScopeType: AccessScopeType;
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
@@ -79,4 +82,47 @@ export interface AccessControlOverview {
   permissions: AccessPermission[];
   roles: AccessRoleSummary[];
   users: AccessUserSummary[];
+}
+
+export interface AuthEmployeeOption {
+  id: number;
+  fullName: string;
+  departmentName: string;
+  enterpriseName: string;
+}
+
+export interface AuthSession {
+  userId: number;
+  employeeId: number;
+  employeeName: string;
+  departmentId: number | null;
+  departmentName: string;
+  enterpriseId: number | null;
+  enterpriseName: string;
+  username: string;
+  roles: AccessUserRole[];
+  permissionCodes: string[];
+  scopeType: AccessScopeType;
+  mustChangePassword: boolean;
+}
+
+export interface AuthState {
+  isInitialized: boolean;
+  session: AuthSession | null;
+}
+
+export interface BootstrapSuperadminParams {
+  employeeId: number;
+  username: string;
+  password: string;
+}
+
+export interface LoginParams {
+  username: string;
+  password: string;
+}
+
+export interface ChangeOwnPasswordParams {
+  currentPassword: string;
+  newPassword: string;
 }
