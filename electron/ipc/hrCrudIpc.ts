@@ -43,7 +43,6 @@ export function registerHrCrudIpcHandlers(): void {
   );
   const authenticationService = new AuthenticationService(
     new AuthenticationRepository(database),
-    accessService,
   );
   const authorizationService = new AuthorizationService(
     database,
