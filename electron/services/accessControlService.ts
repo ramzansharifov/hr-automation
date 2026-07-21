@@ -80,7 +80,9 @@ export class AccessControlService {
     const username = params.username.trim().toLowerCase();
     const roleIds = [...new Set(params.roleIds.map(Number))].filter(Number.isFinite);
     const existingUser = params.id ? this.repository.getUserById(params.id) : null;
+    const isFirstUser = !params.id && this.repository.listUsers().length === 0;
 
+    if (params.id && !existingUser) throw new Error("Пользователь не найден");
     if (!Number.isFinite(params.employeeId) || params.employeeId <= 0) {
       throw new Error("Выберите сотрудника");
     }
@@ -106,6 +108,13 @@ export class AccessControlService {
     if (params.password) validatePassword(params.password);
 
     const systemRoles = this.repository.getSystemRolesByIds(roleIds);
+    if (
+      isFirstUser &&
+      (params.status !== "active" || !systemRoles.includes("superadmin"))
+    ) {
+      throw new Error("Первый пользователь должен быть активным superadmin");
+    }
+
     this.validateSystemRoleAssignments(params.employeeId, systemRoles);
     this.ensureSuperadminContinuity(existingUser, params.status, systemRoles);
 
