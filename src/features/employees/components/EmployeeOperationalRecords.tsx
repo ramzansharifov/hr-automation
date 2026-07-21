@@ -112,15 +112,15 @@ export function EmployeeVacationsPanel({
             />
           </div>
 
-          {(record.reason || record.note) && (
+          {Boolean(record.reason || record.note) && (
             <div className="app-border-soft mt-5 grid gap-3 border-t pt-4 text-sm">
-              {record.reason && (
+              {Boolean(record.reason) && (
                 <p className="app-text-soft">
                   <span className="app-text font-black">Основание: </span>
                   {getString(record.reason)}
                 </p>
               )}
-              {record.note && (
+              {Boolean(record.note) && (
                 <p className="app-text-soft">
                   <span className="app-text font-black">Комментарий: </span>
                   {getString(record.note)}
@@ -199,7 +199,7 @@ export function EmployeePayrollPanel({
             />
           </div>
 
-          {record.note && (
+          {Boolean(record.note) && (
             <p className="app-text-soft app-border-soft mt-5 border-t pt-4 text-sm">
               <span className="app-text font-black">Комментарий: </span>
               {getString(record.note)}

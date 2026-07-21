@@ -1,3 +1,18 @@
+import type {
+  AccessControlOverview,
+  AccessRoleSummary,
+  AccessUserSummary,
+  AuthEmployeeOption,
+  AuthSession,
+  AuthState,
+  BootstrapSuperadminParams,
+  ChangeOwnPasswordParams,
+  LoginParams,
+  ResetAccessPasswordParams,
+  SaveAccessRoleParams,
+  SaveAccessUserParams,
+} from "./access";
+
 export type HrEntityKey =
   | "enterprises"
   | "departments"
@@ -138,6 +153,12 @@ export interface CandidateProfile {
 }
 
 export interface HrApi {
+  getAuthState(): Promise<AuthState>;
+  listBootstrapEmployees(): Promise<AuthEmployeeOption[]>;
+  bootstrapSuperadmin(params: BootstrapSuperadminParams): Promise<AuthSession>;
+  login(params: LoginParams): Promise<AuthSession>;
+  logout(): Promise<{ success: true }>;
+  changeOwnPassword(params: ChangeOwnPasswordParams): Promise<AuthSession>;
   list(params: HrListParams): Promise<HrListResult>;
   getById(params: HrGetByIdParams): Promise<HrRecord | null>;
   create(params: HrCreateParams): Promise<HrRecord>;
@@ -153,4 +174,10 @@ export interface HrApi {
   getCandidate(id: number): Promise<CandidateProfile | null>;
   saveCandidate(params: SaveCandidateParams): Promise<CandidateProfile>;
   deleteCandidate(id: number): Promise<{ success: true }>;
+  getAccessOverview(): Promise<AccessControlOverview>;
+  saveAccessRole(params: SaveAccessRoleParams): Promise<AccessRoleSummary>;
+  deleteAccessRole(id: number): Promise<{ success: true }>;
+  saveAccessUser(params: SaveAccessUserParams): Promise<AccessUserSummary>;
+  resetAccessPassword(params: ResetAccessPasswordParams): Promise<{ success: true }>;
+  deleteAccessUser(id: number): Promise<{ success: true }>;
 }

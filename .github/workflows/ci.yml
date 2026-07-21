@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate SQLite migrations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import sqlite3
+
+          connection = sqlite3.connect(":memory:")
+          connection.execute("PRAGMA foreign_keys = ON")
+
+          for migration_path in sorted(glob.glob("electron/migrations/*.sql")):
+              print(f"Applying {migration_path}")
+              with open(migration_path, "r", encoding="utf-8") as migration_file:
+                  connection.executescript(migration_file.read())
+
+          violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+          if violations:
+              raise SystemExit(f"Foreign key violations: {violations}")
+
+          print("All migrations applied successfully")
+          PY
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; npm run lint 2>&1 | tee lint.log
+
+      - name: TypeScript and production build
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; npm run build:check 2>&1 | tee build.log
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-logs
+          path: |
+            lint.log
+            build.log
+
+      - name: Fail on validation errors
+        if: steps.lint.outcome == 'failure' || steps.build.outcome == 'failure'
+        run: exit 1
