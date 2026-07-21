@@ -5,6 +5,7 @@ import {
   FiBookOpen,
   FiBriefcase,
   FiCalendar,
+  FiClock,
   FiCreditCard,
   FiEdit2,
   FiFileText,
@@ -215,7 +216,7 @@ export function EmployeeDetailsPage(): JSX.Element {
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="payroll">
               <FiCreditCard />
-              Начисления
+              Оплата
             </Tabs.Trigger>
 
             <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
@@ -223,9 +224,9 @@ export function EmployeeDetailsPage(): JSX.Element {
               Отпуска
             </Tabs.Trigger>
 
-            <Tabs.Trigger className={detailsTabTriggerClass} value="notes">
-              <FiFileText />
-              {t("employeesDetails.sections.notes")}
+            <Tabs.Trigger className={detailsTabTriggerClass} value="history">
+              <FiClock />
+              История
             </Tabs.Trigger>
           </Tabs.List>
         </motion.div>
@@ -245,6 +246,17 @@ export function EmployeeDetailsPage(): JSX.Element {
           <Tabs.Content value="work" className="outline-none">
             <div className="space-y-5">
               <EmployeeInfoPanel
+                action={
+                  <Button
+                    leftIcon={<FiEdit2 className="h-4 w-4" />}
+                    onClick={() => openSectionEditor("company")}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {t("common.actions.edit")}
+                  </Button>
+                }
                 eyebrow={t("employeesDetails.sections.company")}
                 icon={<FiBriefcase />}
                 title="Текущие условия работы"
@@ -271,12 +283,28 @@ export function EmployeeDetailsPage(): JSX.Element {
                 />
               </EmployeeInfoPanel>
 
-              <EmployeeLifecyclePanel
-                employee={employee}
-                employeeId={employeeId}
-                locale={locale}
-                onEmployeeUpdated={handleEmployeeSaved}
-              />
+              <EmployeeInfoPanel
+                action={
+                  <Button
+                    leftIcon={<FiEdit2 className="h-4 w-4" />}
+                    onClick={() => openSectionEditor("notes")}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {t("common.actions.edit")}
+                  </Button>
+                }
+                eyebrow="Внутренняя информация"
+                icon={<FiFileText />}
+                title={t("forms.fields.note")}
+              >
+                <EmployeeInfoField
+                  label={t("forms.fields.note")}
+                  value={valueOrEmpty(getString(employee.note), t)}
+                  wide
+                />
+              </EmployeeInfoPanel>
             </div>
           </Tabs.Content>
 
@@ -299,29 +327,13 @@ export function EmployeeDetailsPage(): JSX.Element {
             <EmployeeVacationsPanel employeeId={employeeId} locale={locale} />
           </Tabs.Content>
 
-          <Tabs.Content value="notes" className="outline-none">
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={() => openSectionEditor("notes")}
-              >
-                {t("common.actions.edit")}
-              </Button>
-            </div>
-
-            <EmployeeInfoPanel
-              eyebrow={t("employeesDetails.sections.notes")}
-              icon={<FiFileText />}
-              title={t("forms.fields.note")}
-            >
-              <EmployeeInfoField
-                label={t("forms.fields.note")}
-                value={valueOrEmpty(getString(employee.note), t)}
-                wide
-              />
-            </EmployeeInfoPanel>
+          <Tabs.Content value="history" className="outline-none">
+            <EmployeeLifecyclePanel
+              employee={employee}
+              employeeId={employeeId}
+              locale={locale}
+              onEmployeeUpdated={handleEmployeeSaved}
+            />
           </Tabs.Content>
         </div>
       </Tabs.Root>
