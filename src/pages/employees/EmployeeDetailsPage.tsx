@@ -244,7 +244,7 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="work" className="outline-none">
-            <div className="space-y-5">
+            <div className="grid items-start gap-5 xl:grid-cols-2">
               <EmployeeInfoPanel
                 action={
                   <Button
@@ -309,7 +309,7 @@ export function EmployeeDetailsPage(): JSX.Element {
           </Tabs.Content>
 
           <Tabs.Content value="education-experience" className="outline-none">
-            <div className="space-y-5">
+            <div className="grid items-start gap-5 xl:grid-cols-2">
               <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
               <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
             </div>
