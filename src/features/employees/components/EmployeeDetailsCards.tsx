@@ -4,7 +4,6 @@ import type { TFunction } from "i18next";
 import {
   FiArrowLeft,
   FiBriefcase,
-  FiCalendar,
   FiEdit2,
   FiFileText,
   FiMapPin,
