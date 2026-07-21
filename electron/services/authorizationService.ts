@@ -33,10 +33,11 @@ export class AuthorizationService {
 
   requirePermission(permissionCode: string): AuthSession {
     const session = this.authenticationService.requireSession();
-    if (!session.permissionCodes.includes(permissionCode)) {
+    const permissionScope = session.permissionScopes[permissionCode];
+    if (!permissionScope) {
       throw new Error("Недостаточно прав для выполнения действия");
     }
-    return session;
+    return { ...session, scopeType: permissionScope };
   }
 
   requireGlobalPermission(permissionCode: string): AuthSession {
@@ -160,6 +161,12 @@ export class AuthorizationService {
   ): AuthSession {
     const session = this.authenticationService.requireSession();
     const regularPermission = entityPermissions[entity].view;
+    const regularScope = session.permissionScopes[regularPermission];
+
+    if (regularScope) {
+      return { ...session, scopeType: regularScope };
+    }
+
     const canUseProfilePermission =
       [
         "employees",
@@ -167,16 +174,14 @@ export class AuthorizationService {
         "employee_experience",
         "employment_history",
       ].includes(entity) &&
-      session.permissionCodes.includes("profile.view") &&
+      Boolean(session.permissionScopes["profile.view"]) &&
       (!record || this.resolveEmployeeId(entity, record) === session.employeeId);
 
-    if (
-      !session.permissionCodes.includes(regularPermission) &&
-      !canUseProfilePermission
-    ) {
-      throw new Error("Недостаточно прав для просмотра данных");
+    if (canUseProfilePermission) {
+      return { ...session, scopeType: "self" };
     }
-    return session;
+
+    throw new Error("Недостаточно прав для просмотра данных");
   }
 
   private requireManagePermission(entity: HrEntityKey): AuthSession {
