@@ -53,7 +53,7 @@ export const navigationItems: AppNavigationItem[] = [
     icon: FiFilter,
   },
   {
-    titleKey: "navigation.access",
+    titleKey: "Роли и пользователи",
     path: "/access",
     icon: FiShield,
   },
