@@ -5,6 +5,7 @@ export interface AuthContextValue {
   session: AuthSession;
   hasPermission: (permissionCode: string) => boolean;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
   updateSession: (session: AuthSession) => void;
 }
 
