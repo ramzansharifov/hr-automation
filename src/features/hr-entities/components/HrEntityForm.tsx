@@ -10,7 +10,7 @@ import type {
   HrRecord,
 } from '../../../shared/types/hr'
 import { hrApiClient } from '../../../shared/lib/hrApiClient'
-import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../../shared/ui'
+import { FieldError, Input, Select, Textarea, type SelectOption } from '../../../shared/ui'
 import {
   getHrEntityFormConfig,
   type HrEntityFormField,
@@ -20,14 +20,11 @@ import { getHrEntitySchema } from '../config/hrEntitySchemas'
 import type { HrEntityFormValues } from '../lib/hrEntityFormMapper'
 
 interface HrEntityFormProps {
-  cancelLabel: string
   defaultValues: HrEntityFormValues
   entity: HrEntityKey
+  formId: string
   hiddenFieldNames?: string[]
-  isSubmitting?: boolean
-  onCancel: () => void
   onSubmit: (values: HrEntityFormValues) => Promise<void> | void
-  submitLabel: string
 }
 
 interface RelationSelectState {
@@ -64,14 +61,11 @@ function getRelationOptionLabel(record: HrRecord, label: HrEntityRelationLabel):
 }
 
 export function HrEntityForm({
-  cancelLabel,
   defaultValues,
   entity,
+  formId,
   hiddenFieldNames,
-  isSubmitting = false,
-  onCancel,
   onSubmit,
-  submitLabel,
 }: HrEntityFormProps): JSX.Element {
   const { t } = useTranslation()
   const config = useMemo(() => getHrEntityFormConfig(entity), [entity])
@@ -166,7 +160,7 @@ export function HrEntityForm({
   }, [relationFields, t])
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+    <form id={formId} className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-4 md:grid-cols-2">
         {visibleFields.map((field) => {
           const error = errors[field.name]?.message
@@ -255,15 +249,6 @@ export function HrEntityForm({
             </label>
           )
         })}
-      </div>
-
-      <div className="app-border-soft flex justify-end gap-3 border-t pt-5">
-        <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="secondary">
-          {cancelLabel}
-        </Button>
-        <Button disabled={isSubmitting} type="submit" variant="primary">
-          {submitLabel}
-        </Button>
       </div>
     </form>
   )
