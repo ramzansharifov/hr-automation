@@ -1,9 +1,9 @@
 name: Scan icon buttons
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/skill-fields-and-icon-buttons
+      - main
 
 permissions:
   contents: read
