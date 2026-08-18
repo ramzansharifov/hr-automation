@@ -43,8 +43,6 @@ export function ConfirmDialog({
       open={open}
       size="sm"
       title={title}
-    >
-      <span className="sr-only">{description}</span>
-    </Dialog>
+    />
   )
 }
