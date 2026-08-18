@@ -37,11 +37,12 @@ function getThemeIcon(theme: ThemePreference): typeof FiSun {
 
 export function SettingsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
   const { accentColor, resolvedTheme, setAccentColor, setTheme, theme } = useTheme();
   const currentLanguage = i18n.resolvedLanguage ?? i18n.language;
   const canManageSystem = hasPermission("settings.manage");
-  const canExportEmployees = hasPermission("employees.view");
+  const canExportEmployees =
+    session.permissionScopes["employees.view"] === "global";
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -270,7 +271,9 @@ export function SettingsPage(): JSX.Element {
                   Экспортировать сотрудников
                 </Button>
               ) : (
-                <p className="app-muted text-sm">Для экспорта требуется право просмотра сотрудников.</p>
+                <p className="app-muted text-sm">
+                  Для экспорта требуется глобальное право просмотра сотрудников.
+                </p>
               )}
             </SettingsCard>
           </div>
