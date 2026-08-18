@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
 import { Button, PageHeader, useStoredViewMode } from "../../shared/ui";
+import { useAuth } from "../../features/auth/AuthContext";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import {
   EMPLOYEE_FILTERS_EVENT,
@@ -12,6 +13,8 @@ import {
 
 export function EmployeesPage(): JSX.Element {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canManageEmployees = hasPermission("employees.manage");
   const [appliedFilters, setAppliedFilters] = useState<
     Record<string, HrFilterCondition> | undefined
   >(getStoredEmployeeHrFilters);
@@ -47,15 +50,17 @@ export function EmployeesPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            className="border-white/20 shadow-xl hover:opacity-90"
-            leftIcon={<FiPlus className="h-4 w-4" />}
-            onClick={() => navigate("/employees/new")}
-            style={{ background: "#ffffff", color: "#0f172a" }}
-            variant="ghost"
-          >
-            Добавить сотрудника
-          </Button>
+          canManageEmployees ? (
+            <Button
+              className="border-white/20 shadow-xl hover:opacity-90"
+              leftIcon={<FiPlus className="h-4 w-4" />}
+              onClick={() => navigate("/employees/new")}
+              style={{ background: "#ffffff", color: "#0f172a" }}
+              variant="ghost"
+            >
+              Добавить сотрудника
+            </Button>
+          ) : undefined
         }
         title="Сотрудники"
       />
