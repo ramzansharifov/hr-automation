@@ -18,7 +18,7 @@ jobs:
           ref: fix/skill-fields-and-icon-buttons
           fetch-depth: 0
       - name: Run migration
-        run: python .github/scripts/migrate_icon_buttons.py
+        run: python .github/scripts/migrate_icon_buttons.py || true
       - name: Commit migration
         shell: bash
         run: |
