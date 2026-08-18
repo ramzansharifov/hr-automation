@@ -11,7 +11,6 @@ export function seedDatabase(database: Database.Database): void {
     seedPositions(database);
     seedEmployees(database);
     seedVacations(database);
-    seedPayroll(database);
   });
 
   transaction();
@@ -25,8 +24,7 @@ function hasBusinessData(database: Database.Database): boolean {
          EXISTS(SELECT 1 FROM departments) OR
          EXISTS(SELECT 1 FROM positions) OR
          EXISTS(SELECT 1 FROM employees) OR
-         EXISTS(SELECT 1 FROM vacations) OR
-         EXISTS(SELECT 1 FROM payroll) AS has_data`,
+         EXISTS(SELECT 1 FROM vacations) AS has_data`,
     )
     .get() as { has_data: 0 | 1 };
 
@@ -92,7 +90,7 @@ function seedDepartments(
     "finance@company.local",
     "Главный офис, кабинет 112",
     "2020-03-10",
-    "Начисление заработной платы и отчётность",
+    "Финансовый отдел предприятия",
   );
 
   insertDepartment.run(
@@ -113,21 +111,17 @@ function seedPositions(database: Database.Database): void {
       name,
       department_id,
       base_salary,
-      allowance,
-      bonus,
       responsibilities,
       requirements,
       note
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
   const departmentId = (name: string): number => {
     const record = database
       .prepare("SELECT id FROM departments WHERE name = ? LIMIT 1")
-      .get(name) as {
-      id: number;
-    };
+      .get(name) as { id: number };
     return record.id;
   };
 
@@ -135,8 +129,6 @@ function seedPositions(database: Database.Database): void {
     "HR-специалист",
     departmentId("Отдел кадров"),
     4200,
-    300,
-    500,
     "Ведение личных дел, оформление отпусков, подбор персонала",
     "Опыт работы с кадровыми документами, внимательность",
     "Базовая должность отдела кадров",
@@ -146,10 +138,8 @@ function seedPositions(database: Database.Database): void {
     "Бухгалтер",
     departmentId("Бухгалтерия"),
     5000,
-    500,
-    700,
-    "Начисление зарплаты, налоги, финансовая отчётность",
-    "Знание бухгалтерского учёта и налогов",
+    "Ведение бухгалтерского учёта и финансовой отчётности",
+    "Знание бухгалтерского учёта и налогового законодательства",
     "Должность бухгалтерии",
   );
 
@@ -157,8 +147,6 @@ function seedPositions(database: Database.Database): void {
     "Системный администратор",
     departmentId("IT-отдел"),
     6500,
-    800,
-    1000,
     "Поддержка рабочих станций, серверов и внутренних систем",
     "Опыт администрирования Windows/Linux, сети, безопасность",
     "Техническая должность",
@@ -180,6 +168,7 @@ function seedEmployees(database: Database.Database): void {
       phone,
       email,
       hire_date,
+      salary,
       status,
       note
     )
@@ -196,6 +185,7 @@ function seedEmployees(database: Database.Database): void {
       @phone,
       @email,
       @hireDate,
+      @salary,
       @status,
       @note
     )
@@ -203,18 +193,19 @@ function seedEmployees(database: Database.Database): void {
 
   const assignment = (
     positionName: string,
-  ): { departmentId: number; positionId: number } => {
+  ): { departmentId: number; positionId: number; salary: number } => {
     const record = database
       .prepare(
         `SELECT
            positions.id AS positionId,
-           positions.department_id AS departmentId
+           positions.department_id AS departmentId,
+           positions.base_salary AS salary
          FROM positions
          WHERE positions.name = ?
          LIMIT 1`,
       )
       .get(positionName) as
-      | { departmentId: number; positionId: number }
+      | { departmentId: number; positionId: number; salary: number }
       | undefined;
 
     if (!record || record.departmentId === null) {
@@ -243,6 +234,7 @@ function seedEmployees(database: Database.Database): void {
     phone: "+992 900 11 22 33",
     email: "malika.saidova@company.local",
     hireDate: "2021-02-01",
+    salary: hrAssignment.salary,
     status: "active",
     note: "Руководитель HR-процессов",
   });
@@ -260,8 +252,9 @@ function seedEmployees(database: Database.Database): void {
     phone: "+992 900 44 55 66",
     email: "farid.karimov@company.local",
     hireDate: "2020-04-10",
+    salary: accountantAssignment.salary,
     status: "active",
-    note: "Ответственный за начисления",
+    note: "Сотрудник бухгалтерии",
   });
 
   insertEmployee.run({
@@ -277,6 +270,7 @@ function seedEmployees(database: Database.Database): void {
     phone: "+992 901 77 88 99",
     email: "aziz.rahmonov@company.local",
     hireDate: "2022-05-15",
+    salary: administratorAssignment.salary,
     status: "active",
     note: "Администрирование системы",
   });
@@ -306,60 +300,5 @@ function seedVacations(database: Database.Database): void {
     "Плановый отпуск",
     "planned",
     "Демо-запись",
-  );
-}
-
-function seedPayroll(database: Database.Database): void {
-  const insertPayroll = database.prepare(`
-    INSERT OR IGNORE INTO payroll (
-      employee_id,
-      accrual_month,
-      base_salary,
-      bonus,
-      allowance,
-      deductions,
-      taxes,
-      net_amount,
-      paid_at,
-      note
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  insertPayroll.run(
-    1,
-    "2026-07",
-    4200,
-    500,
-    300,
-    0,
-    250,
-    4750,
-    "2026-07-30",
-    "Демо-начисление",
-  );
-  insertPayroll.run(
-    2,
-    "2026-07",
-    5000,
-    700,
-    500,
-    100,
-    350,
-    5750,
-    "2026-07-30",
-    "Демо-начисление",
-  );
-  insertPayroll.run(
-    3,
-    "2026-07",
-    6500,
-    1000,
-    800,
-    0,
-    500,
-    7800,
-    "2026-07-30",
-    "Демо-начисление",
   );
 }
