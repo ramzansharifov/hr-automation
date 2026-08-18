@@ -54,6 +54,15 @@ export interface AccessUserSummary {
   lastLoginAt: string | null;
 }
 
+export interface SystemAdminSummary {
+  id: number;
+  username: string;
+  mustChangePassword: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SaveAccessRoleParams {
   id?: number;
   name: string;
@@ -82,6 +91,7 @@ export interface AccessControlOverview {
   permissions: AccessPermission[];
   roles: AccessRoleSummary[];
   users: AccessUserSummary[];
+  systemAdmin: SystemAdminSummary;
 }
 
 export interface AuthEmployeeOption {
