@@ -20,6 +20,7 @@ import type { HrRecord } from "../../shared/types/hr";
 import {
   Button,
   ConfirmDialog,
+  IconButton,
   EmptyState,
   LoadingState,
   ViewModeToggle,
@@ -214,22 +215,8 @@ function VacanciesTable({
                       className="flex items-center justify-center gap-2"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <Button
-                        aria-label="Редактировать вакансию"
-                        className="h-9 w-9 p-0"
-                        onClick={() => onEdit(vacancy)}
-                        variant="ghost"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        aria-label="Удалить вакансию"
-                        className="h-9 w-9 p-0"
-                        onClick={() => onDelete(vacancy)}
-                        variant="ghost"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </Button>
+                      <IconButton icon={<FiEdit2 />} label="Редактировать вакансию" onClick={() => onEdit(vacancy)} size="sm" />
+                      <IconButton icon={<FiTrash2 />} label="Удалить вакансию" onClick={() => onDelete(vacancy)} size="sm" tone="danger" />
                     </div>
                   </td>
                 )}
@@ -284,22 +271,8 @@ function VacancyCard({
         </div>
         {canManage && (
           <div className="flex gap-2">
-            <Button
-              aria-label="Редактировать вакансию"
-              className="h-10 w-10 p-0"
-              onClick={onEdit}
-              variant="ghost"
-            >
-              <FiEdit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              aria-label="Удалить вакансию"
-              className="h-10 w-10 p-0"
-              onClick={onDelete}
-              variant="ghost"
-            >
-              <FiTrash2 className="h-4 w-4" />
-            </Button>
+            <IconButton icon={<FiEdit2 />} label="Редактировать вакансию" onClick={onEdit} />
+            <IconButton icon={<FiTrash2 />} label="Удалить вакансию" onClick={onDelete} tone="danger" />
           </div>
         )}
       </div>

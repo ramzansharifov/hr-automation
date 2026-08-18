@@ -34,6 +34,7 @@ import type {
 import {
   Button,
   ConfirmDialog,
+  IconButton,
   Dialog,
   EmptyState,
   Input,
@@ -569,9 +570,9 @@ function CandidatesTable({
               <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.source ?? "—")}</td>
               <td className="app-border-soft border-b px-5 py-4">
                 <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                  <Button aria-label={canManage ? "Редактировать кандидата" : "Открыть кандидата"} className="h-9 w-9 p-0" onClick={() => onOpen(candidate)} variant="ghost"><FiEdit2 className="h-4 w-4" /></Button>
+                  <IconButton icon={<FiEdit2 />} label={canManage ? "Редактировать кандидата" : "Открыть кандидата"} onClick={() => onOpen(candidate)} size="sm" />
                   {canManage && !candidate.employee_id && (
-                    <Button aria-label="Удалить кандидата" className="h-9 w-9 p-0" onClick={() => onDelete(candidate)} variant="ghost"><FiTrash2 className="h-4 w-4" /></Button>
+                    <IconButton icon={<FiTrash2 />} label="Удалить кандидата" onClick={() => onDelete(candidate)} size="sm" tone="danger" />
                   )}
                 </div>
               </td>
@@ -614,9 +615,9 @@ function CandidateCard({
       </div>
       <MatchBar value={Number(candidate.match_percentage ?? 0)} />
       <div className="flex gap-2 lg:justify-end">
-        <Button className="h-10 w-10 p-0" onClick={onOpen} variant="ghost"><FiEdit2 className="h-4 w-4" /></Button>
+        <IconButton icon={<FiEdit2 />} label={canManage ? "Редактировать кандидата" : "Открыть кандидата"} onClick={onOpen} />
         {canManage && !candidate.employee_id && (
-          <Button className="h-10 w-10 p-0" onClick={onDelete} variant="ghost"><FiTrash2 className="h-4 w-4" /></Button>
+          <IconButton icon={<FiTrash2 />} label="Удалить кандидата" onClick={onDelete} tone="danger" />
         )}
       </div>
     </article>

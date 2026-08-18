@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 import { formatDate, humanizeStatus } from "../../../shared/lib/format";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../../shared/types/hr";
-import { Button, EmptyState, LoadingState } from "../../../shared/ui";
+import { Button, EmptyState, IconButton, LoadingState } from "../../../shared/ui";
 import { HrEntityDeleteDialog } from "../../hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../../hr-entities/components/HrEntityDialog";
 
@@ -271,13 +271,9 @@ function VacationCard({
 function RecordActionsButtons({ actions }: { actions: RecordActions }): JSX.Element {
   return (
     <div className="flex shrink-0 gap-2">
-      <Button aria-label="Редактировать отпуск" className="h-10 w-10 p-0" onClick={actions.onEdit} type="button" variant="ghost">
-        <FiEdit2 className="h-4 w-4" />
-      </Button>
+      <IconButton icon={<FiEdit2 />} label="Редактировать отпуск" onClick={actions.onEdit} />
       {actions.onDelete && (
-        <Button aria-label="Удалить отпуск" className="h-10 w-10 p-0" onClick={actions.onDelete} type="button" variant="ghost">
-          <FiTrash2 className="h-4 w-4" />
-        </Button>
+        <IconButton icon={<FiTrash2 />} label="Удалить отпуск" onClick={actions.onDelete} tone="danger" />
       )}
     </div>
   );

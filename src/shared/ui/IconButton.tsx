@@ -4,7 +4,9 @@ type IconButtonSize = 'sm' | 'md' | 'lg'
 type IconButtonTone = 'neutral' | 'accent' | 'danger'
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  icon: ReactNode
+  children?: ReactNode
+  danger?: boolean
+  icon?: ReactNode
   label: string
   size?: IconButtonSize
   tone?: IconButtonTone
@@ -25,7 +27,9 @@ const toneClasses: Record<IconButtonTone, string> = {
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   (
     {
+      children,
       className = '',
+      danger = false,
       icon,
       label,
       size = 'md',
@@ -35,25 +39,29 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       ...props
     },
     ref,
-  ) => (
-    <button
-      {...props}
-      aria-label={label}
-      className={[
-        'inline-flex shrink-0 items-center justify-center border p-0 leading-none transition',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
-        'disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:shrink-0 [&>svg]:stroke-[2]',
-        sizeClasses[size],
-        toneClasses[tone],
-        className,
-      ].join(' ')}
-      ref={ref}
-      title={title ?? label}
-      type={type}
-    >
-      {icon}
-    </button>
-  ),
+  ) => {
+    const resolvedTone = danger ? 'danger' : tone
+
+    return (
+      <button
+        {...props}
+        aria-label={label}
+        className={[
+          'inline-flex shrink-0 items-center justify-center border p-0 leading-none transition',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]',
+          'disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:shrink-0 [&>svg]:stroke-[2]',
+          sizeClasses[size],
+          toneClasses[resolvedTone],
+          className,
+        ].join(' ')}
+        ref={ref}
+        title={title ?? label}
+        type={type}
+      >
+        {icon ?? children}
+      </button>
+    )
+  },
 )
 
 IconButton.displayName = 'IconButton'
