@@ -111,10 +111,6 @@ export function EmployeeCreateReview({
             label: t("forms.fields.salary"),
             value: formatCurrency(values.salary, locale),
           },
-          {
-            label: t("forms.fields.note"),
-            value: valueOrEmpty(values.note, t),
-          },
         ]}
       />
     </div>
