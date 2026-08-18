@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiChevronRight, FiPlus } from "react-icons/fi";
+import { FiChevronRight, FiPlus, FiUserCheck } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityTable } from "../features/hr-table/HrEntityTable";
 import {
   ENTERPRISE_FILTERS_EVENT,
@@ -16,18 +17,25 @@ import type {
 } from "../shared/types/hr";
 import {
   Button,
+  Dialog,
   EmptyState,
   LoadingState,
   PageHeader,
+  Select,
   ViewModeToggle,
   useStoredViewMode,
+  type SelectOption,
 } from "../shared/ui";
+import "./OrganizationHierarchyPage.css";
 
 type HierarchyLevel = "enterprises" | "departments" | "positions";
+type LeaderTarget = "enterprise" | "department";
 
 export function OrganizationHierarchyPage(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("organization.manage");
   const enterpriseId = toId(params.enterpriseId);
   const departmentId = toId(params.departmentId);
   const level: HierarchyLevel = departmentId
@@ -39,6 +47,11 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const [department, setDepartment] = useState<HrRecord | null>(null);
   const [isLoading, setIsLoading] = useState(level !== "enterprises");
   const [hasError, setHasError] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
+  const [leaderTarget, setLeaderTarget] = useState<LeaderTarget | null>(null);
+  const [leaderOptions, setLeaderOptions] = useState<SelectOption[]>([]);
+  const [leaderId, setLeaderId] = useState("");
+  const [leaderLoading, setLeaderLoading] = useState(false);
   const [enterpriseFilters, setEnterpriseFilters] = useState<
     Record<string, HrFilterCondition> | undefined
   >(getStoredEnterpriseHrFilters);
@@ -57,7 +70,6 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
       setIsLoading(true);
       setHasError(false);
-
       try {
         const [enterpriseRecord, departmentRecord] = await Promise.all([
           hrApiClient.getById({ entity: "enterprises", id: enterpriseId! }),
@@ -65,7 +77,6 @@ export function OrganizationHierarchyPage(): JSX.Element {
             ? hrApiClient.getById({ entity: "departments", id: departmentId })
             : Promise.resolve(null),
         ]);
-
         if (!isActive) return;
 
         const departmentEnterpriseId = toId(departmentRecord?.enterprise_id);
@@ -76,7 +87,6 @@ export function OrganizationHierarchyPage(): JSX.Element {
           setHasError(true);
           return;
         }
-
         setEnterprise(enterpriseRecord);
         setDepartment(departmentRecord);
       } catch (error) {
@@ -96,20 +106,16 @@ export function OrganizationHierarchyPage(): JSX.Element {
     return () => {
       isActive = false;
     };
-  }, [departmentId, enterpriseId, level]);
+  }, [departmentId, enterpriseId, level, refreshIndex]);
 
   useEffect(() => {
     function refreshEnterpriseFilters(): void {
       setEnterpriseFilters(getStoredEnterpriseHrFilters());
     }
-
     window.addEventListener(ENTERPRISE_FILTERS_EVENT, refreshEnterpriseFilters);
     window.addEventListener("storage", refreshEnterpriseFilters);
     return () => {
-      window.removeEventListener(
-        ENTERPRISE_FILTERS_EVENT,
-        refreshEnterpriseFilters,
-      );
+      window.removeEventListener(ENTERPRISE_FILTERS_EVENT, refreshEnterpriseFilters);
       window.removeEventListener("storage", refreshEnterpriseFilters);
     };
   }, []);
@@ -122,7 +128,84 @@ export function OrganizationHierarchyPage(): JSX.Element {
     `organization-${page.entity}`,
   );
 
-  if (isLoading) return <LoadingState label="Загрузка организационной структуры..." />;
+  async function openLeaderDialog(target: LeaderTarget): Promise<void> {
+    if (!canManage) return;
+    setLeaderLoading(true);
+    setLeaderTarget(target);
+    try {
+      const currentId =
+        target === "enterprise"
+          ? enterprise?.general_director_employee_id
+          : department?.director_employee_id;
+      setLeaderId(currentId ? String(currentId) : "");
+
+      const employeeFilters =
+        target === "department"
+          ? { department_id: departmentId! }
+          : await getEnterpriseEmployeeFilter(enterpriseId!);
+      const result = await hrApiClient.list({
+        entity: "employees",
+        page: 1,
+        pageSize: 100,
+        filters: {
+          ...employeeFilters,
+          status: "active",
+        },
+        orderBy: "last_name",
+      });
+      setLeaderOptions(
+        result.items.map((employee) => ({
+          value: String(employee.id),
+          label: [employee.last_name, employee.first_name, employee.middle_name]
+            .filter(Boolean)
+            .join(" "),
+        })),
+      );
+    } catch (error) {
+      setLeaderTarget(null);
+      toast.error(getErrorMessage(error, "Не удалось загрузить сотрудников для назначения"));
+    } finally {
+      setLeaderLoading(false);
+    }
+  }
+
+  async function saveLeader(): Promise<void> {
+    if (!leaderTarget) return;
+    setLeaderLoading(true);
+    try {
+      if (leaderTarget === "enterprise" && enterpriseId) {
+        await hrApiClient.update({
+          entity: "enterprises",
+          id: enterpriseId,
+          data: {
+            general_director_employee_id: leaderId ? Number(leaderId) : null,
+          },
+        });
+      }
+      if (leaderTarget === "department" && departmentId) {
+        await hrApiClient.update({
+          entity: "departments",
+          id: departmentId,
+          data: {
+            director_employee_id: leaderId ? Number(leaderId) : null,
+          },
+        });
+      }
+      toast.success(
+        leaderId ? "Руководитель назначен" : "Руководитель снят с назначения",
+      );
+      setLeaderTarget(null);
+      setRefreshIndex((value) => value + 1);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось сохранить назначение руководителя"));
+    } finally {
+      setLeaderLoading(false);
+    }
+  }
+
+  if (isLoading) {
+    return <LoadingState label="Загрузка организационной структуры..." />;
+  }
 
   if (hasError) {
     return (
@@ -165,21 +248,43 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const headerActions = (
     <div className="flex flex-wrap items-center justify-end gap-3">
       {breadcrumbs}
-      <Button
-        className="border-white/20 shadow-xl hover:opacity-90"
-        leftIcon={<FiPlus className="h-4 w-4" />}
-        onClick={() =>
-          document
-            .querySelector<HTMLButtonElement>(
-              ".organization-entity-table .app-button-primary",
-            )
-            ?.click()
-        }
-        style={{ background: "#ffffff", color: "#0f172a" }}
-        variant="ghost"
-      >
-        {page.createLabel}
-      </Button>
+      {canManage && level === "departments" && enterprise && (
+        <Button
+          className="border-white/20 bg-white/10 text-white"
+          leftIcon={<FiUserCheck className="h-4 w-4" />}
+          onClick={() => void openLeaderDialog("enterprise")}
+          variant="ghost"
+        >
+          Руководитель предприятия
+        </Button>
+      )}
+      {canManage && level === "positions" && department && (
+        <Button
+          className="border-white/20 bg-white/10 text-white"
+          leftIcon={<FiUserCheck className="h-4 w-4" />}
+          onClick={() => void openLeaderDialog("department")}
+          variant="ghost"
+        >
+          Руководитель отдела
+        </Button>
+      )}
+      {canManage && (
+        <Button
+          className="border-white/20 shadow-xl hover:opacity-90"
+          leftIcon={<FiPlus className="h-4 w-4" />}
+          onClick={() =>
+            document
+              .querySelector<HTMLButtonElement>(
+                ".organization-entity-table .app-button-primary",
+              )
+              ?.click()
+          }
+          style={{ background: "#ffffff", color: "#0f172a" }}
+          variant="ghost"
+        >
+          {page.createLabel}
+        </Button>
+      )}
     </div>
   );
 
@@ -192,13 +297,14 @@ export function OrganizationHierarchyPage(): JSX.Element {
       </div>
 
       <HrEntityTable
-        className="organization-entity-table"
+        className={`organization-entity-table${canManage ? "" : " organization-entity-table--read-only"}`}
         createInitialRecord={page.createInitialRecord}
         entity={page.entity}
         externalFilters={
           level === "enterprises" ? enterpriseFilters : page.filters
         }
         hiddenColumnKeys={page.hiddenColumnKeys}
+        hideCreateButton={!canManage}
         hideToolbarSearch
         onRowClick={
           level === "enterprises"
@@ -213,8 +319,71 @@ export function OrganizationHierarchyPage(): JSX.Element {
         onViewModeChange={setViewMode}
         viewMode={viewMode}
       />
+
+      <Dialog
+        description={
+          leaderTarget === "enterprise"
+            ? "Выберите активного сотрудника этого предприятия. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
+            : "Выберите активного сотрудника этого отдела. При наличии учётной записи ему автоматически будет выдана системная роль руководителя отдела."
+        }
+        onOpenChange={(open) => !open && setLeaderTarget(null)}
+        open={Boolean(leaderTarget)}
+        title={
+          leaderTarget === "enterprise"
+            ? "Назначить руководителя предприятия"
+            : "Назначить руководителя отдела"
+        }
+      >
+        {leaderLoading && leaderOptions.length === 0 ? (
+          <LoadingState label="Загрузка сотрудников..." />
+        ) : (
+          <div className="grid gap-5">
+            <label className="grid gap-2">
+              <span className="app-text text-sm font-black">Сотрудник</span>
+              <Select
+                allowEmpty
+                emptyOptionLabel="Не назначен"
+                onValueChange={setLeaderId}
+                options={leaderOptions}
+                placeholder="Выберите сотрудника"
+                value={leaderId}
+              />
+            </label>
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => setLeaderTarget(null)}
+                type="button"
+                variant="secondary"
+              >
+                Отмена
+              </Button>
+              <Button disabled={leaderLoading} onClick={() => void saveLeader()}>
+                Сохранить назначение
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
     </div>
   );
+}
+
+async function getEnterpriseEmployeeFilter(
+  enterpriseId: number,
+): Promise<{ department_id: { operator: "in"; value: number[] } }> {
+  const departments = await hrApiClient.list({
+    entity: "departments",
+    page: 1,
+    pageSize: 100,
+    filters: { enterprise_id: enterpriseId },
+    orderBy: "name",
+  });
+  return {
+    department_id: {
+      operator: "in",
+      value: departments.items.map((item) => Number(item.id)).filter(Number.isFinite),
+    },
+  };
 }
 
 function getPageContent(
@@ -267,4 +436,10 @@ function recordName(record: HrRecord | null): string {
 function toId(value: unknown): number | null {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+  const parts = error.message.split("Error: ");
+  return parts[parts.length - 1] || fallback;
 }
