@@ -21,6 +21,7 @@ const entityPermissions: Record<
   employee_education: { view: "employees.view", manage: "employees.manage" },
   employee_experience: { view: "employees.view", manage: "employees.manage" },
   employment_history: { view: "employees.view", manage: "employees.manage" },
+  vacation_types: { view: "vacations.view", manage: "vacations.manage" },
   vacations: { view: "vacations.view", manage: "vacations.manage" },
 };
 
@@ -71,20 +72,29 @@ export class AuthorizationService {
 
   assertCanCreate(entity: HrEntityKey, data: HrRecord): void {
     const session = this.requireManagePermission(entity);
-    if (entity === "enterprises" && session.scopeType !== "global") {
-      throw new Error("Создание предприятия доступно только в глобальной области");
+    if (
+      (entity === "enterprises" || entity === "vacation_types") &&
+      session.scopeType !== "global"
+    ) {
+      throw new Error("Это действие доступно только в глобальной области данных");
     }
     this.assertRecordInScope(entity, data, session);
   }
 
   assertCanUpdate(entity: HrEntityKey, existing: HrRecord, data: HrRecord): void {
     const session = this.requireManagePermission(entity);
+    if (entity === "vacation_types" && session.scopeType !== "global") {
+      throw new Error("Справочник отпусков доступен для изменения только глобально");
+    }
     this.assertRecordInScope(entity, existing, session);
     this.assertRecordInScope(entity, { ...existing, ...data }, session);
   }
 
   assertCanDelete(entity: HrEntityKey, existing: HrRecord): void {
     const session = this.requireManagePermission(entity);
+    if (entity === "vacation_types" && session.scopeType !== "global") {
+      throw new Error("Справочник отпусков доступен для изменения только глобально");
+    }
     this.assertRecordInScope(entity, existing, session);
   }
 
@@ -133,22 +143,37 @@ export class AuthorizationService {
 
   dashboard(): HrDashboardStats {
     const session = this.requirePermission("dashboard.view");
-    if (session.scopeType === "global") {
-      return this.globalDashboard();
-    }
+    if (session.scopeType === "global") return this.globalDashboard();
 
     const employeeIds = this.getAllowedEmployeeIds(session);
     const departmentIds = this.getAllowedDepartmentIds(session);
+    const positionIds = this.getAllowedPositionIds(session);
+    const vacancyIds = this.getAllowedVacancyIds(positionIds);
 
     return {
       employeesTotal: employeeIds.length,
       departmentsTotal: departmentIds.length,
-      positionsTotal: this.countIn("positions", "department_id", departmentIds),
+      positionsTotal: positionIds.length,
       activeVacations: this.countWithEmployeeIds(
         `SELECT COUNT(*) FROM vacations
          WHERE status IN ('planned', 'approved')`,
         employeeIds,
       ),
+      upcomingVacations: this.countWithEmployeeIds(
+        `SELECT COUNT(*) FROM vacations
+         WHERE status IN ('planned', 'approved')
+           AND starts_at >= DATE('now')
+           AND starts_at <= DATE('now', '+30 day')`,
+        employeeIds,
+      ),
+      openVacancies: this.countIn("vacancies", "position_id", positionIds, "status = 'open'"),
+      candidatesOnOffer: this.countIn("candidates", "vacancy_id", vacancyIds, "status = 'offer'"),
+      blockedUsers: this.countUsersForEmployees(employeeIds, "user.status = 'blocked'"),
+      employeesMissingAssignment: this.countEmployees(
+        employeeIds,
+        "(employee.department_id IS NULL OR employee.position_id IS NULL)",
+      ),
+      emailConflicts: 0,
     };
   }
 
@@ -160,9 +185,7 @@ export class AuthorizationService {
     const regularPermission = entityPermissions[entity].view;
     const regularScope = session.permissionScopes[regularPermission];
 
-    if (regularScope) {
-      return { ...session, scopeType: regularScope };
-    }
+    if (regularScope) return { ...session, scopeType: regularScope };
 
     const canUseProfilePermission =
       [
@@ -191,6 +214,9 @@ export class AuthorizationService {
   ): { column: string; values: number[] } | null {
     if (session.scopeType === "global") return null;
 
+    if (entity === "vacation_types") {
+      return { column: "id", values: [-1] };
+    }
     if (entity === "enterprises") {
       return { column: "id", values: compactIds([session.enterpriseId]) };
     }
@@ -231,6 +257,9 @@ export class AuthorizationService {
     session: AuthSession,
   ): void {
     if (session.scopeType === "global") return;
+    if (entity === "vacation_types") {
+      throw new Error("Справочник отпусков доступен только глобально");
+    }
 
     const context = this.resolveRecordContext(entity, record);
     const allowed =
@@ -351,18 +380,17 @@ export class AuthorizationService {
     return compactIds([session.departmentId]);
   }
 
+  private getAllowedPositionIds(session: AuthSession): number[] {
+    return this.idsIn("positions", "department_id", this.getAllowedDepartmentIds(session));
+  }
+
   private getAllowedEmployeeIds(session: AuthSession): number[] {
     if (session.scopeType === "self") return [session.employeeId];
-    const departmentIds = this.getAllowedDepartmentIds(session);
-    if (departmentIds.length === 0) return [];
-    const placeholders = departmentIds.map(() => "?").join(", ");
-    return (
-      this.database
-        .prepare(
-          `SELECT id FROM employees WHERE department_id IN (${placeholders})`,
-        )
-        .all(...departmentIds) as Array<{ id: number }>
-    ).map((row) => row.id);
+    return this.idsIn("employees", "department_id", this.getAllowedDepartmentIds(session));
+  }
+
+  private getAllowedVacancyIds(positionIds: number[]): number[] {
+    return this.idsIn("vacancies", "position_id", positionIds);
   }
 
   private isVacancyInScope(record: HrRecord, session: AuthSession): boolean {
@@ -404,15 +432,64 @@ export class AuthorizationService {
       activeVacations: this.scalar(
         "SELECT COUNT(*) FROM vacations WHERE status IN ('planned', 'approved')",
       ),
+      upcomingVacations: this.scalar(
+        `SELECT COUNT(*) FROM vacations
+         WHERE status IN ('planned', 'approved')
+           AND starts_at >= DATE('now')
+           AND starts_at <= DATE('now', '+30 day')`,
+      ),
+      openVacancies: this.scalar("SELECT COUNT(*) FROM vacancies WHERE status = 'open'"),
+      candidatesOnOffer: this.scalar("SELECT COUNT(*) FROM candidates WHERE status = 'offer'"),
+      blockedUsers: this.scalar("SELECT COUNT(*) FROM users WHERE status = 'blocked'"),
+      employeesMissingAssignment: this.scalar(
+        "SELECT COUNT(*) FROM employees WHERE department_id IS NULL OR position_id IS NULL",
+      ),
+      emailConflicts: this.scalar("SELECT COUNT(*) FROM email_conflicts"),
     };
   }
 
-  private countIn(table: string, column: string, ids: number[]): number {
+  private idsIn(table: string, column: string, ids: number[]): number[] {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(", ");
+    return (
+      this.database
+        .prepare(`SELECT id FROM ${table} WHERE ${column} IN (${placeholders})`)
+        .all(...ids) as Array<{ id: number }>
+    ).map((row) => row.id);
+  }
+
+  private countIn(
+    table: string,
+    column: string,
+    ids: number[],
+    extraCondition?: string,
+  ): number {
     if (ids.length === 0) return 0;
     const placeholders = ids.map(() => "?").join(", ");
     return this.scalar(
-      `SELECT COUNT(*) FROM ${table} WHERE ${column} IN (${placeholders})`,
+      `SELECT COUNT(*) FROM ${table}
+       WHERE ${column} IN (${placeholders})${extraCondition ? ` AND ${extraCondition}` : ""}`,
       ids,
+    );
+  }
+
+  private countEmployees(employeeIds: number[], condition: string): number {
+    if (employeeIds.length === 0) return 0;
+    const placeholders = employeeIds.map(() => "?").join(", ");
+    return this.scalar(
+      `SELECT COUNT(*) FROM employees AS employee
+       WHERE employee.id IN (${placeholders}) AND ${condition}`,
+      employeeIds,
+    );
+  }
+
+  private countUsersForEmployees(employeeIds: number[], condition: string): number {
+    if (employeeIds.length === 0) return 0;
+    const placeholders = employeeIds.map(() => "?").join(", ");
+    return this.scalar(
+      `SELECT COUNT(*) FROM users AS user
+       WHERE user.employee_id IN (${placeholders}) AND ${condition}`,
+      employeeIds,
     );
   }
 
