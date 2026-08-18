@@ -109,12 +109,6 @@ export interface HrDashboardStats {
   emailConflicts: number;
 }
 
-export interface HrDashboardSnapshot {
-  stats: HrDashboardStats;
-  latestEmployees: HrRecord[];
-  upcomingVacationItems: HrRecord[];
-}
-
 export interface RecruitmentListParams {
   search?: string;
 }
@@ -220,7 +214,7 @@ export interface HrApi {
   terminateEmployee(params: HrTerminationParams): Promise<HrRecord>;
   correctHireDate(params: HrHireDateCorrectionParams): Promise<HrRecord>;
   delete(params: HrDeleteParams): Promise<{ success: true }>;
-  dashboard(): Promise<HrDashboardSnapshot>;
+  dashboard(): Promise<HrDashboardStats>;
   listVacancies(params: RecruitmentListParams): Promise<HrRecord[]>;
   getVacancy(id: number): Promise<VacancyProfile | null>;
   saveVacancy(params: SaveVacancyParams): Promise<VacancyProfile>;
