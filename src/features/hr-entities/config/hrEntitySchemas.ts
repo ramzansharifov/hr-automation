@@ -117,8 +117,6 @@ const positionsSchema = z.object({
   department_id: requiredNumberString(),
   name: requiredString(),
   base_salary: requiredNumberString(),
-  allowance: optionalNumberString(),
-  bonus: optionalNumberString(),
   responsibilities: optionalString(),
   requirements: optionalString(),
   note: optionalString(),
@@ -132,7 +130,6 @@ const vacationsSchema = z
     ends_at: requiredString(),
     days_count: requiredNumberString(),
     is_paid: requiredNumberString(),
-    payment_amount: optionalNumberString(),
     reason: optionalString(),
     status: requiredString(),
     approved_at: optionalString(),
@@ -146,18 +143,6 @@ const vacationsSchema = z
       path: ["ends_at"],
     },
   );
-
-const payrollSchema = z.object({
-  employee_id: requiredNumberString(),
-  accrual_month: requiredString(),
-  base_salary: requiredNumberString(),
-  bonus: optionalNumberString(),
-  allowance: optionalNumberString(),
-  deductions: optionalNumberString(),
-  taxes: optionalNumberString(),
-  paid_at: optionalString(),
-  note: optionalString(),
-});
 
 const employmentHistorySchema = z.object({
   employee_id: requiredNumberString(),
@@ -182,7 +167,6 @@ export const hrEntitySchemas = {
   departments: departmentsSchema,
   positions: positionsSchema,
   vacations: vacationsSchema,
-  payroll: payrollSchema,
 } satisfies Record<HrEntityKey, z.ZodType<unknown>>;
 
 export function getHrEntitySchema(
