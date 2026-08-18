@@ -67,7 +67,7 @@ export function Dialog({
           </div>
 
           {children !== undefined && children !== null && (
-            <div className="app-dialog-body min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 [&>form>.sticky]:static [&>form>.sticky]:mx-0 [&>form>.sticky]:mb-0 [&>form>.sticky]:mt-6 [&>form>.sticky]:px-0 [&>form>.sticky]:pb-0">
+            <div className="app-dialog-body min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
               {children}
             </div>
           )}
