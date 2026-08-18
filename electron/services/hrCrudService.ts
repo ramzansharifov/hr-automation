@@ -132,7 +132,7 @@ export class HrCrudService {
       throw new Error("Выберите вид отпуска");
     }
 
-    const prepared = {
+    const prepared: HrRecord = {
       ...data,
       days_count: daysCount,
       is_paid: Number(data.is_paid) === 1 ? 1 : 0,
