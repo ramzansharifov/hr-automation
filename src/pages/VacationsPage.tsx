@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FiCalendar,
   FiEdit2,
   FiPlus,
   FiRefreshCw,
-  FiSearch,
   FiSettings,
   FiTrash2,
   FiUser,
@@ -22,20 +21,9 @@ import type { HrRecord } from "../shared/types/hr";
 import {
   Button,
   EmptyState,
-  Input,
   LoadingState,
   PageHeader,
-  Select,
-  type SelectOption,
 } from "../shared/ui";
-
-const statusOptions: SelectOption[] = [
-  { value: "all", label: "Все статусы" },
-  { value: "planned", label: "Запланирован" },
-  { value: "approved", label: "Согласован" },
-  { value: "rejected", label: "Отклонён" },
-  { value: "completed", label: "Завершён" },
-];
 
 export function VacationsPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
@@ -47,8 +35,6 @@ export function VacationsPage(): JSX.Element {
 
   const [records, setRecords] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
   const [editingRecord, setEditingRecord] = useState<HrRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -87,22 +73,6 @@ export function VacationsPage(): JSX.Element {
   useEffect(() => {
     void loadData();
   }, [loadData]);
-
-  const filteredRecords = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("ru");
-    return records.filter((record) => {
-      if (status !== "all" && String(record.status) !== status) return false;
-      if (!query) return true;
-      return [
-        record.employee_name,
-        record.vacation_type_name,
-        record.reason,
-        statusLabel(record.status),
-      ]
-        .map((value) => String(value ?? "").toLocaleLowerCase("ru"))
-        .some((value) => value.includes(query));
-    });
-  }, [records, search, status]);
 
   function openCreate(): void {
     setEditingRecord(null);
@@ -205,34 +175,18 @@ export function VacationsPage(): JSX.Element {
       )}
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft flex flex-col gap-3 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-md">
-            <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <Input
-              className="pl-11"
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Сотрудник, вид отпуска или основание"
-              value={search}
-            />
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Select
-              onValueChange={setStatus}
-              options={statusOptions}
-              value={status}
-            />
-            <Button
-              leftIcon={
-                <FiRefreshCw
-                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-                />
-              }
-              onClick={() => void loadData()}
-              variant="secondary"
-            >
-              Обновить
-            </Button>
-          </div>
+        <div className="app-border-soft flex justify-end border-b p-5">
+          <Button
+            leftIcon={
+              <FiRefreshCw
+                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+              />
+            }
+            onClick={() => void loadData()}
+            variant="secondary"
+          >
+            Обновить
+          </Button>
         </div>
 
         {employeeFilter && (
@@ -245,20 +199,16 @@ export function VacationsPage(): JSX.Element {
           <div className="p-12">
             <LoadingState label="Загрузка отпусков..." />
           </div>
-        ) : filteredRecords.length === 0 ? (
+        ) : records.length === 0 ? (
           <div className="py-14">
             <EmptyState
-              description={
-                records.length === 0
-                  ? "В доступной области данных пока нет записей об отпусках."
-                  : "Измените строку поиска или выбранный статус."
-              }
-              title={records.length === 0 ? "Отпусков пока нет" : "Ничего не найдено"}
+              description="В доступной области данных пока нет записей об отпусках."
+              title="Отпусков пока нет"
             />
           </div>
         ) : (
           <div className="grid gap-4 p-5 xl:grid-cols-2">
-            {filteredRecords.map((record) => (
+            {records.map((record) => (
               <VacationCard
                 canManage={canManage}
                 key={String(record.id)}
