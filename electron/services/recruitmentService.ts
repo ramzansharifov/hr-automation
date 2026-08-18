@@ -1,4 +1,5 @@
 import type {
+  HireCandidateParams,
   RecruitmentListParams,
   SaveCandidateParams,
   SaveVacancyParams,
@@ -24,6 +25,7 @@ export class RecruitmentService {
     if (params.skills.length === 0) {
       throw new Error("Добавьте хотя бы один hard или soft skill");
     }
+
     const names = new Set<string>();
     const skillIds = new Set<number>();
     params.skills.forEach((skill) => {
@@ -43,6 +45,7 @@ export class RecruitmentService {
       assertRange(skill.requiredLevel, 1, 10, "Требуемый уровень навыка");
       assertRange(skill.weight, 1, 5, "Вес навыка");
     });
+
     return this.repository.saveVacancy(params);
   }
 
@@ -64,6 +67,28 @@ export class RecruitmentService {
       throw new Error("Укажите имя и фамилию кандидата");
     }
     assertId(params.vacancyId, "вакансии");
+
+    const existing = params.id
+      ? this.repository.getCandidate(assertId(params.id, "кандидата"))
+      : null;
+    if (params.id && !existing) throw new Error("Кандидат не найден");
+
+    const isAlreadyHired = Boolean(existing?.candidate.employee_id);
+    if (params.status === "hired" && !isAlreadyHired) {
+      throw new Error(
+        "Для приёма кандидата используйте действие «Принять на работу»",
+      );
+    }
+    if (isAlreadyHired && params.status !== "hired") {
+      throw new Error("Принятого сотрудника нельзя вернуть на этап подбора");
+    }
+    if (
+      isAlreadyHired &&
+      Number(existing?.candidate.vacancy_id) !== params.vacancyId
+    ) {
+      throw new Error("Нельзя изменить вакансию уже принятого кандидата");
+    }
+
     const skillIds = new Set<number>();
     params.skillScores.forEach((skill) => {
       assertId(skill.vacancySkillId, "навыка");
@@ -73,7 +98,29 @@ export class RecruitmentService {
       skillIds.add(skill.vacancySkillId);
       assertRange(skill.score, 0, 10, "Оценка кандидата");
     });
+
     return this.repository.saveCandidate(params);
+  }
+
+  hireCandidate(params: HireCandidateParams) {
+    assertId(params.candidateId, "кандидата");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(params.hireDate)) {
+      throw new Error("Укажите корректную дату выхода на работу");
+    }
+    if (!Number.isFinite(params.salary) || params.salary < 0) {
+      throw new Error("Укажите корректный оклад");
+    }
+
+    const profile = this.repository.getCandidate(params.candidateId);
+    if (!profile) throw new Error("Кандидат не найден");
+    if (profile.candidate.employee_id) {
+      throw new Error("Кандидат уже принят на работу");
+    }
+    if (profile.candidate.status !== "offer") {
+      throw new Error("Принять на работу можно кандидата на этапе «Оффер»");
+    }
+
+    return this.repository.hireCandidate(params);
   }
 
   deleteCandidate(id: number) {
