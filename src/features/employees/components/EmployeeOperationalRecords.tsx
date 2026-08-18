@@ -313,7 +313,7 @@ async function loadEmployeeVacations(employeeId: number): Promise<HrRecord[]> {
 }
 
 function canDeleteVacation(record: HrRecord): boolean {
-  return ["planned", "rejected"].includes(String(record.status ?? "planned"));
+  return String(record.status ?? "planned") === "planned";
 }
 
 function getRecordId(record: HrRecord | null): number {
