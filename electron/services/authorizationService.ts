@@ -50,6 +50,8 @@ export class AuthorizationService {
 
   scopeListParams(entity: HrEntityKey, params: HrListParams): HrListParams {
     const session = this.requireViewPermission(entity);
+    if (entity === "vacation_types") return params;
+
     const restriction = this.getEntityRestriction(entity, session);
     if (!restriction) return params;
 
@@ -67,6 +69,7 @@ export class AuthorizationService {
 
   assertCanViewRecord(entity: HrEntityKey, record: HrRecord): void {
     const session = this.requireViewPermission(entity, record);
+    if (entity === "vacation_types") return;
     this.assertRecordInScope(entity, record, session);
   }
 
@@ -214,9 +217,6 @@ export class AuthorizationService {
   ): { column: string; values: number[] } | null {
     if (session.scopeType === "global") return null;
 
-    if (entity === "vacation_types") {
-      return { column: "id", values: [-1] };
-    }
     if (entity === "enterprises") {
       return { column: "id", values: compactIds([session.enterpriseId]) };
     }
