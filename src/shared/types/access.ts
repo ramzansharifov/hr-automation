@@ -91,7 +91,7 @@ export interface AccessControlOverview {
   permissions: AccessPermission[];
   roles: AccessRoleSummary[];
   users: AccessUserSummary[];
-  systemAdmin: SystemAdminSummary;
+  systemAdmin?: SystemAdminSummary;
 }
 
 export interface AuthEmployeeOption {
