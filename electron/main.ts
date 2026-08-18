@@ -28,7 +28,7 @@ function createWindow(): void {
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -39,12 +39,15 @@ function createWindow(): void {
   })
 
   win.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    try {
+      const protocol = new URL(details.url).protocol
+      if (protocol === 'https:' || protocol === 'http:') {
+        void shell.openExternal(details.url)
+      }
+    } catch {
+      // Invalid URLs are ignored.
+    }
     return { action: 'deny' }
-  })
-
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString())
   })
 
   if (VITE_DEV_SERVER_URL) {
