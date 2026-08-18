@@ -1,0 +1,7 @@
+.organization-entity-table--read-only .app-table-action-button {
+  display: none;
+}
+
+.organization-entity-table--read-only th:last-child:has(+ *) {
+  display: none;
+}
