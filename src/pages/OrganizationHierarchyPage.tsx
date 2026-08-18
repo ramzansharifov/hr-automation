@@ -34,7 +34,7 @@ type LeaderTarget = "enterprise" | "department";
 export function OrganizationHierarchyPage(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
   const canManage = hasPermission("organization.manage");
   const enterpriseId = toId(params.enterpriseId);
   const departmentId = toId(params.departmentId);
@@ -43,6 +43,10 @@ export function OrganizationHierarchyPage(): JSX.Element {
     : enterpriseId
       ? "departments"
       : "enterprises";
+  const canCreate =
+    canManage &&
+    (level !== "enterprises" ||
+      session.permissionScopes["organization.manage"] === "global");
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
   const [isLoading, setIsLoading] = useState(level !== "enterprises");
@@ -268,7 +272,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
           Руководитель отдела
         </Button>
       )}
-      {canManage && (
+      {canCreate && (
         <Button
           className="border-white/20 shadow-xl hover:opacity-90"
           leftIcon={<FiPlus className="h-4 w-4" />}
@@ -304,7 +308,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
           level === "enterprises" ? enterpriseFilters : page.filters
         }
         hiddenColumnKeys={page.hiddenColumnKeys}
-        hideCreateButton={!canManage}
+        hideCreateButton={!canCreate}
         hideToolbarSearch
         onRowClick={
           level === "enterprises"
