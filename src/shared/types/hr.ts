@@ -25,7 +25,8 @@ export type HrEntityKey =
   | "vacations";
 
 export type HrOrderDirection = "asc" | "desc";
-export type HrRecord = Record<string, unknown>;
+export type HrScalarValue = string | number | boolean | null | undefined;
+export type HrRecord = Record<string, HrScalarValue>;
 export type HrFilterValue =
   string | number | boolean | null | Array<string | number | boolean | null>;
 export type HrFilterOperator = "equals" | "contains" | "gte" | "lte" | "in";
@@ -185,7 +186,7 @@ export interface AuditEvent {
   entityId: number | null;
   before: HrRecord | null;
   after: HrRecord | null;
-  metadata: HrRecord | null;
+  metadata: Record<string, unknown> | null;
 }
 
 export interface AuditListParams {
