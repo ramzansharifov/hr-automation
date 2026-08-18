@@ -20,7 +20,7 @@ interface EmployeeProfileHeaderProps {
   fullName: string;
   isActive: boolean;
   onBack: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   position: string;
   status: string;
   t: TFunction;
@@ -83,36 +83,38 @@ export function EmployeeProfileHeader({
         >
           {t("employeesDetails.backToList")}
         </Button>
-        <Button
-          leftIcon={<FiEdit2 className="h-4 w-4" />}
-          onClick={onEdit}
-          type="button"
-          variant="primary"
-        >
-          {t("common.actions.edit")}
-        </Button>
+        {onEdit && (
+          <Button
+            leftIcon={<FiEdit2 className="h-4 w-4" />}
+            onClick={onEdit}
+            type="button"
+            variant="primary"
+          >
+            {t("common.actions.edit")}
+          </Button>
+        )}
       </div>
     </header>
   );
 }
 
-interface EmployeePassportCardProps {
+interface EmployeeOverviewCardsProps {
   employee: HrRecord;
   fullName: string;
   locale: string;
-  onEditAddress: () => void;
-  onEditPersonal: () => void;
+  onEditAddress?: () => void;
+  onEditPersonal?: () => void;
   t: TFunction;
 }
 
-export function EmployeePassportCard({
+export function EmployeeOverviewCards({
   employee,
   fullName,
   locale,
   onEditAddress,
   onEditPersonal,
   t,
-}: EmployeePassportCardProps): JSX.Element {
+}: EmployeeOverviewCardsProps): JSX.Element {
   const address = composeAddress(employee, t);
 
   return (
@@ -165,14 +167,6 @@ export function EmployeePassportCard({
         title={t("employeesDetails.sections.address")}
       >
         <ProfileRow label={t("forms.fields.address")} value={address} />
-        <ProfileRow
-          label={t("forms.fields.addressCity")}
-          value={valueOrEmpty(getString(employee.address_city), t)}
-        />
-        <ProfileRow
-          label={t("forms.fields.addressCountry")}
-          value={valueOrEmpty(getString(employee.address_country), t)}
-        />
       </OverviewCard>
     </motion.section>
   );
@@ -188,7 +182,7 @@ function OverviewCard({
   actionLabel: string;
   children: ReactNode;
   icon: ReactNode;
-  onEdit: () => void;
+  onEdit?: () => void;
   title: string;
 }): JSX.Element {
   return (
@@ -198,14 +192,16 @@ function OverviewCard({
           <span className="employee-card-icon">{icon}</span>
           <h2 className="employee-card-title">{title}</h2>
         </div>
-        <button
-          aria-label={`${actionLabel}: ${title}`}
-          className="employee-card-edit"
-          onClick={onEdit}
-          type="button"
-        >
-          <FiEdit2 />
-        </button>
+        {onEdit && (
+          <button
+            aria-label={`${actionLabel}: ${title}`}
+            className="employee-card-edit"
+            onClick={onEdit}
+            type="button"
+          >
+            <FiEdit2 />
+          </button>
+        )}
       </header>
       <div className="employee-overview-card__body">{children}</div>
     </article>
@@ -288,13 +284,9 @@ function composeAddress(employee: HrRecord, t: TFunction): string {
   const detailedAddress = getString(employee.address);
 
   if (parts.length > 0 && detailedAddress) {
-    return `${parts.join(", ")}\n${detailedAddress}`;
+    return `${parts.join(", ")}. ${detailedAddress}`;
   }
-
-  if (parts.length > 0) {
-    return parts.join(", ");
-  }
-
+  if (parts.length > 0) return parts.join(", ");
   return valueOrEmpty(detailedAddress, t);
 }
 
