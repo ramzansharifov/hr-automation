@@ -9,7 +9,6 @@ export interface EmployeeRelationOptions {
 
 export interface PositionOption extends SelectOption {
   departmentId: string;
-  baseSalary: string;
 }
 
 export async function loadEmployeeRelationOptions(): Promise<EmployeeRelationOptions> {
@@ -18,49 +17,52 @@ export async function loadEmployeeRelationOptions(): Promise<EmployeeRelationOpt
     loadPositionOptions(),
   ]);
 
-  return {
-    departments,
-    positions,
-  };
+  return { departments, positions };
 }
 
 async function loadPositionOptions(): Promise<PositionOption[]> {
-  const result = await hrApiClient.list({
-    entity: "positions",
-    page: 1,
-    pageSize: 100,
-    orderBy: "name",
-    orderDirection: "asc",
-  });
-  return result.items.map((item) => ({
+  const records = await loadAll("positions");
+  return records.map((item) => ({
     value: String(item.id ?? ""),
     label: getRecordLabel(item),
     departmentId: String(item.department_id ?? ""),
-    baseSalary: String(item.base_salary ?? 0),
   }));
 }
 
 export function getRecordLabel(record: HrRecord | null | undefined): string {
-  if (!record) {
-    return "";
-  }
-
+  if (!record) return "";
   return String(record.name ?? record.id ?? "");
 }
 
 async function loadEntityOptions(
   entity: Extract<HrEntityKey, "departments" | "positions">,
 ): Promise<SelectOption[]> {
-  const result = await hrApiClient.list({
-    entity,
-    page: 1,
-    pageSize: 50000,
-    orderBy: "name",
-    orderDirection: "asc",
-  });
-
-  return result.items.map((item) => ({
+  const records = await loadAll(entity);
+  return records.map((item) => ({
     value: String(item.id ?? ""),
     label: getRecordLabel(item),
   }));
+}
+
+async function loadAll(
+  entity: Extract<HrEntityKey, "departments" | "positions">,
+): Promise<HrRecord[]> {
+  const records: HrRecord[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const result = await hrApiClient.list({
+      entity,
+      page,
+      pageSize: 100,
+      orderBy: "name",
+      orderDirection: "asc",
+    });
+    records.push(...result.items);
+    totalPages = Math.max(result.totalPages, 1);
+    page += 1;
+  } while (page <= totalPages);
+
+  return records;
 }
