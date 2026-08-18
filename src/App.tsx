@@ -11,6 +11,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { FiltersPage } from "./pages/FiltersPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { VacationsPage } from "./pages/VacationsPage";
 import { AccessControlPage } from "./pages/access/AccessControlPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
@@ -142,7 +143,11 @@ function App(): JSX.Element {
           <Route path="positions" element={<Navigate to="/enterprises" replace />} />
           <Route
             path="vacations"
-            element={<Navigate to="/filters?module=vacations" replace />}
+            element={
+              <RequirePermission anyOf={["vacations.view"]}>
+                <VacationsPage />
+              </RequirePermission>
+            }
           />
           <Route
             path="profile"
