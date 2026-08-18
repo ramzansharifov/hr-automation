@@ -12,21 +12,15 @@ import {
 } from "../../../shared/ui";
 import { HrEntityTable } from "../../hr-table/HrEntityTable";
 import {
-  buildPayrollHrFilters,
   buildVacationHrFilters,
-  clearStoredPayrollFilterValues,
   clearStoredVacationFilterValues,
-  emptyPayrollFilters,
   emptyVacationFilters,
-  getStoredPayrollFilterValues,
   getStoredVacationFilterValues,
-  setStoredPayrollFilterValues,
   setStoredVacationFilterValues,
-  type PayrollFilterValues,
   type VacationFilterValues,
 } from "../moduleFiltersStore";
 
-export type OperationalRegistry = "vacations" | "payroll";
+export type OperationalRegistry = "vacations";
 
 interface OperationalRegistryPanelProps {
   employeeId?: string;
@@ -49,28 +43,16 @@ export function OperationalRegistryPanel({
   employeeId = "",
   registry,
 }: OperationalRegistryPanelProps): JSX.Element {
-  const initialVacationFilters = useMemo(
+  const initialFilters = useMemo(
     () => withEmployee(getStoredVacationFilterValues(), employeeId),
     [employeeId],
   );
-  const initialPayrollFilters = useMemo(
-    () => withEmployee(getStoredPayrollFilterValues(), employeeId),
-    [employeeId],
-  );
 
-  const [vacationFilters, setVacationFilters] = useState<VacationFilterValues>(
-    initialVacationFilters,
-  );
-  const [payrollFilters, setPayrollFilters] = useState<PayrollFilterValues>(
-    initialPayrollFilters,
-  );
+  const [vacationFilters, setVacationFilters] =
+    useState<VacationFilterValues>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<
     Record<string, HrFilterCondition> | undefined
-  >(
-    registry === "vacations"
-      ? buildVacationHrFilters(initialVacationFilters)
-      : buildPayrollHrFilters(initialPayrollFilters),
-  );
+  >(buildVacationHrFilters(initialFilters));
   const [employeeOptions, setEmployeeOptions] = useState<SelectOption[]>([]);
   const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
 
@@ -96,28 +78,14 @@ export function OperationalRegistryPanel({
 
   function applyFilters(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-
-    if (registry === "vacations") {
-      setStoredVacationFilterValues(vacationFilters);
-      setAppliedFilters(buildVacationHrFilters(vacationFilters));
-      toast.success("Реестр отпусков обновлён");
-      return;
-    }
-
-    setStoredPayrollFilterValues(payrollFilters);
-    setAppliedFilters(buildPayrollHrFilters(payrollFilters));
-    toast.success("Реестр начислений обновлён");
+    setStoredVacationFilterValues(vacationFilters);
+    setAppliedFilters(buildVacationHrFilters(vacationFilters));
+    toast.success("Реестр отпусков обновлён");
   }
 
   function clearFilters(): void {
-    if (registry === "vacations") {
-      setVacationFilters(emptyVacationFilters);
-      clearStoredVacationFilterValues();
-    } else {
-      setPayrollFilters(emptyPayrollFilters);
-      clearStoredPayrollFilterValues();
-    }
-
+    setVacationFilters(emptyVacationFilters);
+    clearStoredVacationFilterValues();
     setAppliedFilters(undefined);
     toast.success("Фильтры очищены");
   }
@@ -126,113 +94,81 @@ export function OperationalRegistryPanel({
     <div className="space-y-6">
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <div className="app-border-soft border-b p-5 sm:p-7">
-          <h2 className="app-text text-xl font-black">
-            {registry === "vacations" ? "Фильтры отпусков" : "Фильтры начислений"}
-          </h2>
+          <h2 className="app-text text-xl font-black">Фильтры отпусков</h2>
           <p className="app-muted mt-2 text-sm font-medium">
-            {registry === "vacations"
-              ? "Найдите отпуск по сотруднику, типу, статусу, оплате или точным датам."
-              : "Найдите начисление по сотруднику и месяцу расчёта."}
+            Найдите отпуск по сотруднику, типу, статусу, признаку оплаты или точным датам.
           </p>
         </div>
 
         <form className="p-5 sm:p-7" onSubmit={applyFilters}>
-          {registry === "vacations" ? (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <FilterSelect
-                disabled={isEmployeesLoading}
-                label="Сотрудник"
-                onValueChange={(value) =>
-                  setVacationFilters((current) => ({
-                    ...current,
-                    employee_id: value,
-                  }))
-                }
-                options={employeeOptions}
-                value={vacationFilters.employee_id}
-              />
-              <FilterInput
-                label="Тип отпуска"
-                onChange={(value) =>
-                  setVacationFilters((current) => ({
-                    ...current,
-                    vacation_type: value,
-                  }))
-                }
-                value={vacationFilters.vacation_type}
-              />
-              <FilterSelect
-                label="Статус"
-                onValueChange={(value) =>
-                  setVacationFilters((current) => ({
-                    ...current,
-                    status: value,
-                  }))
-                }
-                options={vacationStatusOptions}
-                value={vacationFilters.status}
-              />
-              <FilterSelect
-                label="Оплата"
-                onValueChange={(value) =>
-                  setVacationFilters((current) => ({
-                    ...current,
-                    is_paid: value,
-                  }))
-                }
-                options={paymentOptions}
-                value={vacationFilters.is_paid}
-              />
-              <FilterInput
-                label="Дата начала"
-                onChange={(value) =>
-                  setVacationFilters((current) => ({
-                    ...current,
-                    starts_at: value,
-                  }))
-                }
-                type="date"
-                value={vacationFilters.starts_at}
-              />
-              <FilterInput
-                label="Дата окончания"
-                onChange={(value) =>
-                  setVacationFilters((current) => ({
-                    ...current,
-                    ends_at: value,
-                  }))
-                }
-                type="date"
-                value={vacationFilters.ends_at}
-              />
-            </div>
-          ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <FilterSelect
-                disabled={isEmployeesLoading}
-                label="Сотрудник"
-                onValueChange={(value) =>
-                  setPayrollFilters((current) => ({
-                    ...current,
-                    employee_id: value,
-                  }))
-                }
-                options={employeeOptions}
-                value={payrollFilters.employee_id}
-              />
-              <FilterInput
-                label="Месяц начисления"
-                onChange={(value) =>
-                  setPayrollFilters((current) => ({
-                    ...current,
-                    accrual_month: value,
-                  }))
-                }
-                type="month"
-                value={payrollFilters.accrual_month}
-              />
-            </div>
-          )}
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <FilterSelect
+              disabled={isEmployeesLoading}
+              label="Сотрудник"
+              onValueChange={(value) =>
+                setVacationFilters((current) => ({
+                  ...current,
+                  employee_id: value,
+                }))
+              }
+              options={employeeOptions}
+              value={vacationFilters.employee_id}
+            />
+            <FilterInput
+              label="Тип отпуска"
+              onChange={(value) =>
+                setVacationFilters((current) => ({
+                  ...current,
+                  vacation_type: value,
+                }))
+              }
+              value={vacationFilters.vacation_type}
+            />
+            <FilterSelect
+              label="Статус"
+              onValueChange={(value) =>
+                setVacationFilters((current) => ({
+                  ...current,
+                  status: value,
+                }))
+              }
+              options={vacationStatusOptions}
+              value={vacationFilters.status}
+            />
+            <FilterSelect
+              label="Оплата"
+              onValueChange={(value) =>
+                setVacationFilters((current) => ({
+                  ...current,
+                  is_paid: value,
+                }))
+              }
+              options={paymentOptions}
+              value={vacationFilters.is_paid}
+            />
+            <FilterInput
+              label="Дата начала"
+              onChange={(value) =>
+                setVacationFilters((current) => ({
+                  ...current,
+                  starts_at: value,
+                }))
+              }
+              type="date"
+              value={vacationFilters.starts_at}
+            />
+            <FilterInput
+              label="Дата окончания"
+              onChange={(value) =>
+                setVacationFilters((current) => ({
+                  ...current,
+                  ends_at: value,
+                }))
+              }
+              type="date"
+              value={vacationFilters.ends_at}
+            />
+          </div>
 
           <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
             <Button
