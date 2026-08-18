@@ -65,6 +65,12 @@ jobs:
           print("All migrations applied successfully")
           PY
 
+      - name: Audit production dependencies
+        id: audit
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; npm audit --omit=dev --audit-level=high 2>&1 | tee audit.log
+
       - name: Lint
         id: lint
         continue-on-error: true
@@ -83,9 +89,10 @@ jobs:
         with:
           name: validation-logs
           path: |
+            audit.log
             lint.log
             build.log
 
       - name: Fail on validation errors
-        if: steps.lint.outcome == 'failure' || steps.build.outcome == 'failure'
+        if: steps.audit.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.build.outcome == 'failure'
         run: exit 1
