@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FiBriefcase, FiCalendar, FiCreditCard, FiGrid, FiRefreshCw, FiUsers } from 'react-icons/fi'
+import { FiBriefcase, FiCalendar, FiGrid, FiRefreshCw, FiUsers } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 
 import type { HrDashboardStats, HrListResult } from '../shared/types/hr'
-import { formatCurrency, formatDate, humanizeStatus } from '../shared/lib/format'
+import { formatDate, humanizeStatus } from '../shared/lib/format'
 import { hrApiClient } from '../shared/lib/hrApiClient'
 import { getAppLocale } from '../shared/i18n'
 import { StatCard } from '../shared/ui/StatCard'
@@ -16,7 +16,6 @@ const initialStats: HrDashboardStats = {
   departmentsTotal: 0,
   positionsTotal: 0,
   activeVacations: 0,
-  payrollMonthTotal: 0,
 }
 
 const emptyList: HrListResult = {
@@ -97,12 +96,11 @@ export function DashboardPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title={t('dashboard.stats.employees')} value={stats.employeesTotal} icon={FiUsers} />
         <StatCard title={t('dashboard.stats.departments')} value={stats.departmentsTotal} icon={FiGrid} />
         <StatCard title={t('dashboard.stats.positions')} value={stats.positionsTotal} icon={FiBriefcase} />
         <StatCard title={t('dashboard.stats.vacations')} value={stats.activeVacations} icon={FiCalendar} />
-        <StatCard title={t('dashboard.stats.payroll')} value={formatCurrency(stats.payrollMonthTotal, locale)} icon={FiCreditCard} />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
