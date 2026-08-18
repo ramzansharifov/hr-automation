@@ -97,11 +97,11 @@ export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { t } = useTranslation();
   const { hasPermission, logout, session } = useAuth();
-  const visibleNavigationItems = navigationItems.filter((item) =>
-    hasPermission(item.permissionCode),
+  const visibleNavigationItems = navigationItems.filter(
+    (item) => !item.permissionCode || hasPermission(item.permissionCode),
   );
-  const visibleBottomItems = bottomNavigationItems.filter((item) =>
-    hasPermission(item.permissionCode),
+  const visibleBottomItems = bottomNavigationItems.filter(
+    (item) => !item.permissionCode || hasPermission(item.permissionCode),
   );
   const canSearch = [
     "employees.view",
@@ -111,7 +111,13 @@ export function AppLayout(): JSX.Element {
   const sidebarWidth = isSidebarCollapsed
     ? COLLAPSED_SIDEBAR_WIDTH
     : EXPANDED_SIDEBAR_WIDTH;
-  const primaryRole = session.roles[0]?.name ?? "Пользователь";
+  const isSystemAdmin = session.employeeId === 0;
+  const accountName = isSystemAdmin
+    ? session.username
+    : session.employeeName || session.username;
+  const primaryRole = isSystemAdmin
+    ? "Системный администратор"
+    : session.roles[0]?.name ?? "Пользователь";
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -229,7 +235,7 @@ export function AppLayout(): JSX.Element {
                   </span>
                   <span className="hidden min-w-0 pr-2 sm:block">
                     <span className="app-text block max-w-52 truncate text-sm font-black">
-                      {session.employeeName}
+                      {accountName}
                     </span>
                     <span className="app-muted block max-w-52 truncate text-[11px] font-bold">
                       {primaryRole}
