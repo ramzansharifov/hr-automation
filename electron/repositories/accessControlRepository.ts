@@ -6,6 +6,7 @@ import type {
   AccessUserRole,
   AccessUserStatus,
   AccessUserSummary,
+  SystemAdminSummary,
   SystemRoleKey,
 } from "../../src/shared/types/access";
 
@@ -32,6 +33,15 @@ interface UserRow {
   created_at: string;
   updated_at: string;
   last_login_at: string | null;
+}
+
+interface SystemAdminRow {
+  id: number;
+  username: string;
+  must_change_password: number;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PersistAccessRoleInput {
@@ -65,6 +75,27 @@ export class AccessControlRepository {
          ORDER BY module, name`,
       )
       .all() as AccessPermission[];
+  }
+
+  getSystemAdmin(): SystemAdminSummary {
+    const row = this.database
+      .prepare(
+        `SELECT id, username, must_change_password, last_login_at, created_at, updated_at
+         FROM system_admin_accounts
+         WHERE id = 1
+         LIMIT 1`,
+      )
+      .get() as SystemAdminRow | undefined;
+
+    if (!row) throw new Error("Встроенная учётная запись superadmin не найдена");
+    return {
+      id: row.id,
+      username: row.username,
+      mustChangePassword: row.must_change_password === 1,
+      lastLoginAt: row.last_login_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   listRoles(): AccessRoleSummary[] {
@@ -105,7 +136,7 @@ export class AccessControlRepository {
       permissionCodes: (permissionStatement.all(role.id) as Array<{ code: string }>).map(
         (item) => item.code,
       ),
-      userCount: Number(role.user_count),
+      userCount: Number(role.user_count) + (role.system_key === "superadmin" ? 1 : 0),
     }));
   }
 
@@ -137,19 +168,12 @@ export class AccessControlRepository {
       .all() as UserRow[];
 
     const roleStatement = this.database.prepare(
-      `SELECT
-         role.id,
-         role.code,
-         role.name,
-         role.scope_type,
-         role.is_system,
-         role.system_key
+      `SELECT role.id, role.code, role.name, role.scope_type, role.is_system, role.system_key
        FROM user_roles AS user_role
        JOIN roles AS role ON role.id = user_role.role_id
        WHERE user_role.user_id = ?
        ORDER BY role.is_system DESC, role.name`,
     );
-
     const permissionStatement = this.database.prepare(
       `SELECT DISTINCT permission.code
        FROM user_roles AS user_role
@@ -202,16 +226,10 @@ export class AccessControlRepository {
 
   getSystemRolesByIds(roleIds: number[]): SystemRoleKey[] {
     if (roleIds.length === 0) return [];
-
     const placeholders = roleIds.map(() => "?").join(", ");
     const rows = this.database
-      .prepare(
-        `SELECT system_key
-         FROM roles
-         WHERE id IN (${placeholders}) AND is_system = 1`,
-      )
+      .prepare(`SELECT system_key FROM roles WHERE id IN (${placeholders}) AND is_system = 1`)
       .all(...roleIds) as Array<{ system_key: SystemRoleKey }>;
-
     return rows.map((row) => row.system_key);
   }
 
@@ -229,9 +247,7 @@ export class AccessControlRepository {
     const uniqueCodes = [...new Set(permissionCodes)];
     const placeholders = uniqueCodes.map(() => "?").join(", ");
     const row = this.database
-      .prepare(
-        `SELECT COUNT(*) AS count FROM permissions WHERE code IN (${placeholders})`,
-      )
+      .prepare(`SELECT COUNT(*) AS count FROM permissions WHERE code IN (${placeholders})`)
       .get(...uniqueCodes) as { count: number };
     return Number(row.count) === uniqueCodes.length;
   }
@@ -252,41 +268,25 @@ export class AccessControlRepository {
     const row = this.database
       .prepare(
         `SELECT id FROM users
-         WHERE employee_id = ?
-           AND (? IS NULL OR id <> ?)
-         LIMIT 1`,
+         WHERE employee_id = ? AND (? IS NULL OR id <> ?) LIMIT 1`,
       )
       .get(employeeId, excludeId ?? null, excludeId ?? null);
     return Boolean(row);
   }
 
   employeeExists(employeeId: number): boolean {
-    return Boolean(
-      this.database.prepare("SELECT id FROM employees WHERE id = ? LIMIT 1").get(employeeId),
-    );
+    return Boolean(this.database.prepare("SELECT id FROM employees WHERE id = ? LIMIT 1").get(employeeId));
   }
 
   isEnterpriseDirector(employeeId: number): boolean {
     return Boolean(
-      this.database
-        .prepare(
-          `SELECT id FROM enterprises
-           WHERE general_director_employee_id = ?
-           LIMIT 1`,
-        )
-        .get(employeeId),
+      this.database.prepare(`SELECT id FROM enterprises WHERE general_director_employee_id = ? LIMIT 1`).get(employeeId),
     );
   }
 
   isDepartmentHead(employeeId: number): boolean {
     return Boolean(
-      this.database
-        .prepare(
-          `SELECT id FROM departments
-           WHERE director_employee_id = ?
-           LIMIT 1`,
-        )
-        .get(employeeId),
+      this.database.prepare(`SELECT id FROM departments WHERE director_employee_id = ? LIMIT 1`).get(employeeId),
     );
   }
 
@@ -308,34 +308,22 @@ export class AccessControlRepository {
   saveRole(input: PersistAccessRoleInput): AccessRoleSummary {
     const transaction = this.database.transaction(() => {
       let roleId = input.id;
-
       if (roleId) {
         this.database
-          .prepare(
-            `UPDATE roles
-             SET name = ?, description = ?, scope_type = ?
-             WHERE id = ? AND is_system = 0`,
-          )
+          .prepare(`UPDATE roles SET name = ?, description = ?, scope_type = ? WHERE id = ? AND is_system = 0`)
           .run(input.name, input.description, input.scopeType, roleId);
         this.database.prepare("DELETE FROM role_permissions WHERE role_id = ?").run(roleId);
       } else {
         const result = this.database
-          .prepare(
-            `INSERT INTO roles (code, name, description, scope_type, is_system, system_key)
-             VALUES (?, ?, ?, ?, 0, NULL)`,
-          )
+          .prepare(`INSERT INTO roles (code, name, description, scope_type, is_system, system_key) VALUES (?, ?, ?, ?, 0, NULL)`)
           .run(input.code, input.name, input.description, input.scopeType);
         roleId = Number(result.lastInsertRowid);
       }
 
       const insertPermission = this.database.prepare(
-        `INSERT INTO role_permissions (role_id, permission_id)
-         SELECT ?, id FROM permissions WHERE code = ?`,
+        `INSERT INTO role_permissions (role_id, permission_id) SELECT ?, id FROM permissions WHERE code = ?`,
       );
-      for (const code of [...new Set(input.permissionCodes)]) {
-        insertPermission.run(roleId, code);
-      }
-
+      for (const code of [...new Set(input.permissionCodes)]) insertPermission.run(roleId, code);
       return roleId;
     });
 
@@ -352,7 +340,6 @@ export class AccessControlRepository {
   saveUser(input: PersistAccessUserInput): AccessUserSummary {
     const transaction = this.database.transaction(() => {
       let userId = input.id;
-
       if (userId) {
         if (input.passwordHash && input.passwordSalt) {
           this.database
@@ -408,13 +395,8 @@ export class AccessControlRepository {
         userId = Number(result.lastInsertRowid);
       }
 
-      const insertRole = this.database.prepare(
-        "INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)",
-      );
-      for (const roleId of [...new Set(input.roleIds)]) {
-        insertRole.run(userId, roleId);
-      }
-
+      const insertRole = this.database.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)");
+      for (const roleId of [...new Set(input.roleIds)]) insertRole.run(userId, roleId);
       return userId;
     });
 
@@ -424,18 +406,9 @@ export class AccessControlRepository {
     return user;
   }
 
-  resetPassword(
-    userId: number,
-    passwordHash: string,
-    passwordSalt: string,
-    mustChangePassword: boolean,
-  ): void {
+  resetPassword(userId: number, passwordHash: string, passwordSalt: string, mustChangePassword: boolean): void {
     this.database
-      .prepare(
-        `UPDATE users
-         SET password_hash = ?, password_salt = ?, must_change_password = ?
-         WHERE id = ?`,
-      )
+      .prepare(`UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = ? WHERE id = ?`)
       .run(passwordHash, passwordSalt, mustChangePassword ? 1 : 0, userId);
   }
 
