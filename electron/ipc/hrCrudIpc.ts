@@ -69,11 +69,10 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("auth:changePassword", (event, raw: unknown) => {
     assertTrustedSender(event);
-    const previousSession = authenticationService.requireSession();
     const session = authenticationService.changeOwnPassword(
       ipcValidation.changePassword(raw),
     );
-    auditService.record(previousSession, "password.change", "auth", session.userId);
+    auditService.record(session, "password.change", "auth", session.userId);
     return session;
   });
 
