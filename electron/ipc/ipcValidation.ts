@@ -21,7 +21,14 @@ import type {
   SaveAccessUserParams,
 } from "../../src/shared/types/access";
 
-const recordSchema = z.record(z.string(), z.unknown());
+const scalarSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.undefined(),
+]);
+const recordSchema = z.record(z.string(), scalarSchema);
 const positiveId = z.number().int().positive();
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const entitySchema = z.enum([
