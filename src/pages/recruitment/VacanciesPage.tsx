@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FiBriefcase,
   FiEdit2,
@@ -14,7 +14,6 @@ import { useAuth } from "../../features/auth/AuthContext";
 import {
   RecruitmentBadge,
   RecruitmentPageHeader,
-  RecruitmentSearch,
 } from "../../features/recruitment/RecruitmentUi";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
@@ -32,29 +31,10 @@ export function VacanciesPage(): JSX.Element {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("recruitment.manage");
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
-  const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useStoredViewMode("vacancies", "cards");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
-
-  const filteredVacancies = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("ru-RU");
-    if (!query) return vacancies;
-    return vacancies.filter((vacancy) =>
-      [
-        vacancy.position_name,
-        vacancy.department_name,
-        vacancy.enterprise_name,
-        vacancy.hard_skills_summary,
-        vacancy.soft_skills_summary,
-      ]
-        .filter(Boolean)
-        .some((value) =>
-          String(value).toLocaleLowerCase("ru-RU").includes(query),
-        ),
-    );
-  }, [search, vacancies]);
 
   const loadData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -102,12 +82,7 @@ export function VacanciesPage(): JSX.Element {
       />
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft grid gap-3 border-b p-5 lg:grid-cols-[minmax(260px,1fr)_auto_auto] lg:items-center">
-          <RecruitmentSearch
-            onChange={setSearch}
-            placeholder="Должность, предприятие, отдел или навык"
-            value={search}
-          />
+        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-end">
           <ViewModeToggle onChange={setViewMode} value={viewMode} />
           <Button
             leftIcon={
@@ -127,22 +102,20 @@ export function VacanciesPage(): JSX.Element {
           <div className="px-5 py-16">
             <LoadingState label="Загрузка вакансий..." />
           </div>
-        ) : filteredVacancies.length === 0 ? (
+        ) : vacancies.length === 0 ? (
           <div className="py-16">
             <EmptyState
-              title={vacancies.length === 0 ? "Вакансий пока нет" : "Ничего не найдено"}
+              title="Вакансий пока нет"
               description={
-                vacancies.length === 0
-                  ? canManage
-                    ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
-                    : "В доступной области пока нет вакансий."
-                  : "Измените поисковый запрос."
+                canManage
+                  ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
+                  : "В доступной области пока нет вакансий."
               }
             />
           </div>
         ) : viewMode === "cards" ? (
           <div className="grid gap-5 p-5 xl:grid-cols-2">
-            {filteredVacancies.map((vacancy) => (
+            {vacancies.map((vacancy) => (
               <VacancyCard
                 canManage={canManage}
                 key={String(vacancy.id)}
@@ -157,7 +130,7 @@ export function VacanciesPage(): JSX.Element {
             canManage={canManage}
             onDelete={setDeleteTarget}
             onEdit={editVacancy}
-            vacancies={filteredVacancies}
+            vacancies={vacancies}
           />
         )}
       </section>
