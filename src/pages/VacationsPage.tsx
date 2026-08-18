@@ -315,7 +315,7 @@ function VacationCard({
   record: HrRecord;
 }): JSX.Element {
   const status = String(record.status ?? "planned");
-  const canDelete = canManage && ["planned", "rejected"].includes(status);
+  const canDelete = canManage && status === "planned";
 
   return (
     <article className="app-surface-muted app-border rounded-[24px] border p-5">
