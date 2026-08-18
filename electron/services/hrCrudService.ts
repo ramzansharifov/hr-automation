@@ -4,37 +4,57 @@ import type {
   HrDeleteParams,
   HrEmploymentChangeParams,
   HrGetByIdParams,
+  HrHireDateCorrectionParams,
   HrListParams,
   HrListResult,
   HrRecord,
+  HrTerminationParams,
   HrUpdateParams,
 } from "../../src/shared/types/hr";
 import { getHrCrudEntityConfig } from "../admin/hrCrudEntities";
 import { HrCrudRepository } from "../repositories/hrCrudRepository";
 
+const vacationTransitions: Record<string, string[]> = {
+  planned: ["planned", "approved", "rejected"],
+  approved: ["approved", "completed"],
+  rejected: ["rejected"],
+  completed: ["completed"],
+};
+
 export class HrCrudService {
   constructor(private readonly repository: HrCrudRepository) {}
 
   list(params: HrListParams): HrListResult {
-    const config = getHrCrudEntityConfig(params.entity);
-
-    return this.repository.list(config, params);
+    return this.repository.list(getHrCrudEntityConfig(params.entity), params);
   }
 
   getById(params: HrGetByIdParams): HrRecord | null {
-    const config = getHrCrudEntityConfig(params.entity);
-
-    return this.repository.getById(config, params.id);
+    return this.repository.getById(
+      getHrCrudEntityConfig(params.entity),
+      params.id,
+    );
   }
 
   create(params: HrCreateParams): HrRecord {
     if (params.entity === "employment_history") {
       throw new Error("Кадровый журнал формируется автоматически");
     }
-    const config = getHrCrudEntityConfig(params.entity);
-    const data = this.prepareData(params.entity, params.data);
 
-    return this.repository.create(config, data);
+    const data = this.prepareData(params.entity, params.data, "create");
+    if (params.entity === "employees") {
+      data.status = "active";
+      data.terminated_at = null;
+      data.termination_reason = null;
+    }
+    if (params.entity === "vacations") {
+      data.status = "planned";
+      data.approved_at = null;
+      data.approved_by_account_type = null;
+      data.approved_by_account_id = null;
+      data.approved_by_name = null;
+    }
+
+    return this.repository.create(getHrCrudEntityConfig(params.entity), data);
   }
 
   update(params: HrUpdateParams): HrRecord {
@@ -43,11 +63,17 @@ export class HrCrudService {
       throw new Error("Записи кадрового журнала нельзя изменять вручную");
     }
 
-    if (params.entity === "employees") {
-      this.assertEmploymentFieldsUnchanged(config, params.id, params.data);
-    }
-    const data = this.prepareData(params.entity, params.data);
+    const existing = this.repository.getById(config, params.id);
+    if (!existing) throw new Error("Запись не найдена");
 
+    if (params.entity === "employees") {
+      this.assertEmploymentFieldsUnchanged(existing, params.data);
+    }
+    if (params.entity === "vacations") {
+      this.assertVacationTransition(existing, params.data);
+    }
+
+    const data = this.prepareData(params.entity, params.data, "update");
     return this.repository.update(config, params.id, data);
   }
 
@@ -55,10 +81,13 @@ export class HrCrudService {
     if (params.entity === "employment_history") {
       throw new Error("Записи кадрового журнала нельзя удалять");
     }
-    const config = getHrCrudEntityConfig(params.entity);
+    if (params.entity === "employees") {
+      throw new Error(
+        "Сотрудников нельзя удалять. Используйте кадровое действие «Уволить сотрудника»",
+      );
+    }
 
-    this.repository.delete(config, params.id);
-
+    this.repository.delete(getHrCrudEntityConfig(params.entity), params.id);
     return { success: true };
   }
 
@@ -67,74 +96,96 @@ export class HrCrudService {
   }
 
   changeEmployment(params: HrEmploymentChangeParams): HrRecord {
-    if (!params.reason.trim()) {
-      throw new Error("Укажите основание кадрового изменения");
+    assertReasonAndDate(params.reason, params.effectiveAt);
+    if (params.salaryMode !== "keep" && params.salaryMode !== "custom") {
+      throw new Error("Выберите корректный способ изменения оклада");
     }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(params.effectiveAt)) {
-      throw new Error("Укажите корректную дату кадрового изменения");
-    }
-
     return this.repository.changeEmployment(params);
   }
 
-  private prepareData(entity: string, data: HrRecord): HrRecord {
-    if (entity === "vacations") {
-      const startsAt = String(data.starts_at ?? "");
-      const endsAt = String(data.ends_at ?? "");
-      const daysCount = calculateInclusiveDays(startsAt, endsAt);
-      const isPaid = Number(data.is_paid) === 1 ? 1 : 0;
+  terminateEmployee(params: HrTerminationParams): HrRecord {
+    assertReasonAndDate(params.reason, params.effectiveAt);
+    return this.repository.terminateEmployee(params);
+  }
 
-      return {
-        ...data,
-        days_count: daysCount,
-        is_paid: isPaid,
-        payment_amount: isPaid ? toNumber(data.payment_amount) : 0,
-      };
+  correctHireDate(params: HrHireDateCorrectionParams): HrRecord {
+    assertReasonAndDate(params.reason, params.hireDate);
+    return this.repository.correctHireDate(params);
+  }
+
+  private prepareData(
+    entity: string,
+    data: HrRecord,
+    mode: "create" | "update",
+  ): HrRecord {
+    if (entity !== "vacations") return data;
+
+    const startsAt = String(data.starts_at ?? "");
+    const endsAt = String(data.ends_at ?? "");
+    const daysCount = calculateInclusiveDays(startsAt, endsAt);
+    if (daysCount < 1) {
+      throw new Error("Укажите корректный период отпуска");
     }
 
-    if (entity !== "payroll") {
-      return data;
+    const vacationTypeId = Number(data.vacation_type_id);
+    if (!Number.isInteger(vacationTypeId) || vacationTypeId < 1) {
+      throw new Error("Выберите вид отпуска");
     }
 
-    const baseSalary = toNumber(data.base_salary);
-    const bonus = toNumber(data.bonus);
-    const allowance = toNumber(data.allowance);
-    const deductions = toNumber(data.deductions);
-    const taxes = toNumber(data.taxes);
-
-    return {
+    const prepared = {
       ...data,
-      base_salary: baseSalary,
-      bonus,
-      allowance,
-      deductions,
-      taxes,
-      net_amount: baseSalary + bonus + allowance - deductions - taxes,
+      days_count: daysCount,
+      is_paid: Number(data.is_paid) === 1 ? 1 : 0,
+      vacation_type_id: vacationTypeId,
     };
+
+    if (mode === "create") prepared.status = "planned";
+    return prepared;
   }
 
   private assertEmploymentFieldsUnchanged(
-    config: ReturnType<typeof getHrCrudEntityConfig>,
-    employeeId: number,
+    employee: HrRecord,
     data: HrRecord,
   ): void {
-    const employee = this.repository.getById(config, employeeId);
-    if (!employee) throw new Error("Сотрудник не найден");
-
-    const protectedFields = ["department_id", "position_id", "salary"] as const;
+    const protectedFields = [
+      "department_id",
+      "position_id",
+      "salary",
+      "hire_date",
+      "status",
+      "terminated_at",
+      "termination_reason",
+    ] as const;
     const changed = protectedFields.some(
       (field) =>
         field in data &&
-        normalizeComparable(data[field]) !==
-          normalizeComparable(employee[field]),
+        normalizeComparable(data[field]) !== normalizeComparable(employee[field]),
     );
 
     if (changed) {
       throw new Error(
-        "Должность, отдел и зарплату можно менять только через карточку сотрудника",
+        "Условия трудоустройства и статус меняются только через кадровые действия",
       );
     }
+  }
+
+  private assertVacationTransition(existing: HrRecord, data: HrRecord): void {
+    if (!("status" in data)) return;
+    const previousStatus = String(existing.status ?? "planned");
+    const nextStatus = String(data.status ?? previousStatus);
+    const allowed = vacationTransitions[previousStatus] ?? [previousStatus];
+    if (!allowed.includes(nextStatus)) {
+      throw new Error(
+        `Нельзя изменить статус отпуска с «${previousStatus}» на «${nextStatus}»`,
+      );
+    }
+  }
+}
+
+function assertReasonAndDate(reason: string, date: string): void {
+  if (!reason.trim()) throw new Error("Укажите основание кадрового действия");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("Укажите корректную дату кадрового действия");
   }
 }
 
@@ -145,8 +196,9 @@ function calculateInclusiveDays(start: string, end: string): number {
     !Number.isFinite(startTime) ||
     !Number.isFinite(endTime) ||
     endTime < startTime
-  )
+  ) {
     return 0;
+  }
   return Math.floor((endTime - startTime) / 86_400_000) + 1;
 }
 
@@ -154,16 +206,4 @@ function normalizeComparable(value: unknown): string {
   return value === null || value === undefined || value === ""
     ? ""
     : String(value);
-}
-
-function toNumber(value: unknown): number {
-  if (typeof value === "number") {
-    return value;
-  }
-
-  if (typeof value === "string" && value.trim() !== "") {
-    return Number(value);
-  }
-
-  return 0;
 }
