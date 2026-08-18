@@ -1,0 +1,33 @@
+name: Migrate icon buttons in PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.head_ref == 'fix/skill-fields-and-icon-buttons'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/skill-fields-and-icon-buttons
+          fetch-depth: 0
+      - name: Run migration
+        run: python .github/scripts/migrate_icon_buttons.py
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          if git diff --cached --quiet; then
+            echo "No migration changes"
+          else
+            git commit -m "Standardize icon-only actions and skill fields"
+            git push origin HEAD:fix/skill-fields-and-icon-buttons
+          fi
