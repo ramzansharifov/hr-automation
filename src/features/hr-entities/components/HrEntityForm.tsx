@@ -257,8 +257,8 @@ export function HrEntityForm({
         })}
       </div>
 
-      <div className="app-surface app-border-soft sticky bottom-0 -mx-6 -mb-6 flex justify-end gap-3 border-t px-6 py-5">
-        <Button disabled={isSubmitting} onClick={onCancel} variant="secondary">
+      <div className="app-border-soft flex justify-end gap-3 border-t pt-5">
+        <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="secondary">
           {cancelLabel}
         </Button>
         <Button disabled={isSubmitting} type="submit" variant="primary">
