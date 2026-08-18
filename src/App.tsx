@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./app/AppLayout";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { AuthSessionSynchronizer } from "./features/auth/AuthSessionSynchronizer";
 import {
   AuthorizedHome,
   OwnProfileRedirect,
@@ -21,11 +22,20 @@ import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
 import { VacancyFormPage } from "./pages/recruitment/VacancyFormPage";
 import { EmptyState } from "./shared/ui";
 
+function AuthenticatedLayout(): JSX.Element {
+  return (
+    <>
+      <AuthSessionSynchronizer />
+      <AppLayout />
+    </>
+  );
+}
+
 function App(): JSX.Element {
   return (
     <AuthProvider>
       <Routes>
-        <Route element={<AppLayout />}>
+        <Route element={<AuthenticatedLayout />}>
           <Route index element={<AuthorizedHome />} />
           <Route
             path="dashboard"
