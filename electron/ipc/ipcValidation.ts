@@ -58,7 +58,6 @@ const vacancySkillSchema = z.object({
   type: z.enum(["hard", "soft"]),
   name: z.string().max(200),
   requiredLevel: z.number().int(),
-  weight: z.number().int(),
 });
 
 const candidateScoreSchema = z.object({
