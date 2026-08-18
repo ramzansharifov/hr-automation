@@ -29,6 +29,7 @@ export function ConfirmDialog({
         <AlertDialog.Overlay className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm" />
         <AlertDialog.Content className="app-surface app-border fixed left-1/2 top-1/2 z-50 flex max-h-[86vh] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border">
           <ModalLayout
+            bodyClassName="hidden"
             footer={
               <div className="flex justify-end gap-3">
                 <AlertDialog.Cancel asChild>
@@ -52,7 +53,7 @@ export function ConfirmDialog({
               </div>
             }
           >
-            <div className="app-muted text-sm leading-6">{description}</div>
+            {null}
           </ModalLayout>
         </AlertDialog.Content>
       </AlertDialog.Portal>
