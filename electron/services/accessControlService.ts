@@ -12,6 +12,12 @@ import { AccessControlRepository } from "../repositories/accessControlRepository
 
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
+const permissionDependencies: Record<string, string> = {
+  "employees.manage": "employees.view",
+  "organization.manage": "organization.view",
+  "recruitment.manage": "recruitment.view",
+  "vacations.manage": "vacations.view",
+};
 
 export class AccessControlService {
   constructor(private readonly repository: AccessControlRepository) {}
@@ -27,7 +33,7 @@ export class AccessControlService {
   saveRole(params: SaveAccessRoleParams): AccessRoleSummary {
     const name = params.name.trim();
     const description = params.description?.trim() ?? "";
-    const permissionCodes = [...new Set(params.permissionCodes)];
+    const permissionCodes = normalizePermissionDependencies(params.permissionCodes);
 
     if (!name) throw new Error("Укажите название роли");
     if (name.length > 100) {
@@ -41,20 +47,18 @@ export class AccessControlService {
     }
 
     const hasGlobalAdministrativePermission = permissionCodes.some((code) =>
-      ["access.manage", "settings.manage"].includes(code),
+      ["access.manage", "settings.manage", "audit.view"].includes(code),
     );
     if (hasGlobalAdministrativePermission && params.scopeType !== "global") {
       throw new Error(
-        "Управление пользователями и системными настройками требует глобальной области данных",
+        "Административные разрешения требуют глобальной области данных",
       );
     }
     if (
       permissionCodes.includes("access.manage") &&
       !permissionCodes.includes("employees.view")
     ) {
-      throw new Error(
-        "Для управления пользователями добавьте разрешение «Просмотр сотрудников»",
-      );
+      permissionCodes.push("employees.view");
     }
 
     if (params.id) {
@@ -97,8 +101,12 @@ export class AccessControlService {
 
   saveUser(params: SaveAccessUserParams): AccessUserSummary {
     const username = params.username.trim().toLowerCase();
-    const roleIds = [...new Set(params.roleIds.map(Number))].filter(
+    const requestedRoleIds = [...new Set(params.roleIds.map(Number))].filter(
       Number.isFinite,
+    );
+    const roleIds = this.includeRequiredLeadershipRoles(
+      params.employeeId,
+      requestedRoleIds,
     );
     const existingUser = params.id ? this.repository.getUserById(params.id) : null;
 
@@ -142,7 +150,6 @@ export class AccessControlService {
         "Роль Superadmin принадлежит только встроенной системной учётной записи",
       );
     }
-
     this.validateSystemRoleAssignments(params.employeeId, systemRoles);
 
     const password = params.password ? hashPassword(params.password) : null;
@@ -191,6 +198,25 @@ export class AccessControlService {
     }
   }
 
+  private includeRequiredLeadershipRoles(
+    employeeId: number,
+    roleIds: number[],
+  ): number[] {
+    const requiredSystemKeys: SystemRoleKey[] = [];
+    if (this.repository.isEnterpriseDirector(employeeId)) {
+      requiredSystemKeys.push("enterprise_director");
+    }
+    if (this.repository.isDepartmentHead(employeeId)) {
+      requiredSystemKeys.push("department_head");
+    }
+
+    const requiredIds = this.repository
+      .listRoles()
+      .filter((role) => role.systemKey && requiredSystemKeys.includes(role.systemKey))
+      .map((role) => role.id);
+    return [...new Set([...roleIds, ...requiredIds])];
+  }
+
   private validateSystemRoleAssignments(
     employeeId: number,
     systemRoles: SystemRoleKey[],
@@ -200,7 +226,7 @@ export class AccessControlService {
       !this.repository.isEnterpriseDirector(employeeId)
     ) {
       throw new Error(
-        "Роль «Директор предприятия» можно назначить только сотруднику, указанному генеральным директором предприятия",
+        "Роль «Руководитель предприятия» можно назначить только фактическому руководителю предприятия",
       );
     }
 
@@ -209,17 +235,24 @@ export class AccessControlService {
       !this.repository.isDepartmentHead(employeeId)
     ) {
       throw new Error(
-        "Роль «Начальник отдела» можно назначить только действующему директору отдела",
+        "Роль «Руководитель отдела» можно назначить только фактическому руководителю отдела",
       );
     }
   }
 }
 
+function normalizePermissionDependencies(codes: string[]): string[] {
+  const normalized = new Set(codes);
+  for (const code of [...normalized]) {
+    const dependency = permissionDependencies[code];
+    if (dependency) normalized.add(dependency);
+  }
+  return [...normalized];
+}
+
 function validatePassword(password: string): void {
   if (password.length < minimumPasswordLength) {
-    throw new Error(
-      `Пароль должен содержать минимум ${minimumPasswordLength} символов`,
-    );
+    throw new Error(`Пароль должен содержать минимум ${minimumPasswordLength} символов`);
   }
   if (!/[A-Za-zА-Яа-я]/.test(password) || !/\d/.test(password)) {
     throw new Error("Пароль должен содержать хотя бы одну букву и одну цифру");
