@@ -6,14 +6,15 @@ import {
   OwnProfileRedirect,
   RequirePermission,
 } from "./features/auth/PermissionRoute";
+import { AuditLogPage } from "./pages/AuditLogPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { FiltersPage } from "./pages/FiltersPage";
+import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { AccessControlPage } from "./pages/access/AccessControlPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { CandidatesPage } from "./pages/recruitment/CandidatesPage";
 import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
 import { VacancyFormPage } from "./pages/recruitment/VacancyFormPage";
@@ -106,6 +107,14 @@ function App(): JSX.Element {
             }
           />
           <Route
+            path="audit"
+            element={
+              <RequirePermission anyOf={["audit.view"]}>
+                <AuditLogPage />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="enterprises"
             element={
               <RequirePermission anyOf={["organization.view"]}>
@@ -143,14 +152,7 @@ function App(): JSX.Element {
               </RequirePermission>
             }
           />
-          <Route
-            path="settings"
-            element={
-              <RequirePermission anyOf={["settings.manage"]}>
-                <SettingsPage />
-              </RequirePermission>
-            }
-          />
+          <Route path="settings" element={<SettingsPage />} />
           <Route
             path="no-access"
             element={
