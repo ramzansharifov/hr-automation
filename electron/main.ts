@@ -25,7 +25,7 @@ function createWindow(): void {
     minHeight: 700,
     show: false,
     autoHideMenuBar: true,
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.VITE_PUBLIC, 'hr-logo.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       sandbox: true,
