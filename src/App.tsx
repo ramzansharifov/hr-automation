@@ -136,10 +136,6 @@ function App(): JSX.Element {
             element={<Navigate to="/filters?module=vacations" replace />}
           />
           <Route
-            path="payroll"
-            element={<Navigate to="/filters?module=payroll" replace />}
-          />
-          <Route
             path="profile"
             element={
               <RequirePermission anyOf={["profile.view"]}>
