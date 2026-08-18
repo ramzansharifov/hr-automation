@@ -10,19 +10,15 @@ import {
 } from './employeeFormValidation'
 
 function valueToString(value: unknown): string {
-  if (value === null || value === undefined) {
-    return ''
-  }
-
+  if (value === null || value === undefined) return ''
   return String(value)
 }
 
 export function mapEmployeeRecordToFormValues(record: HrRecord | null | undefined): EmployeeFormValues {
-  if (!record) {
-    return employeeDefaultValues
-  }
+  if (!record) return employeeDefaultValues
 
   return {
+    employee_number: valueToString(record.employee_number),
     last_name: valueToString(record.last_name),
     first_name: valueToString(record.first_name),
     middle_name: valueToString(record.middle_name),
@@ -41,7 +37,12 @@ export function mapEmployeeRecordToFormValues(record: HrRecord | null | undefine
     hire_date: valueToString(record.hire_date),
     status: valueToString(record.status) || employeeDefaultValues.status,
     salary: valueToString(record.salary) || employeeDefaultValues.salary,
-    note: valueToString(record.note),
+    employment_type: valueToString(record.employment_type) || employeeDefaultValues.employment_type,
+    contract_number: valueToString(record.contract_number),
+    contract_date: valueToString(record.contract_date),
+    contract_end_date: valueToString(record.contract_end_date),
+    probation_end_date: valueToString(record.probation_end_date),
+    workplace: valueToString(record.workplace),
   }
 }
 
