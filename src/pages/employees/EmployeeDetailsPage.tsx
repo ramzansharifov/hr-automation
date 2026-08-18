@@ -15,18 +15,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Button, EmptyState, LoadingState } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
-import {
-  formatCurrency,
-  formatDate,
-  humanizeStatus,
-} from "../../shared/lib/format";
+import { formatCurrency, formatDate, humanizeStatus } from "../../shared/lib/format";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
+import { useAuth } from "../../features/auth/AuthContext";
 import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import {
   EmployeeInfoField,
   EmployeeInfoPanel,
-  EmployeePassportCard,
+  EmployeeOverviewCards,
   EmployeeProfileHeader,
 } from "../../features/employees/components/EmployeeDetailsCards";
 import { EmployeeLifecyclePanel } from "../../features/employees/components/EmployeeLifecyclePanel";
@@ -42,10 +39,13 @@ import "./EmployeeTabConsistency.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
+  const { hasPermission } = useAuth();
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
   const params = useParams();
   const employeeId = Number(params.id);
+  const canManageEmployee = hasPermission("employees.manage");
+  const canManageVacations = hasPermission("vacations.manage");
 
   const [employee, setEmployee] = useState<HrRecord | null>(null);
   const [departmentName, setDepartmentName] = useState("");
@@ -73,14 +73,12 @@ export function EmployeeDetailsPage(): JSX.Element {
           entity: "employees",
           id: employeeId,
         });
-
         if (!isActive) return;
-
         setEmployee(record);
+        if (!record) return;
 
-        const departmentId = toNumber(record?.department_id);
-        const positionId = toNumber(record?.position_id);
-
+        const departmentId = toNumber(record.department_id);
+        const positionId = toNumber(record.position_id);
         const [department, position] = await Promise.all([
           departmentId
             ? hrApiClient.getById({ entity: "departments", id: departmentId })
@@ -89,9 +87,7 @@ export function EmployeeDetailsPage(): JSX.Element {
             ? hrApiClient.getById({ entity: "positions", id: positionId })
             : Promise.resolve(null),
         ]);
-
         if (!isActive) return;
-
         setDepartmentName(getRecordLabel(department));
         setPositionName(getRecordLabel(position));
       } catch {
@@ -100,25 +96,19 @@ export function EmployeeDetailsPage(): JSX.Element {
           toast.error(t("employeesDetails.toasts.loadError"));
         }
       } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       }
     }
 
     void loadEmployee();
-
     return () => {
       isActive = false;
     };
   }, [employeeId, t]);
 
-  async function refreshEmployeeRelationLabels(
-    record: HrRecord,
-  ): Promise<void> {
+  async function refreshEmployeeRelationLabels(record: HrRecord): Promise<void> {
     const departmentId = toNumber(record.department_id);
     const positionId = toNumber(record.position_id);
-
     const [department, position] = await Promise.all([
       departmentId
         ? hrApiClient.getById({ entity: "departments", id: departmentId })
@@ -127,7 +117,6 @@ export function EmployeeDetailsPage(): JSX.Element {
         ? hrApiClient.getById({ entity: "positions", id: positionId })
         : Promise.resolve(null),
     ]);
-
     setDepartmentName(getRecordLabel(department));
     setPositionName(getRecordLabel(position));
   }
@@ -138,13 +127,12 @@ export function EmployeeDetailsPage(): JSX.Element {
   }
 
   function openSectionEditor(section: EmployeeFormSectionKey): void {
+    if (!canManageEmployee) return;
     setEditingSection(section);
     setIsEditOpen(true);
   }
 
-  if (isLoading) {
-    return <LoadingState label={t("common.table.loading")} />;
-  }
+  if (isLoading) return <LoadingState label={t("common.table.loading")} />;
 
   if (hasError || !employee) {
     return (
@@ -162,6 +150,7 @@ export function EmployeeDetailsPage(): JSX.Element {
   ]
     .filter(Boolean)
     .join(" ");
+  const status = employeeStatusLabel(employee.status, t);
 
   return (
     <motion.div
@@ -176,9 +165,11 @@ export function EmployeeDetailsPage(): JSX.Element {
         fullName={fullName}
         isActive={getString(employee.status) === "active"}
         onBack={() => navigate("/employees")}
-        onEdit={() => openSectionEditor("personal")}
+        onEdit={
+          canManageEmployee ? () => openSectionEditor("personal") : undefined
+        }
         position={valueOrEmpty(positionName, t)}
-        status={humanizeStatus(employee.status, t)}
+        status={status}
         t={t}
       />
 
@@ -194,43 +185,38 @@ export function EmployeeDetailsPage(): JSX.Element {
             aria-label={t("employeesDetails.title")}
           >
             <Tabs.Trigger className={detailsTabTriggerClass} value="card">
-              <FiUser />
-              Профиль
+              <FiUser /> Профиль
             </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="work">
-              <FiBriefcase />
-              Служебная информация
+              <FiBriefcase /> Служебная информация
             </Tabs.Trigger>
-
             <Tabs.Trigger
               className={detailsTabTriggerClass}
               value="education-experience"
             >
-              <FiBookOpen />
-              Образование и опыт
+              <FiBookOpen /> Образование и опыт
             </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
-              <FiCalendar />
-              Отпуска
+              <FiCalendar /> Отпуска
             </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="history">
-              <FiClock />
-              История
+              <FiClock /> История
             </Tabs.Trigger>
           </Tabs.List>
         </motion.div>
 
         <div className="employee-profile-content">
           <Tabs.Content value="card" className="outline-none">
-            <EmployeePassportCard
+            <EmployeeOverviewCards
               employee={employee}
               fullName={fullName}
               locale={locale}
-              onEditAddress={() => openSectionEditor("address")}
-              onEditPersonal={() => openSectionEditor("personal")}
+              onEditAddress={
+                canManageEmployee ? () => openSectionEditor("address") : undefined
+              }
+              onEditPersonal={
+                canManageEmployee ? () => openSectionEditor("personal") : undefined
+              }
               t={t}
             />
           </Tabs.Content>
@@ -238,18 +224,7 @@ export function EmployeeDetailsPage(): JSX.Element {
           <Tabs.Content value="work" className="outline-none">
             <div className="grid items-start gap-5 xl:grid-cols-2">
               <EmployeeInfoPanel
-                action={
-                  <Button
-                    leftIcon={<FiEdit2 className="h-4 w-4" />}
-                    onClick={() => openSectionEditor("company")}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    {t("common.actions.edit")}
-                  </Button>
-                }
-                eyebrow={t("employeesDetails.sections.company")}
+                eyebrow="Текущая занятость"
                 icon={<FiBriefcase />}
                 title="Текущие условия работы"
               >
@@ -261,10 +236,7 @@ export function EmployeeDetailsPage(): JSX.Element {
                   label={t("forms.fields.positionId")}
                   value={valueOrEmpty(positionName, t)}
                 />
-                <EmployeeInfoField
-                  label={t("forms.fields.status")}
-                  value={humanizeStatus(employee.status, t)}
-                />
+                <EmployeeInfoField label="Статус" value={status} />
                 <EmployeeInfoField
                   label={t("forms.fields.hireDate")}
                   value={formatDate(employee.hire_date, locale)}
@@ -273,28 +245,66 @@ export function EmployeeDetailsPage(): JSX.Element {
                   label={t("forms.fields.salary")}
                   value={formatCurrency(employee.salary, locale)}
                 />
+                <EmployeeInfoField
+                  label="Тип занятости"
+                  value={employmentTypeLabel(employee.employment_type)}
+                />
+                {Boolean(employee.terminated_at) && (
+                  <EmployeeInfoField
+                    label="Дата увольнения"
+                    value={formatDate(employee.terminated_at, locale)}
+                  />
+                )}
+                {Boolean(employee.termination_reason) && (
+                  <EmployeeInfoField
+                    label="Основание увольнения"
+                    value={getString(employee.termination_reason)}
+                    wide
+                  />
+                )}
               </EmployeeInfoPanel>
 
               <EmployeeInfoPanel
                 action={
-                  <Button
-                    leftIcon={<FiEdit2 className="h-4 w-4" />}
-                    onClick={() => openSectionEditor("notes")}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    {t("common.actions.edit")}
-                  </Button>
+                  canManageEmployee ? (
+                    <Button
+                      leftIcon={<FiEdit2 className="h-4 w-4" />}
+                      onClick={() => openSectionEditor("company")}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      {t("common.actions.edit")}
+                    </Button>
+                  ) : undefined
                 }
-                eyebrow="Внутренняя информация"
+                eyebrow="Кадровые реквизиты"
                 icon={<FiFileText />}
-                title={t("forms.fields.note")}
+                title="Договор и служебные данные"
               >
                 <EmployeeInfoField
-                  label={t("forms.fields.note")}
-                  value={valueOrEmpty(getString(employee.note), t)}
-                  wide
+                  label="Табельный номер"
+                  value={valueOrEmpty(getString(employee.employee_number), t)}
+                />
+                <EmployeeInfoField
+                  label="Номер договора"
+                  value={valueOrEmpty(getString(employee.contract_number), t)}
+                />
+                <EmployeeInfoField
+                  label="Дата договора"
+                  value={formatOptionalDate(employee.contract_date, locale, t)}
+                />
+                <EmployeeInfoField
+                  label="Договор действует до"
+                  value={formatOptionalDate(employee.contract_end_date, locale, t)}
+                />
+                <EmployeeInfoField
+                  label="Испытательный срок до"
+                  value={formatOptionalDate(employee.probation_end_date, locale, t)}
+                />
+                <EmployeeInfoField
+                  label="Место работы"
+                  value={valueOrEmpty(getString(employee.workplace), t)}
                 />
               </EmployeeInfoPanel>
             </div>
@@ -302,17 +312,30 @@ export function EmployeeDetailsPage(): JSX.Element {
 
           <Tabs.Content value="education-experience" className="outline-none">
             <div className="grid items-start gap-5 xl:grid-cols-2">
-              <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
-              <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
+              <EmployeeEducationPanel
+                canManage={canManageEmployee}
+                employeeId={employeeId}
+                locale={locale}
+              />
+              <EmployeeExperiencePanel
+                canManage={canManageEmployee}
+                employeeId={employeeId}
+                locale={locale}
+              />
             </div>
           </Tabs.Content>
 
           <Tabs.Content value="vacations" className="outline-none">
-            <EmployeeVacationsPanel employeeId={employeeId} locale={locale} />
+            <EmployeeVacationsPanel
+              canManage={canManageVacations}
+              employeeId={employeeId}
+              locale={locale}
+            />
           </Tabs.Content>
 
           <Tabs.Content value="history" className="outline-none">
             <EmployeeLifecyclePanel
+              canManage={canManageEmployee}
               employee={employee}
               employeeId={employeeId}
               locale={locale}
@@ -322,20 +345,19 @@ export function EmployeeDetailsPage(): JSX.Element {
         </div>
       </Tabs.Root>
 
-      <EmployeeSectionEditDialog
-        employee={employee}
-        employeeId={employeeId}
-        onOpenChange={(open) => {
-          setIsEditOpen(open);
-
-          if (!open) {
-            setEditingSection(null);
-          }
-        }}
-        onSaved={handleEmployeeSaved}
-        open={isEditOpen}
-        section={editingSection}
-      />
+      {canManageEmployee && (
+        <EmployeeSectionEditDialog
+          employee={employee}
+          employeeId={employeeId}
+          onOpenChange={(open) => {
+            setIsEditOpen(open);
+            if (!open) setEditingSection(null);
+          }}
+          onSaved={handleEmployeeSaved}
+          open={isEditOpen}
+          section={editingSection}
+        />
+      )}
     </motion.div>
   );
 }
@@ -346,19 +368,41 @@ const detailsTabTriggerClass = [
 ].join(" ");
 
 function getString(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
+  if (value === null || value === undefined) return "";
   return String(value);
 }
 
 function toNumber(value: unknown): number | null {
   const numberValue = typeof value === "number" ? value : Number(value);
-
   return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
 }
 
 function valueOrEmpty(value: string, t: (key: string) => string): string {
   return value.trim() || t("employeesDetails.emptyValue");
+}
+
+function employeeStatusLabel(
+  value: unknown,
+  t: (key: string) => string,
+): string {
+  if (String(value) === "terminated") return "Уволен";
+  return humanizeStatus(value, t);
+}
+
+function employmentTypeLabel(value: unknown): string {
+  const labels: Record<string, string> = {
+    full_time: "Полная занятость",
+    part_time: "Частичная занятость",
+    temporary: "Временная работа",
+    internship: "Стажировка",
+  };
+  return labels[String(value ?? "")] ?? "—";
+}
+
+function formatOptionalDate(
+  value: unknown,
+  locale: string,
+  t: (key: string) => string,
+): string {
+  return value ? formatDate(value, locale) : t("employeesDetails.emptyValue");
 }
