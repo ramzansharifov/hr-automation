@@ -7,6 +7,7 @@ import { Button } from "./Button";
 interface DialogProps {
   children: ReactNode;
   description?: string;
+  footer?: ReactNode;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   title: string;
@@ -15,6 +16,7 @@ interface DialogProps {
 export function Dialog({
   children,
   description,
+  footer,
   onOpenChange,
   open,
   title,
@@ -25,8 +27,8 @@ export function Dialog({
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm" />
-        <RadixDialog.Content className="app-surface app-border fixed left-1/2 top-1/2 z-50 max-h-[86vh] w-[calc(100vw-32px)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border">
-          <div className="app-border-soft flex items-start justify-between gap-4 border-b p-6">
+        <RadixDialog.Content className="app-surface app-border fixed left-1/2 top-1/2 z-50 flex max-h-[86vh] w-[calc(100vw-32px)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border">
+          <div className="app-border-soft flex shrink-0 items-start justify-between gap-4 border-b p-6">
             <div className="min-w-0">
               <RadixDialog.Title className="app-text text-xl font-black">
                 {title}
@@ -49,9 +51,13 @@ export function Dialog({
             </RadixDialog.Close>
           </div>
 
-          <div className="max-h-[calc(86vh-93px)] overflow-y-auto p-6">
-            {children}
-          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
+
+          {footer && (
+            <div className="app-surface app-border-soft shrink-0 border-t px-6 py-5">
+              {footer}
+            </div>
+          )}
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
