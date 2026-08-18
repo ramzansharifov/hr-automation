@@ -56,13 +56,7 @@ export function Dialog({
             </div>
 
             <RadixDialog.Close asChild>
-              <Button
-                aria-label={t("common.actions.close")}
-                className="h-10 w-10 shrink-0 rounded-xl p-0"
-                variant="ghost"
-              >
-                <FiX className="h-5 w-5" />
-              </Button>
+              <IconButton icon={<FiX />} label={t("common.actions.close")} />
             </RadixDialog.Close>
           </div>
 

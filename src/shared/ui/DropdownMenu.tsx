@@ -24,9 +24,7 @@ export function DropdownMenu({
   return (
     <RadixDropdownMenu.Root>
       <RadixDropdownMenu.Trigger asChild>
-        <Button aria-label={triggerLabel} className="h-10 w-10 rounded-xl p-0" size="sm" variant="ghost">
-          <FiMoreVertical className="h-4 w-4" />
-        </Button>
+        <IconButton icon={<FiMoreVertical />} label={triggerLabel} />
       </RadixDropdownMenu.Trigger>
 
       <RadixDropdownMenu.Portal>
