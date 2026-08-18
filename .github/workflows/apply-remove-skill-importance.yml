@@ -1,0 +1,29 @@
+name: Apply remove skill importance
+
+on:
+  push:
+    branches:
+      - refactor/remove-skill-importance-and-create-header
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/remove-skill-importance-and-create-header
+          fetch-depth: 0
+      - name: Apply exact refactor
+        run: python .github/scripts/remove_skill_importance.py
+      - name: Commit product changes and remove temporary tooling
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/scripts/remove_skill_importance.py .github/workflows/apply-remove-skill-importance.yml
+          git add src electron
+          git commit -m "Remove vacancy skill importance and create-page header"
+          git push origin HEAD:refactor/remove-skill-importance-and-create-header
