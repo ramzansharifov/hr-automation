@@ -216,7 +216,7 @@ export class HrCrudRepository {
             : Number(params.salary);
 
       if (!Number.isFinite(nextSalary) || nextSalary < 0) {
-        throw new Error("Заработная плата указана неверно");
+        throw new Error("Оклад указан неверно");
       }
 
       const hasChanges =
@@ -277,8 +277,6 @@ export class HrCrudRepository {
   }
 
   dashboard(): HrDashboardStats {
-    const currentMonth = new Date().toISOString().slice(0, 7);
-
     const employeesTotal = this.getNumber("SELECT COUNT(*) FROM employees");
     const departmentsTotal = this.getNumber("SELECT COUNT(*) FROM departments");
     const positionsTotal = this.getNumber("SELECT COUNT(*) FROM positions");
@@ -288,21 +286,11 @@ export class HrCrudRepository {
       WHERE status IN ('planned', 'approved')
     `);
 
-    const payrollMonthTotal = this.getNumber(
-      `
-      SELECT COALESCE(SUM(net_amount), 0)
-      FROM payroll
-      WHERE accrual_month = ?
-    `,
-      [currentMonth],
-    );
-
     return {
       employeesTotal,
       departmentsTotal,
       positionsTotal,
       activeVacations,
-      payrollMonthTotal,
     };
   }
 

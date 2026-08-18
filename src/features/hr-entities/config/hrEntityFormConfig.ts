@@ -146,7 +146,12 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
         required: true,
         type: "date",
       },
-      { name: "salary", labelKey: "forms.fields.salary", type: "number" },
+      {
+        name: "salary",
+        labelKey: "forms.fields.salary",
+        required: true,
+        type: "number",
+      },
       {
         name: "status",
         labelKey: "forms.fields.status",
@@ -358,8 +363,6 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
         required: true,
         type: "number",
       },
-      { name: "allowance", labelKey: "forms.fields.allowance", type: "number" },
-      { name: "bonus", labelKey: "forms.fields.bonus", type: "number" },
       {
         name: "responsibilities",
         labelKey: "forms.fields.responsibilities",
@@ -424,11 +427,6 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
           { value: "0", labelKey: "common.answers.no" },
         ],
       },
-      {
-        name: "payment_amount",
-        labelKey: "forms.fields.vacationPayment",
-        type: "number",
-      },
       { name: "reason", labelKey: "forms.fields.reason", type: "textarea" },
       {
         name: "status",
@@ -442,47 +440,6 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
         labelKey: "forms.fields.approvedAt",
         type: "date",
       },
-      { name: "note", labelKey: "forms.fields.note", type: "textarea" },
-    ],
-  },
-
-  payroll: {
-    createTitleKey: "forms.payroll.createTitle",
-    editTitleKey: "forms.payroll.editTitle",
-    fields: [
-      {
-        name: "employee_id",
-        labelKey: "forms.fields.employeeId",
-        required: true,
-        type: "relation",
-        relation: {
-          entity: "employees",
-          label: "employeeName",
-          orderBy: "last_name",
-          placeholderKey: "forms.placeholders.selectEmployee",
-        },
-      },
-      {
-        name: "accrual_month",
-        labelKey: "forms.fields.accrualMonth",
-        required: true,
-        type: "text",
-      },
-      {
-        name: "base_salary",
-        labelKey: "forms.fields.baseSalary",
-        required: true,
-        type: "number",
-      },
-      { name: "bonus", labelKey: "forms.fields.bonus", type: "number" },
-      { name: "allowance", labelKey: "forms.fields.allowance", type: "number" },
-      {
-        name: "deductions",
-        labelKey: "forms.fields.deductions",
-        type: "number",
-      },
-      { name: "taxes", labelKey: "forms.fields.taxes", type: "number" },
-      { name: "paid_at", labelKey: "forms.fields.paidAt", type: "date" },
       { name: "note", labelKey: "forms.fields.note", type: "textarea" },
     ],
   },

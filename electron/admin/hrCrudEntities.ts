@@ -101,8 +101,6 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "department_id",
       "name",
       "base_salary",
-      "allowance",
-      "bonus",
       "responsibilities",
       "requirements",
       "note",
@@ -229,7 +227,6 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "ends_at",
       "days_count",
       "is_paid",
-      "payment_amount",
       "reason",
       "status",
       "approved_at",
@@ -242,31 +239,6 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
         employee_name: `(SELECT ${employeeFullName("employee")}
           FROM employees AS employee
           WHERE employee.id = vacations.employee_id)`,
-      },
-    },
-  ),
-
-  payroll: entity(
-    "payroll",
-    [
-      "employee_id",
-      "accrual_month",
-      "base_salary",
-      "bonus",
-      "allowance",
-      "deductions",
-      "taxes",
-      "net_amount",
-      "paid_at",
-      "note",
-    ],
-    ["accrual_month", "note"],
-    {
-      defaultOrderBy: "accrual_month",
-      listColumns: {
-        employee_name: `(SELECT ${employeeFullName("employee")}
-          FROM employees AS employee
-          WHERE employee.id = payroll.employee_id)`,
       },
     },
   ),

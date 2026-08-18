@@ -229,16 +229,6 @@ const hrEntityConfigDefinitions: Record<
         format: "money",
       },
       {
-        key: "allowance",
-        labelKey: "entities.positions.columns.allowance",
-        format: "money",
-      },
-      {
-        key: "bonus",
-        labelKey: "entities.positions.columns.bonus",
-        format: "money",
-      },
-      {
         key: "responsibilities",
         labelKey: "entities.positions.columns.responsibilities",
       },
@@ -277,67 +267,11 @@ const hrEntityConfigDefinitions: Record<
         labelKey: "entities.vacations.columns.isPaid",
         format: "status",
       },
-      {
-        key: "payment_amount",
-        labelKey: "entities.vacations.columns.payment",
-        format: "money",
-      },
       { key: "reason", labelKey: "entities.vacations.columns.reason" },
       {
         key: "status",
         labelKey: "entities.vacations.columns.status",
         format: "status",
-      },
-    ],
-  },
-
-  payroll: {
-    entity: "payroll",
-    titleKey: "entities.payroll.title",
-    descriptionKey: "entities.payroll.description",
-    createLabelKey: "entities.payroll.createLabel",
-    defaultOrderBy: "accrual_month",
-    columns: [
-      { key: "employee_name", labelKey: "entities.payroll.columns.employee" },
-      {
-        key: "accrual_month",
-        labelKey: "entities.payroll.columns.accrualMonth",
-      },
-      {
-        key: "base_salary",
-        labelKey: "entities.payroll.columns.baseSalary",
-        format: "money",
-      },
-      {
-        key: "bonus",
-        labelKey: "entities.payroll.columns.bonus",
-        format: "money",
-      },
-      {
-        key: "allowance",
-        labelKey: "entities.payroll.columns.allowance",
-        format: "money",
-      },
-      {
-        key: "deductions",
-        labelKey: "entities.payroll.columns.deductions",
-        format: "money",
-      },
-      {
-        key: "taxes",
-        labelKey: "entities.payroll.columns.taxes",
-        format: "money",
-      },
-      {
-        key: "net_amount",
-        labelKey: "entities.payroll.columns.netAmount",
-        format: "money",
-        className: "font-bold",
-      },
-      {
-        key: "paid_at",
-        labelKey: "entities.payroll.columns.paidAt",
-        format: "date",
       },
     ],
   },

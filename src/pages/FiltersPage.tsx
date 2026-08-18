@@ -1,5 +1,5 @@
 import type { IconType } from "react-icons";
-import { FiCalendar, FiCreditCard, FiFilter } from "react-icons/fi";
+import { FiCalendar, FiFilter } from "react-icons/fi";
 import { useSearchParams } from "react-router-dom";
 
 import { ModuleFiltersPanel } from "../features/filters/components/ModuleFiltersPanel";
@@ -18,7 +18,6 @@ const sections: Array<{
 }> = [
   { id: "general", label: "Общие фильтры", icon: FiFilter },
   { id: "vacations", label: "Отпуска", icon: FiCalendar },
-  { id: "payroll", label: "Начисления", icon: FiCreditCard },
 ];
 
 export function FiltersPage(): JSX.Element {
@@ -75,7 +74,7 @@ export function FiltersPage(): JSX.Element {
 }
 
 function parseSection(value: string | null): FiltersSection {
-  return value === "vacations" || value === "payroll" ? value : "general";
+  return value === "vacations" ? value : "general";
 }
 
 function parseEmployeeId(value: string | null): string {

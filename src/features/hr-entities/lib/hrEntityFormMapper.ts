@@ -10,10 +10,6 @@ const numberFieldNames = new Set([
   'employee_id',
   'days_count',
   'base_salary',
-  'allowance',
-  'bonus',
-  'deductions',
-  'taxes',
   'salary',
   'is_current',
 ])

@@ -21,8 +21,7 @@ export type HrEntityKey =
   | "employee_education"
   | "employee_experience"
   | "employment_history"
-  | "vacations"
-  | "payroll";
+  | "vacations";
 
 export type HrOrderDirection = "asc" | "desc";
 
@@ -93,7 +92,6 @@ export interface HrDashboardStats {
   departmentsTotal: number;
   positionsTotal: number;
   activeVacations: number;
-  payrollMonthTotal: number;
 }
 
 export interface RecruitmentListParams {

@@ -6,7 +6,6 @@ import {
   FiBriefcase,
   FiCalendar,
   FiClock,
-  FiCreditCard,
   FiEdit2,
   FiFileText,
   FiUser,
@@ -31,10 +30,7 @@ import {
   EmployeeProfileHeader,
 } from "../../features/employees/components/EmployeeDetailsCards";
 import { EmployeeLifecyclePanel } from "../../features/employees/components/EmployeeLifecyclePanel";
-import {
-  EmployeePayrollPanel,
-  EmployeeVacationsPanel,
-} from "../../features/employees/components/EmployeeOperationalRecords";
+import { EmployeeVacationsPanel } from "../../features/employees/components/EmployeeOperationalRecords";
 import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
 import type { EmployeeFormSectionKey } from "../../features/employees/forms/employeeFormValidation";
 import {
@@ -215,11 +211,6 @@ export function EmployeeDetailsPage(): JSX.Element {
               Образование и опыт
             </Tabs.Trigger>
 
-            <Tabs.Trigger className={detailsTabTriggerClass} value="payroll">
-              <FiCreditCard />
-              Оплата
-            </Tabs.Trigger>
-
             <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
               <FiCalendar />
               Отпуска
@@ -314,14 +305,6 @@ export function EmployeeDetailsPage(): JSX.Element {
               <EmployeeEducationPanel employeeId={employeeId} locale={locale} />
               <EmployeeExperiencePanel employeeId={employeeId} locale={locale} />
             </div>
-          </Tabs.Content>
-
-          <Tabs.Content value="payroll" className="outline-none">
-            <EmployeePayrollPanel
-              baseSalary={employee.salary}
-              employeeId={employeeId}
-              locale={locale}
-            />
           </Tabs.Content>
 
           <Tabs.Content value="vacations" className="outline-none">
