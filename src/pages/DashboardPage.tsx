@@ -51,6 +51,7 @@ export function DashboardPage(): JSX.Element {
   const canViewVacations = permissions.has("vacations.view");
   const canViewRecruitment = permissions.has("recruitment.view");
   const canManageAccess = permissions.has("access.manage");
+  const canViewAudit = permissions.has("audit.view");
 
   const [stats, setStats] = useState<HrDashboardStats>(initialStats);
   const [employees, setEmployees] = useState<HrListResult>(emptyList);
@@ -175,7 +176,7 @@ export function DashboardPage(): JSX.Element {
           icon={<FiAlertCircle />}
           label="Конфликты email"
           value={stats.emailConflicts}
-          link={canManageAccess ? "/audit" : undefined}
+          link={canViewAudit ? "/audit" : undefined}
         />
       </section>
 
@@ -219,12 +220,12 @@ export function DashboardPage(): JSX.Element {
         )}
 
         {canViewVacations && (
-          <DashboardListCard linkLabel="Реестр отпусков" linkTo="/filters?module=vacations" title="Ближайшие отпуска">
+          <DashboardListCard linkLabel="Реестр отпусков" linkTo="/vacations" title="Ближайшие отпуска">
             {vacations.items.map((vacation) => (
               <Link
                 className="app-surface-muted app-border app-hover-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 transition"
                 key={String(vacation.id)}
-                to={`/filters?module=vacations&employee=${String(vacation.employee_id)}`}
+                to={`/vacations?employee=${String(vacation.employee_id)}`}
               >
                 <div className="min-w-0">
                   <p className="app-text truncate font-black">{String(vacation.employee_name ?? "—")}</p>
