@@ -1,6 +1,6 @@
 export { Button } from './Button'
 export { ConfirmDialog } from './ConfirmDialog'
-export { Dialog } from './Dialog'
+export { Dialog, DialogFooter, type DialogSize } from './Dialog'
 export { DropdownMenu, type DropdownMenuAction } from './DropdownMenu'
 export { EmptyState } from './EmptyState'
 export { FieldError } from './FieldError'
