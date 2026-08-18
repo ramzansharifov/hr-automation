@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import type { HrEntityKey, HrRecord } from '../../../shared/types/hr'
-import { Dialog } from '../../../shared/ui'
+import { Button, Dialog, DialogFooter } from '../../../shared/ui'
 import { getHrEntityFormConfig } from '../config/hrEntityFormConfig'
 import {
   getHrEntityDefaultValues,
@@ -33,6 +33,7 @@ export function HrEntityDialog({
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const config = getHrEntityFormConfig(entity)
+  const formId = `hr-entity-dialog-${entity}`
   const defaultValues = useMemo(
     () => getHrEntityDefaultValues(entity, initialRecord),
     [entity, initialRecord],
@@ -59,19 +60,26 @@ export function HrEntityDialog({
   return (
     <Dialog
       description={t('forms.dialogDescription')}
+      footer={
+        <DialogFooter>
+          <Button disabled={isSubmitting} onClick={() => onOpenChange(false)} variant="secondary">
+            {t('common.actions.cancel')}
+          </Button>
+          <Button disabled={isSubmitting} form={formId} type="submit" variant="primary">
+            {t('common.actions.save')}
+          </Button>
+        </DialogFooter>
+      }
       onOpenChange={onOpenChange}
       open={open}
       title={t(mode === 'create' ? config.createTitleKey : config.editTitleKey)}
     >
       <HrEntityForm
-        cancelLabel={t('common.actions.cancel')}
         defaultValues={defaultValues}
         entity={entity}
+        formId={formId}
         hiddenFieldNames={hiddenFieldNames}
-        isSubmitting={isSubmitting}
-        onCancel={() => onOpenChange(false)}
         onSubmit={handleSubmit}
-        submitLabel={t('common.actions.save')}
       />
     </Dialog>
   )
