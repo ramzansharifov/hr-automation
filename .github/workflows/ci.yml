@@ -65,6 +65,143 @@ jobs:
           print("All migrations applied successfully")
           PY
 
+      - name: Validate HR core upgrade with existing data
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import sqlite3
+
+          marker = "-- requires_foreign_keys_off"
+          migration_paths = sorted(glob.glob("electron/migrations/*.sql"))
+          legacy_paths = [
+              path for path in migration_paths
+              if int(os.path.basename(path).split("_", 1)[0]) <= 12
+          ]
+          hr_core_paths = [
+              path for path in migration_paths
+              if int(os.path.basename(path).split("_", 1)[0]) >= 13
+          ]
+
+          connection = sqlite3.connect(":memory:")
+          connection.execute("PRAGMA foreign_keys = ON")
+
+          def apply(path):
+              with open(path, "r", encoding="utf-8") as migration_file:
+                  sql = migration_file.read()
+              needs_fk_off = marker in sql
+              if needs_fk_off:
+                  connection.execute("PRAGMA foreign_keys = OFF")
+              try:
+                  connection.executescript(sql)
+                  violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+                  if violations:
+                      raise SystemExit(
+                          f"Foreign key violations after {path}: {violations}"
+                      )
+              finally:
+                  if needs_fk_off:
+                      connection.execute("PRAGMA foreign_keys = ON")
+
+          for migration_path in legacy_paths:
+              print(f"Applying legacy {migration_path}")
+              apply(migration_path)
+
+          connection.execute(
+              "INSERT INTO enterprises (id, name, email) VALUES (1, ?, ?)",
+              ("Существующее предприятие", "enterprise@example.test"),
+          )
+          connection.execute(
+              "INSERT INTO departments (id, enterprise_id, name, email) VALUES (1, 1, ?, ?)",
+              ("Существующий отдел", "department@example.test"),
+          )
+          connection.execute(
+              "INSERT INTO positions (id, department_id, name, responsibilities) VALUES (1, 1, ?, ?)",
+              ("Существующая должность", "Проверка сохранности обязанностей"),
+          )
+          connection.execute(
+              """
+              INSERT INTO employees (
+                id, department_id, position_id, last_name, first_name,
+                hire_date, status, salary, email
+              ) VALUES (1, 1, 1, ?, ?, ?, 'active', 7250, ?)
+              """,
+              ("Тестов", "Сотрудник", "2024-01-15", "employee@example.test"),
+          )
+          connection.execute(
+              """
+              INSERT INTO vacations (
+                id, employee_id, vacation_type, starts_at, ends_at,
+                days_count, reason, status, is_paid
+              ) VALUES (1, 1, ?, ?, ?, 5, ?, 'planned', 1)
+              """,
+              (
+                  "Ежегодный отпуск",
+                  "2026-09-01",
+                  "2026-09-05",
+                  "Существующая отпускная запись",
+              ),
+          )
+          connection.commit()
+
+          for migration_path in hr_core_paths:
+              print(f"Applying HR core {migration_path}")
+              apply(migration_path)
+
+          employee = connection.execute(
+              """
+              SELECT employee_number, employment_type, salary, email
+              FROM employees WHERE id = 1
+              """
+          ).fetchone()
+          if employee != (None, "full_time", 7250.0, "employee@example.test"):
+              raise SystemExit(f"Employee data was not preserved: {employee}")
+
+          organization = connection.execute(
+              """
+              SELECT enterprise.name, enterprise.legal_form,
+                     department.name, position.name, position.responsibilities
+              FROM enterprises AS enterprise
+              JOIN departments AS department ON department.enterprise_id = enterprise.id
+              JOIN positions AS position ON position.department_id = department.id
+              WHERE enterprise.id = 1 AND department.id = 1 AND position.id = 1
+              """
+          ).fetchone()
+          expected_organization = (
+              "Существующее предприятие",
+              "ООО",
+              "Существующий отдел",
+              "Существующая должность",
+              "Проверка сохранности обязанностей",
+          )
+          if organization != expected_organization:
+              raise SystemExit(f"Organization data was not preserved: {organization}")
+
+          vacation = connection.execute(
+              """
+              SELECT vacation_type.name, vacations.days_count, vacations.reason
+              FROM vacations
+              JOIN vacation_types AS vacation_type
+                ON vacation_type.id = vacations.vacation_type_id
+              WHERE vacations.id = 1
+              """
+          ).fetchone()
+          if vacation != ("Ежегодный отпуск", 5, "Существующая отпускная запись"):
+              raise SystemExit(f"Vacation data was not preserved: {vacation}")
+
+          if connection.execute(
+              "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'payroll'"
+          ).fetchone():
+              raise SystemExit("Payroll table unexpectedly exists after HR core upgrade")
+
+          violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+          if violations:
+              raise SystemExit(f"Foreign key violations after data upgrade: {violations}")
+
+          print("Existing HR data survives migrations 013-016")
+          PY
+
       - name: Audit production dependencies
         id: audit
         continue-on-error: true
