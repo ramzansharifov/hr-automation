@@ -5,24 +5,27 @@ import Database from 'better-sqlite3'
 
 let database: Database.Database | null = null
 
-function createDatabaseConnection(): Database.Database {
+export function getDatabasePath(): string {
   const databaseDirectory = path.join(app.getPath('userData'), 'database')
-
   mkdirSync(databaseDirectory, { recursive: true })
+  return path.join(databaseDirectory, 'hr-automation.sqlite')
+}
 
-  const databasePath = path.join(databaseDirectory, 'hr-automation.sqlite')
-  const connection = new Database(databasePath)
-
+function createDatabaseConnection(): Database.Database {
+  const connection = new Database(getDatabasePath())
   connection.pragma('journal_mode = WAL')
   connection.pragma('foreign_keys = ON')
-
   return connection
 }
 
 export function getDatabase(): Database.Database {
-  if (!database) {
-    database = createDatabaseConnection()
-  }
-
+  if (!database) database = createDatabaseConnection()
   return database
+}
+
+export function closeDatabase(): void {
+  if (!database) return
+  database.pragma('wal_checkpoint(TRUNCATE)')
+  database.close()
+  database = null
 }
