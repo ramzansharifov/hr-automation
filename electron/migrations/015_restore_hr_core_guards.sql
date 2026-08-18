@@ -1,10 +1,3 @@
-CREATE TRIGGER roles_system_update_guard
-BEFORE UPDATE ON roles
-WHEN OLD.is_system = 1
-BEGIN
-  SELECT RAISE(ABORT, 'Системную роль нельзя изменять');
-END;
-
 CREATE TRIGGER trg_validate_employee_assignment_insert
 BEFORE INSERT ON employees
 WHEN NEW.position_id IS NOT NULL AND (
