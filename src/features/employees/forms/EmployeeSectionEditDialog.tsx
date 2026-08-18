@@ -47,6 +47,7 @@ export function EmployeeSectionEditDialog({
 }: EmployeeSectionEditDialogProps): JSX.Element {
   const { t } = useTranslation();
   const activeSection = section ?? "personal";
+  const formId = `employee-section-edit-${activeSection}`;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { departments, genderOptions, isRelationsLoading, positions } =
     useEmployeeFormOptions();
@@ -120,11 +121,27 @@ export function EmployeeSectionEditDialog({
           ? "Здесь редактируются кадровые реквизиты. Отдел, должность, оклад, дата приёма и увольнение изменяются только через кадровые действия."
           : t("employeesDetails.edit.description")
       }
+      footer={
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button
+            disabled={isSubmitting}
+            type="button"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("common.actions.cancel")}
+          </Button>
+          <Button disabled={isSubmitting} form={formId} type="submit" variant="primary">
+            {t("common.actions.save")}
+          </Button>
+        </div>
+      }
       onOpenChange={onOpenChange}
       open={open}
       title={getSectionDialogTitle(activeSection, t)}
     >
       <form
+        id={formId}
         className="space-y-6"
         onSubmit={handleSubmit(() => void handleSave())}
       >
@@ -160,15 +177,6 @@ export function EmployeeSectionEditDialog({
             t={t}
           />
         )}
-
-        <div className="app-border-soft flex justify-end gap-3 border-t pt-5">
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            {t("common.actions.cancel")}
-          </Button>
-          <Button disabled={isSubmitting} type="submit" variant="primary">
-            {t("common.actions.save")}
-          </Button>
-        </div>
       </form>
     </Dialog>
   );
