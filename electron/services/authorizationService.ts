@@ -22,7 +22,6 @@ const entityPermissions: Record<
   employee_experience: { view: "employees.view", manage: "employees.manage" },
   employment_history: { view: "employees.view", manage: "employees.manage" },
   vacations: { view: "vacations.view", manage: "vacations.manage" },
-  payroll: { view: "payroll.view", manage: "payroll.manage" },
 };
 
 export class AuthorizationService {
@@ -140,7 +139,6 @@ export class AuthorizationService {
 
     const employeeIds = this.getAllowedEmployeeIds(session);
     const departmentIds = this.getAllowedDepartmentIds(session);
-    const currentMonth = new Date().toISOString().slice(0, 7);
 
     return {
       employeesTotal: employeeIds.length,
@@ -151,7 +149,6 @@ export class AuthorizationService {
          WHERE status IN ('planned', 'approved')`,
         employeeIds,
       ),
-      payrollMonthTotal: this.sumPayroll(employeeIds, currentMonth),
     };
   }
 
@@ -272,7 +269,6 @@ export class AuthorizationService {
         "employee_experience",
         "employment_history",
         "vacations",
-        "payroll",
       ].includes(entity)
     ) {
       return this.getEmployeeContext(toPositiveNumber(record.employee_id));
@@ -401,17 +397,12 @@ export class AuthorizationService {
   }
 
   private globalDashboard(): HrDashboardStats {
-    const currentMonth = new Date().toISOString().slice(0, 7);
     return {
       employeesTotal: this.scalar("SELECT COUNT(*) FROM employees"),
       departmentsTotal: this.scalar("SELECT COUNT(*) FROM departments"),
       positionsTotal: this.scalar("SELECT COUNT(*) FROM positions"),
       activeVacations: this.scalar(
         "SELECT COUNT(*) FROM vacations WHERE status IN ('planned', 'approved')",
-      ),
-      payrollMonthTotal: this.scalar(
-        "SELECT COALESCE(SUM(net_amount), 0) FROM payroll WHERE accrual_month = ?",
-        [currentMonth],
       ),
     };
   }
@@ -431,18 +422,6 @@ export class AuthorizationService {
     return this.scalar(
       `${baseSql} AND employee_id IN (${placeholders})`,
       employeeIds,
-    );
-  }
-
-  private sumPayroll(employeeIds: number[], currentMonth: string): number {
-    if (employeeIds.length === 0) return 0;
-    const placeholders = employeeIds.map(() => "?").join(", ");
-    return this.scalar(
-      `SELECT COALESCE(SUM(net_amount), 0)
-       FROM payroll
-       WHERE accrual_month = ?
-         AND employee_id IN (${placeholders})`,
-      [currentMonth, ...employeeIds],
     );
   }
 
