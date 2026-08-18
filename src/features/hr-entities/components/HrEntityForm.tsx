@@ -271,12 +271,19 @@ async function loadRelationRecords(
   const records: HrRecord[] = []
   let page = 1
   let totalPages = 1
+  const filters =
+    entity === 'vacation_types'
+      ? { is_active: { operator: 'equals' as const, value: 1 } }
+      : entity === 'employees'
+        ? { status: { operator: 'equals' as const, value: 'active' } }
+        : undefined
 
   do {
     const result = await hrApiClient.list({
       entity,
       page,
       pageSize: 100,
+      filters,
       orderBy,
       orderDirection: 'asc',
     })
