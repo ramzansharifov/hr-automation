@@ -34,22 +34,15 @@ export interface VacationFilterValues extends Record<string, string> {
   ends_at: string;
 }
 
-export interface PayrollFilterValues extends Record<string, string> {
-  employee_id: string;
-  accrual_month: string;
-}
-
 export const ENTERPRISE_FILTERS_EVENT = "hr-enterprise-filters-change";
 export const VACANCY_FILTERS_EVENT = "hr-vacancy-filters-change";
 export const CANDIDATE_FILTERS_EVENT = "hr-candidate-filters-change";
 export const VACATION_FILTERS_EVENT = "hr-vacation-filters-change";
-export const PAYROLL_FILTERS_EVENT = "hr-payroll-filters-change";
 
 const ENTERPRISE_STORAGE_KEY = "hr-enterprise-filters";
 const VACANCY_STORAGE_KEY = "hr-vacancy-filters";
 const CANDIDATE_STORAGE_KEY = "hr-candidate-filters";
 const VACATION_STORAGE_KEY = "hr-vacation-filters";
-const PAYROLL_STORAGE_KEY = "hr-payroll-filters";
 
 export const emptyEnterpriseFilters: EnterpriseFilterValues = {
   name: "",
@@ -80,11 +73,6 @@ export const emptyVacationFilters: VacationFilterValues = {
   is_paid: "",
   starts_at: "",
   ends_at: "",
-};
-
-export const emptyPayrollFilters: PayrollFilterValues = {
-  employee_id: "",
-  accrual_month: "",
 };
 
 export function getStoredEnterpriseFilterValues(): EnterpriseFilterValues {
@@ -184,35 +172,6 @@ export function buildVacationHrFilters(
   addNumberEqualsFilter(filters, "is_paid", values.is_paid);
   addEqualsFilter(filters, "starts_at", values.starts_at);
   addEqualsFilter(filters, "ends_at", values.ends_at);
-
-  return Object.keys(filters).length > 0 ? filters : undefined;
-}
-
-export function getStoredPayrollFilterValues(): PayrollFilterValues {
-  return readStoredValues(PAYROLL_STORAGE_KEY, emptyPayrollFilters);
-}
-
-export function setStoredPayrollFilterValues(values: PayrollFilterValues): void {
-  writeStoredValues(PAYROLL_STORAGE_KEY, PAYROLL_FILTERS_EVENT, values);
-}
-
-export function clearStoredPayrollFilterValues(): void {
-  clearStoredValues(PAYROLL_STORAGE_KEY, PAYROLL_FILTERS_EVENT, emptyPayrollFilters);
-}
-
-export function getStoredPayrollHrFilters():
-  | Record<string, HrFilterCondition>
-  | undefined {
-  return buildPayrollHrFilters(getStoredPayrollFilterValues());
-}
-
-export function buildPayrollHrFilters(
-  values: PayrollFilterValues,
-): Record<string, HrFilterCondition> | undefined {
-  const filters: Record<string, HrFilterCondition> = {};
-
-  addNumberEqualsFilter(filters, "employee_id", values.employee_id);
-  addEqualsFilter(filters, "accrual_month", values.accrual_month);
 
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
