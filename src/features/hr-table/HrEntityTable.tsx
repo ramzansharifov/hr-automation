@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
+import { useAuth } from '../auth/AuthContext'
 import type {
   HrEntityKey,
   HrFilterCondition,
@@ -58,6 +59,17 @@ const pageSizeOptions: SelectOption[] = [
   { value: '50', label: '50' },
   { value: '100', label: '100' },
 ]
+const managePermissionByEntity: Record<HrEntityKey, string> = {
+  enterprises: 'organization.manage',
+  departments: 'organization.manage',
+  positions: 'organization.manage',
+  employees: 'employees.manage',
+  employee_education: 'employees.manage',
+  employee_experience: 'employees.manage',
+  employment_history: 'employees.manage',
+  vacation_types: 'vacations.manage',
+  vacations: 'vacations.manage',
+}
 
 const maxVisiblePageButtons = 5
 
@@ -127,12 +139,18 @@ export function HrEntityTable({
   onRowClick,
 }: HrEntityTableProps): JSX.Element {
   const { i18n, t } = useTranslation()
+  const { hasPermission, session } = useAuth()
   const locale = getAppLocale(i18n.language)
   const config = useMemo(() => getEntityConfig(entity, t, locale), [entity, locale, t])
   const visibleColumns = useMemo(
     () => config.columns.filter((column) => !hiddenColumnKeys.includes(column.key)),
     [config.columns, hiddenColumnKeys],
   )
+  const permissionCode = managePermissionByEntity[entity]
+  const canManageEntity =
+    entity !== 'employment_history' &&
+    hasPermission(permissionCode) &&
+    (entity !== 'vacation_types' || session.permissionScopes[permissionCode] === 'global')
   const [result, setResult] = useState<HrListResult>(emptyResult)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -227,6 +245,7 @@ export function HrEntityTable({
   }
 
   function handleCreateClick(): void {
+    if (!canManageEntity) return
     if (onCreateClick) {
       onCreateClick()
       return
@@ -238,12 +257,14 @@ export function HrEntityTable({
   }
 
   function handleEditClick(record: HrRecord): void {
+    if (!canManageEntity) return
     setDialogMode('edit')
     setEditingRecord(record)
     setIsFormOpen(true)
   }
 
   function handleDeleteClick(record: HrRecord): void {
+    if (!canManageEntity) return
     setDeletingRecord(record)
     setIsDeleteOpen(true)
   }
@@ -260,6 +281,7 @@ export function HrEntityTable({
   }
 
   async function handleFormSubmit(data: HrRecord): Promise<void> {
+    if (!canManageEntity) throw new Error('Недостаточно прав для изменения записи')
     if (dialogMode === 'create') {
       await hrApiClient.create({ entity, data })
       handleRefresh()
@@ -284,6 +306,7 @@ export function HrEntityTable({
   }
 
   async function handleDeleteConfirm(): Promise<void> {
+    if (!canManageEntity) throw new Error('Недостаточно прав для удаления записи')
     await hrApiClient.delete({
       entity,
       id: getRecordId(deletingRecord),
@@ -295,7 +318,7 @@ export function HrEntityTable({
   const pageNumbers = getPageNumbers(result.page, totalPages)
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
-  const hasActions = entity !== 'employees'
+  const hasActions = canManageEntity && entity !== 'employees'
   const tableColumnCount = visibleColumns.length + (hasActions ? 1 : 0)
   const cardMetaColumns = visibleColumns.slice(1, 4)
 
@@ -359,7 +382,7 @@ export function HrEntityTable({
               {t('common.actions.refresh')}
             </Button>
 
-            {!hideCreateButton && (
+            {!hideCreateButton && canManageEntity && (
               <Button
                 type="button"
                 onClick={handleCreateClick}
@@ -667,20 +690,24 @@ export function HrEntityTable({
         </div>
       </div>
 
-      <HrEntityDialog
-        entity={entity}
-        initialRecord={dialogMode === 'create' ? createInitialRecord : editingRecord}
-        mode={dialogMode}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleFormSubmit}
-        open={isFormOpen}
-      />
+      {canManageEntity && (
+        <>
+          <HrEntityDialog
+            entity={entity}
+            initialRecord={dialogMode === 'create' ? createInitialRecord : editingRecord}
+            mode={dialogMode}
+            onOpenChange={setIsFormOpen}
+            onSubmit={handleFormSubmit}
+            open={isFormOpen}
+          />
 
-      <HrEntityDeleteDialog
-        onConfirm={handleDeleteConfirm}
-        onOpenChange={setIsDeleteOpen}
-        open={isDeleteOpen}
-      />
+          <HrEntityDeleteDialog
+            onConfirm={handleDeleteConfirm}
+            onOpenChange={setIsDeleteOpen}
+            open={isDeleteOpen}
+          />
+        </>
+      )}
     </motion.section>
   )
 }
