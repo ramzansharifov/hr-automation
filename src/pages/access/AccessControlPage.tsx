@@ -22,6 +22,7 @@ import type {
   AccessUserSummary,
   SaveAccessRoleParams,
   SaveAccessUserParams,
+  SystemAdminSummary,
 } from "../../shared/types/access";
 import type { HrRecord } from "../../shared/types/hr";
 import {
@@ -40,6 +41,14 @@ const emptyOverview: AccessControlOverview = {
   permissions: [],
   roles: [],
   users: [],
+  systemAdmin: {
+    id: 1,
+    username: "superadmin",
+    mustChangePassword: false,
+    lastLoginAt: null,
+    createdAt: "",
+    updatedAt: "",
+  },
 };
 
 const scopeOptions: SelectOption[] = [
@@ -140,6 +149,11 @@ export function AccessControlPage(): JSX.Element {
     );
     return employees.filter((employee) => !occupiedEmployeeIds.has(Number(employee.value)));
   }, [employees, overview.users, userDraft.id]);
+
+  const assignableRoles = useMemo(
+    () => overview.roles.filter((role) => role.systemKey !== "superadmin"),
+    [overview.roles],
+  );
 
   function openCreateRole(): void {
     setRoleDraft(emptyRoleDraft);
@@ -282,7 +296,7 @@ export function AccessControlPage(): JSX.Element {
                 Роли и пользователи
               </h1>
               <p className="app-muted mt-1 text-sm">
-                Учётные записи сотрудников, системные и пользовательские роли, области видимости и разрешения.
+                Встроенный системный администратор хранится отдельно от сотрудников. Остальные учётные записи всегда связаны с сотрудником.
               </p>
             </div>
           </div>
@@ -296,7 +310,11 @@ export function AccessControlPage(): JSX.Element {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <AccessMetric icon={<FiUsers />} label="Пользователи" value={overview.users.length} />
+        <AccessMetric
+          icon={<FiUsers />}
+          label="Учётные записи"
+          value={overview.users.length + 1}
+        />
         <AccessMetric icon={<FiShield />} label="Роли" value={overview.roles.length} />
         <AccessMetric
           icon={<FiLock />}
@@ -326,6 +344,7 @@ export function AccessControlPage(): JSX.Element {
                 setPassword("");
                 setPasswordDialogUser(user);
               }}
+              systemAdmin={overview.systemAdmin}
               users={overview.users}
             />
           ) : (
@@ -357,7 +376,7 @@ export function AccessControlPage(): JSX.Element {
         onOpenChange={setUserDialogOpen}
         onSave={() => void saveUser()}
         open={userDialogOpen}
-        roles={overview.roles}
+        roles={assignableRoles}
       />
 
       <Dialog
@@ -419,24 +438,18 @@ function UsersSection({
   onDelete,
   onEdit,
   onResetPassword,
+  systemAdmin,
   users,
 }: {
   onDelete: (user: AccessUserSummary) => void;
   onEdit: (user: AccessUserSummary) => void;
   onResetPassword: (user: AccessUserSummary) => void;
+  systemAdmin: SystemAdminSummary;
   users: AccessUserSummary[];
 }): JSX.Element {
-  if (users.length === 0) {
-    return (
-      <EmptyState
-        title="Пользователи ещё не созданы"
-        description="Создайте учётную запись и обязательно свяжите её с сотрудником."
-      />
-    );
-  }
-
   return (
     <div className="grid gap-4 xl:grid-cols-2">
+      <SystemAdminCard admin={systemAdmin} />
       {users.map((user) => (
         <article className="app-surface-muted app-border rounded-[22px] border p-5" key={user.id}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -487,6 +500,61 @@ function UsersSection({
           </div>
         </article>
       ))}
+      {users.length === 0 && (
+        <EmptyState
+          title="Учётных записей сотрудников пока нет"
+          description="Встроенный superadmin уже доступен. Для рабочих ролей создайте учётные записи и свяжите их с активными сотрудниками."
+        />
+      )}
+    </div>
+  );
+}
+
+function SystemAdminCard({ admin }: { admin: SystemAdminSummary }): JSX.Element {
+  return (
+    <article className="app-accent-gradient-panel rounded-[22px] border p-5 text-white xl:col-span-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
+            <FiShield className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-black">Системный администратор</h2>
+              <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-black">
+                Встроенная учётная запись
+              </span>
+            </div>
+            <p className="mt-1 text-sm font-black text-white">@{admin.username}</p>
+            <p className="mt-2 max-w-2xl text-xs font-semibold text-white/75">
+              Не связан с сотрудником, не удаляется и не получает роли через обычные назначения. Имеет фиксированную системную роль Superadmin.
+            </p>
+          </div>
+        </div>
+        <span className="rounded-full border border-emerald-200/30 bg-emerald-400/15 px-3 py-1 text-xs font-black text-white">
+          Активен
+        </span>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <SystemAdminMetric label="Роль" value="Superadmin" />
+        <SystemAdminMetric
+          label="Последний вход"
+          value={admin.lastLoginAt ? formatDateTime(admin.lastLoginAt) : "Ещё не входил"}
+        />
+        <SystemAdminMetric
+          label="Пароль"
+          value={admin.mustChangePassword ? "Требуется смена" : "Установлен"}
+        />
+      </div>
+    </article>
+  );
+}
+
+function SystemAdminMetric({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+      <p className="text-[11px] font-black uppercase tracking-wide text-white/65">{label}</p>
+      <p className="mt-1 text-sm font-black text-white">{value}</p>
     </div>
   );
 }
@@ -683,7 +751,7 @@ function UserDialog({
 }): JSX.Element {
   return (
     <Dialog
-      description="Каждая учётная запись обязательно и уникально связана с сотрудником. Пользователь получает объединение разрешений всех назначенных ролей."
+      description="Каждая обычная учётная запись уникально связана с активным сотрудником. Встроенный superadmin управляется отдельно."
       onOpenChange={onOpenChange}
       open={open}
       title={draft.id ? "Редактировать пользователя" : "Новый пользователь"}
@@ -693,7 +761,7 @@ function UserDialog({
           <Select
             onValueChange={(employeeId) => onChange({ ...draft, employeeId })}
             options={employeeOptions}
-            placeholder="Выберите сотрудника"
+            placeholder="Выберите активного сотрудника"
             value={draft.employeeId}
           />
         </Field>
@@ -776,7 +844,7 @@ function UserDialog({
             })}
           </div>
           <p className="app-muted mt-3 text-xs leading-5">
-            «Директор предприятия» доступен только генеральному директору предприятия, а «Начальник отдела» — сотруднику, назначенному директором отдела.
+            Руководящие системные роли привязаны к фактическим назначениям в оргструктуре и синхронизируются автоматически.
           </p>
         </div>
 
@@ -916,6 +984,7 @@ async function loadEmployees(): Promise<EmployeeOption[]> {
       entity: "employees",
       page,
       pageSize: 100,
+      filters: { status: { operator: "equals", value: "active" } },
       orderBy: "last_name",
       orderDirection: "asc",
     });
@@ -956,6 +1025,15 @@ async function loadEmployees(): Promise<EmployeeOption[]> {
       enterpriseName: enterpriseMap.get(department?.enterpriseId ?? 0) ?? "",
     };
   });
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
