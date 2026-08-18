@@ -25,12 +25,9 @@ export type HrEntityKey =
   | "vacations";
 
 export type HrOrderDirection = "asc" | "desc";
-
 export type HrRecord = Record<string, unknown>;
-
 export type HrFilterValue =
   string | number | boolean | null | Array<string | number | boolean | null>;
-
 export type HrFilterOperator = "equals" | "contains" | "gte" | "lte" | "in";
 
 export interface HrFilterCondition {
@@ -110,6 +107,12 @@ export interface HrDashboardStats {
   blockedUsers: number;
   employeesMissingAssignment: number;
   emailConflicts: number;
+}
+
+export interface HrDashboardSnapshot {
+  stats: HrDashboardStats;
+  latestEmployees: HrRecord[];
+  upcomingVacationItems: HrRecord[];
 }
 
 export interface RecruitmentListParams {
@@ -217,7 +220,7 @@ export interface HrApi {
   terminateEmployee(params: HrTerminationParams): Promise<HrRecord>;
   correctHireDate(params: HrHireDateCorrectionParams): Promise<HrRecord>;
   delete(params: HrDeleteParams): Promise<{ success: true }>;
-  dashboard(): Promise<HrDashboardStats>;
+  dashboard(): Promise<HrDashboardSnapshot>;
   listVacancies(params: RecruitmentListParams): Promise<HrRecord[]>;
   getVacancy(id: number): Promise<VacancyProfile | null>;
   saveVacancy(params: SaveVacancyParams): Promise<VacancyProfile>;
