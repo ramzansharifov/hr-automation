@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiArrowUpRight, FiCreditCard, FiClock, FiPlus } from "react-icons/fi";
+import { FiArrowUpRight, FiClock, FiDollarSign, FiPlus } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { formatCurrency, formatDate } from "../../../shared/lib/format";
@@ -152,8 +152,8 @@ export function EmployeeLifecyclePanel({
           value={durationFrom(currentAssignmentStartedAt)}
         />
         <Metric
-          icon={<FiCreditCard />}
-          label="Текущая зарплата"
+          icon={<FiDollarSign />}
+          label="Текущий оклад"
           value={formatCurrency(employee.salary, locale)}
         />
       </div>
@@ -165,7 +165,7 @@ export function EmployeeLifecyclePanel({
               Карьера
             </p>
             <h2 className="app-text mt-1 text-xl font-black">
-              История назначений и зарплаты
+              История назначений и оклада
             </h2>
           </div>
           <Button leftIcon={<FiPlus />} onClick={() => setCareerOpen(true)}>
@@ -194,7 +194,7 @@ export function EmployeeLifecyclePanel({
         open={careerOpen}
         onOpenChange={setCareerOpen}
         title="Кадровое изменение"
-        description="Повышение, перевод или понижение с выбором правила для зарплаты."
+        description="Повышение, перевод или понижение с фиксацией нового оклада."
       >
         <form className="grid gap-4" onSubmit={saveCareerChange}>
           <Field label="Отдел">
@@ -228,7 +228,7 @@ export function EmployeeLifecyclePanel({
               placeholder="Выберите должность"
             />
           </Field>
-          <Field label="Заработная плата">
+          <Field label="Оклад">
             <Select
               value={career.salaryMode}
               onValueChange={(salaryMode) =>
@@ -242,7 +242,7 @@ export function EmployeeLifecyclePanel({
             />
           </Field>
           {career.salaryMode === "custom" && (
-            <Field label="Новая зарплата">
+            <Field label="Новый оклад">
               <Input
                 min="0"
                 type="number"
@@ -295,7 +295,6 @@ export function EmployeeLifecyclePanel({
           </div>
         </form>
       </Dialog>
-
     </div>
   );
 }
@@ -323,6 +322,7 @@ function Metric({
     </div>
   );
 }
+
 function Field({
   children,
   label,
@@ -337,6 +337,7 @@ function Field({
     </label>
   );
 }
+
 function HistoryItem({
   item,
   locale,
@@ -370,6 +371,7 @@ function HistoryItem({
     </article>
   );
 }
+
 function durationFrom(date: string): string {
   if (!date) return "—";
   const months = Math.max(
@@ -382,6 +384,7 @@ function durationFrom(date: string): string {
   const rest = months % 12;
   return years ? `${years} г. ${rest} мес.` : `${rest} мес.`;
 }
+
 function getErrorMessage(error: unknown, fallback: string): string {
   if (!(error instanceof Error)) return fallback;
 
