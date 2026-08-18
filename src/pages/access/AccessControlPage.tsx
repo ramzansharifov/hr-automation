@@ -32,6 +32,7 @@ import {
   EmptyState,
   Input,
   LoadingState,
+  PageHeader,
   Select,
   Textarea,
   type SelectOption,
@@ -285,29 +286,22 @@ export function AccessControlPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <header className="app-surface app-border flex flex-col gap-5 rounded-[28px] border p-6 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="app-accent-soft flex h-12 w-12 items-center justify-center rounded-2xl border">
-              <FiShield className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="app-text text-2xl font-black tracking-tight sm:text-3xl">
-                Роли и пользователи
-              </h1>
-              <p className="app-muted mt-1 text-sm">
-                Встроенный системный администратор хранится отдельно от сотрудников. Остальные учётные записи всегда связаны с сотрудником.
-              </p>
-            </div>
-          </div>
-        </div>
-        <Button
-          leftIcon={<FiPlus className="h-4 w-4" />}
-          onClick={activeTab === "users" ? openCreateUser : openCreateRole}
-        >
-          {activeTab === "users" ? "Добавить пользователя" : "Создать роль"}
-        </Button>
-      </header>
+      <PageHeader
+        actions={
+          <Button
+            className="border-white/20 shadow-xl hover:opacity-90"
+            leftIcon={<FiPlus className="h-4 w-4" />}
+            onClick={activeTab === "users" ? openCreateUser : openCreateRole}
+            style={{ background: "#ffffff", color: "#0f172a" }}
+            variant="ghost"
+          >
+            {activeTab === "users" ? "Добавить пользователя" : "Создать роль"}
+          </Button>
+        }
+        description="Встроенный системный администратор хранится отдельно от сотрудников. Остальные учётные записи всегда связаны с сотрудником."
+        icon={<FiShield />}
+        title="Роли и пользователи"
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <AccessMetric

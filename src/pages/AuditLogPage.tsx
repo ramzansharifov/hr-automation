@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { AuditEvent } from "../shared/types/hr";
-import { Button, EmptyState, Input, LoadingState } from "../shared/ui";
+import { Button, EmptyState, Input, LoadingState, PageHeader } from "../shared/ui";
 
 export function AuditLogPage(): JSX.Element {
   const [events, setEvents] = useState<AuditEvent[]>([]);
@@ -35,32 +35,22 @@ export function AuditLogPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="app-accent-gradient-panel flex flex-col gap-5 rounded-[30px] border p-7 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white">
-            <FiActivity className="h-6 w-6" />
-          </span>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-white/65">
-              Администрирование
-            </p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-white sm:text-4xl">
-              Журнал действий
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm font-medium text-white/70">
-              Неизменяемая история кадровых, административных и системных операций.
-            </p>
-          </div>
-        </div>
-        <Button
-          className="border-white/20 bg-white/10 text-white"
-          leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
-          onClick={() => void load()}
-          variant="ghost"
-        >
-          Обновить
-        </Button>
-      </section>
+      <PageHeader
+        actions={
+          <Button
+            className="border-white/20 bg-white/10 text-white"
+            leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
+            onClick={() => void load()}
+            variant="ghost"
+          >
+            Обновить
+          </Button>
+        }
+        description="Неизменяемая история кадровых, административных и системных операций."
+        eyebrow="Администрирование"
+        icon={<FiActivity />}
+        title="Журнал действий"
+      />
 
       <section className="app-surface app-border rounded-[26px] border p-5">
         <form

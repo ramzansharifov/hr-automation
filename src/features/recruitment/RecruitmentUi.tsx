@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { FiPlus, FiSearch } from "react-icons/fi";
 
-import { Button, Input } from "../../shared/ui";
+import { Button, Input, PageHeader } from "../../shared/ui";
 
 export function RecruitmentPageHeader({
   actionLabel,
+  description,
   icon,
   onAction,
   title,
@@ -16,27 +17,24 @@ export function RecruitmentPageHeader({
   title: string;
 }): JSX.Element {
   return (
-    <section className="app-accent-gradient-panel flex flex-col gap-5 overflow-hidden rounded-[28px] border p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-center gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur">
-          {icon}
-        </span>
-        <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
-          {title}
-        </h1>
-      </div>
-      {onAction && actionLabel && (
-        <Button
-          className="w-full shrink-0 border-white/20 shadow-xl hover:opacity-90 lg:w-auto"
-          leftIcon={<FiPlus className="h-4 w-4" />}
-          onClick={onAction}
-          style={{ background: "#ffffff", color: "#0f172a" }}
-          variant="ghost"
-        >
-          {actionLabel}
-        </Button>
-      )}
-    </section>
+    <PageHeader
+      actions={
+        onAction && actionLabel ? (
+          <Button
+            className="w-full shrink-0 border-white/20 shadow-xl hover:opacity-90 lg:w-auto"
+            leftIcon={<FiPlus className="h-4 w-4" />}
+            onClick={onAction}
+            style={{ background: "#ffffff", color: "#0f172a" }}
+            variant="ghost"
+          >
+            {actionLabel}
+          </Button>
+        ) : undefined
+      }
+      description={description}
+      icon={icon}
+      title={title}
+    />
   );
 }
 

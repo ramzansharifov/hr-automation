@@ -125,6 +125,7 @@ export function VacationsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={<FiCalendar />}
         actions={
           <>
             {canManageTypes && (
