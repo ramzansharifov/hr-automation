@@ -1,4 +1,5 @@
 export interface EmployeeFormValues {
+  employee_number: string
   last_name: string
   first_name: string
   middle_name: string
@@ -17,10 +18,16 @@ export interface EmployeeFormValues {
   hire_date: string
   status: string
   salary: string
-  note: string
+  employment_type: string
+  contract_number: string
+  contract_date: string
+  contract_end_date: string
+  probation_end_date: string
+  workplace: string
 }
 
 export const employeeDefaultValues: EmployeeFormValues = {
+  employee_number: '',
   last_name: '',
   first_name: '',
   middle_name: '',
@@ -39,5 +46,10 @@ export const employeeDefaultValues: EmployeeFormValues = {
   hire_date: '',
   status: 'active',
   salary: '0',
-  note: '',
+  employment_type: 'full_time',
+  contract_number: '',
+  contract_date: '',
+  contract_end_date: '',
+  probation_end_date: '',
+  workplace: '',
 }
