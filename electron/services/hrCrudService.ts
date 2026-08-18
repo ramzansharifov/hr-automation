@@ -21,6 +21,15 @@ const vacationTransitions: Record<string, string[]> = {
   completed: ["completed"],
 };
 
+const vacationDecisionFields = [
+  "employee_id",
+  "vacation_type_id",
+  "starts_at",
+  "ends_at",
+  "is_paid",
+  "reason",
+] as const;
+
 export class HrCrudService {
   constructor(private readonly repository: HrCrudRepository) {}
 
@@ -71,6 +80,7 @@ export class HrCrudService {
     }
     if (params.entity === "vacations") {
       this.assertVacationTransition(existing, params.data);
+      this.assertVacationDecisionFieldsUnchanged(existing, params.data);
     }
 
     const data = this.prepareData(params.entity, params.data, "update");
@@ -85,6 +95,18 @@ export class HrCrudService {
       throw new Error(
         "Сотрудников нельзя удалять. Используйте кадровое действие «Уволить сотрудника»",
       );
+    }
+    if (params.entity === "vacations") {
+      const existing = this.repository.getById(
+        getHrCrudEntityConfig("vacations"),
+        params.id,
+      );
+      if (!existing) throw new Error("Отпуск не найден");
+      if (String(existing.status ?? "planned") !== "planned") {
+        throw new Error(
+          "Удалить можно только отпуск, который ещё находится в статусе «Запланирован»",
+        );
+      }
     }
 
     this.repository.delete(getHrCrudEntityConfig(params.entity), params.id);
@@ -177,6 +199,23 @@ export class HrCrudService {
     if (!allowed.includes(nextStatus)) {
       throw new Error(
         `Нельзя изменить статус отпуска с «${previousStatus}» на «${nextStatus}»`,
+      );
+    }
+  }
+
+  private assertVacationDecisionFieldsUnchanged(
+    existing: HrRecord,
+    data: HrRecord,
+  ): void {
+    if (String(existing.status ?? "planned") === "planned") return;
+    const changed = vacationDecisionFields.some(
+      (field) =>
+        field in data &&
+        normalizeComparable(data[field]) !== normalizeComparable(existing[field]),
+    );
+    if (changed) {
+      throw new Error(
+        "После принятия решения по отпуску его сотрудника, вид, период, оплату и основание изменять нельзя",
       );
     }
   }
