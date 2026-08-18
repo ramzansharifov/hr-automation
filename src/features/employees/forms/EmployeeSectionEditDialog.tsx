@@ -17,7 +17,6 @@ import type { EmployeeFormValues } from "../types";
 import {
   EmployeeAddressFormSection,
   EmployeeCompanyFormSection,
-  EmployeeNotesFormSection,
   EmployeePersonalFormSection,
 } from "./EmployeeFormSections";
 import {
@@ -49,13 +48,8 @@ export function EmployeeSectionEditDialog({
   const { t } = useTranslation();
   const activeSection = section ?? "personal";
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const {
-    departments,
-    genderOptions,
-    isRelationsLoading,
-    positions,
-    statusOptions,
-  } = useEmployeeFormOptions();
+  const { departments, genderOptions, isRelationsLoading, positions } =
+    useEmployeeFormOptions();
 
   const defaultValues = useMemo(
     () => mapEmployeeRecordToFormValues(employee),
@@ -82,7 +76,6 @@ export function EmployeeSectionEditDialog({
 
   function normalizeField(name: keyof EmployeeFormValues): void {
     const value = getValues(name);
-
     if (
       name === "last_name" ||
       name === "first_name" ||
@@ -91,22 +84,17 @@ export function EmployeeSectionEditDialog({
       setValue(name, normalizePersonName(value), { shouldValidate: true });
       return;
     }
-
     if (name === "email") {
       setValue(name, normalizeEmail(value), { shouldValidate: true });
       return;
     }
-
     if (name === "phone") {
       setValue(name, normalizePhone(value), { shouldValidate: true });
     }
   }
 
   async function handleSave(): Promise<void> {
-    if (!Number.isFinite(employeeId) || !section) {
-      return;
-    }
-
+    if (!Number.isFinite(employeeId) || !section) return;
     setIsSubmitting(true);
 
     try {
@@ -115,14 +103,11 @@ export function EmployeeSectionEditDialog({
         id: employeeId,
         data: mapEmployeeFormSectionToRecord(section, getValues()),
       });
-
       await onSaved(updatedEmployee);
       toast.success(t("forms.toasts.updated"));
       onOpenChange(false);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t("forms.toasts.updateError");
-      toast.error(message);
+      toast.error(getErrorMessage(error, t("forms.toasts.updateError")));
     } finally {
       setIsSubmitting(false);
     }
@@ -130,7 +115,11 @@ export function EmployeeSectionEditDialog({
 
   return (
     <Dialog
-      description={t("employeesDetails.edit.description")}
+      description={
+        activeSection === "company"
+          ? "Здесь редактируются кадровые реквизиты. Отдел, должность, оклад, дата приёма и увольнение изменяются только через кадровые действия."
+          : t("employeesDetails.edit.description")
+      }
       onOpenChange={onOpenChange}
       open={open}
       title={getSectionDialogTitle(activeSection, t)}
@@ -164,29 +153,16 @@ export function EmployeeSectionEditDialog({
             control={control}
             departments={departments}
             errors={errors}
+            includeAssignmentFields={false}
             isRelationsLoading={isRelationsLoading}
             positions={positions}
-            register={register}
-            statusOptions={statusOptions}
-            t={t}
-          />
-        )}
-
-        {activeSection === "notes" && (
-          <EmployeeNotesFormSection
-            control={control}
-            errors={errors}
             register={register}
             t={t}
           />
         )}
 
         <div className="app-border-soft flex justify-end gap-3 border-t pt-5">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             {t("common.actions.cancel")}
           </Button>
           <Button disabled={isSubmitting} type="submit" variant="primary">
@@ -206,8 +182,12 @@ function getSectionDialogTitle(
     personal: "employeesDetails.edit.personal",
     address: "employeesDetails.edit.address",
     company: "employeesDetails.edit.company",
-    notes: "employeesDetails.edit.notes",
   };
-
   return t(titleKeys[section]);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+  const parts = error.message.split("Error: ");
+  return parts[parts.length - 1] || fallback;
 }
