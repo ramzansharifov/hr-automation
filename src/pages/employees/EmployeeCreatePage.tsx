@@ -26,7 +26,6 @@ import { employeeCreateSteps } from "../../features/employees/create/employeeCre
 import {
   EmployeeAddressFormSection,
   EmployeeCompanyFormSection,
-  EmployeeNotesFormSection,
   EmployeePersonalFormSection,
 } from "../../features/employees/forms/EmployeeFormSections";
 import { employeeCreateSchema } from "../../features/employees/forms/employeeFormValidation";
@@ -37,13 +36,8 @@ export function EmployeeCreatePage(): JSX.Element {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const {
-    departments,
-    genderOptions,
-    isRelationsLoading,
-    positions,
-    statusOptions,
-  } = useEmployeeFormOptions();
+  const { departments, genderOptions, isRelationsLoading, positions } =
+    useEmployeeFormOptions();
   const {
     control,
     formState: { errors },
@@ -66,21 +60,16 @@ export function EmployeeCreatePage(): JSX.Element {
 
   useEffect(() => {
     if (!watchedValues.position_id) return;
-
     const selectedPosition = positions.find(
       (position) => position.value === watchedValues.position_id,
     );
-
     if (
       !selectedPosition ||
       (watchedValues.department_id &&
         selectedPosition.departmentId !== watchedValues.department_id)
     ) {
       setValue("position_id", "");
-      return;
     }
-
-    setValue("salary", selectedPosition.baseSalary);
   }, [
     positions,
     setValue,
@@ -89,17 +78,10 @@ export function EmployeeCreatePage(): JSX.Element {
   ]);
 
   async function handleNext(): Promise<void> {
-    if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) {
-      return;
-    }
-
+    if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) return;
     const currentStep = employeeCreateSteps[activeStep];
     const isStepValid = await trigger(currentStep.fields);
-
-    if (!isStepValid) {
-      return;
-    }
-
+    if (!isStepValid) return;
     setActiveStep((current) =>
       Math.min(current + 1, employeeCreateSteps.length - 1),
     );
@@ -110,15 +92,11 @@ export function EmployeeCreatePage(): JSX.Element {
       navigate("/employees");
       return;
     }
-
     setActiveStep((current) => Math.max(current - 1, 0));
   }
 
   async function handleFinalCreate(): Promise<void> {
-    if (activeStep !== employeeCreateSteps.length - 1 || isSubmitting) {
-      return;
-    }
-
+    if (activeStep !== employeeCreateSteps.length - 1 || isSubmitting) return;
     await handleSubmit(handleCreate, handleCreateInvalid)();
   }
 
@@ -128,19 +106,12 @@ export function EmployeeCreatePage(): JSX.Element {
     const invalidStepIndex = employeeCreateSteps.findIndex((step) =>
       step.fields.some((field) => Boolean(formErrors[field])),
     );
-
-    if (invalidStepIndex >= 0) {
-      setActiveStep(invalidStepIndex);
-    }
-
+    if (invalidStepIndex >= 0) setActiveStep(invalidStepIndex);
     toast.error(t("employeesCreate.toasts.validationError"));
   }
 
   async function handleCreate(values: EmployeeFormValues): Promise<void> {
-    if (activeStep !== employeeCreateSteps.length - 1 || isSubmitting) {
-      return;
-    }
-
+    if (activeStep !== employeeCreateSteps.length - 1 || isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -150,17 +121,10 @@ export function EmployeeCreatePage(): JSX.Element {
         data: mapEmployeeFormValuesToRecord(normalizedValues),
       });
       const id = Number(created.id);
-
       toast.success(t("employeesCreate.toasts.created"));
-
-      if (Number.isFinite(id)) {
-        navigate(`/employees/${id}`);
-      } else {
-        navigate("/employees");
-      }
+      navigate(Number.isFinite(id) ? `/employees/${id}` : "/employees");
     } catch (error) {
-      console.error("Employee create error:", error);
-      toast.error(t("employeesCreate.toasts.createError"));
+      toast.error(getErrorMessage(error, t("employeesCreate.toasts.createError")));
     } finally {
       setIsSubmitting(false);
     }
@@ -168,7 +132,6 @@ export function EmployeeCreatePage(): JSX.Element {
 
   function normalizeField(name: keyof EmployeeFormValues): void {
     const value = getValues(name);
-
     if (
       name === "last_name" ||
       name === "first_name" ||
@@ -177,12 +140,10 @@ export function EmployeeCreatePage(): JSX.Element {
       setValue(name, normalizePersonName(value), { shouldValidate: true });
       return;
     }
-
     if (name === "email") {
       setValue(name, normalizeEmail(value), { shouldValidate: true });
       return;
     }
-
     if (name === "phone") {
       setValue(name, normalizePhone(value), { shouldValidate: true });
     }
@@ -218,24 +179,15 @@ export function EmployeeCreatePage(): JSX.Element {
         )}
 
         {activeStep === 2 && (
-          <div className="space-y-5">
-            <EmployeeCompanyFormSection
-              control={control}
-              departments={departments}
-              errors={errors}
-              isRelationsLoading={isRelationsLoading}
-              positions={availablePositions}
-              register={register}
-              statusOptions={statusOptions}
-              t={t}
-            />
-            <EmployeeNotesFormSection
-              control={control}
-              errors={errors}
-              register={register}
-              t={t}
-            />
-          </div>
+          <EmployeeCompanyFormSection
+            control={control}
+            departments={departments}
+            errors={errors}
+            isRelationsLoading={isRelationsLoading}
+            positions={availablePositions}
+            register={register}
+            t={t}
+          />
         )}
 
         {activeStep === 3 && (
@@ -250,22 +202,14 @@ export function EmployeeCreatePage(): JSX.Element {
       </div>
 
       <footer className="app-surface-muted flex flex-col gap-3 p-5 sm:flex-row sm:justify-end sm:p-6">
-        <Button
-          type="button"
-          onClick={() => navigate("/employees")}
-          variant="ghost"
-        >
+        <Button type="button" onClick={() => navigate("/employees")} variant="ghost">
           {t("employeesCreate.actions.cancel")}
         </Button>
         <Button type="button" onClick={handleBack} variant="secondary">
           {t("employeesCreate.actions.back")}
         </Button>
         {activeStep < employeeCreateSteps.length - 1 ? (
-          <Button
-            type="button"
-            onClick={() => void handleNext()}
-            variant="primary"
-          >
+          <Button type="button" onClick={() => void handleNext()} variant="primary">
             {t("employeesCreate.actions.next")}
           </Button>
         ) : (
@@ -281,4 +225,10 @@ export function EmployeeCreatePage(): JSX.Element {
       </footer>
     </div>
   );
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+  const parts = error.message.split("Error: ");
+  return parts[parts.length - 1] || fallback;
 }
