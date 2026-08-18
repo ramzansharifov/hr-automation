@@ -7,7 +7,7 @@ import { Button } from "./Button";
 export type DialogSize = "sm" | "md" | "lg";
 
 interface DialogProps {
-  children: ReactNode;
+  children?: ReactNode;
   description?: string;
   footer?: ReactNode;
   onOpenChange: (open: boolean) => void;
@@ -66,9 +66,11 @@ export function Dialog({
             </RadixDialog.Close>
           </div>
 
-          <div className="app-dialog-body min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 [&>form>.sticky]:static [&>form>.sticky]:mx-0 [&>form>.sticky]:mb-0 [&>form>.sticky]:mt-6 [&>form>.sticky]:px-0 [&>form>.sticky]:pb-0">
-            {children}
-          </div>
+          {children !== undefined && children !== null && (
+            <div className="app-dialog-body min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 [&>form>.sticky]:static [&>form>.sticky]:mx-0 [&>form>.sticky]:mb-0 [&>form>.sticky]:mt-6 [&>form>.sticky]:px-0 [&>form>.sticky]:pb-0">
+              {children}
+            </div>
+          )}
 
           {footer && (
             <div className="app-surface app-border-soft shrink-0 border-t px-6 py-4">
