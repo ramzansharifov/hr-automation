@@ -21,6 +21,7 @@ export type HrEntityKey =
   | "employee_education"
   | "employee_experience"
   | "employment_history"
+  | "vacation_types"
   | "vacations";
 
 export type HrOrderDirection = "asc" | "desc";
@@ -80,11 +81,22 @@ export interface HrEmploymentChangeParams {
   employeeId: number;
   departmentId: number;
   positionId: number;
-  salaryMode: "keep" | "position" | "custom";
+  salaryMode: "keep" | "custom";
   salary?: number;
   effectiveAt: string;
   reason: string;
-  note?: string;
+}
+
+export interface HrTerminationParams {
+  employeeId: number;
+  effectiveAt: string;
+  reason: string;
+}
+
+export interface HrHireDateCorrectionParams {
+  employeeId: number;
+  hireDate: string;
+  reason: string;
 }
 
 export interface HrDashboardStats {
@@ -92,6 +104,12 @@ export interface HrDashboardStats {
   departmentsTotal: number;
   positionsTotal: number;
   activeVacations: number;
+  upcomingVacations: number;
+  openVacancies: number;
+  candidatesOnOffer: number;
+  blockedUsers: number;
+  employeesMissingAssignment: number;
+  emailConflicts: number;
 }
 
 export interface RecruitmentListParams {
@@ -106,7 +124,6 @@ export interface VacancySkillInput {
   name: string;
   requiredLevel: number;
   weight: number;
-  note?: string;
 }
 
 export interface SaveVacancyParams {
@@ -115,7 +132,6 @@ export interface SaveVacancyParams {
   status: "draft" | "open" | "paused" | "closed";
   employmentType: "full_time" | "part_time" | "temporary" | "internship";
   openingsCount: number;
-  note?: string;
   skills: VacancySkillInput[];
 }
 
@@ -127,7 +143,6 @@ export interface VacancyProfile {
 export interface CandidateSkillScoreInput {
   vacancySkillId: number;
   score: number;
-  note?: string;
 }
 
 export interface SaveCandidateParams {
@@ -140,7 +155,6 @@ export interface SaveCandidateParams {
   email?: string;
   status: "new" | "screening" | "interview" | "offer" | "hired" | "rejected";
   source?: string;
-  note?: string;
   skillScores: CandidateSkillScoreInput[];
 }
 
@@ -148,6 +162,44 @@ export interface CandidateProfile {
   candidate: HrRecord;
   vacancySkills: HrRecord[];
   skillScores: HrRecord[];
+  statusHistory: HrRecord[];
+}
+
+export interface HireCandidateParams {
+  candidateId: number;
+  hireDate: string;
+  salary: number;
+  employeeNumber?: string;
+  contractNumber?: string;
+  contractDate?: string;
+  contractEndDate?: string;
+  probationEndDate?: string;
+  workplace?: string;
+}
+
+export interface AuditEvent {
+  id: number;
+  occurredAt: string;
+  actorAccountType: "system_admin" | "employee_user" | "system";
+  actorAccountId: number | null;
+  actorUsername: string;
+  action: string;
+  entityType: string;
+  entityId: number | null;
+  before: HrRecord | null;
+  after: HrRecord | null;
+  metadata: HrRecord | null;
+}
+
+export interface AuditListParams {
+  search?: string;
+  limit?: number;
+}
+
+export interface BackupInfo {
+  name: string;
+  createdAt: string;
+  sizeBytes: number;
 }
 
 export interface HrApi {
@@ -162,6 +214,8 @@ export interface HrApi {
   create(params: HrCreateParams): Promise<HrRecord>;
   update(params: HrUpdateParams): Promise<HrRecord>;
   changeEmployment(params: HrEmploymentChangeParams): Promise<HrRecord>;
+  terminateEmployee(params: HrTerminationParams): Promise<HrRecord>;
+  correctHireDate(params: HrHireDateCorrectionParams): Promise<HrRecord>;
   delete(params: HrDeleteParams): Promise<{ success: true }>;
   dashboard(): Promise<HrDashboardStats>;
   listVacancies(params: RecruitmentListParams): Promise<HrRecord[]>;
@@ -171,6 +225,7 @@ export interface HrApi {
   listCandidates(params: RecruitmentListParams): Promise<HrRecord[]>;
   getCandidate(id: number): Promise<CandidateProfile | null>;
   saveCandidate(params: SaveCandidateParams): Promise<CandidateProfile>;
+  hireCandidate(params: HireCandidateParams): Promise<HrRecord>;
   deleteCandidate(id: number): Promise<{ success: true }>;
   getAccessOverview(): Promise<AccessControlOverview>;
   saveAccessRole(params: SaveAccessRoleParams): Promise<AccessRoleSummary>;
@@ -178,4 +233,10 @@ export interface HrApi {
   saveAccessUser(params: SaveAccessUserParams): Promise<AccessUserSummary>;
   resetAccessPassword(params: ResetAccessPasswordParams): Promise<{ success: true }>;
   deleteAccessUser(id: number): Promise<{ success: true }>;
+  listAuditEvents(params?: AuditListParams): Promise<AuditEvent[]>;
+  listBackups(): Promise<BackupInfo[]>;
+  createBackup(): Promise<BackupInfo>;
+  restoreBackup(name: string): Promise<{ success: true }>;
+  openBackupsFolder(): Promise<{ success: true }>;
+  exportEmployeesCsv(): Promise<{ success: true; canceled?: boolean }>;
 }
