@@ -1,6 +1,6 @@
 -- Transitional migration: the following HR-core migrations rebuild organization
 -- tables and update protected system role labels. Disable dependent triggers first;
--- they are recreated after the rebuild in 015_restore_hr_core_guards.sql.
+-- they are recreated after the rebuild in 016_restore_hr_core_guards.sql.
 DROP TRIGGER IF EXISTS roles_system_update_guard;
 DROP TRIGGER IF EXISTS trg_validate_employee_assignment_insert;
 DROP TRIGGER IF EXISTS trg_validate_employee_assignment_update;
