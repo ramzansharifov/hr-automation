@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiUsers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
@@ -49,6 +49,7 @@ export function EmployeesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={<FiUsers />}
         actions={
           canManageEmployees ? (
             <Button

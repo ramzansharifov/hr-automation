@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiChevronRight, FiPlus, FiUserCheck } from "react-icons/fi";
+import { FiChevronRight, FiLayers, FiPlus, FiUserCheck } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -294,7 +294,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader actions={headerActions} title={page.title} />
+      <PageHeader actions={headerActions} icon={<FiLayers />} title={page.title} />
 
       <div className="flex justify-start">
         <ViewModeToggle onChange={setViewMode} value={viewMode} />

@@ -19,6 +19,7 @@ import { getAppLocale } from "../shared/i18n";
 import { formatDate, humanizeStatus } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrDashboardStats, HrListResult } from "../shared/types/hr";
+import { PageHeader } from "../shared/ui";
 import { StatCard } from "../shared/ui/StatCard";
 
 const initialStats: HrDashboardStats = {
@@ -124,27 +125,22 @@ export function DashboardPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="app-accent-gradient-panel flex flex-col gap-6 overflow-hidden rounded-[30px] border p-7 lg:flex-row lg:items-center lg:justify-between lg:p-8">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-white/65">
-            HR Control Center
-          </p>
-          <h1 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
-            {t("dashboard.hero.title")}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium text-white/70">
-            Сводка кадровых процессов и ситуаций, которые требуют внимания.
-          </p>
-        </div>
-        <button
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
-          onClick={() => void loadDashboard()}
-          type="button"
-        >
-          <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-          {t("common.actions.refresh")}
-        </button>
-      </section>
+      <PageHeader
+        actions={
+          <button
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
+            onClick={() => void loadDashboard()}
+            type="button"
+          >
+            <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            {t("common.actions.refresh")}
+          </button>
+        }
+        description="Сводка кадровых процессов и ситуаций, которые требуют внимания."
+        eyebrow="HR Control Center"
+        icon={<FiGrid />}
+        title={t("dashboard.hero.title")}
+      />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Сотрудники" value={stats.employeesTotal} icon={FiUsers} />

@@ -1,19 +1,14 @@
 import { FiShield, FiUser } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 
+import { PageHeader } from '../shared/ui'
+
 export function ProfilePage(): JSX.Element {
   const { t } = useTranslation()
 
   return (
     <div className="space-y-6">
-      <section className="app-accent-gradient-panel flex items-center gap-4 overflow-hidden rounded-[28px] border p-6 sm:p-7">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur">
-          <FiUser className="h-6 w-6" />
-        </span>
-        <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-          {t('profile.title')}
-        </h1>
-      </section>
+      <PageHeader icon={<FiUser />} title={t('profile.title')} />
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">

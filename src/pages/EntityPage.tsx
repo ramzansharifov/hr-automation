@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next'
+import { FiDatabase } from 'react-icons/fi'
 import type { HrEntityKey } from '../shared/types/hr'
 import { HrEntityTable } from '../features/hr-table/HrEntityTable'
 import { getEntityConfig } from '../features/hr-table/hrEntityConfig'
 import { getAppLocale } from '../shared/i18n'
+import { PageHeader } from '../shared/ui'
 
 interface EntityPageProps {
   entity: HrEntityKey
@@ -14,16 +16,11 @@ export function EntityPage({ entity }: EntityPageProps): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-end justify-between gap-6">
-        <div>
-          <h1 className="app-text text-3xl font-black tracking-tight">
-            {config.title}
-          </h1>
-          <p className="app-muted mt-2 max-w-2xl text-sm font-medium">
-            {config.description}
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        description={config.description}
+        icon={<FiDatabase />}
+        title={config.title}
+      />
 
       <HrEntityTable entity={entity} />
     </div>

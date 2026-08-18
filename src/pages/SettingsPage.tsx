@@ -27,7 +27,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { supportedLanguages } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { BackupInfo } from "../shared/types/hr";
-import { Button, ConfirmDialog, LoadingState } from "../shared/ui";
+import { Button, ConfirmDialog, LoadingState, PageHeader } from "../shared/ui";
 
 function getThemeIcon(theme: ThemePreference): typeof FiSun {
   if (theme === "dark") return FiMoon;
@@ -99,22 +99,18 @@ export function SettingsPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="app-accent-gradient-panel flex items-center gap-4 overflow-hidden rounded-[28px] border p-6 sm:p-7">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur">
-          <FiSettings className="h-6 w-6" />
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
-            {t("settings.title")}
-          </h1>
-          <p className="mt-2 text-sm font-medium text-white/70">
-            Личные параметры интерфейса{canManageSystem ? " и системные инструменты администратора" : ""}.
-          </p>
-          <span className="mt-3 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+      <PageHeader
+        description={
+          <>Личные параметры интерфейса{canManageSystem ? " и системные инструменты администратора" : ""}.</>
+        }
+        icon={<FiSettings />}
+        meta={
+          <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
             {t(`settings.appearance.theme.palette.${resolvedTheme}`)}
           </span>
-        </div>
-      </section>
+        }
+        title={t("settings.title")}
+      />
 
       <section className="grid gap-5 xl:grid-cols-2">
         <SettingsCard icon={<FiMonitor className="h-5 w-5" />} title={t("settings.appearance.theme.title")}>
