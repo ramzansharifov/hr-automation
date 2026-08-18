@@ -111,7 +111,6 @@ export class RecruitmentRepository {
          WHERE vacancy_id = ?
          ORDER BY
            CASE skill_type WHEN 'hard' THEN 1 ELSE 2 END,
-           weight DESC,
            required_level DESC,
            name ASC`,
       )
@@ -160,13 +159,13 @@ export class RecruitmentRepository {
            enterprises.name AS enterprise_name,
            COALESCE(
              (SELECT ROUND(
-               100.0 * SUM(
+               100.0 * AVG(
                  MIN(
                    CAST(COALESCE(candidate_score.score, 0) AS REAL) /
                      vacancy_skill.required_level,
                    1.0
-                 ) * vacancy_skill.weight
-               ) / NULLIF(SUM(vacancy_skill.weight), 0),
+                 )
+               ),
                0
              )
              FROM vacancy_skills AS vacancy_skill
@@ -236,7 +235,7 @@ export class RecruitmentRepository {
         `SELECT * FROM vacancy_skills
          WHERE vacancy_id = ?
          ORDER BY CASE skill_type WHEN 'hard' THEN 1 ELSE 2 END,
-                  weight DESC, required_level DESC, name ASC`,
+                  required_level DESC, name ASC`,
       )
       .all(vacancyId) as HrRecord[];
     const skillScores = this.database
@@ -464,14 +463,14 @@ export class RecruitmentRepository {
 
     const updateSkill = this.database.prepare(
       `UPDATE vacancy_skills
-       SET skill_type = ?, name = ?, required_level = ?, weight = ?,
+       SET skill_type = ?, name = ?, required_level = ?,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND vacancy_id = ?`,
     );
     const insertSkill = this.database.prepare(
       `INSERT INTO vacancy_skills (
-         vacancy_id, skill_type, name, required_level, weight
-       ) VALUES (?, ?, ?, ?, ?)`,
+         vacancy_id, skill_type, name, required_level
+       ) VALUES (?, ?, ?, ?)`,
     );
 
     retainedIds.forEach((id) => {
@@ -489,7 +488,6 @@ export class RecruitmentRepository {
         skill.type,
         skill.name.trim(),
         skill.requiredLevel,
-        skill.weight,
       ] as const;
       if (skill.id) {
         updateSkill.run(...values, skill.id, vacancyId);
