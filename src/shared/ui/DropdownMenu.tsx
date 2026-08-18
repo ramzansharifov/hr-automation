@@ -1,7 +1,7 @@
 import * as RadixDropdownMenu from '@radix-ui/react-dropdown-menu'
 import type { ReactNode } from 'react'
 import { FiMoreVertical } from 'react-icons/fi'
-import { IconButton } from './IconButton'
+import { Button } from './Button'
 
 export interface DropdownMenuAction {
   danger?: boolean
@@ -24,7 +24,9 @@ export function DropdownMenu({
   return (
     <RadixDropdownMenu.Root>
       <RadixDropdownMenu.Trigger asChild>
-        <IconButton icon={<FiMoreVertical />} label={triggerLabel} />
+        <Button aria-label={triggerLabel} className="h-10 w-10 rounded-xl p-0" size="sm" variant="ghost">
+          <FiMoreVertical className="h-4 w-4" />
+        </Button>
       </RadixDropdownMenu.Trigger>
 
       <RadixDropdownMenu.Portal>

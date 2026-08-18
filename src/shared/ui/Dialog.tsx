@@ -2,7 +2,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { FiX } from "react-icons/fi";
-import { IconButton } from "./IconButton";
+import { Button } from "./Button";
 
 export type DialogSize = "sm" | "md" | "lg";
 
@@ -56,7 +56,13 @@ export function Dialog({
             </div>
 
             <RadixDialog.Close asChild>
-              <IconButton icon={<FiX />} label={t("common.actions.close")} />
+              <Button
+                aria-label={t("common.actions.close")}
+                className="h-10 w-10 shrink-0 rounded-xl p-0"
+                variant="ghost"
+              >
+                <FiX className="h-5 w-5" />
+              </Button>
             </RadixDialog.Close>
           </div>
 

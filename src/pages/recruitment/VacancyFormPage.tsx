@@ -4,6 +4,7 @@ import {
   FiBriefcase,
   FiCheck,
   FiCheckCircle,
+  FiChevronRight,
   FiMessageCircle,
   FiPlus,
   FiSave,
@@ -22,7 +23,6 @@ import type {
   VacancySkillType,
 } from "../../shared/types/hr";
 import {
-  IconButton,
   Button,
   Input,
   LoadingState,
@@ -268,7 +268,15 @@ export function VacancyFormPage(): JSX.Element {
       <section className="app-surface app-border rounded-[30px] border p-6 sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
-            <IconButton icon={<FiArrowLeft />} label="Вернуться к вакансиям" onClick={() => navigate("/vacancies")} size="lg" className="rounded-full" />
+            <Button
+              aria-label="Вернуться к вакансиям"
+              className="h-11 w-11 shrink-0 rounded-full p-0"
+              onClick={() => navigate("/vacancies")}
+              type="button"
+              variant="ghost"
+            >
+              <FiArrowLeft className="h-5 w-5" />
+            </Button>
             <div>
               <span className="app-accent-soft app-accent-text inline-flex items-center gap-2 rounded-full border border-[var(--accent-border)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em]">
                 <FiBriefcase className="h-3.5 w-3.5" />
@@ -464,57 +472,134 @@ export function VacancyFormPage(): JSX.Element {
             </section>
 
             <section className="app-surface app-border rounded-[24px] border p-4">
-              <IconButton icon={<FiX />} label="Удалить навык" onClick={() => navigate("/vacancies")} size="sm" tone="danger" />
+              <Button
+                className="w-full"
+                disabled={!canSave}
+                leftIcon={<FiSave className="h-4 w-4" />}
+                type="submit"
+                variant="primary"
+              >
+                {isEdit ? "Сохранить изменения" : "Создать вакансию"}
+              </Button>
+              <Button
+                className="mt-2 w-full"
+                onClick={() => navigate("/vacancies")}
+                type="button"
+                variant="ghost"
+              >
+                Отмена
+              </Button>
+            </section>
+          </aside>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function HeroMetric({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className="app-surface-muted app-border min-w-[260px] rounded-2xl border px-4 py-3">
+      <p className="app-muted text-[11px] font-black uppercase tracking-[0.12em]">{label}</p>
+      <p className="app-text mt-1 truncate text-sm font-black" title={value}>{value}</p>
+    </div>
+  );
+}
+
+function SectionHeading({ description, number, title }: { description: string; number: string; title: string }): JSX.Element {
+  return (
+    <div className="flex items-start gap-4">
+      <span className="app-accent-soft app-accent-text flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-black">{number}</span>
+      <div>
+        <h2 className="app-text text-xl font-black tracking-tight">{title}</h2>
+        <p className="app-muted mt-1 max-w-3xl text-sm leading-6">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function SkillSection({
+  description,
+  icon,
+  onAdd,
+  onRemove,
+  onUpdate,
+  skills,
+  title,
+}: {
+  description: string;
+  icon: JSX.Element;
+  onAdd: () => void;
+  onRemove: (key: string) => void;
+  onUpdate: (key: string, patch: Partial<VacancySkillState>) => void;
+  skills: VacancySkillState[];
+  title: string;
+}): JSX.Element {
+  return (
+    <section className="app-surface app-border rounded-[28px] border p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="app-accent-soft app-accent-text flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">{icon}</span>
+          <div>
+            <h2 className="app-text text-xl font-black tracking-tight">{title}</h2>
+            <p className="app-muted mt-1 text-sm leading-5">{description}</p>
+          </div>
+        </div>
+        <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={onAdd} type="button" variant="secondary">
+          Добавить
+        </Button>
+      </div>
+
+      <div className="app-muted mt-4 flex items-center gap-2 text-xs font-bold">
+        <span>Уровень 1–10</span><FiChevronRight className="h-3.5 w-3.5" /><span>вес 1–5</span>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {skills.length === 0 && (
+          <button className="app-border app-muted w-full rounded-2xl border border-dashed p-7" onClick={onAdd} type="button">
+            <FiPlus className="mx-auto mb-2 h-5 w-5" />
+            <span className="text-sm font-black">Добавить первый навык</span>
+          </button>
+        )}
+        {skills.map((skill, index) => (
+          <article className="app-surface-muted app-border rounded-[22px] border p-4" key={skill.key}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="app-text text-sm font-black">{String(index + 1).padStart(2, "0")} · {skill.name.trim() || "Новый навык"}</p>
+              <Button aria-label="Удалить навык" className="h-9 w-9 rounded-xl p-0" onClick={() => onRemove(skill.key)} type="button" variant="ghost">
+                <FiX className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px_150px]">
-              <SkillInputField label="Навык">
-                <Input
-                  aria-label={`${title}, навык ${index + 1}`}
-                  onChange={(event) => onUpdate(skill.key, { name: event.target.value })}
-                  placeholder={skill.type === "hard" ? "Например: SQL" : "Например: Командная работа"}
-                  required
-                  value={skill.name}
-                />
-              </SkillInputField>
-              <SkillInputField hint="1–10" label="Уровень">
-                <Input
-                  aria-label="Требуемый уровень навыка от 1 до 10"
-                  max="10"
-                  min="1"
-                  onChange={(event) => onUpdate(skill.key, { requiredLevel: Number(event.target.value) })}
-                  required
-                  type="number"
-                  value={skill.requiredLevel}
-                />
-              </SkillInputField>
-              <SkillInputField hint="1–5" label="Важность">
-                <Input
-                  aria-label="Важность навыка от 1 до 5"
-                  max="5"
-                  min="1"
-                  onChange={(event) => onUpdate(skill.key, { weight: Number(event.target.value) })}
-                  required
-                  type="number"
-                  value={skill.weight}
-                />
-              </SkillInputField>
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_110px_100px]">
+              <Input
+                aria-label={`${title}, навык ${index + 1}`}
+                onChange={(event) => onUpdate(skill.key, { name: event.target.value })}
+                placeholder={skill.type === "hard" ? "Например: SQL" : "Например: Командная работа"}
+                required
+                value={skill.name}
+              />
+              <Input
+                aria-label="Требуемый уровень"
+                max="10"
+                min="1"
+                onChange={(event) => onUpdate(skill.key, { requiredLevel: Number(event.target.value) })}
+                required
+                type="number"
+                value={skill.requiredLevel}
+              />
+              <Input
+                aria-label="Вес навыка"
+                max="5"
+                min="1"
+                onChange={(event) => onUpdate(skill.key, { weight: Number(event.target.value) })}
+                required
+                type="number"
+                value={skill.weight}
+              />
             </div>
           </article>
         ))}
       </div>
     </section>
-  );
-}
-
-function SkillInputField({ children, hint, label }: { children: JSX.Element; hint?: string; label: string }): JSX.Element {
-  return (
-    <label className="grid gap-1.5">
-      <span className="flex items-center justify-between gap-2 px-1 text-xs font-black">
-        <span className="app-text-soft">{label}</span>
-        {hint && <span className="app-muted font-bold">{hint}</span>}
-      </span>
-      {children}
-    </label>
   );
 }
 
