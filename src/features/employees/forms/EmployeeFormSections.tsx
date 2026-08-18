@@ -6,7 +6,7 @@ import {
 } from "react-hook-form";
 import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
-import { FiBriefcase, FiFileText, FiHome, FiUser } from "react-icons/fi";
+import { FiBriefcase, FiHome, FiUser } from "react-icons/fi";
 import {
   FieldError,
   Input,
@@ -32,12 +32,17 @@ export interface EmployeeAddressFormSectionProps extends EmployeeFormSectionComm
 
 export interface EmployeeCompanyFormSectionProps extends EmployeeFormSectionCommonProps {
   departments: SelectOption[];
+  includeAssignmentFields?: boolean;
   isRelationsLoading: boolean;
   positions: SelectOption[];
-  statusOptions: SelectOption[];
 }
 
-export interface EmployeeNotesFormSectionProps extends EmployeeFormSectionCommonProps {}
+const employmentTypeOptions: SelectOption[] = [
+  { value: "full_time", label: "Полная занятость" },
+  { value: "part_time", label: "Частичная занятость" },
+  { value: "temporary", label: "Временная работа" },
+  { value: "internship", label: "Стажировка" },
+];
 
 export function EmployeePersonalFormSection({
   control,
@@ -159,89 +164,112 @@ export function EmployeeCompanyFormSection({
   control,
   departments,
   errors,
+  includeAssignmentFields = true,
   isRelationsLoading,
   positions,
   register,
-  statusOptions,
   t,
 }: EmployeeCompanyFormSectionProps): JSX.Element {
   return (
     <FormCard
-      description={t("employeesCreate.stepDescriptions.company")}
+      description={
+        includeAssignmentFields
+          ? "Назначение сотрудника и кадровые условия на момент приёма."
+          : "Договор, тип занятости и внутренние кадровые реквизиты. Назначение и оклад меняются через кадровое действие."
+      }
       icon={<FiBriefcase className="h-5 w-5" />}
-      title={t("employeesCreate.steps.company")}
+      title="Служебные данные"
     >
-      <SelectField
-        control={control}
-        disabled={isRelationsLoading}
-        error={getError("department_id", errors, t)}
-        label={t("forms.fields.departmentId")}
-        name="department_id"
-        options={departments}
-        placeholder={
-          isRelationsLoading
-            ? t("forms.placeholders.loadingOptions")
-            : t("forms.placeholders.selectDepartment")
-        }
-        required
+      <TextField
+        error={getError("employee_number", errors, t)}
+        label="Табельный номер"
+        registration={register("employee_number")}
       />
+
+      {includeAssignmentFields && (
+        <>
+          <SelectField
+            control={control}
+            disabled={isRelationsLoading}
+            error={getError("department_id", errors, t)}
+            label={t("forms.fields.departmentId")}
+            name="department_id"
+            options={departments}
+            placeholder={
+              isRelationsLoading
+                ? t("forms.placeholders.loadingOptions")
+                : t("forms.placeholders.selectDepartment")
+            }
+            required
+          />
+          <SelectField
+            control={control}
+            disabled={isRelationsLoading}
+            error={getError("position_id", errors, t)}
+            label={t("forms.fields.positionId")}
+            name="position_id"
+            options={positions}
+            placeholder={
+              isRelationsLoading
+                ? t("forms.placeholders.loadingOptions")
+                : t("forms.placeholders.selectPosition")
+            }
+            required
+          />
+          <TextField
+            error={getError("hire_date", errors, t)}
+            label={t("forms.fields.hireDate")}
+            registration={register("hire_date")}
+            required
+            type="date"
+          />
+          <TextField
+            error={getError("salary", errors, t)}
+            label={t("forms.fields.salary")}
+            min={0}
+            registration={register("salary")}
+            required
+            type="number"
+          />
+        </>
+      )}
+
       <SelectField
         control={control}
-        disabled={isRelationsLoading}
-        error={getError("position_id", errors, t)}
-        label={t("forms.fields.positionId")}
-        name="position_id"
-        options={positions}
-        placeholder={
-          isRelationsLoading
-            ? t("forms.placeholders.loadingOptions")
-            : t("forms.placeholders.selectPosition")
-        }
+        error={getError("employment_type", errors, t)}
+        label="Тип занятости"
+        name="employment_type"
+        options={employmentTypeOptions}
+        placeholder="Выберите тип занятости"
         required
       />
       <TextField
-        error={getError("hire_date", errors, t)}
-        label={t("forms.fields.hireDate")}
-        registration={register("hire_date")}
-        required
+        error={getError("contract_number", errors, t)}
+        label="Номер трудового договора"
+        registration={register("contract_number")}
+      />
+      <TextField
+        error={getError("contract_date", errors, t)}
+        label="Дата договора"
+        registration={register("contract_date")}
         type="date"
       />
-      <SelectField
-        control={control}
-        error={getError("status", errors, t)}
-        label={t("forms.fields.status")}
-        name="status"
-        options={statusOptions}
-        placeholder={t("forms.placeholders.select")}
-        required
+      <TextField
+        error={getError("contract_end_date", errors, t)}
+        label="Срок договора до"
+        registration={register("contract_end_date")}
+        type="date"
       />
       <TextField
-        error={getError("salary", errors, t)}
-        label={t("forms.fields.salary")}
-        min={0}
-        registration={register("salary")}
-        required
-        type="number"
+        error={getError("probation_end_date", errors, t)}
+        label="Испытательный срок до"
+        registration={register("probation_end_date")}
+        type="date"
       />
-    </FormCard>
-  );
-}
-
-export function EmployeeNotesFormSection({
-  errors,
-  register,
-  t,
-}: EmployeeNotesFormSectionProps): JSX.Element {
-  return (
-    <FormCard
-      description={t("employeesCreate.stepDescriptions.notes")}
-      icon={<FiFileText className="h-5 w-5" />}
-      title={t("forms.fields.note")}
-    >
-      <TextareaField
-        error={getError("note", errors, t)}
-        label={t("forms.fields.note")}
-        registration={register("note")}
+      <TextField
+        error={getError("workplace", errors, t)}
+        label="Место работы"
+        registration={register("workplace")}
       />
     </FormCard>
   );
@@ -254,12 +282,7 @@ interface FormCardProps {
   title: string;
 }
 
-function FormCard({
-  children,
-  description,
-  icon,
-  title,
-}: FormCardProps): JSX.Element {
+function FormCard({ children, description, icon, title }: FormCardProps): JSX.Element {
   return (
     <section className="app-surface-muted app-border rounded-[24px] border p-5 sm:p-6">
       <header className="flex items-start gap-3.5">
@@ -267,9 +290,7 @@ function FormCard({
           {icon}
         </span>
         <div className="min-w-0">
-          <h2 className="app-text text-lg font-black tracking-tight">
-            {title}
-          </h2>
+          <h2 className="app-text text-lg font-black tracking-tight">{title}</h2>
           <p className="app-muted mt-1 text-sm leading-5">{description}</p>
         </div>
       </header>
@@ -315,11 +336,7 @@ interface TextareaFieldProps {
   registration: ReturnType<UseFormRegister<EmployeeFormValues>>;
 }
 
-function TextareaField({
-  error,
-  label,
-  registration,
-}: TextareaFieldProps): JSX.Element {
+function TextareaField({ error, label, registration }: TextareaFieldProps): JSX.Element {
   return (
     <label className="block md:col-span-2">
       <span className="app-text mb-2 block text-sm font-bold">{label}</span>
@@ -351,7 +368,6 @@ function SelectField({
   required = false,
 }: SelectFieldProps): JSX.Element {
   const allowEmpty = !required;
-
   return (
     <label className="block">
       <span className="app-text mb-2 block text-sm font-bold">
@@ -387,6 +403,5 @@ function getError(
   t: TFunction,
 ): string | undefined {
   const message = errors[name]?.message;
-
   return typeof message === "string" ? t(message) : undefined;
 }
