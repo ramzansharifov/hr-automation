@@ -22,11 +22,20 @@ import type {
   SaveAccessUserParams,
 } from "../types/access";
 
+export const AUTH_SESSION_SYNC_EVENT = "hr:auth-session-sync";
+
 function getHrApi() {
   if (window.hrApi) return window.hrApi;
   throw new Error(
     "HR API недоступен. Приложение необходимо открыть в защищённом Electron-окне.",
   );
+}
+
+function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
+  return request.then((result) => {
+    window.dispatchEvent(new Event(AUTH_SESSION_SYNC_EVENT));
+    return result;
+  });
 }
 
 export const hrApiClient = {
@@ -40,43 +49,52 @@ export const hrApiClient = {
     getHrApi().changeOwnPassword(params),
   list: (params: HrListParams) => getHrApi().list(params),
   getById: (params: HrGetByIdParams) => getHrApi().getById(params),
-  create: (params: HrCreateParams) => getHrApi().create(params),
-  update: (params: HrUpdateParams) => getHrApi().update(params),
+  create: (params: HrCreateParams) =>
+    notifyAuthSessionChanged(getHrApi().create(params)),
+  update: (params: HrUpdateParams) =>
+    notifyAuthSessionChanged(getHrApi().update(params)),
   changeEmployment: (params: HrEmploymentChangeParams) =>
-    getHrApi().changeEmployment(params),
+    notifyAuthSessionChanged(getHrApi().changeEmployment(params)),
   terminateEmployee: (params: HrTerminationParams) =>
-    getHrApi().terminateEmployee(params),
+    notifyAuthSessionChanged(getHrApi().terminateEmployee(params)),
   correctHireDate: (params: HrHireDateCorrectionParams) =>
-    getHrApi().correctHireDate(params),
-  delete: (params: HrDeleteParams) => getHrApi().delete(params),
+    notifyAuthSessionChanged(getHrApi().correctHireDate(params)),
+  delete: (params: HrDeleteParams) =>
+    notifyAuthSessionChanged(getHrApi().delete(params)),
   dashboard: () => getHrApi().dashboard(),
   listVacancies: (params: RecruitmentListParams) =>
     getHrApi().listVacancies(params),
   getVacancy: (id: number) => getHrApi().getVacancy(id),
-  saveVacancy: (params: SaveVacancyParams) => getHrApi().saveVacancy(params),
-  deleteVacancy: (id: number) => getHrApi().deleteVacancy(id),
+  saveVacancy: (params: SaveVacancyParams) =>
+    notifyAuthSessionChanged(getHrApi().saveVacancy(params)),
+  deleteVacancy: (id: number) =>
+    notifyAuthSessionChanged(getHrApi().deleteVacancy(id)),
   listCandidates: (params: RecruitmentListParams) =>
     getHrApi().listCandidates(params),
   getCandidate: (id: number) => getHrApi().getCandidate(id),
   saveCandidate: (params: SaveCandidateParams) =>
-    getHrApi().saveCandidate(params),
+    notifyAuthSessionChanged(getHrApi().saveCandidate(params)),
   hireCandidate: (params: HireCandidateParams) =>
-    getHrApi().hireCandidate(params),
-  deleteCandidate: (id: number) => getHrApi().deleteCandidate(id),
+    notifyAuthSessionChanged(getHrApi().hireCandidate(params)),
+  deleteCandidate: (id: number) =>
+    notifyAuthSessionChanged(getHrApi().deleteCandidate(id)),
   getAccessOverview: () => getHrApi().getAccessOverview(),
   saveAccessRole: (params: SaveAccessRoleParams) =>
-    getHrApi().saveAccessRole(params),
-  deleteAccessRole: (id: number) => getHrApi().deleteAccessRole(id),
+    notifyAuthSessionChanged(getHrApi().saveAccessRole(params)),
+  deleteAccessRole: (id: number) =>
+    notifyAuthSessionChanged(getHrApi().deleteAccessRole(id)),
   saveAccessUser: (params: SaveAccessUserParams) =>
-    getHrApi().saveAccessUser(params),
+    notifyAuthSessionChanged(getHrApi().saveAccessUser(params)),
   resetAccessPassword: (params: ResetAccessPasswordParams) =>
-    getHrApi().resetAccessPassword(params),
-  deleteAccessUser: (id: number) => getHrApi().deleteAccessUser(id),
+    notifyAuthSessionChanged(getHrApi().resetAccessPassword(params)),
+  deleteAccessUser: (id: number) =>
+    notifyAuthSessionChanged(getHrApi().deleteAccessUser(id)),
   listAuditEvents: (params: AuditListParams = {}) =>
     getHrApi().listAuditEvents(params),
   listBackups: () => getHrApi().listBackups(),
   createBackup: () => getHrApi().createBackup(),
-  restoreBackup: (name: string) => getHrApi().restoreBackup(name),
+  restoreBackup: (name: string) =>
+    notifyAuthSessionChanged(getHrApi().restoreBackup(name)),
   openBackupsFolder: () => getHrApi().openBackupsFolder(),
   exportEmployeesCsv: () => getHrApi().exportEmployeesCsv(),
 };
