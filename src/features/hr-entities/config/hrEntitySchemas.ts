@@ -45,49 +45,62 @@ function optionalNumberString(): z.ZodString {
     .refine((value) => value === "" || Number(value) >= 0, nonNegativeMessage);
 }
 
+const enterprisesSchema = z.object({
+  legal_form: requiredString(),
+  name: requiredString(),
+  legal_name: optionalString(),
+  registration_number: optionalString(),
+  phone: optionalString(),
+  email: optionalEmail(),
+  address: optionalString(),
+});
+
+const departmentsSchema = z.object({
+  enterprise_id: requiredNumberString(),
+  name: requiredString(),
+  phone: optionalString(),
+  email: optionalEmail(),
+  location: optionalString(),
+  created_on: optionalString(),
+});
+
+const positionsSchema = z.object({
+  department_id: requiredNumberString(),
+  name: requiredString(),
+  responsibilities: optionalString(),
+});
+
 const employeesSchema = z.object({
+  employee_number: optionalString(),
   last_name: requiredString(),
   first_name: requiredString(),
   middle_name: optionalString(),
-  department_id: optionalNumberString(),
-  position_id: optionalNumberString(),
   birth_date: optionalString(),
   gender: optionalString(),
   phone: optionalString(),
   email: optionalEmail(),
-  hire_date: requiredString(),
-  salary: optionalNumberString(),
-  status: requiredString(),
   address_country: optionalString(),
   address_city: optionalString(),
   address_street: optionalString(),
   address_house: optionalString(),
   address_apartment: optionalString(),
   address: optionalString(),
-  note: optionalString(),
-});
-
-const enterprisesSchema = z.object({
-  name: requiredString(),
-  legal_name: optionalString(),
-  registration_number: optionalString(),
-  general_director_employee_id: optionalNumberString(),
-  phone: optionalString(),
-  email: optionalEmail(),
-  address: optionalString(),
-  note: optionalString(),
+  employment_type: optionalString(),
+  contract_number: optionalString(),
+  contract_date: optionalString(),
+  contract_end_date: optionalString(),
+  probation_end_date: optionalString(),
+  workplace: optionalString(),
 });
 
 const employeeEducationSchema = z.object({
   employee_id: requiredNumberString(),
-  education_type: requiredString(),
-  education_degree: optionalString(),
+  education_degree: requiredString(),
   institution_name: requiredString(),
   speciality: optionalString(),
   started_at: optionalString(),
   ended_at: optionalString(),
   document_number: optionalString(),
-  note: optionalString(),
 });
 
 const employeeExperienceSchema = z.object({
@@ -98,42 +111,30 @@ const employeeExperienceSchema = z.object({
   ended_at: optionalString(),
   is_current: optionalNumberString(),
   responsibilities: optionalString(),
-  note: optionalString(),
 });
 
-const departmentsSchema = z.object({
-  enterprise_id: requiredNumberString(),
-  director_employee_id: optionalNumberString(),
-  name: requiredString(),
-  manager_name: optionalString(),
-  phone: optionalString(),
-  email: optionalEmail(),
-  location: optionalString(),
-  created_on: optionalString(),
-  note: optionalString(),
+const employmentHistorySchema = z.object({
+  employee_id: requiredNumberString(),
+  change_type: requiredString(),
+  effective_at: requiredString(),
+  reason: optionalString(),
 });
 
-const positionsSchema = z.object({
-  department_id: requiredNumberString(),
+const vacationTypesSchema = z.object({
   name: requiredString(),
-  base_salary: requiredNumberString(),
-  responsibilities: optionalString(),
-  requirements: optionalString(),
-  note: optionalString(),
+  is_paid_default: requiredNumberString(),
+  is_active: requiredNumberString(),
 });
 
 const vacationsSchema = z
   .object({
     employee_id: requiredNumberString(),
-    vacation_type: requiredString(),
+    vacation_type_id: requiredNumberString(),
     starts_at: requiredString(),
     ends_at: requiredString(),
-    days_count: requiredNumberString(),
     is_paid: requiredNumberString(),
     reason: optionalString(),
     status: requiredString(),
-    approved_at: optionalString(),
-    note: optionalString(),
   })
   .refine(
     (value) =>
@@ -144,28 +145,15 @@ const vacationsSchema = z
     },
   );
 
-const employmentHistorySchema = z.object({
-  employee_id: requiredNumberString(),
-  change_type: requiredString(),
-  effective_at: requiredString(),
-  previous_department_id: optionalNumberString(),
-  new_department_id: optionalNumberString(),
-  previous_position_id: optionalNumberString(),
-  new_position_id: optionalNumberString(),
-  previous_salary: optionalNumberString(),
-  new_salary: optionalNumberString(),
-  reason: optionalString(),
-  note: optionalString(),
-});
-
 export const hrEntitySchemas = {
   enterprises: enterprisesSchema,
+  departments: departmentsSchema,
+  positions: positionsSchema,
   employees: employeesSchema,
   employee_education: employeeEducationSchema,
   employee_experience: employeeExperienceSchema,
   employment_history: employmentHistorySchema,
-  departments: departmentsSchema,
-  positions: positionsSchema,
+  vacation_types: vacationTypesSchema,
   vacations: vacationsSchema,
 } satisfies Record<HrEntityKey, z.ZodType<unknown>>;
 
