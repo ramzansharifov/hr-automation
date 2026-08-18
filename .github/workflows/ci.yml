@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.12.0
           cache: npm
 
       - name: Install dependencies
@@ -34,13 +34,29 @@ jobs:
           import glob
           import sqlite3
 
+          marker = "-- requires_foreign_keys_off"
           connection = sqlite3.connect(":memory:")
           connection.execute("PRAGMA foreign_keys = ON")
 
           for migration_path in sorted(glob.glob("electron/migrations/*.sql")):
               print(f"Applying {migration_path}")
               with open(migration_path, "r", encoding="utf-8") as migration_file:
-                  connection.executescript(migration_file.read())
+                  sql = migration_file.read()
+
+              needs_fk_off = marker in sql
+              if needs_fk_off:
+                  connection.execute("PRAGMA foreign_keys = OFF")
+
+              try:
+                  connection.executescript(sql)
+                  violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+                  if violations:
+                      raise SystemExit(
+                          f"Foreign key violations after {migration_path}: {violations}"
+                      )
+              finally:
+                  if needs_fk_off:
+                      connection.execute("PRAGMA foreign_keys = ON")
 
           violations = connection.execute("PRAGMA foreign_key_check").fetchall()
           if violations:
