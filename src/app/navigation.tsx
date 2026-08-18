@@ -2,6 +2,7 @@ import type { IconType } from "react-icons";
 import {
   FiActivity,
   FiBriefcase,
+  FiCalendar,
   FiClipboard,
   FiFilter,
   FiHome,
@@ -41,6 +42,13 @@ export const navigationItems: AppNavigationItem[] = [
     icon: FiLayers,
     permissionCode: "organization.view",
     entity: "enterprises",
+  },
+  {
+    titleKey: "Отпуска",
+    path: "/vacations",
+    icon: FiCalendar,
+    permissionCode: "vacations.view",
+    entity: "vacations",
   },
   {
     titleKey: "navigation.vacancies",
