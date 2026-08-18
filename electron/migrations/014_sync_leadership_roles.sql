@@ -1,3 +1,5 @@
+DROP TRIGGER IF EXISTS roles_system_update_guard;
+
 UPDATE roles
 SET name = 'Руководитель предприятия',
     description = 'Просмотр данных сотрудников и процессов своего предприятия.'
@@ -7,6 +9,13 @@ UPDATE roles
 SET name = 'Руководитель отдела',
     description = 'Просмотр сотрудников и процессов своего отдела.'
 WHERE system_key = 'department_head';
+
+CREATE TRIGGER roles_system_update_guard
+BEFORE UPDATE ON roles
+WHEN OLD.is_system = 1
+BEGIN
+  SELECT RAISE(ABORT, 'Системную роль нельзя изменять');
+END;
 
 CREATE TRIGGER enterprises_grant_director_access
 AFTER UPDATE OF general_director_employee_id ON enterprises
