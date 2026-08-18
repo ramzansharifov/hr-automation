@@ -25,7 +25,7 @@ import type {
 } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
-import { Button, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
+import { IconButton, Button, EmptyState, LoadingState, Select, type SelectOption } from '../../shared/ui'
 import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
 import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
@@ -458,25 +458,9 @@ export function HrEntityTable({
                 {hasActions && (
                   <td className="app-border-soft border-b px-5 py-4 align-top">
                     <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.edit')}
-                        title={t('common.actions.edit')}
-                        onClick={() => handleEditClick(record)}
-                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
+                      <IconButton icon={<FiEdit2 />} label={t('common.actions.edit')} onClick={() => handleEditClick(record)} size="sm" />
 
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.delete')}
-                        title={t('common.actions.delete')}
-                        onClick={() => handleDeleteClick(record)}
-                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
+                      <IconButton icon={<FiTrash2 />} label={t('common.actions.delete')} onClick={() => handleDeleteClick(record)} size="sm" tone="danger" />
                     </div>
                   </td>
                 )}
@@ -560,25 +544,9 @@ export function HrEntityTable({
                       className="flex shrink-0 items-center justify-center gap-2"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.edit')}
-                        title={t('common.actions.edit')}
-                        onClick={() => handleEditClick(record)}
-                        className="app-table-action-button app-table-action-button--edit inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
+                      <IconButton icon={<FiEdit2 />} label={t('common.actions.edit')} onClick={() => handleEditClick(record)} size="sm" />
 
-                      <button
-                        type="button"
-                        aria-label={t('common.actions.delete')}
-                        title={t('common.actions.delete')}
-                        onClick={() => handleDeleteClick(record)}
-                        className="app-table-action-button app-table-action-button--delete inline-flex h-9 w-9 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
+                      <IconButton icon={<FiTrash2 />} label={t('common.actions.delete')} onClick={() => handleDeleteClick(record)} size="sm" tone="danger" />
                     </div>
                   )}
                 </motion.article>

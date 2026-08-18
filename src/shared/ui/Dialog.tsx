@@ -2,7 +2,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { FiX } from "react-icons/fi";
-import { Button } from "./Button";
+import { IconButton } from "./IconButton";
 
 export type DialogSize = "sm" | "md" | "lg";
 

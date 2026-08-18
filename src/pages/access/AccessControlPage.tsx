@@ -26,6 +26,7 @@ import type {
 } from "../../shared/types/access";
 import type { HrRecord } from "../../shared/types/hr";
 import {
+  IconButton,
   Button,
   ConfirmDialog,
   Dialog,
@@ -887,33 +888,6 @@ function TabButton({
           : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
       ].join(" ")}
       onClick={onClick}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
-
-function IconButton({
-  children,
-  danger = false,
-  label,
-  onClick,
-}: {
-  children: React.ReactNode;
-  danger?: boolean;
-  label: string;
-  onClick: () => void;
-}): JSX.Element {
-  return (
-    <button
-      aria-label={label}
-      className={[
-        "app-table-action-button flex h-10 w-10 items-center justify-center rounded-xl border transition [&>svg]:h-4 [&>svg]:w-4",
-        danger ? "app-table-action-button--delete" : "",
-      ].join(" ")}
-      onClick={onClick}
-      title={label}
       type="button"
     >
       {children}

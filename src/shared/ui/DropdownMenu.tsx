@@ -1,7 +1,7 @@
 import * as RadixDropdownMenu from '@radix-ui/react-dropdown-menu'
 import type { ReactNode } from 'react'
 import { FiMoreVertical } from 'react-icons/fi'
-import { Button } from './Button'
+import { IconButton } from './IconButton'
 
 export interface DropdownMenuAction {
   danger?: boolean

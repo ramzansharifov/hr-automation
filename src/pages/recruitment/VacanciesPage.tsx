@@ -18,6 +18,7 @@ import {
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import {
+  IconButton,
   Button,
   ConfirmDialog,
   EmptyState,
@@ -284,22 +285,8 @@ function VacancyCard({
         </div>
         {canManage && (
           <div className="flex gap-2">
-            <Button
-              aria-label="Редактировать вакансию"
-              className="h-10 w-10 p-0"
-              onClick={onEdit}
-              variant="ghost"
-            >
-              <FiEdit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              aria-label="Удалить вакансию"
-              className="h-10 w-10 p-0"
-              onClick={onDelete}
-              variant="ghost"
-            >
-              <FiTrash2 className="h-4 w-4" />
-            </Button>
+            <IconButton icon={<FiEdit2 />} label="Редактировать вакансию" onClick={onEdit} size="md" />
+            <IconButton icon={<FiTrash2 />} label="Удалить вакансию" onClick={onDelete} size="md" tone="danger" />
           </div>
         )}
       </div>

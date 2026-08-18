@@ -32,6 +32,7 @@ import type {
   SaveCandidateParams,
 } from "../../shared/types/hr";
 import {
+  IconButton,
   Button,
   ConfirmDialog,
   Dialog,

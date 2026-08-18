@@ -19,6 +19,7 @@ import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
 import {
+  IconButton,
   Button,
   EmptyState,
   LoadingState,
@@ -287,23 +288,9 @@ function VacationCard({
         </div>
         {canManage && (
           <div className="flex shrink-0 gap-2">
-            <Button
-              aria-label="Редактировать отпуск"
-              className="h-9 w-9 p-0"
-              onClick={onEdit}
-              variant="ghost"
-            >
-              <FiEdit2 className="h-4 w-4" />
-            </Button>
+            <IconButton icon={<FiEdit2 />} label="Редактировать отпуск" onClick={onEdit} size="sm" />
             {canDelete && (
-              <Button
-                aria-label="Удалить отпуск"
-                className="h-9 w-9 p-0"
-                onClick={onDelete}
-                variant="ghost"
-              >
-                <FiTrash2 className="h-4 w-4" />
-              </Button>
+              <IconButton icon={<FiTrash2 />} label="Удалить отпуск" onClick={onDelete} size="sm" tone="danger" />
             )}
           </div>
         )}
