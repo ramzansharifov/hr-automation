@@ -48,6 +48,16 @@ export const employeeAddressSchema = z.object({
 })
 
 export const employeeCompanySchema = z.object({
+  employee_number: optionalString(),
+  employment_type: requiredString(),
+  contract_number: optionalString(),
+  contract_date: optionalString(),
+  contract_end_date: optionalString(),
+  probation_end_date: optionalString(),
+  workplace: optionalString(),
+})
+
+export const employeeAssignmentSchema = z.object({
   department_id: requiredNumberString(),
   position_id: requiredNumberString(),
   hire_date: requiredString(),
@@ -55,20 +65,15 @@ export const employeeCompanySchema = z.object({
   salary: requiredNumberString(),
 })
 
-export const employeeNotesSchema = z.object({
-  note: optionalString(),
-})
-
 export const employeeCreateSchema = employeePersonalSchema
   .merge(employeeAddressSchema)
   .merge(employeeCompanySchema)
-  .merge(employeeNotesSchema)
+  .merge(employeeAssignmentSchema)
 
 export const employeeSectionSchemas = {
   personal: employeePersonalSchema,
   address: employeeAddressSchema,
   company: employeeCompanySchema,
-  notes: employeeNotesSchema,
 } as const
 
 export type EmployeeFormSectionKey = keyof typeof employeeSectionSchemas
@@ -83,6 +88,13 @@ export const employeeSectionFields = {
     'address_apartment',
     'address',
   ],
-  company: ['department_id', 'position_id', 'hire_date', 'status', 'salary'],
-  notes: ['note'],
+  company: [
+    'employee_number',
+    'employment_type',
+    'contract_number',
+    'contract_date',
+    'contract_end_date',
+    'probation_end_date',
+    'workplace',
+  ],
 } as const

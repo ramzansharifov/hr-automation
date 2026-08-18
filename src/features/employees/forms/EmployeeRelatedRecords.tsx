@@ -40,18 +40,19 @@ import {
 } from "../related-records/model";
 
 interface EmployeeRelatedRecordsProps {
+  canManage: boolean;
   employeeId: number;
   locale: string;
 }
 
 export function EmployeeEducationPanel({
+  canManage,
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
   const { t } = useTranslation();
   const [records, setRecords] = useState<HrRecord[]>([]);
-  const [formValues, setFormValues] =
-    useState<EducationFormValues>(educationDefaults);
+  const [formValues, setFormValues] = useState<EducationFormValues>(educationDefaults);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
   const [error, setError] = useState("");
@@ -61,64 +62,30 @@ export function EmployeeEducationPanel({
 
   const educationLevelOptions = useMemo<SelectOption[]>(
     () => [
-      {
-        value: "basic_general",
-        label: t("employeesDetails.education.degrees.basicGeneral"),
-      },
-      {
-        value: "secondary_general",
-        label: t("employeesDetails.education.degrees.secondaryGeneral"),
-      },
-      {
-        value: "secondary_vocational",
-        label: t("employeesDetails.education.degrees.secondaryVocational"),
-      },
-      {
-        value: "incomplete_higher",
-        label: t("employeesDetails.education.degrees.incompleteHigher"),
-      },
-      {
-        value: "bachelor",
-        label: t("employeesDetails.education.degrees.bachelor"),
-      },
-      {
-        value: "specialist",
-        label: t("employeesDetails.education.degrees.specialist"),
-      },
-      {
-        value: "master",
-        label: t("employeesDetails.education.degrees.master"),
-      },
-      {
-        value: "postgraduate",
-        label: t("employeesDetails.education.degrees.postgraduate"),
-      },
-      {
-        value: "academic_degree",
-        label: t("employeesDetails.education.degrees.academicDegree"),
-      },
+      { value: "basic_general", label: t("employeesDetails.education.degrees.basicGeneral") },
+      { value: "secondary_general", label: t("employeesDetails.education.degrees.secondaryGeneral") },
+      { value: "secondary_vocational", label: t("employeesDetails.education.degrees.secondaryVocational") },
+      { value: "incomplete_higher", label: t("employeesDetails.education.degrees.incompleteHigher") },
+      { value: "bachelor", label: t("employeesDetails.education.degrees.bachelor") },
+      { value: "specialist", label: t("employeesDetails.education.degrees.specialist") },
+      { value: "master", label: t("employeesDetails.education.degrees.master") },
+      { value: "postgraduate", label: t("employeesDetails.education.degrees.postgraduate") },
+      { value: "academic_degree", label: t("employeesDetails.education.degrees.academicDegree") },
     ],
     [t],
   );
 
-  const loadEducationRecords = useCallback(async (): Promise<void> => {
+  const loadRecords = useCallback(async () => {
     setIsLoading(true);
-
     try {
       const result = await hrApiClient.list({
         entity: "employee_education",
         page: 1,
         pageSize: 100,
-        filters: {
-          employee_id: {
-            operator: "equals",
-            value: employeeId,
-          },
-        },
+        filters: { employee_id: { operator: "equals", value: employeeId } },
         orderBy: "started_at",
         orderDirection: "desc",
       });
-
       setRecords(result.items);
     } catch {
       toast.error(t("employeesDetails.education.toasts.loadError"));
@@ -128,30 +95,25 @@ export function EmployeeEducationPanel({
   }, [employeeId, t]);
 
   useEffect(() => {
-    void loadEducationRecords();
-  }, [loadEducationRecords]);
+    void loadRecords();
+  }, [loadRecords]);
 
   function updateField(name: keyof EducationFormValues, value: string): void {
-    setFormValues((current) => ({
-      ...current,
-      [name]: value,
-    }));
+    setFormValues((current) => ({ ...current, [name]: value }));
   }
 
-  function openCreateDialog(): void {
+  function openCreate(): void {
+    if (!canManage) return;
     setEditingId(null);
     setError("");
     setFormValues(educationDefaults);
     setIsDialogOpen(true);
   }
 
-  function openEditDialog(record: HrRecord): void {
+  function openEdit(record: HrRecord): void {
+    if (!canManage) return;
     const id = getRecordId(record);
-
-    if (!id) {
-      return;
-    }
-
+    if (!id) return;
     setEditingId(id);
     setError("");
     setFormValues({
@@ -161,7 +123,6 @@ export function EmployeeEducationPanel({
       started_at: getString(record.started_at),
       ended_at: getString(record.ended_at),
       document_number: getString(record.document_number),
-      note: getString(record.note),
     });
     setIsDialogOpen(true);
   }
@@ -173,70 +134,43 @@ export function EmployeeEducationPanel({
     setFormValues(educationDefaults);
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ): Promise<void> {
+  async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-
     const validationError = validateEducation(formValues, t);
-
     if (validationError) {
       setError(validationError);
       return;
     }
-
     setError("");
     setIsSubmitting(true);
-
     try {
       const data = mapEducationFormToRecord(employeeId, formValues);
-
       if (editingId) {
-        await hrApiClient.update({
-          entity: "employee_education",
-          id: editingId,
-          data,
-        });
+        await hrApiClient.update({ entity: "employee_education", id: editingId, data });
       } else {
-        await hrApiClient.create({
-          entity: "employee_education",
-          data,
-        });
+        await hrApiClient.create({ entity: "employee_education", data });
       }
-
-      toast.success(
-        t(editingId ? "forms.toasts.updated" : "forms.toasts.created"),
-      );
-      await loadEducationRecords();
+      toast.success(t(editingId ? "forms.toasts.updated" : "forms.toasts.created"));
+      await loadRecords();
       closeDialog();
-    } catch {
-      toast.error(
-        t(editingId ? "forms.toasts.updateError" : "forms.toasts.createError"),
-      );
+    } catch (saveError) {
+      toast.error(getErrorMessage(saveError, t("forms.toasts.updateError")));
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleDelete(): Promise<void> {
+  async function remove(): Promise<void> {
     const id = getRecordId(deleteTarget);
-
-    if (!id) {
-      return;
-    }
-
+    if (!id) return;
     setIsSubmitting(true);
-
     try {
-      await hrApiClient.delete({
-        entity: "employee_education",
-        id,
-      });
-      toast.success(t("forms.toasts.deleted"));
+      await hrApiClient.delete({ entity: "employee_education", id });
       setDeleteTarget(null);
-      await loadEducationRecords();
-    } catch {
-      toast.error(t("forms.toasts.deleteError"));
+      await loadRecords();
+      toast.success(t("forms.toasts.deleted"));
+    } catch (deleteError) {
+      toast.error(getErrorMessage(deleteError, t("forms.toasts.deleteError")));
     } finally {
       setIsSubmitting(false);
     }
@@ -248,11 +182,10 @@ export function EmployeeEducationPanel({
         actionLabel={t("employeesDetails.education.formTitle")}
         description={t("employeesDetails.education.description")}
         icon={<FiBookOpen className="h-6 w-6" />}
-        onAction={openCreateDialog}
+        onAction={canManage ? openCreate : undefined}
         recordCount={records.length}
         title={t("employeesDetails.sections.education")}
       />
-
       <RelatedRecordsList
         emptyTitle={t("employeesDetails.education.emptyTitle")}
         isLoading={isLoading}
@@ -261,118 +194,75 @@ export function EmployeeEducationPanel({
         renderRecord={(record) => (
           <EducationRecordCard
             locale={locale}
-            onDelete={() => setDeleteTarget(record)}
-            onEdit={() => openEditDialog(record)}
+            onDelete={canManage ? () => setDeleteTarget(record) : undefined}
+            onEdit={canManage ? () => openEdit(record) : undefined}
             record={record}
             t={t}
           />
         )}
       />
 
-      <Dialog
-        description={t("employeesDetails.education.description")}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeDialog();
-            return;
-          }
-
-          setIsDialogOpen(true);
-        }}
-        open={isDialogOpen}
-        title={t(
-          editingId
-            ? "employeesDetails.education.editTitle"
-            : "employeesDetails.education.formTitle",
-        )}
-      >
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <RelatedSelectField
-            label={t("forms.fields.educationDegree")}
-            onValueChange={(value) => updateField("education_level", value)}
-            options={educationLevelOptions}
-            placeholder={t("forms.placeholders.select")}
-            value={formValues.education_level}
+      {canManage && (
+        <>
+          <Dialog
+            description={t("employeesDetails.education.description")}
+            onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
+            open={isDialogOpen}
+            title={t(editingId ? "employeesDetails.education.editTitle" : "employeesDetails.education.formTitle")}
+          >
+            <form className="grid gap-4" onSubmit={save}>
+              <RelatedSelectField
+                label={t("forms.fields.educationDegree")}
+                onValueChange={(value) => updateField("education_level", value)}
+                options={educationLevelOptions}
+                placeholder={t("forms.placeholders.select")}
+                value={formValues.education_level}
+              />
+              <RelatedTextField
+                label={t("forms.fields.institutionName")}
+                onChange={(value) => updateField("institution_name", value)}
+                required
+                value={formValues.institution_name}
+              />
+              <RelatedTextField
+                label={t("forms.fields.speciality")}
+                onChange={(value) => updateField("speciality", value)}
+                value={formValues.speciality}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <RelatedTextField label={t("forms.fields.startedAt")} onChange={(value) => updateField("started_at", value)} type="date" value={formValues.started_at} />
+                <RelatedTextField label={t("forms.fields.endedAt")} onChange={(value) => updateField("ended_at", value)} type="date" value={formValues.ended_at} />
+              </div>
+              <RelatedTextField
+                label={t("forms.fields.documentNumber")}
+                onChange={(value) => updateField("document_number", value)}
+                value={formValues.document_number}
+              />
+              <FieldError message={error} />
+              <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
+            </form>
+          </Dialog>
+          <DeleteDialog
+            deleteTarget={deleteTarget}
+            isSubmitting={isSubmitting}
+            onConfirm={remove}
+            onOpenChange={setDeleteTarget}
+            t={t}
           />
-
-          <RelatedTextField
-            label={t("forms.fields.institutionName")}
-            onChange={(value) => updateField("institution_name", value)}
-            required
-            value={formValues.institution_name}
-          />
-
-          <RelatedTextField
-            label={t("forms.fields.speciality")}
-            onChange={(value) => updateField("speciality", value)}
-            value={formValues.speciality}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <RelatedTextField
-              label={t("forms.fields.startedAt")}
-              onChange={(value) => updateField("started_at", value)}
-              type="date"
-              value={formValues.started_at}
-            />
-            <RelatedTextField
-              label={t("forms.fields.endedAt")}
-              onChange={(value) => updateField("ended_at", value)}
-              type="date"
-              value={formValues.ended_at}
-            />
-          </div>
-
-          <RelatedTextField
-            label={t("forms.fields.documentNumber")}
-            onChange={(value) => updateField("document_number", value)}
-            value={formValues.document_number}
-          />
-          <RelatedTextareaField
-            label={t("forms.fields.note")}
-            onChange={(value) => updateField("note", value)}
-            value={formValues.note}
-          />
-
-          <FieldError message={error} />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={closeDialog}>
-              {t("common.actions.cancel")}
-            </Button>
-            <Button disabled={isSubmitting} type="submit" variant="primary">
-              {t(editingId ? "common.actions.save" : "common.actions.create")}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      <ConfirmDialog
-        cancelLabel={t("common.actions.cancel")}
-        confirmLabel={t("common.actions.delete")}
-        description={t("forms.delete.description")}
-        isLoading={isSubmitting}
-        onConfirm={() => void handleDelete()}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null);
-          }
-        }}
-        open={Boolean(deleteTarget)}
-        title={t("forms.delete.title")}
-      />
+        </>
+      )}
     </div>
   );
 }
 
 export function EmployeeExperiencePanel({
+  canManage,
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
   const { t } = useTranslation();
   const [records, setRecords] = useState<HrRecord[]>([]);
-  const [formValues, setFormValues] =
-    useState<ExperienceFormValues>(experienceDefaults);
+  const [formValues, setFormValues] = useState<ExperienceFormValues>(experienceDefaults);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
   const [error, setError] = useState("");
@@ -380,24 +270,17 @@ export function EmployeeExperiencePanel({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadExperienceRecords = useCallback(async (): Promise<void> => {
+  const loadRecords = useCallback(async () => {
     setIsLoading(true);
-
     try {
       const result = await hrApiClient.list({
         entity: "employee_experience",
         page: 1,
         pageSize: 100,
-        filters: {
-          employee_id: {
-            operator: "equals",
-            value: employeeId,
-          },
-        },
+        filters: { employee_id: { operator: "equals", value: employeeId } },
         orderBy: "started_at",
         orderDirection: "desc",
       });
-
       setRecords(result.items);
     } catch {
       toast.error(t("employeesDetails.experience.toasts.loadError"));
@@ -407,8 +290,8 @@ export function EmployeeExperiencePanel({
   }, [employeeId, t]);
 
   useEffect(() => {
-    void loadExperienceRecords();
-  }, [loadExperienceRecords]);
+    void loadRecords();
+  }, [loadRecords]);
 
   function updateField(name: keyof ExperienceFormValues, value: string): void {
     setFormValues((current) => ({
@@ -418,20 +301,18 @@ export function EmployeeExperiencePanel({
     }));
   }
 
-  function openCreateDialog(): void {
+  function openCreate(): void {
+    if (!canManage) return;
     setEditingId(null);
     setError("");
     setFormValues(experienceDefaults);
     setIsDialogOpen(true);
   }
 
-  function openEditDialog(record: HrRecord): void {
+  function openEdit(record: HrRecord): void {
+    if (!canManage) return;
     const id = getRecordId(record);
-
-    if (!id) {
-      return;
-    }
-
+    if (!id) return;
     setEditingId(id);
     setError("");
     setFormValues({
@@ -441,7 +322,6 @@ export function EmployeeExperiencePanel({
       ended_at: getString(record.ended_at),
       is_current: String(Number(record.is_current ?? 0)),
       responsibilities: getString(record.responsibilities),
-      note: getString(record.note),
     });
     setIsDialogOpen(true);
   }
@@ -453,70 +333,43 @@ export function EmployeeExperiencePanel({
     setFormValues(experienceDefaults);
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ): Promise<void> {
+  async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-
     const validationError = validateExperience(formValues, t);
-
     if (validationError) {
       setError(validationError);
       return;
     }
-
     setError("");
     setIsSubmitting(true);
-
     try {
       const data = mapExperienceFormToRecord(employeeId, formValues);
-
       if (editingId) {
-        await hrApiClient.update({
-          entity: "employee_experience",
-          id: editingId,
-          data,
-        });
+        await hrApiClient.update({ entity: "employee_experience", id: editingId, data });
       } else {
-        await hrApiClient.create({
-          entity: "employee_experience",
-          data,
-        });
+        await hrApiClient.create({ entity: "employee_experience", data });
       }
-
-      toast.success(
-        t(editingId ? "forms.toasts.updated" : "forms.toasts.created"),
-      );
-      await loadExperienceRecords();
+      toast.success(t(editingId ? "forms.toasts.updated" : "forms.toasts.created"));
+      await loadRecords();
       closeDialog();
-    } catch {
-      toast.error(
-        t(editingId ? "forms.toasts.updateError" : "forms.toasts.createError"),
-      );
+    } catch (saveError) {
+      toast.error(getErrorMessage(saveError, t("forms.toasts.updateError")));
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleDelete(): Promise<void> {
+  async function remove(): Promise<void> {
     const id = getRecordId(deleteTarget);
-
-    if (!id) {
-      return;
-    }
-
+    if (!id) return;
     setIsSubmitting(true);
-
     try {
-      await hrApiClient.delete({
-        entity: "employee_experience",
-        id,
-      });
-      toast.success(t("forms.toasts.deleted"));
+      await hrApiClient.delete({ entity: "employee_experience", id });
       setDeleteTarget(null);
-      await loadExperienceRecords();
-    } catch {
-      toast.error(t("forms.toasts.deleteError"));
+      await loadRecords();
+      toast.success(t("forms.toasts.deleted"));
+    } catch (deleteError) {
+      toast.error(getErrorMessage(deleteError, t("forms.toasts.deleteError")));
     } finally {
       setIsSubmitting(false);
     }
@@ -528,11 +381,10 @@ export function EmployeeExperiencePanel({
         actionLabel={t("employeesDetails.experience.formTitle")}
         description={t("employeesDetails.experience.description")}
         icon={<FiBriefcase className="h-6 w-6" />}
-        onAction={openCreateDialog}
+        onAction={canManage ? openCreate : undefined}
         recordCount={records.length}
         title={t("employeesDetails.sections.experience")}
       />
-
       <RelatedRecordsList
         emptyTitle={t("employeesDetails.experience.emptyTitle")}
         isLoading={isLoading}
@@ -541,107 +393,108 @@ export function EmployeeExperiencePanel({
         renderRecord={(record) => (
           <ExperienceRecordCard
             locale={locale}
-            onDelete={() => setDeleteTarget(record)}
-            onEdit={() => openEditDialog(record)}
+            onDelete={canManage ? () => setDeleteTarget(record) : undefined}
+            onEdit={canManage ? () => openEdit(record) : undefined}
             record={record}
             t={t}
           />
         )}
       />
 
-      <Dialog
-        description={t("employeesDetails.experience.description")}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeDialog();
-            return;
-          }
-
-          setIsDialogOpen(true);
-        }}
-        open={isDialogOpen}
-        title={t(
-          editingId
-            ? "employeesDetails.experience.editTitle"
-            : "employeesDetails.experience.formTitle",
-        )}
-      >
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <RelatedTextField
-            label={t("forms.fields.companyName")}
-            onChange={(value) => updateField("company_name", value)}
-            required
-            value={formValues.company_name}
+      {canManage && (
+        <>
+          <Dialog
+            description={t("employeesDetails.experience.description")}
+            onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
+            open={isDialogOpen}
+            title={t(editingId ? "employeesDetails.experience.editTitle" : "employeesDetails.experience.formTitle")}
+          >
+            <form className="grid gap-4" onSubmit={save}>
+              <RelatedTextField label={t("forms.fields.companyName")} onChange={(value) => updateField("company_name", value)} required value={formValues.company_name} />
+              <RelatedTextField label={t("forms.fields.experiencePositionName")} onChange={(value) => updateField("position_name", value)} required value={formValues.position_name} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <RelatedTextField label={t("forms.fields.startedAt")} onChange={(value) => updateField("started_at", value)} type="date" value={formValues.started_at} />
+                <RelatedTextField disabled={formValues.is_current === "1"} label={t("forms.fields.endedAt")} onChange={(value) => updateField("ended_at", value)} type="date" value={formValues.ended_at} />
+              </div>
+              <RelatedToggleField
+                checked={formValues.is_current === "1"}
+                label={t("forms.fields.isCurrent")}
+                onCheckedChange={(checked) => updateField("is_current", checked ? "1" : "0")}
+              />
+              <RelatedTextareaField
+                label={t("forms.fields.responsibilities")}
+                onChange={(value) => updateField("responsibilities", value)}
+                value={formValues.responsibilities}
+              />
+              <FieldError message={error} />
+              <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
+            </form>
+          </Dialog>
+          <DeleteDialog
+            deleteTarget={deleteTarget}
+            isSubmitting={isSubmitting}
+            onConfirm={remove}
+            onOpenChange={setDeleteTarget}
+            t={t}
           />
-          <RelatedTextField
-            label={t("forms.fields.experiencePositionName")}
-            onChange={(value) => updateField("position_name", value)}
-            required
-            value={formValues.position_name}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <RelatedTextField
-              label={t("forms.fields.startedAt")}
-              onChange={(value) => updateField("started_at", value)}
-              type="date"
-              value={formValues.started_at}
-            />
-            <RelatedTextField
-              disabled={formValues.is_current === "1"}
-              label={t("forms.fields.endedAt")}
-              onChange={(value) => updateField("ended_at", value)}
-              type="date"
-              value={formValues.ended_at}
-            />
-          </div>
-
-          <RelatedToggleField
-            checked={formValues.is_current === "1"}
-            label={t("forms.fields.isCurrent")}
-            onCheckedChange={(checked) =>
-              updateField("is_current", checked ? "1" : "0")
-            }
-          />
-
-          <RelatedTextareaField
-            label={t("forms.fields.responsibilities")}
-            onChange={(value) => updateField("responsibilities", value)}
-            value={formValues.responsibilities}
-          />
-          <RelatedTextareaField
-            label={t("forms.fields.note")}
-            onChange={(value) => updateField("note", value)}
-            value={formValues.note}
-          />
-
-          <FieldError message={error} />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={closeDialog}>
-              {t("common.actions.cancel")}
-            </Button>
-            <Button disabled={isSubmitting} type="submit" variant="primary">
-              {t(editingId ? "common.actions.save" : "common.actions.create")}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      <ConfirmDialog
-        cancelLabel={t("common.actions.cancel")}
-        confirmLabel={t("common.actions.delete")}
-        description={t("forms.delete.description")}
-        isLoading={isSubmitting}
-        onConfirm={() => void handleDelete()}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null);
-          }
-        }}
-        open={Boolean(deleteTarget)}
-        title={t("forms.delete.title")}
-      />
+        </>
+      )}
     </div>
   );
+}
+
+function FormActions({
+  editing,
+  isSubmitting,
+  onCancel,
+  t,
+}: {
+  editing: boolean;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}): JSX.Element {
+  return (
+    <div className="flex justify-end gap-3 pt-2">
+      <Button type="button" variant="secondary" onClick={onCancel}>
+        {t("common.actions.cancel")}
+      </Button>
+      <Button disabled={isSubmitting} type="submit" variant="primary">
+        {t(editing ? "common.actions.save" : "common.actions.create")}
+      </Button>
+    </div>
+  );
+}
+
+function DeleteDialog({
+  deleteTarget,
+  isSubmitting,
+  onConfirm,
+  onOpenChange,
+  t,
+}: {
+  deleteTarget: HrRecord | null;
+  isSubmitting: boolean;
+  onConfirm: () => Promise<void>;
+  onOpenChange: (record: HrRecord | null) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}): JSX.Element {
+  return (
+    <ConfirmDialog
+      cancelLabel={t("common.actions.cancel")}
+      confirmLabel={t("common.actions.delete")}
+      description={t("forms.delete.description")}
+      isLoading={isSubmitting}
+      onConfirm={() => void onConfirm()}
+      onOpenChange={(open) => !open && onOpenChange(null)}
+      open={Boolean(deleteTarget)}
+      title={t("forms.delete.title")}
+    />
+  );
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+  const parts = error.message.split("Error: ");
+  return parts[parts.length - 1] || fallback;
 }

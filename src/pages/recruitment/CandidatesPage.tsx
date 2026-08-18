@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  FiCheckCircle,
   FiEdit2,
   FiMail,
   FiPhone,
@@ -10,6 +11,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../../features/auth/AuthContext";
 import {
   FormField,
   MatchBar,
@@ -25,6 +27,7 @@ import {
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   CandidateProfile,
+  HireCandidateParams,
   HrRecord,
   SaveCandidateParams,
 } from "../../shared/types/hr";
@@ -36,7 +39,6 @@ import {
   Input,
   LoadingState,
   Select,
-  Textarea,
   ViewModeToggle,
   useStoredViewMode,
   type SelectOption,
@@ -52,8 +54,9 @@ interface CandidateFormState {
   email: string;
   status: SaveCandidateParams["status"];
   source: string;
-  note: string;
   skills: CandidateSkillState[];
+  statusHistory: HrRecord[];
+  employeeId?: number;
 }
 
 interface CandidateSkillState {
@@ -62,7 +65,17 @@ interface CandidateSkillState {
   requiredLevel: number;
   weight: number;
   score: number;
-  note: string;
+}
+
+interface HireFormState {
+  hireDate: string;
+  salary: string;
+  employeeNumber: string;
+  contractNumber: string;
+  contractDate: string;
+  contractEndDate: string;
+  probationEndDate: string;
+  workplace: string;
 }
 
 const emptyForm = (): CandidateFormState => ({
@@ -74,11 +87,24 @@ const emptyForm = (): CandidateFormState => ({
   email: "",
   status: "new",
   source: "",
-  note: "",
   skills: [],
+  statusHistory: [],
+});
+
+const emptyHireForm = (): HireFormState => ({
+  hireDate: new Date().toISOString().slice(0, 10),
+  salary: "0",
+  employeeNumber: "",
+  contractNumber: "",
+  contractDate: new Date().toISOString().slice(0, 10),
+  contractEndDate: "",
+  probationEndDate: "",
+  workplace: "",
 });
 
 export function CandidatesPage(): JSX.Element {
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("recruitment.manage");
   const [searchParams, setSearchParams] = useSearchParams();
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
@@ -87,9 +113,11 @@ export function CandidatesPage(): JSX.Element {
   );
   const [viewMode, setViewMode] = useStoredViewMode("candidates", "cards");
   const [form, setForm] = useState<CandidateFormState>(emptyForm);
+  const [hireForm, setHireForm] = useState<HireFormState>(emptyHireForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [hireOpen, setHireOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
 
   const filteredCandidates = useMemo(
@@ -101,7 +129,7 @@ export function CandidatesPage(): JSX.Element {
     () =>
       vacancies.map((vacancy) => ({
         value: String(vacancy.id),
-        label: [vacancy.position_name, vacancy.department_name, vacancy.enterprise_name]
+        label: [vacancy.enterprise_name, vacancy.department_name, vacancy.position_name]
           .filter(Boolean)
           .join(" · "),
       })),
@@ -132,7 +160,6 @@ export function CandidatesPage(): JSX.Element {
     function refreshFilters(): void {
       setFilters(getStoredCandidateFilterValues());
     }
-
     window.addEventListener(CANDIDATE_FILTERS_EVENT, refreshFilters);
     window.addEventListener("storage", refreshFilters);
     return () => {
@@ -144,13 +171,13 @@ export function CandidatesPage(): JSX.Element {
   useEffect(() => {
     const candidateId = Number(searchParams.get("candidate"));
     if (isLoading || !Number.isInteger(candidateId) || candidateId <= 0) return;
-
-    void openEdit({ id: candidateId }).finally(() => {
+    void openCandidate({ id: candidateId }).finally(() => {
       setSearchParams(new URLSearchParams(), { replace: true });
     });
   }, [isLoading, searchParams, setSearchParams]);
 
   function openCreate(): void {
+    if (!canManage) return;
     if (vacancies.length === 0) {
       toast.info("Сначала создайте вакансию с набором навыков");
       return;
@@ -174,7 +201,6 @@ export function CandidatesPage(): JSX.Element {
           requiredLevel: Number(skill.required_level ?? 5),
           weight: Number(skill.weight ?? 3),
           score: 0,
-          note: "",
         })),
       }));
     } catch (error) {
@@ -182,7 +208,7 @@ export function CandidatesPage(): JSX.Element {
     }
   }
 
-  async function openEdit(record: HrRecord): Promise<void> {
+  async function openCandidate(record: HrRecord): Promise<void> {
     try {
       const profile = await hrApiClient.getCandidate(Number(record.id));
       if (!profile) throw new Error("Кандидат не найден");
@@ -195,6 +221,7 @@ export function CandidatesPage(): JSX.Element {
 
   async function saveCandidate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    if (!canManage || form.employeeId) return;
     setIsSaving(true);
     try {
       await hrApiClient.saveCandidate({
@@ -207,11 +234,9 @@ export function CandidatesPage(): JSX.Element {
         email: form.email,
         status: form.status,
         source: form.source,
-        note: form.note,
         skillScores: form.skills.map((skill) => ({
           vacancySkillId: skill.vacancySkillId,
           score: skill.score,
-          note: skill.note,
         })),
       });
       setIsDialogOpen(false);
@@ -224,14 +249,48 @@ export function CandidatesPage(): JSX.Element {
     }
   }
 
+  function openHire(): void {
+    if (!canManage || !form.id || form.status !== "offer" || form.employeeId) return;
+    setHireForm(emptyHireForm());
+    setHireOpen(true);
+  }
+
+  async function hireCandidate(event: React.FormEvent): Promise<void> {
+    event.preventDefault();
+    if (!form.id) return;
+    setIsSaving(true);
+    try {
+      const params: HireCandidateParams = {
+        candidateId: form.id,
+        hireDate: hireForm.hireDate,
+        salary: Number(hireForm.salary),
+        employeeNumber: hireForm.employeeNumber || undefined,
+        contractNumber: hireForm.contractNumber || undefined,
+        contractDate: hireForm.contractDate || undefined,
+        contractEndDate: hireForm.contractEndDate || undefined,
+        probationEndDate: hireForm.probationEndDate || undefined,
+        workplace: hireForm.workplace || undefined,
+      };
+      const employee = await hrApiClient.hireCandidate(params);
+      setHireOpen(false);
+      setIsDialogOpen(false);
+      await loadData();
+      toast.success(`Сотрудник создан. ID: ${String(employee.id)}`);
+    } catch (error) {
+      toast.error(errorMessage(error, "Не удалось принять кандидата на работу"));
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function deleteCandidate(): Promise<void> {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !canManage) return;
     setIsSaving(true);
     try {
       await hrApiClient.deleteCandidate(Number(deleteTarget.id));
       setDeleteTarget(null);
       await loadData();
-      toast.success("Кандидат удалён");
+      toast.success("Ошибочная запись кандидата удалена");
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось удалить кандидата"));
     } finally {
@@ -240,14 +299,15 @@ export function CandidatesPage(): JSX.Element {
   }
 
   const previewMatch = calculateMatch(form.skills);
+  const formDisabled = !canManage || Boolean(form.employeeId);
 
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
-        actionLabel="Добавить кандидата"
-        description="Кандидаты по вакансиям, контактная информация и объективная оценка соответствия навыкам."
+        actionLabel={canManage ? "Добавить кандидата" : undefined}
+        description="Кандидаты по вакансиям, этапы подбора и оценка соответствия навыкам."
         icon={<FiUserPlus className="h-6 w-6" />}
-        onAction={openCreate}
+        onAction={canManage ? openCreate : undefined}
         title="Кандидаты"
       />
 
@@ -255,9 +315,7 @@ export function CandidatesPage(): JSX.Element {
         <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
           <ViewModeToggle onChange={setViewMode} value={viewMode} />
           <Button
-            leftIcon={
-              <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-            }
+            leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
             onClick={() => void loadData()}
             type="button"
             variant="secondary"
@@ -267,21 +325,17 @@ export function CandidatesPage(): JSX.Element {
         </div>
 
         {isLoading ? (
-          <div className="px-5 py-16">
-            <LoadingState label="Загрузка кандидатов..." />
-          </div>
+          <div className="px-5 py-16"><LoadingState label="Загрузка кандидатов..." /></div>
         ) : filteredCandidates.length === 0 ? (
           <div className="py-16">
             <EmptyState
-              title={
-                candidates.length === 0
-                  ? "Кандидатов пока нет"
-                  : "Нет кандидатов по выбранным фильтрам"
-              }
+              title={candidates.length === 0 ? "Кандидатов пока нет" : "Нет кандидатов по выбранным фильтрам"}
               description={
                 candidates.length === 0
-                  ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
-                  : "Измените или очистите фильтры в модуле «Фильтры»."
+                  ? canManage
+                    ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
+                    : "В доступной области пока нет кандидатов."
+                  : "Измените или очистите фильтры."
               }
             />
           </div>
@@ -289,31 +343,34 @@ export function CandidatesPage(): JSX.Element {
           <div className="space-y-4 p-5">
             {filteredCandidates.map((candidate) => (
               <CandidateCard
+                canManage={canManage}
                 candidate={candidate}
                 key={String(candidate.id)}
                 onDelete={() => setDeleteTarget(candidate)}
-                onEdit={() => void openEdit(candidate)}
+                onOpen={() => void openCandidate(candidate)}
               />
             ))}
           </div>
         ) : (
           <CandidatesTable
+            canManage={canManage}
             candidates={filteredCandidates}
             onDelete={setDeleteTarget}
-            onEdit={(candidate) => void openEdit(candidate)}
+            onOpen={(candidate) => void openCandidate(candidate)}
           />
         )}
       </section>
 
       <Dialog
-        description="Выберите вакансию и оцените кандидата по каждому требуемому навыку от 0 до 10."
+        description={form.employeeId ? "Кандидат уже принят на работу. Запись сохранена как история подбора." : "Карточка кандидата, этап подбора и оценка навыков."}
         onOpenChange={setIsDialogOpen}
         open={isDialogOpen}
-        title={form.id ? "Редактировать кандидата" : "Новый кандидат"}
+        title={form.id ? "Карточка кандидата" : "Новый кандидат"}
       >
         <form className="grid gap-5" onSubmit={saveCandidate}>
           <FormField label="Вакансия">
             <Select
+              disabled={formDisabled}
               onValueChange={(value) => void selectVacancy(value)}
               options={vacancyOptions}
               placeholder="Выберите вакансию"
@@ -321,172 +378,109 @@ export function CandidatesPage(): JSX.Element {
             />
           </FormField>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Фамилия">
-              <Input
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    lastName: event.target.value,
-                  }))
-                }
-                required
-                value={form.lastName}
-              />
-            </FormField>
-            <FormField label="Имя">
-              <Input
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    firstName: event.target.value,
-                  }))
-                }
-                required
-                value={form.firstName}
-              />
-            </FormField>
-            <FormField label="Отчество">
-              <Input
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    middleName: event.target.value,
-                  }))
-                }
-                value={form.middleName}
-              />
-            </FormField>
-            <FormField label="Статус">
+            <TextInputField disabled={formDisabled} label="Фамилия" required value={form.lastName} onChange={(lastName) => setForm((v) => ({ ...v, lastName }))} />
+            <TextInputField disabled={formDisabled} label="Имя" required value={form.firstName} onChange={(firstName) => setForm((v) => ({ ...v, firstName }))} />
+            <TextInputField disabled={formDisabled} label="Отчество" value={form.middleName} onChange={(middleName) => setForm((v) => ({ ...v, middleName }))} />
+            <FormField label="Этап подбора">
               <Select
-                onValueChange={(status) =>
-                  setForm((current) => ({
-                    ...current,
-                    status: status as CandidateFormState["status"],
-                  }))
-                }
-                options={candidateStatusOptions}
+                disabled={formDisabled}
+                onValueChange={(status) => setForm((v) => ({ ...v, status: status as CandidateFormState["status"] }))}
+                options={form.employeeId ? hiredStatusOptions : candidateStatusOptions}
                 value={form.status}
               />
             </FormField>
-            <FormField label="Телефон">
-              <Input
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    phone: event.target.value,
-                  }))
-                }
-                type="tel"
-                value={form.phone}
-              />
-            </FormField>
-            <FormField label="Email">
-              <Input
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    email: event.target.value,
-                  }))
-                }
-                type="email"
-                value={form.email}
-              />
-            </FormField>
-            <FormField label="Источник">
-              <Input
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    source: event.target.value,
-                  }))
-                }
-                placeholder="Рекомендация, сайт, соцсеть"
-                value={form.source}
-              />
-            </FormField>
+            <TextInputField disabled={formDisabled} label="Телефон" type="tel" value={form.phone} onChange={(phone) => setForm((v) => ({ ...v, phone }))} />
+            <TextInputField disabled={formDisabled} label="Email" type="email" value={form.email} onChange={(email) => setForm((v) => ({ ...v, email }))} />
+            <TextInputField disabled={formDisabled} label="Источник" value={form.source} onChange={(source) => setForm((v) => ({ ...v, source }))} placeholder="Рекомендация, сайт, соцсеть" />
           </div>
-          <FormField label="Заметка">
-            <Textarea
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  note: event.target.value,
-                }))
-              }
-              rows={3}
-              value={form.note}
-            />
-          </FormField>
 
           <section className="app-surface-muted app-border rounded-[24px] border p-4 sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="app-text text-lg font-black">Оценка навыков</h3>
-                <p className="app-muted mt-1 text-xs font-semibold">
-                  0 — навыка нет, 10 — экспертный уровень.
-                </p>
+                <p className="app-muted mt-1 text-xs font-semibold">0 — навыка нет, 10 — экспертный уровень.</p>
               </div>
               <MatchBar value={previewMatch} />
             </div>
             <div className="mt-5 space-y-3">
               {form.skills.map((skill) => (
-                <div
-                  className="app-surface app-border grid gap-4 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_110px] sm:items-center"
-                  key={skill.vacancySkillId}
-                >
+                <div className="app-surface app-border grid gap-4 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_110px] sm:items-center" key={skill.vacancySkillId}>
                   <div>
                     <p className="app-text font-black">{skill.name}</p>
-                    <p className="app-muted mt-1 text-xs font-semibold">
-                      Требуется: {skill.requiredLevel}/10 · Важность: {skill.weight}/5
-                    </p>
+                    <p className="app-muted mt-1 text-xs font-semibold">Требуется: {skill.requiredLevel}/10 · Важность: {skill.weight}/5</p>
                   </div>
                   <Input
                     aria-label={`Оценка навыка ${skill.name}`}
+                    disabled={formDisabled}
                     max="10"
                     min="0"
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        skills: current.skills.map((item) =>
-                          item.vacancySkillId === skill.vacancySkillId
-                            ? { ...item, score: Number(event.target.value) }
-                            : item,
-                        ),
-                      }))
-                    }
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      skills: current.skills.map((item) => item.vacancySkillId === skill.vacancySkillId ? { ...item, score: Number(event.target.value) } : item),
+                    }))}
                     required
                     type="number"
                     value={skill.score}
                   />
                 </div>
               ))}
-              {form.vacancyId && form.skills.length === 0 && (
-                <p className="app-muted rounded-2xl border border-dashed p-4 text-sm">
-                  У выбранной вакансии нет навыков. Добавьте их в разделе вакансий.
-                </p>
-              )}
             </div>
           </section>
 
-          <div className="flex justify-end gap-3">
-            <Button
-              onClick={() => setIsDialogOpen(false)}
-              type="button"
-              variant="secondary"
-            >
-              Отмена
-            </Button>
-            <Button disabled={isSaving || form.skills.length === 0} type="submit">
-              Сохранить кандидата
-            </Button>
+          {form.id && form.statusHistory.length > 0 && (
+            <section className="app-surface-muted app-border rounded-[24px] border p-5">
+              <h3 className="app-text font-black">История этапов</h3>
+              <div className="mt-3 space-y-2">
+                {form.statusHistory.slice(0, 8).map((item) => (
+                  <div className="app-surface app-border flex items-center justify-between gap-4 rounded-xl border px-4 py-3" key={String(item.id)}>
+                    <span className="app-text text-sm font-bold">{candidateStatusLabel(String(item.new_status))}</span>
+                    <span className="app-muted text-xs font-bold">{formatHistoryDate(item.changed_at)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button onClick={() => setIsDialogOpen(false)} type="button" variant="secondary">Закрыть</Button>
+            {canManage && form.id && form.status === "offer" && !form.employeeId && (
+              <Button leftIcon={<FiCheckCircle />} onClick={openHire} type="button">Принять на работу</Button>
+            )}
+            {canManage && !form.employeeId && (
+              <Button disabled={isSaving || form.skills.length === 0} type="submit">Сохранить кандидата</Button>
+            )}
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
+        description="Сотрудник будет создан на предприятии, в отделе и на должности выбранной вакансии."
+        onOpenChange={setHireOpen}
+        open={hireOpen}
+        title="Принять кандидата на работу"
+      >
+        <form className="grid gap-4" onSubmit={hireCandidate}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <HireField label="Дата выхода" required type="date" value={hireForm.hireDate} onChange={(hireDate) => setHireForm((v) => ({ ...v, hireDate }))} />
+            <HireField label="Согласованный оклад" required min="0" type="number" value={hireForm.salary} onChange={(salary) => setHireForm((v) => ({ ...v, salary }))} />
+            <HireField label="Табельный номер" value={hireForm.employeeNumber} onChange={(employeeNumber) => setHireForm((v) => ({ ...v, employeeNumber }))} />
+            <HireField label="Номер трудового договора" value={hireForm.contractNumber} onChange={(contractNumber) => setHireForm((v) => ({ ...v, contractNumber }))} />
+            <HireField label="Дата договора" type="date" value={hireForm.contractDate} onChange={(contractDate) => setHireForm((v) => ({ ...v, contractDate }))} />
+            <HireField label="Окончание договора" type="date" value={hireForm.contractEndDate} onChange={(contractEndDate) => setHireForm((v) => ({ ...v, contractEndDate }))} />
+            <HireField label="Окончание испытательного срока" type="date" value={hireForm.probationEndDate} onChange={(probationEndDate) => setHireForm((v) => ({ ...v, probationEndDate }))} />
+            <HireField label="Место работы" value={hireForm.workplace} onChange={(workplace) => setHireForm((v) => ({ ...v, workplace }))} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button onClick={() => setHireOpen(false)} type="button" variant="secondary">Отмена</Button>
+            <Button disabled={isSaving} type="submit">Создать сотрудника</Button>
           </div>
         </form>
       </Dialog>
 
       <ConfirmDialog
         cancelLabel="Отмена"
-        confirmLabel="Удалить"
-        description="Кандидат и все его оценки навыков будут удалены."
+        confirmLabel="Удалить ошибочную запись"
+        description="Удаление предназначено только для ошибочно созданных кандидатов. Принятого кандидата удалить нельзя."
         isLoading={isSaving}
         onConfirm={() => void deleteCandidate()}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -497,156 +491,133 @@ export function CandidatesPage(): JSX.Element {
   );
 }
 
-function CandidatesTable({
-  candidates,
-  onDelete,
-  onEdit,
+function TextInputField({
+  disabled,
+  label,
+  onChange,
+  placeholder,
+  required,
+  type = "text",
+  value,
 }: {
-  candidates: HrRecord[];
-  onDelete: (candidate: HrRecord) => void;
-  onEdit: (candidate: HrRecord) => void;
+  disabled?: boolean;
+  label: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  type?: string;
+  value: string;
 }): JSX.Element {
   return (
-    <>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-          <thead>
-            <tr className="app-surface-muted app-muted text-xs">
-              <th className="app-border-soft border-b px-5 py-4 font-black">ФИО</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Вакансия</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Контакты</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Статус</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Соответствие</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Источник</th>
-              <th className="app-border-soft border-b px-5 py-4 text-center font-black">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((candidate) => (
-              <tr
-                className="app-hover-muted cursor-pointer transition"
-                key={String(candidate.id)}
-                onClick={() => onEdit(candidate)}
-              >
-                <td className="app-border-soft app-text border-b px-5 py-4 font-black">
-                  {candidateFullName(candidate)}
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  {String(candidate.position_name ?? candidate.vacancy_title ?? "—")}
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  <div className="grid gap-1">
-                    {candidate.phone ? <span>{String(candidate.phone)}</span> : null}
-                    {candidate.email ? <span>{String(candidate.email)}</span> : null}
-                    {!candidate.phone && !candidate.email ? <span>—</span> : null}
-                  </div>
-                </td>
-                <td className="app-border-soft border-b px-5 py-4">
-                  <RecruitmentBadge tone="accent">
-                    {candidateStatusLabel(String(candidate.status))}
-                  </RecruitmentBadge>
-                </td>
-                <td className="app-border-soft border-b px-5 py-4">
-                  <div className="min-w-[180px]">
-                    <MatchBar value={Number(candidate.match_percentage ?? 0)} />
-                  </div>
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  {String(candidate.source ?? "—")}
-                </td>
-                <td className="app-border-soft border-b px-5 py-4">
-                  <div
-                    className="flex items-center justify-center gap-2"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <Button
-                      aria-label="Редактировать кандидата"
-                      className="h-9 w-9 p-0"
-                      onClick={() => onEdit(candidate)}
-                      variant="ghost"
-                    >
-                      <FiEdit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      aria-label="Удалить кандидата"
-                      className="h-9 w-9 p-0"
-                      onClick={() => onDelete(candidate)}
-                      variant="ghost"
-                    >
-                      <FiTrash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+    <FormField label={label}>
+      <Input disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} type={type} value={value} />
+    </FormField>
+  );
+}
+
+function HireField({
+  label,
+  min,
+  onChange,
+  required,
+  type = "text",
+  value,
+}: {
+  label: string;
+  min?: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  type?: string;
+  value: string;
+}): JSX.Element {
+  return (
+    <FormField label={label}>
+      <Input min={min} onChange={(event) => onChange(event.target.value)} required={required} type={type} value={value} />
+    </FormField>
+  );
+}
+
+function CandidatesTable({
+  canManage,
+  candidates,
+  onDelete,
+  onOpen,
+}: {
+  canManage: boolean;
+  candidates: HrRecord[];
+  onDelete: (candidate: HrRecord) => void;
+  onOpen: (candidate: HrRecord) => void;
+}): JSX.Element {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+        <thead>
+          <tr className="app-surface-muted app-muted text-xs">
+            {['ФИО', 'Вакансия', 'Контакты', 'Этап', 'Соответствие', 'Источник', 'Действия'].map((label) => (
+              <th className="app-border-soft border-b px-5 py-4 font-black" key={label}>{label}</th>
             ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
-        Всего: <span className="app-text font-black">{candidates.length}</span>
-      </div>
-    </>
+          </tr>
+        </thead>
+        <tbody>
+          {candidates.map((candidate) => (
+            <tr className="app-hover-muted cursor-pointer transition" key={String(candidate.id)} onClick={() => onOpen(candidate)}>
+              <td className="app-border-soft app-text border-b px-5 py-4 font-black">{candidateFullName(candidate)}</td>
+              <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.position_name ?? "—")}</td>
+              <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.phone ?? candidate.email ?? "—")}</td>
+              <td className="app-border-soft border-b px-5 py-4"><RecruitmentBadge tone="accent">{candidateStatusLabel(String(candidate.status))}</RecruitmentBadge></td>
+              <td className="app-border-soft border-b px-5 py-4"><MatchBar value={Number(candidate.match_percentage ?? 0)} /></td>
+              <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.source ?? "—")}</td>
+              <td className="app-border-soft border-b px-5 py-4">
+                <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                  <Button aria-label={canManage ? "Редактировать кандидата" : "Открыть кандидата"} className="h-9 w-9 p-0" onClick={() => onOpen(candidate)} variant="ghost"><FiEdit2 className="h-4 w-4" /></Button>
+                  {canManage && !candidate.employee_id && (
+                    <Button aria-label="Удалить кандидата" className="h-9 w-9 p-0" onClick={() => onDelete(candidate)} variant="ghost"><FiTrash2 className="h-4 w-4" /></Button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 function CandidateCard({
+  canManage,
   candidate,
   onDelete,
-  onEdit,
+  onOpen,
 }: {
+  canManage: boolean;
   candidate: HrRecord;
   onDelete: () => void;
-  onEdit: () => void;
+  onOpen: () => void;
 }): JSX.Element {
-  const skills = String(candidate.skills_summary ?? "")
-    .split("\u001f")
-    .filter(Boolean);
+  const skills = String(candidate.skills_summary ?? "").split("\u001f").filter(Boolean);
   return (
     <article className="app-surface app-border grid gap-5 rounded-[26px] border p-5 transition-colors hover:border-[var(--accent-border)] lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <RecruitmentBadge tone="accent">
-            {candidateStatusLabel(String(candidate.status))}
-          </RecruitmentBadge>
-          {Boolean(candidate.source) && (
-            <RecruitmentBadge>{String(candidate.source)}</RecruitmentBadge>
-          )}
+          <RecruitmentBadge tone={candidate.status === "hired" ? "success" : "accent"}>{candidateStatusLabel(String(candidate.status))}</RecruitmentBadge>
+          {candidate.source && <RecruitmentBadge>{String(candidate.source)}</RecruitmentBadge>}
         </div>
-        <h2 className="app-text mt-3 text-xl font-black">
-          {candidateFullName(candidate)}
-        </h2>
-        <p className="app-muted mt-1 text-sm font-bold">
-          {String(candidate.vacancy_title)} · {String(candidate.position_name)}
-        </p>
+        <h2 className="app-text mt-3 text-xl font-black">{candidateFullName(candidate)}</h2>
+        <p className="app-muted mt-1 text-sm font-bold">{[candidate.enterprise_name, candidate.department_name, candidate.position_name].filter(Boolean).join(" · ")}</p>
         <div className="app-muted mt-3 flex flex-wrap gap-4 text-sm">
-          {Boolean(candidate.phone) && (
-            <span className="flex items-center gap-2">
-              <FiPhone className="h-4 w-4" /> {String(candidate.phone)}
-            </span>
-          )}
-          {Boolean(candidate.email) && (
-            <span className="flex items-center gap-2">
-              <FiMail className="h-4 w-4" /> {String(candidate.email)}
-            </span>
-          )}
+          {candidate.phone && <span className="flex items-center gap-2"><FiPhone className="h-4 w-4" /> {String(candidate.phone)}</span>}
+          {candidate.email && <span className="flex items-center gap-2"><FiMail className="h-4 w-4" /> {String(candidate.email)}</span>}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {skills.slice(0, 5).map((skill) => (
-            <RecruitmentBadge key={skill}>{skill}</RecruitmentBadge>
-          ))}
-          {skills.length > 5 && (
-            <RecruitmentBadge>+{skills.length - 5}</RecruitmentBadge>
-          )}
+          {skills.slice(0, 5).map((skill) => <RecruitmentBadge key={skill}>{skill}</RecruitmentBadge>)}
         </div>
       </div>
       <MatchBar value={Number(candidate.match_percentage ?? 0)} />
       <div className="flex gap-2 lg:justify-end">
-        <Button className="h-10 w-10 p-0" onClick={onEdit} variant="ghost">
-          <FiEdit2 className="h-4 w-4" />
-        </Button>
-        <Button className="h-10 w-10 p-0" onClick={onDelete} variant="ghost">
-          <FiTrash2 className="h-4 w-4" />
-        </Button>
+        <Button className="h-10 w-10 p-0" onClick={onOpen} variant="ghost"><FiEdit2 className="h-4 w-4" /></Button>
+        {canManage && !candidate.employee_id && (
+          <Button className="h-10 w-10 p-0" onClick={onDelete} variant="ghost"><FiTrash2 className="h-4 w-4" /></Button>
+        )}
       </div>
     </article>
   );
@@ -660,12 +631,7 @@ function candidateFullName(candidate: HrRecord): string {
 }
 
 function profileToForm(profile: CandidateProfile): CandidateFormState {
-  const scores = new Map(
-    profile.skillScores.map((score) => [
-      Number(score.vacancy_skill_id),
-      score,
-    ]),
-  );
+  const scores = new Map(profile.skillScores.map((score) => [Number(score.vacancy_skill_id), score]));
   const candidate = profile.candidate;
   return {
     id: Number(candidate.id),
@@ -677,7 +643,8 @@ function profileToForm(profile: CandidateProfile): CandidateFormState {
     email: String(candidate.email ?? ""),
     status: String(candidate.status) as CandidateFormState["status"],
     source: String(candidate.source ?? ""),
-    note: String(candidate.note ?? ""),
+    employeeId: candidate.employee_id ? Number(candidate.employee_id) : undefined,
+    statusHistory: profile.statusHistory,
     skills: profile.vacancySkills.map((skill) => {
       const score = scores.get(Number(skill.id));
       return {
@@ -686,7 +653,6 @@ function profileToForm(profile: CandidateProfile): CandidateFormState {
         requiredLevel: Number(skill.required_level),
         weight: Number(skill.weight),
         score: Number(score?.score ?? 0),
-        note: String(score?.note ?? ""),
       };
     }),
   };
@@ -696,9 +662,7 @@ function calculateMatch(skills: CandidateSkillState[]): number {
   const totalWeight = skills.reduce((sum, skill) => sum + skill.weight, 0);
   if (totalWeight === 0) return 0;
   const points = skills.reduce(
-    (sum, skill) =>
-      sum +
-      Math.min(skill.score / Math.max(skill.requiredLevel, 1), 1) * skill.weight,
+    (sum, skill) => sum + Math.min(skill.score / Math.max(skill.requiredLevel, 1), 1) * skill.weight,
     0,
   );
   return Math.round((points / totalWeight) * 100);
@@ -709,12 +673,20 @@ const candidateStatusOptions: SelectOption[] = [
   { value: "screening", label: "Первичный отбор" },
   { value: "interview", label: "Собеседование" },
   { value: "offer", label: "Оффер" },
-  { value: "hired", label: "Принят" },
   { value: "rejected", label: "Отклонён" },
 ];
+const hiredStatusOptions: SelectOption[] = [{ value: "hired", label: "Принят" }];
+
 function candidateStatusLabel(value: string): string {
-  return candidateStatusOptions.find((item) => item.value === value)?.label ?? value;
+  return [...candidateStatusOptions, ...hiredStatusOptions].find((item) => item.value === value)?.label ?? value;
 }
+
+function formatHistoryDate(value: unknown): string {
+  if (!value) return "—";
+  const date = new Date(`${String(value).replace(" ", "T")}Z`);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("ru-RU");
+}
+
 function errorMessage(error: unknown, fallback: string): string {
   const parts = error instanceof Error ? error.message.split("Error: ") : [];
   return parts.length > 0 ? parts[parts.length - 1] : fallback;

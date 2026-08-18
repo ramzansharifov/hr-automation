@@ -34,16 +34,17 @@ function hasBusinessData(database: Database.Database): boolean {
 function seedEnterprise(database: Database.Database): number {
   database
     .prepare(
-      `INSERT OR IGNORE INTO enterprises (name, legal_name, phone, email, address, note)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT OR IGNORE INTO enterprises (
+         name, legal_name, legal_form, phone, email, address
+       ) VALUES (?, ?, ?, ?, ?, ?)`,
     )
     .run(
       "Основное предприятие",
-      "ООО «Основное предприятие»",
+      "Основное предприятие",
+      "ООО",
       "+992 900 00 00 00",
       "office@company.local",
       "г. Душанбе",
-      "Демонстрационное предприятие",
     );
 
   const record = database
@@ -59,63 +60,42 @@ function seedDepartments(
 ): void {
   const insertDepartment = database.prepare(`
     INSERT OR IGNORE INTO departments (
-      name,
-      enterprise_id,
-      manager_name,
-      phone,
-      email,
-      location,
-      created_on,
-      note
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      name, enterprise_id, phone, email, location, created_on
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `);
 
   insertDepartment.run(
     "Отдел кадров",
     enterpriseId,
-    "Саидова Малика",
     "+992 900 11 22 33",
     "hr@company.local",
     "Главный офис, кабинет 204",
     "2021-01-15",
-    "Основной отдел по работе с персоналом",
   );
 
   insertDepartment.run(
     "Бухгалтерия",
     enterpriseId,
-    "Каримов Фарид",
     "+992 900 44 55 66",
     "finance@company.local",
     "Главный офис, кабинет 112",
     "2020-03-10",
-    "Финансовый отдел предприятия",
   );
 
   insertDepartment.run(
     "IT-отдел",
     enterpriseId,
-    "Рахмонов Азиз",
     "+992 901 77 88 99",
     "it@company.local",
     "Главный офис, кабинет 310",
     "2022-05-01",
-    "Техническая поддержка и автоматизация",
   );
 }
 
 function seedPositions(database: Database.Database): void {
   const insertPosition = database.prepare(`
-    INSERT OR IGNORE INTO positions (
-      name,
-      department_id,
-      base_salary,
-      responsibilities,
-      requirements,
-      note
-    )
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO positions (name, department_id, responsibilities)
+    VALUES (?, ?, ?)
   `);
 
   const departmentId = (name: string): number => {
@@ -128,84 +108,48 @@ function seedPositions(database: Database.Database): void {
   insertPosition.run(
     "HR-специалист",
     departmentId("Отдел кадров"),
-    4200,
-    "Ведение личных дел, оформление отпусков, подбор персонала",
-    "Опыт работы с кадровыми документами, внимательность",
-    "Базовая должность отдела кадров",
+    "Ведение личных дел, оформление отпусков и сопровождение подбора персонала",
   );
-
   insertPosition.run(
     "Бухгалтер",
     departmentId("Бухгалтерия"),
-    5000,
     "Ведение бухгалтерского учёта и финансовой отчётности",
-    "Знание бухгалтерского учёта и налогового законодательства",
-    "Должность бухгалтерии",
   );
-
   insertPosition.run(
     "Системный администратор",
     departmentId("IT-отдел"),
-    6500,
     "Поддержка рабочих станций, серверов и внутренних систем",
-    "Опыт администрирования Windows/Linux, сети, безопасность",
-    "Техническая должность",
   );
 }
 
 function seedEmployees(database: Database.Database): void {
   const insertEmployee = database.prepare(`
     INSERT OR IGNORE INTO employees (
-      id,
-      department_id,
-      position_id,
-      last_name,
-      first_name,
-      middle_name,
-      birth_date,
-      gender,
-      address,
-      phone,
-      email,
-      hire_date,
-      salary,
-      status,
-      note
-    )
-    VALUES (
-      @id,
-      @departmentId,
-      @positionId,
-      @lastName,
-      @firstName,
-      @middleName,
-      @birthDate,
-      @gender,
-      @address,
-      @phone,
-      @email,
-      @hireDate,
-      @salary,
-      @status,
-      @note
+      id, department_id, position_id, employee_number,
+      last_name, first_name, middle_name, birth_date, gender,
+      address, phone, email, hire_date, salary, status,
+      employment_type, contract_number, contract_date, workplace
+    ) VALUES (
+      @id, @departmentId, @positionId, @employeeNumber,
+      @lastName, @firstName, @middleName, @birthDate, @gender,
+      @address, @phone, @email, @hireDate, @salary, 'active',
+      'full_time', @contractNumber, @contractDate, @workplace
     )
   `);
 
   const assignment = (
     positionName: string,
-  ): { departmentId: number; positionId: number; salary: number } => {
+  ): { departmentId: number; positionId: number } => {
     const record = database
       .prepare(
-        `SELECT
-           positions.id AS positionId,
-           positions.department_id AS departmentId,
-           positions.base_salary AS salary
+        `SELECT positions.id AS positionId,
+                positions.department_id AS departmentId
          FROM positions
          WHERE positions.name = ?
          LIMIT 1`,
       )
       .get(positionName) as
-      | { departmentId: number; positionId: number; salary: number }
+      | { departmentId: number; positionId: number }
       | undefined;
 
     if (!record || record.departmentId === null) {
@@ -225,6 +169,7 @@ function seedEmployees(database: Database.Database): void {
     id: 1,
     departmentId: hrAssignment.departmentId,
     positionId: hrAssignment.positionId,
+    employeeNumber: "EMP-001",
     lastName: "Саидова",
     firstName: "Малика",
     middleName: "Алишеровна",
@@ -234,15 +179,17 @@ function seedEmployees(database: Database.Database): void {
     phone: "+992 900 11 22 33",
     email: "malika.saidova@company.local",
     hireDate: "2021-02-01",
-    salary: hrAssignment.salary,
-    status: "active",
-    note: "Руководитель HR-процессов",
+    salary: 4200,
+    contractNumber: "TD-001",
+    contractDate: "2021-02-01",
+    workplace: "Главный офис",
   });
 
   insertEmployee.run({
     id: 2,
     departmentId: accountantAssignment.departmentId,
     positionId: accountantAssignment.positionId,
+    employeeNumber: "EMP-002",
     lastName: "Каримов",
     firstName: "Фарид",
     middleName: "Насимович",
@@ -252,15 +199,17 @@ function seedEmployees(database: Database.Database): void {
     phone: "+992 900 44 55 66",
     email: "farid.karimov@company.local",
     hireDate: "2020-04-10",
-    salary: accountantAssignment.salary,
-    status: "active",
-    note: "Сотрудник бухгалтерии",
+    salary: 5000,
+    contractNumber: "TD-002",
+    contractDate: "2020-04-10",
+    workplace: "Главный офис",
   });
 
   insertEmployee.run({
     id: 3,
     departmentId: administratorAssignment.departmentId,
     positionId: administratorAssignment.positionId,
+    employeeNumber: "EMP-003",
     lastName: "Рахмонов",
     firstName: "Азиз",
     middleName: "Шарифович",
@@ -270,35 +219,36 @@ function seedEmployees(database: Database.Database): void {
     phone: "+992 901 77 88 99",
     email: "aziz.rahmonov@company.local",
     hireDate: "2022-05-15",
-    salary: administratorAssignment.salary,
-    status: "active",
-    note: "Администрирование системы",
+    salary: 6500,
+    contractNumber: "TD-003",
+    contractDate: "2022-05-15",
+    workplace: "Главный офис",
   });
 }
 
 function seedVacations(database: Database.Database): void {
-  const insertVacation = database.prepare(`
-    INSERT OR IGNORE INTO vacations (
-      employee_id,
-      vacation_type,
-      starts_at,
-      ends_at,
-      days_count,
-      reason,
-      status,
-      note
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  const vacationTypeId = database
+    .prepare("SELECT id FROM vacation_types WHERE name = ? LIMIT 1")
+    .pluck()
+    .get("Ежегодный отпуск") as number | undefined;
 
-  insertVacation.run(
-    1,
-    "Ежегодный отпуск",
-    "2026-08-01",
-    "2026-08-14",
-    14,
-    "Плановый отпуск",
-    "planned",
-    "Демо-запись",
-  );
+  if (!vacationTypeId) return;
+
+  database
+    .prepare(
+      `INSERT OR IGNORE INTO vacations (
+         employee_id, vacation_type_id, starts_at, ends_at, days_count,
+         is_paid, reason, status
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      1,
+      vacationTypeId,
+      "2026-08-01",
+      "2026-08-14",
+      14,
+      1,
+      "Плановый отпуск",
+      "planned",
+    );
 }

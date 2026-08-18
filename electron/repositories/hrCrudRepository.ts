@@ -3,9 +3,11 @@ import type {
   HrDashboardStats,
   HrFilterCondition,
   HrEmploymentChangeParams,
+  HrHireDateCorrectionParams,
   HrListParams,
   HrListResult,
   HrRecord,
+  HrTerminationParams,
 } from "../../src/shared/types/hr";
 import type { HrCrudEntityConfig } from "../admin/hrCrudEntities";
 
@@ -35,27 +37,19 @@ export class HrCrudRepository {
 
     const items = this.database
       .prepare(
-        `
-        SELECT ${config.tableName}.*${computedSelect ? `,\n          ${computedSelect}` : ""}
-        FROM ${config.tableName}
-        ${where.sql}
-        ORDER BY ${orderBy} ${orderDirection}
-        LIMIT @limit OFFSET @offset
-      `,
+        `SELECT ${config.tableName}.*${computedSelect ? `,\n          ${computedSelect}` : ""}
+         FROM ${config.tableName}
+         ${where.sql}
+         ORDER BY ${orderBy} ${orderDirection}
+         LIMIT @limit OFFSET @offset`,
       )
-      .all({
-        ...where.params,
-        limit: pageSize,
-        offset,
-      }) as HrRecord[];
+      .all({ ...where.params, limit: pageSize, offset }) as HrRecord[];
 
     const countResult = this.database
       .prepare(
-        `
-        SELECT COUNT(*) as total
-        FROM ${config.tableName}
-        ${where.sql}
-      `,
+        `SELECT COUNT(*) as total
+         FROM ${config.tableName}
+         ${where.sql}`,
       )
       .get(where.params) as { total: number };
 
@@ -69,14 +63,16 @@ export class HrCrudRepository {
   }
 
   getById(config: HrCrudEntityConfig, id: number): HrRecord | null {
+    const listColumnEntries = Object.entries(config.listColumns);
+    const computedSelect = listColumnEntries
+      .map(([alias, expression]) => `${expression} AS ${alias}`)
+      .join(",\n          ");
     const row = this.database
       .prepare(
-        `
-        SELECT *
-        FROM ${config.tableName}
-        WHERE ${config.primaryKey} = ?
-        LIMIT 1
-      `,
+        `SELECT ${config.tableName}.*${computedSelect ? `,\n          ${computedSelect}` : ""}
+         FROM ${config.tableName}
+         WHERE ${config.primaryKey} = ?
+         LIMIT 1`,
       )
       .get(id) as HrRecord | undefined;
 
@@ -85,35 +81,26 @@ export class HrCrudRepository {
 
   create(config: HrCrudEntityConfig, data: HrRecord): HrRecord {
     const safeData = this.pickEditableData(config, data);
-
     if (Object.keys(safeData).length === 0) {
       throw new Error("Нет разрешённых полей для создания записи");
     }
 
     const columns = Object.keys(safeData);
     const placeholders = columns.map((column) => `@${column}`);
-
     const result = this.database
       .prepare(
-        `
-        INSERT INTO ${config.tableName} (${columns.join(", ")})
-        VALUES (${placeholders.join(", ")})
-      `,
+        `INSERT INTO ${config.tableName} (${columns.join(", ")})
+         VALUES (${placeholders.join(", ")})`,
       )
       .run(safeData);
 
     const created = this.getById(config, Number(result.lastInsertRowid));
-
-    if (!created) {
-      throw new Error("Созданная запись не найдена");
-    }
-
+    if (!created) throw new Error("Созданная запись не найдена");
     return created;
   }
 
   update(config: HrCrudEntityConfig, id: number, data: HrRecord): HrRecord {
     const safeData = this.pickEditableData(config, data);
-
     if (Object.keys(safeData).length === 0) {
       throw new Error("Нет разрешённых полей для обновления записи");
     }
@@ -121,100 +108,48 @@ export class HrCrudRepository {
     const setParts = Object.keys(safeData).map(
       (column) => `${column} = @${column}`,
     );
-
-    if (config.hasUpdatedAt) {
-      setParts.push("updated_at = CURRENT_TIMESTAMP");
-    }
+    if (config.hasUpdatedAt) setParts.push("updated_at = CURRENT_TIMESTAMP");
 
     this.database
       .prepare(
-        `
-        UPDATE ${config.tableName}
-        SET ${setParts.join(", ")}
-        WHERE ${config.primaryKey} = @id
-      `,
+        `UPDATE ${config.tableName}
+         SET ${setParts.join(", ")}
+         WHERE ${config.primaryKey} = @id`,
       )
-      .run({
-        ...safeData,
-        id,
-      });
+      .run({ ...safeData, id });
 
     const updated = this.getById(config, id);
-
-    if (!updated) {
-      throw new Error("Обновлённая запись не найдена");
-    }
-
+    if (!updated) throw new Error("Обновлённая запись не найдена");
     return updated;
   }
 
   delete(config: HrCrudEntityConfig, id: number): void {
     this.database
-      .prepare(
-        `
-        DELETE FROM ${config.tableName}
-        WHERE ${config.primaryKey} = ?
-      `,
-      )
+      .prepare(`DELETE FROM ${config.tableName} WHERE ${config.primaryKey} = ?`)
       .run(id);
   }
 
   changeEmployment(params: HrEmploymentChangeParams): HrRecord {
     const change = this.database.transaction(() => {
-      const employee = this.database
-        .prepare("SELECT * FROM employees WHERE id = ? LIMIT 1")
-        .get(params.employeeId) as HrRecord | undefined;
-
-      if (!employee) {
-        throw new Error("Сотрудник не найден");
-      }
-
+      const employee = this.getEmployee(params.employeeId);
       if (employee.status !== "active") {
-        throw new Error(
-          "Кадровые изменения доступны только активным сотрудникам",
-        );
+        throw new Error("Кадровые изменения доступны только активным сотрудникам");
       }
 
       const position = this.database
         .prepare("SELECT * FROM positions WHERE id = ? LIMIT 1")
         .get(params.positionId) as HrRecord | undefined;
-
-      if (!position) {
-        throw new Error("Должность не найдена");
-      }
-
+      if (!position) throw new Error("Должность не найдена");
       if (Number(position.department_id) !== params.departmentId) {
         throw new Error("Выбранная должность не принадлежит указанному отделу");
       }
 
-      const latestHistory = this.database
-        .prepare(
-          `SELECT effective_at FROM employment_history
-           WHERE employee_id = ? ORDER BY effective_at DESC, id DESC LIMIT 1`,
-        )
-        .get(params.employeeId) as { effective_at?: string } | undefined;
-
-      const hireDate = String(employee.hire_date ?? "");
-      if (params.effectiveAt < hireDate) {
-        throw new Error("Дата изменения не может быть раньше даты приёма");
-      }
-
-      if (
-        latestHistory?.effective_at &&
-        params.effectiveAt < latestHistory.effective_at
-      ) {
-        throw new Error(
-          "Дата изменения не может быть раньше последней записи журнала",
-        );
-      }
+      this.assertLifecycleDate(params.employeeId, params.effectiveAt, employee);
 
       const nextSalary =
         params.salaryMode === "keep"
           ? Number(employee.salary ?? 0)
-          : params.salaryMode === "position"
-            ? Number(position.base_salary ?? 0)
-            : Number(params.salary);
-
+          : Number(params.salary);
       if (!Number.isFinite(nextSalary) || nextSalary < 0) {
         throw new Error("Оклад указан неверно");
       }
@@ -223,10 +158,7 @@ export class HrCrudRepository {
         Number(employee.department_id) !== params.departmentId ||
         Number(employee.position_id) !== params.positionId ||
         Number(employee.salary ?? 0) !== nextSalary;
-
-      if (!hasChanges) {
-        throw new Error("Новые условия не отличаются от текущих");
-      }
+      if (!hasChanges) throw new Error("Новые условия не отличаются от текущих");
 
       this.database
         .prepare(
@@ -250,7 +182,6 @@ export class HrCrudRepository {
            WHERE employee_id = ? ORDER BY id DESC LIMIT 1`,
         )
         .get(params.employeeId) as { id: number } | undefined;
-
       if (!generatedHistory) {
         throw new Error("Не удалось создать запись кадрового журнала");
       }
@@ -258,40 +189,168 @@ export class HrCrudRepository {
       this.database
         .prepare(
           `UPDATE employment_history
-           SET effective_at = @effectiveAt, reason = @reason, note = @note
+           SET effective_at = @effectiveAt, reason = @reason
            WHERE id = @id`,
         )
         .run({
           effectiveAt: params.effectiveAt,
           id: generatedHistory.id,
-          note: params.note?.trim() || null,
           reason: params.reason.trim(),
         });
 
-      return this.database
-        .prepare("SELECT * FROM employees WHERE id = ? LIMIT 1")
-        .get(params.employeeId) as HrRecord;
+      return this.getEmployee(params.employeeId);
     });
 
     return change();
   }
 
-  dashboard(): HrDashboardStats {
-    const employeesTotal = this.getNumber("SELECT COUNT(*) FROM employees");
-    const departmentsTotal = this.getNumber("SELECT COUNT(*) FROM departments");
-    const positionsTotal = this.getNumber("SELECT COUNT(*) FROM positions");
-    const activeVacations = this.getNumber(`
-      SELECT COUNT(*)
-      FROM vacations
-      WHERE status IN ('planned', 'approved')
-    `);
+  terminateEmployee(params: HrTerminationParams): HrRecord {
+    const terminate = this.database.transaction(() => {
+      const employee = this.getEmployee(params.employeeId);
+      if (employee.status !== "active") {
+        throw new Error("Уволить можно только активного сотрудника");
+      }
+      this.assertLifecycleDate(params.employeeId, params.effectiveAt, employee);
 
+      this.database
+        .prepare(
+          `UPDATE employees
+           SET status = 'terminated',
+               terminated_at = @effectiveAt,
+               termination_reason = @reason,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = @employeeId`,
+        )
+        .run({
+          effectiveAt: params.effectiveAt,
+          employeeId: params.employeeId,
+          reason: params.reason.trim(),
+        });
+
+      this.database
+        .prepare(
+          `INSERT INTO employment_history (
+             employee_id, change_type,
+             previous_department_id, new_department_id,
+             previous_position_id, new_position_id,
+             previous_salary, new_salary,
+             effective_at, reason
+           ) VALUES (?, 'terminated', ?, NULL, ?, NULL, ?, NULL, ?, ?)`,
+        )
+        .run(
+          params.employeeId,
+          employee.department_id ?? null,
+          employee.position_id ?? null,
+          Number(employee.salary ?? 0),
+          params.effectiveAt,
+          params.reason.trim(),
+        );
+
+      return this.getEmployee(params.employeeId);
+    });
+
+    return terminate();
+  }
+
+  correctHireDate(params: HrHireDateCorrectionParams): HrRecord {
+    const correct = this.database.transaction(() => {
+      const employee = this.getEmployee(params.employeeId);
+      const firstLaterChange = this.database
+        .prepare(
+          `SELECT effective_at
+           FROM employment_history
+           WHERE employee_id = ? AND change_type <> 'hired'
+           ORDER BY effective_at ASC, id ASC LIMIT 1`,
+        )
+        .get(params.employeeId) as { effective_at?: string } | undefined;
+
+      if (
+        firstLaterChange?.effective_at &&
+        params.hireDate > firstLaterChange.effective_at
+      ) {
+        throw new Error("Дата приёма не может быть позже последующего кадрового события");
+      }
+
+      this.database
+        .prepare(
+          `UPDATE employees
+           SET hire_date = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+        )
+        .run(params.hireDate, params.employeeId);
+
+      this.database
+        .prepare(
+          `UPDATE employment_history
+           SET effective_at = ?, reason = ?
+           WHERE id = (
+             SELECT id FROM employment_history
+             WHERE employee_id = ? AND change_type = 'hired'
+             ORDER BY id ASC LIMIT 1
+           )`,
+        )
+        .run(
+          params.hireDate,
+          `Коррекция даты приёма: ${params.reason.trim()}`,
+          params.employeeId,
+        );
+
+      return { ...employee, ...this.getEmployee(params.employeeId) };
+    });
+
+    return correct();
+  }
+
+  dashboard(): HrDashboardStats {
     return {
-      employeesTotal,
-      departmentsTotal,
-      positionsTotal,
-      activeVacations,
+      employeesTotal: this.getNumber("SELECT COUNT(*) FROM employees"),
+      departmentsTotal: this.getNumber("SELECT COUNT(*) FROM departments"),
+      positionsTotal: this.getNumber("SELECT COUNT(*) FROM positions"),
+      activeVacations: this.getNumber(
+        "SELECT COUNT(*) FROM vacations WHERE status IN ('planned', 'approved')",
+      ),
+      upcomingVacations: this.getNumber(
+        `SELECT COUNT(*) FROM vacations
+         WHERE status IN ('planned', 'approved')
+           AND starts_at >= DATE('now')
+           AND starts_at <= DATE('now', '+30 day')`,
+      ),
+      openVacancies: this.getNumber("SELECT COUNT(*) FROM vacancies WHERE status = 'open'"),
+      candidatesOnOffer: this.getNumber("SELECT COUNT(*) FROM candidates WHERE status = 'offer'"),
+      blockedUsers: this.getNumber("SELECT COUNT(*) FROM users WHERE status = 'blocked'"),
+      employeesMissingAssignment: this.getNumber(
+        "SELECT COUNT(*) FROM employees WHERE department_id IS NULL OR position_id IS NULL",
+      ),
+      emailConflicts: this.getNumber("SELECT COUNT(*) FROM email_conflicts"),
     };
+  }
+
+  private getEmployee(employeeId: number): HrRecord {
+    const employee = this.database
+      .prepare("SELECT * FROM employees WHERE id = ? LIMIT 1")
+      .get(employeeId) as HrRecord | undefined;
+    if (!employee) throw new Error("Сотрудник не найден");
+    return employee;
+  }
+
+  private assertLifecycleDate(
+    employeeId: number,
+    effectiveAt: string,
+    employee: HrRecord,
+  ): void {
+    const hireDate = String(employee.hire_date ?? "");
+    if (effectiveAt < hireDate) {
+      throw new Error("Дата кадрового события не может быть раньше даты приёма");
+    }
+    const latestHistory = this.database
+      .prepare(
+        `SELECT effective_at FROM employment_history
+         WHERE employee_id = ? ORDER BY effective_at DESC, id DESC LIMIT 1`,
+      )
+      .get(employeeId) as { effective_at?: string } | undefined;
+    if (latestHistory?.effective_at && effectiveAt < latestHistory.effective_at) {
+      throw new Error("Дата события не может быть раньше последней записи журнала");
+    }
   }
 
   private buildWhere(
@@ -309,10 +368,8 @@ export class HrCrudRepository {
       const searchConditions = searchableColumns.map((column, index) => {
         const key = `search_${index}`;
         values[key] = `%${params.search}%`;
-
         return `${column} LIKE @${key}`;
       });
-
       conditions.push(`(${searchConditions.join(" OR ")})`);
     }
 
@@ -328,30 +385,23 @@ export class HrCrudRepository {
 
         const condition = normalizeFilterCondition(filter);
         const value = condition.value;
-
-        if (value === undefined || value === null || value === "") {
-          return;
-        }
+        if (value === undefined || value === null || value === "") return;
 
         if (condition.operator === "in") {
           const rawValues = Array.isArray(value) ? value : [value];
           const safeValues = rawValues.filter(
             (item) => item !== null && item !== undefined && item !== "",
           );
-
           if (safeValues.length === 0) {
             conditions.push("1 = 0");
             return;
           }
-
           const keys = safeValues.map(
             (_item, itemIndex) => `filter_${index}_${itemIndex}`,
           );
-
           keys.forEach((key, itemIndex) => {
             values[key] = safeValues[itemIndex];
           });
-
           conditions.push(
             `${column} IN (${keys.map((key) => `@${key}`).join(", ")})`,
           );
@@ -359,25 +409,21 @@ export class HrCrudRepository {
         }
 
         const key = `filter_${index}`;
-
         if (condition.operator === "contains") {
           conditions.push(`${column} LIKE @${key}`);
           values[key] = `%${String(value)}%`;
           return;
         }
-
         if (condition.operator === "gte") {
           conditions.push(`${column} >= @${key}`);
           values[key] = value;
           return;
         }
-
         if (condition.operator === "lte") {
           conditions.push(`${column} <= @${key}`);
           values[key] = value;
           return;
         }
-
         conditions.push(`${column} = @${key}`);
         values[key] = value;
       });
@@ -399,7 +445,6 @@ export class HrCrudRepository {
     ) {
       return orderBy;
     }
-
     return config.defaultOrderBy;
   }
 
@@ -409,37 +454,24 @@ export class HrCrudRepository {
   ): HrRecord {
     const ignoredColumns = new Set(["id", "created_at", "updated_at"]);
     const result: HrRecord = {};
-
     Object.entries(data).forEach(([key, value]) => {
-      if (ignoredColumns.has(key)) {
-        return;
-      }
-
-      if (!config.allowedColumns.includes(key)) {
-        return;
-      }
-
+      if (ignoredColumns.has(key) || !config.allowedColumns.includes(key)) return;
       result[key] = value;
     });
-
     return result;
   }
 
   private getNumber(sql: string, params: unknown[] = []): number {
-    const result = this.database
-      .prepare(sql)
-      .pluck()
-      .get(...params) as number | null | undefined;
-
+    const result = this.database.prepare(sql).pluck().get(...params) as
+      | number
+      | null
+      | undefined;
     return Number(result ?? 0);
   }
 }
 
 function normalizeFilterCondition(filter: HrFilterInput): HrFilterCondition {
-  if (isFilterCondition(filter)) {
-    return filter;
-  }
-
+  if (isFilterCondition(filter)) return filter;
   return {
     operator: Array.isArray(filter) ? "in" : "equals",
     value: filter,
@@ -447,25 +479,16 @@ function normalizeFilterCondition(filter: HrFilterInput): HrFilterCondition {
 }
 
 function isFilterCondition(filter: HrFilterInput): filter is HrFilterCondition {
-  if (!filter || typeof filter !== "object" || Array.isArray(filter)) {
-    return false;
-  }
-
+  if (!filter || typeof filter !== "object" || Array.isArray(filter)) return false;
   return "operator" in filter && "value" in filter;
 }
 
 function normalizePage(page?: number): number {
-  if (!page || page < 1) {
-    return 1;
-  }
-
+  if (!page || page < 1) return 1;
   return Math.floor(page);
 }
 
 function normalizePageSize(pageSize?: number): number {
-  if (!pageSize || pageSize < 1) {
-    return 20;
-  }
-
+  if (!pageSize || pageSize < 1) return 20;
   return Math.min(Math.floor(pageSize), maxHrPageSize);
 }

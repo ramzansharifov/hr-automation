@@ -10,16 +10,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../../features/auth/AuthContext";
 import {
   RecruitmentBadge,
   RecruitmentPageHeader,
+  RecruitmentSearch,
 } from "../../features/recruitment/RecruitmentUi";
-import {
-  filterVacancies,
-  getStoredVacancyFilterValues,
-  VACANCY_FILTERS_EVENT,
-  type VacancyFilterValues,
-} from "../../features/filters/moduleFiltersStore";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import {
@@ -33,19 +29,32 @@ import {
 
 export function VacanciesPage(): JSX.Element {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("recruitment.manage");
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
-  const [filters, setFilters] = useState<VacancyFilterValues>(
-    getStoredVacancyFilterValues,
-  );
+  const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useStoredViewMode("vacancies", "cards");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
 
-  const filteredVacancies = useMemo(
-    () => filterVacancies(vacancies, filters),
-    [filters, vacancies],
-  );
+  const filteredVacancies = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("ru-RU");
+    if (!query) return vacancies;
+    return vacancies.filter((vacancy) =>
+      [
+        vacancy.position_name,
+        vacancy.department_name,
+        vacancy.enterprise_name,
+        vacancy.hard_skills_summary,
+        vacancy.soft_skills_summary,
+      ]
+        .filter(Boolean)
+        .some((value) =>
+          String(value).toLocaleLowerCase("ru-RU").includes(query),
+        ),
+    );
+  }, [search, vacancies]);
 
   const loadData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -62,21 +71,8 @@ export function VacanciesPage(): JSX.Element {
     void loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    function refreshFilters(): void {
-      setFilters(getStoredVacancyFilterValues());
-    }
-
-    window.addEventListener(VACANCY_FILTERS_EVENT, refreshFilters);
-    window.addEventListener("storage", refreshFilters);
-    return () => {
-      window.removeEventListener(VACANCY_FILTERS_EVENT, refreshFilters);
-      window.removeEventListener("storage", refreshFilters);
-    };
-  }, []);
-
   async function deleteVacancy(): Promise<void> {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !canManage) return;
     setIsDeleting(true);
     try {
       await hrApiClient.deleteVacancy(Number(deleteTarget.id));
@@ -91,25 +87,33 @@ export function VacanciesPage(): JSX.Element {
   }
 
   function editVacancy(vacancy: HrRecord): void {
+    if (!canManage) return;
     navigate(`/vacancies/${String(vacancy.id)}/edit`);
   }
 
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
-        actionLabel="Создать вакансию"
-        description="Открытые должности, формат занятости и отдельные требования по hard и soft skills."
+        actionLabel={canManage ? "Создать вакансию" : undefined}
+        description="Открытые должности, формат занятости и требования по hard и soft skills."
         icon={<FiBriefcase className="h-6 w-6" />}
-        onAction={() => navigate("/vacancies/new")}
+        onAction={canManage ? () => navigate("/vacancies/new") : undefined}
         title="Вакансии"
       />
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="app-border-soft grid gap-3 border-b p-5 lg:grid-cols-[minmax(260px,1fr)_auto_auto] lg:items-center">
+          <RecruitmentSearch
+            onChange={setSearch}
+            placeholder="Должность, предприятие, отдел или навык"
+            value={search}
+          />
           <ViewModeToggle onChange={setViewMode} value={viewMode} />
           <Button
             leftIcon={
-              <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              <FiRefreshCw
+                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+              />
             }
             onClick={() => void loadData()}
             type="button"
@@ -126,11 +130,13 @@ export function VacanciesPage(): JSX.Element {
         ) : filteredVacancies.length === 0 ? (
           <div className="py-16">
             <EmptyState
-              title={vacancies.length === 0 ? "Вакансий пока нет" : "Нет вакансий по выбранным фильтрам"}
+              title={vacancies.length === 0 ? "Вакансий пока нет" : "Ничего не найдено"}
               description={
                 vacancies.length === 0
-                  ? "Создайте первую вакансию и разделите требования на hard и soft skills."
-                  : "Измените или очистите фильтры в модуле «Фильтры»."
+                  ? canManage
+                    ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
+                    : "В доступной области пока нет вакансий."
+                  : "Измените поисковый запрос."
               }
             />
           </div>
@@ -138,6 +144,7 @@ export function VacanciesPage(): JSX.Element {
           <div className="grid gap-5 p-5 xl:grid-cols-2">
             {filteredVacancies.map((vacancy) => (
               <VacancyCard
+                canManage={canManage}
                 key={String(vacancy.id)}
                 onDelete={() => setDeleteTarget(vacancy)}
                 onEdit={() => editVacancy(vacancy)}
@@ -147,6 +154,7 @@ export function VacanciesPage(): JSX.Element {
           </div>
         ) : (
           <VacanciesTable
+            canManage={canManage}
             onDelete={setDeleteTarget}
             onEdit={editVacancy}
             vacancies={filteredVacancies}
@@ -154,25 +162,29 @@ export function VacanciesPage(): JSX.Element {
         )}
       </section>
 
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Удалить"
-        description="Вакансия и её навыки будут удалены. Вакансию с кандидатами удалить нельзя."
-        isLoading={isDeleting}
-        onConfirm={() => void deleteVacancy()}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        open={Boolean(deleteTarget)}
-        title="Удалить вакансию?"
-      />
+      {canManage && (
+        <ConfirmDialog
+          cancelLabel="Отмена"
+          confirmLabel="Удалить"
+          description="Вакансия и её профиль навыков будут удалены. Вакансию с кандидатами удалить нельзя."
+          isLoading={isDeleting}
+          onConfirm={() => void deleteVacancy()}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          open={Boolean(deleteTarget)}
+          title="Удалить вакансию?"
+        />
+      )}
     </div>
   );
 }
 
 function VacanciesTable({
+  canManage,
   onDelete,
   onEdit,
   vacancies,
 }: {
+  canManage: boolean;
   onDelete: (vacancy: HrRecord) => void;
   onEdit: (vacancy: HrRecord) => void;
   vacancies: HrRecord[];
@@ -189,15 +201,17 @@ function VacanciesTable({
               <th className="app-border-soft border-b px-5 py-4 font-black">Занятость</th>
               <th className="app-border-soft border-b px-5 py-4 font-black">Мест</th>
               <th className="app-border-soft border-b px-5 py-4 font-black">Кандидатов</th>
-              <th className="app-border-soft border-b px-5 py-4 text-center font-black">Действия</th>
+              {canManage && (
+                <th className="app-border-soft border-b px-5 py-4 text-center font-black">Действия</th>
+              )}
             </tr>
           </thead>
           <tbody>
             {vacancies.map((vacancy) => (
               <tr
-                className="app-hover-muted cursor-pointer transition"
+                className={canManage ? "app-hover-muted cursor-pointer transition" : "transition"}
                 key={String(vacancy.id)}
-                onClick={() => onEdit(vacancy)}
+                onClick={canManage ? () => onEdit(vacancy) : undefined}
               >
                 <td className="app-border-soft app-text border-b px-5 py-4 font-black">
                   {String(vacancy.position_name ?? "Должность не указана")}
@@ -221,29 +235,31 @@ function VacanciesTable({
                 <td className="app-border-soft app-text-soft border-b px-5 py-4">
                   {String(vacancy.candidates_count ?? 0)}
                 </td>
-                <td className="app-border-soft border-b px-5 py-4">
-                  <div
-                    className="flex items-center justify-center gap-2"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <Button
-                      aria-label="Редактировать вакансию"
-                      className="h-9 w-9 p-0"
-                      onClick={() => onEdit(vacancy)}
-                      variant="ghost"
+                {canManage && (
+                  <td className="app-border-soft border-b px-5 py-4">
+                    <div
+                      className="flex items-center justify-center gap-2"
+                      onClick={(event) => event.stopPropagation()}
                     >
-                      <FiEdit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      aria-label="Удалить вакансию"
-                      className="h-9 w-9 p-0"
-                      onClick={() => onDelete(vacancy)}
-                      variant="ghost"
-                    >
-                      <FiTrash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
+                      <Button
+                        aria-label="Редактировать вакансию"
+                        className="h-9 w-9 p-0"
+                        onClick={() => onEdit(vacancy)}
+                        variant="ghost"
+                      >
+                        <FiEdit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        aria-label="Удалить вакансию"
+                        className="h-9 w-9 p-0"
+                        onClick={() => onDelete(vacancy)}
+                        variant="ghost"
+                      >
+                        <FiTrash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -257,10 +273,12 @@ function VacanciesTable({
 }
 
 function VacancyCard({
+  canManage,
   onDelete,
   onEdit,
   vacancy,
 }: {
+  canManage: boolean;
   onDelete: () => void;
   onEdit: () => void;
   vacancy: HrRecord;
@@ -274,9 +292,7 @@ function VacancyCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <RecruitmentBadge
-              tone={vacancy.status === "open" ? "success" : "neutral"}
-            >
+            <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
               {vacancyStatusLabel(String(vacancy.status))}
             </RecruitmentBadge>
             <RecruitmentBadge>
@@ -293,24 +309,26 @@ function VacancyCard({
               .join(" · ") || "Структура не указана"}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            aria-label="Редактировать вакансию"
-            className="h-10 w-10 p-0"
-            onClick={onEdit}
-            variant="ghost"
-          >
-            <FiEdit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            aria-label="Удалить вакансию"
-            className="h-10 w-10 p-0"
-            onClick={onDelete}
-            variant="ghost"
-          >
-            <FiTrash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex gap-2">
+            <Button
+              aria-label="Редактировать вакансию"
+              className="h-10 w-10 p-0"
+              onClick={onEdit}
+              variant="ghost"
+            >
+              <FiEdit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              aria-label="Удалить вакансию"
+              className="h-10 w-10 p-0"
+              onClick={onDelete}
+              variant="ghost"
+            >
+              <FiTrash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <SkillPreview label="Hard skills" skills={hardSkills} />
@@ -328,29 +346,16 @@ function VacancyCard({
   );
 }
 
-function SkillPreview({
-  label,
-  skills,
-}: {
-  label: string;
-  skills: string[];
-}): JSX.Element {
+function SkillPreview({ label, skills }: { label: string; skills: string[] }): JSX.Element {
   if (skills.length === 0) return <></>;
-
   return (
     <div className="mt-5">
-      <p className="app-muted mb-2 text-xs font-black uppercase tracking-[0.14em]">
-        {label}
-      </p>
+      <p className="app-muted mb-2 text-xs font-black uppercase tracking-[0.14em]">{label}</p>
       <div className="flex flex-wrap gap-2">
         {skills.slice(0, 5).map((skill) => (
-          <RecruitmentBadge key={`${label}-${skill}`} tone="accent">
-            {skill}
-          </RecruitmentBadge>
+          <RecruitmentBadge key={`${label}-${skill}`} tone="accent">{skill}</RecruitmentBadge>
         ))}
-        {skills.length > 5 && (
-          <RecruitmentBadge>+{skills.length - 5}</RecruitmentBadge>
-        )}
+        {skills.length > 5 && <RecruitmentBadge>+{skills.length - 5}</RecruitmentBadge>}
       </div>
     </div>
   );

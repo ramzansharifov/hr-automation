@@ -10,7 +10,6 @@ export interface EducationFormValues {
   started_at: string;
   ended_at: string;
   document_number: string;
-  note: string;
 }
 
 export interface ExperienceFormValues {
@@ -20,7 +19,6 @@ export interface ExperienceFormValues {
   ended_at: string;
   is_current: string;
   responsibilities: string;
-  note: string;
 }
 
 export const educationDefaults: EducationFormValues = {
@@ -30,7 +28,6 @@ export const educationDefaults: EducationFormValues = {
   started_at: "",
   ended_at: "",
   document_number: "",
-  note: "",
 };
 
 export const experienceDefaults: ExperienceFormValues = {
@@ -40,7 +37,6 @@ export const experienceDefaults: ExperienceFormValues = {
   ended_at: "",
   is_current: "0",
   responsibilities: "",
-  note: "",
 };
 
 export function validateEducation(
@@ -48,11 +44,7 @@ export function validateEducation(
   t: TFunction,
 ): string {
   if (!values.institution_name.trim()) return t("forms.validation.required");
-
-  if (!values.education_level.trim()) {
-    return t("forms.validation.required");
-  }
-
+  if (!values.education_level.trim()) return t("forms.validation.required");
   return hasInvalidDateRange(values.started_at, values.ended_at)
     ? t("forms.validation.dateRange")
     : "";
@@ -65,7 +57,6 @@ export function validateExperience(
   if (!values.company_name.trim() || !values.position_name.trim()) {
     return t("forms.validation.required");
   }
-
   return values.is_current !== "1" &&
     hasInvalidDateRange(values.started_at, values.ended_at)
     ? t("forms.validation.dateRange")
@@ -85,7 +76,6 @@ export function mapEducationFormToRecord(
     started_at: nullableString(values.started_at),
     ended_at: nullableString(values.ended_at),
     document_number: nullableString(values.document_number),
-    note: nullableString(values.note),
   };
 }
 
@@ -102,14 +92,12 @@ export function mapExperienceFormToRecord(
       values.is_current === "1" ? null : nullableString(values.ended_at),
     is_current: Number(values.is_current),
     responsibilities: nullableString(values.responsibilities),
-    note: nullableString(values.note),
   };
 }
 
 export function getEducationLevelLabel(value: string, t: TFunction): string {
   const translationKey = `employeesDetails.education.degrees.${educationLevelTranslationKeys[value] ?? value}`;
   const translated = t(translationKey);
-
   return translated === translationKey ? valueOrEmpty(value, t) : translated;
 }
 
@@ -127,9 +115,7 @@ const educationLevelTranslationKeys: Record<string, string> = {
 
 export function getEducationLevelFromRecord(record: HrRecord): string {
   const storedLevel = getString(record.education_degree);
-
   if (storedLevel) return storedLevel;
-
   return getString(record.education_type) === "school"
     ? "secondary_general"
     : "incomplete_higher";
@@ -162,26 +148,14 @@ function nullableString(value: string): string | null {
 }
 
 function getEducationCategory(level: string): string {
-  if (level === "basic_general" || level === "secondary_general") {
-    return "general";
-  }
-
-  if (level === "secondary_vocational") {
-    return "vocational";
-  }
-
+  if (level === "basic_general" || level === "secondary_general") return "general";
+  if (level === "secondary_vocational") return "vocational";
   return "higher";
 }
 
 function hasInvalidDateRange(startedAt: string, endedAt: string): boolean {
   if (!startedAt || !endedAt) return false;
-
   const startTime = new Date(`${startedAt}T00:00:00`).getTime();
   const endTime = new Date(`${endedAt}T00:00:00`).getTime();
-
-  return (
-    Number.isFinite(startTime) &&
-    Number.isFinite(endTime) &&
-    endTime < startTime
-  );
+  return Number.isFinite(startTime) && Number.isFinite(endTime) && endTime < startTime;
 }

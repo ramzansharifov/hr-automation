@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
-import type { HrEntityKey, HrRecord } from '../../../shared/types/hr'
+import type {
+  HrEntityKey,
+  HrFilterCondition,
+  HrFilterValue,
+  HrRecord,
+} from '../../../shared/types/hr'
 import { hrApiClient } from '../../../shared/lib/hrApiClient'
 import { Button, FieldError, Input, Select, Textarea, type SelectOption } from '../../../shared/ui'
 import {
@@ -271,12 +276,20 @@ async function loadRelationRecords(
   const records: HrRecord[] = []
   let page = 1
   let totalPages = 1
+  let filters: Record<string, HrFilterValue | HrFilterCondition> | undefined
+
+  if (entity === 'vacation_types') {
+    filters = { is_active: { operator: 'equals', value: 1 } }
+  } else if (entity === 'employees') {
+    filters = { status: { operator: 'equals', value: 'active' } }
+  }
 
   do {
     const result = await hrApiClient.list({
       entity,
       page,
       pageSize: 100,
+      filters,
       orderBy,
       orderDirection: 'asc',
     })

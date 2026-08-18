@@ -9,10 +9,10 @@ export function RecruitmentPageHeader({
   onAction,
   title,
 }: {
-  actionLabel: string;
+  actionLabel?: string;
   description: string;
   icon: ReactNode;
-  onAction: () => void;
+  onAction?: () => void;
   title: string;
 }): JSX.Element {
   return (
@@ -25,15 +25,17 @@ export function RecruitmentPageHeader({
           {title}
         </h1>
       </div>
-      <Button
-        className="w-full shrink-0 border-white/20 shadow-xl hover:opacity-90 lg:w-auto"
-        leftIcon={<FiPlus className="h-4 w-4" />}
-        onClick={onAction}
-        style={{ background: "#ffffff", color: "#0f172a" }}
-        variant="ghost"
-      >
-        {actionLabel}
-      </Button>
+      {onAction && actionLabel && (
+        <Button
+          className="w-full shrink-0 border-white/20 shadow-xl hover:opacity-90 lg:w-auto"
+          leftIcon={<FiPlus className="h-4 w-4" />}
+          onClick={onAction}
+          style={{ background: "#ffffff", color: "#0f172a" }}
+          variant="ghost"
+        >
+          {actionLabel}
+        </Button>
+      )}
     </section>
   );
 }

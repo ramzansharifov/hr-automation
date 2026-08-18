@@ -9,10 +9,7 @@ export function normalizePersonName(value: string): string {
     .replace(/\s+/g, ' ')
     .split(personNameSeparators)
     .map((part) => {
-      if (part.trim() === '' || part === '-') {
-        return part
-      }
-
+      if (part.trim() === '' || part === '-') return part
       return capitalizeWord(part)
     })
     .join('')
@@ -29,6 +26,7 @@ export function normalizePhone(value: string): string {
 export function normalizeEmployeeFormValues(values: EmployeeFormValues): EmployeeFormValues {
   return {
     ...values,
+    employee_number: values.employee_number.trim(),
     last_name: normalizePersonName(values.last_name),
     first_name: normalizePersonName(values.first_name),
     middle_name: normalizePersonName(values.middle_name),
@@ -41,12 +39,14 @@ export function normalizeEmployeeFormValues(values: EmployeeFormValues): Employe
     address_house: values.address_house.trim(),
     address_apartment: values.address_apartment.trim(),
     address: values.address.trim(),
-    note: values.note.trim(),
+    contract_number: values.contract_number.trim(),
+    workplace: values.workplace.trim(),
   }
 }
 
 export function mapEmployeeFormValuesToRecord(values: EmployeeFormValues): HrRecord {
   return {
+    employee_number: nullableString(values.employee_number),
     last_name: values.last_name,
     first_name: values.first_name,
     middle_name: nullableString(values.middle_name),
@@ -65,43 +65,35 @@ export function mapEmployeeFormValuesToRecord(values: EmployeeFormValues): HrRec
     hire_date: values.hire_date,
     status: values.status,
     salary: Number(values.salary || 0),
-    note: nullableString(values.note),
+    employment_type: values.employment_type,
+    contract_number: nullableString(values.contract_number),
+    contract_date: nullableString(values.contract_date),
+    contract_end_date: nullableString(values.contract_end_date),
+    probation_end_date: nullableString(values.probation_end_date),
+    workplace: nullableString(values.workplace),
   }
 }
 
 function capitalizeWord(value: string): string {
   const letters = Array.from(value.toLocaleLowerCase('ru-RU'))
   const firstLetter = letters[0]
-
-  if (!firstLetter) {
-    return ''
-  }
-
+  if (!firstLetter) return ''
   return `${firstLetter.toLocaleUpperCase('ru-RU')}${letters.slice(1).join('')}`
 }
 
 function normalizeSalary(value: string): string {
   const salary = Number(value)
-
-  if (!Number.isFinite(salary) || salary < 0) {
-    return '0'
-  }
-
+  if (!Number.isFinite(salary) || salary < 0) return '0'
   return String(salary)
 }
 
 function nullableNumber(value: string): number | null {
   const trimmedValue = value.trim()
-
-  if (trimmedValue === '') {
-    return null
-  }
-
+  if (trimmedValue === '') return null
   return Number(trimmedValue)
 }
 
 function nullableString(value: string): string | null {
   const trimmedValue = value.trim()
-
   return trimmedValue === '' ? null : trimmedValue
 }

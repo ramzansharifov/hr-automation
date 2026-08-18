@@ -20,14 +20,6 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
   const [positions, setPositions] = useState<PositionOption[]>([]);
   const [isRelationsLoading, setIsRelationsLoading] = useState(true);
 
-  const statusOptions = useMemo<SelectOption[]>(
-    () => [
-      { value: "active", label: t("common.status.active") },
-      { value: "inactive", label: t("common.status.inactive") },
-    ],
-    [t],
-  );
-
   const genderOptions = useMemo<SelectOption[]>(
     () => [
       { value: "male", label: t("common.status.male") },
@@ -36,14 +28,20 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
     [t],
   );
 
+  const statusOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "active", label: t("common.status.active") },
+      { value: "terminated", label: "Уволен" },
+    ],
+    [t],
+  );
+
   useEffect(() => {
     let isActive = true;
-
     setIsRelationsLoading(true);
     loadEmployeeRelationOptions()
       .then((options) => {
         if (!isActive) return;
-
         setDepartments(options.departments);
         setPositions(options.positions);
       })

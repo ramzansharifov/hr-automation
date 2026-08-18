@@ -40,6 +40,9 @@ lerna-debug.log*
 *.sqlite-shm
 *.sqlite-wal
 
+# Local file history / editor snapshots
+.filetags/
+
 # Editor
 .vscode/*
 !.vscode/extensions.json

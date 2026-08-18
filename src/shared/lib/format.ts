@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next'
 
+type TranslateStatus = TFunction | ((key: string) => string)
+
 export function formatCurrency(value: unknown, locale = 'ru-RU'): string {
   const amount = Number(value ?? 0)
 
@@ -37,12 +39,12 @@ export function formatCellValue(value: unknown, locale = 'ru-RU'): string {
   return String(value)
 }
 
-export function humanizeStatus(value: unknown, t?: TFunction): string {
+export function humanizeStatus(value: unknown, t?: TranslateStatus): string {
   const key = String(value ?? '')
 
   if (t) {
     const translationKey = `common.status.${key}`
-    const translated = t(translationKey)
+    const translated = String(t(translationKey as never))
 
     if (translated !== translationKey) {
       return translated
@@ -52,6 +54,7 @@ export function humanizeStatus(value: unknown, t?: TFunction): string {
   const labels: Record<string, string> = {
     active: 'Активен',
     inactive: 'Неактивен',
+    terminated: 'Уволен',
     planned: 'Запланирован',
     approved: 'Одобрен',
     rejected: 'Отклонён',

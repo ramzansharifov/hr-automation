@@ -12,6 +12,12 @@ import { AccessControlRepository } from "../repositories/accessControlRepository
 
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
+const permissionDependencies: Record<string, string> = {
+  "employees.manage": "employees.view",
+  "organization.manage": "organization.view",
+  "recruitment.manage": "recruitment.view",
+  "vacations.manage": "vacations.view",
+};
 
 export class AccessControlService {
   constructor(private readonly repository: AccessControlRepository) {}
@@ -21,48 +27,36 @@ export class AccessControlService {
       permissions: this.repository.listPermissions(),
       roles: this.repository.listRoles(),
       users: this.repository.listUsers(),
+      systemAdmin: this.repository.getSystemAdmin(),
     };
   }
 
   saveRole(params: SaveAccessRoleParams): AccessRoleSummary {
     const name = params.name.trim();
     const description = params.description?.trim() ?? "";
-    const permissionCodes = [...new Set(params.permissionCodes)];
+    const permissionCodes = normalizePermissionDependencies(params.permissionCodes);
 
     if (!name) throw new Error("Укажите название роли");
-    if (name.length > 100) {
-      throw new Error("Название роли не должно превышать 100 символов");
-    }
-    if (permissionCodes.length === 0) {
-      throw new Error("Выберите хотя бы одно разрешение для роли");
-    }
+    if (name.length > 100) throw new Error("Название роли не должно превышать 100 символов");
+    if (permissionCodes.length === 0) throw new Error("Выберите хотя бы одно разрешение для роли");
     if (!this.repository.permissionCodesExist(permissionCodes)) {
       throw new Error("В роли указано неизвестное разрешение");
     }
 
     const hasGlobalAdministrativePermission = permissionCodes.some((code) =>
-      ["access.manage", "settings.manage"].includes(code),
+      ["access.manage", "settings.manage", "audit.view"].includes(code),
     );
     if (hasGlobalAdministrativePermission && params.scopeType !== "global") {
-      throw new Error(
-        "Управление пользователями и системными настройками требует глобальной области данных",
-      );
+      throw new Error("Административные разрешения требуют глобальной области данных");
     }
-    if (
-      permissionCodes.includes("access.manage") &&
-      !permissionCodes.includes("employees.view")
-    ) {
-      throw new Error(
-        "Для управления пользователями добавьте разрешение «Просмотр сотрудников»",
-      );
+    if (permissionCodes.includes("access.manage") && !permissionCodes.includes("employees.view")) {
+      permissionCodes.push("employees.view");
     }
 
     if (params.id) {
       const existingRole = this.repository.getRoleById(params.id);
       if (!existingRole) throw new Error("Роль не найдена");
-      if (existingRole.isSystem) {
-        throw new Error("Системные роли нельзя изменять");
-      }
+      if (existingRole.isSystem) throw new Error("Системные роли нельзя изменять");
     }
 
     try {
@@ -83,13 +77,10 @@ export class AccessControlService {
     const role = this.repository.getRoleById(id);
     if (!role) throw new Error("Роль не найдена");
     if (role.isSystem) throw new Error("Системную роль нельзя удалить");
-    if (role.userCount > 0) {
-      throw new Error("Сначала снимите эту роль со всех пользователей");
-    }
-
+    if (role.userCount > 0) throw new Error("Сначала снимите эту роль со всех пользователей");
     try {
       this.repository.deleteRole(id);
-      return { success: true };
+      return { success: true as const };
     } catch (error) {
       throw normalizeDatabaseError(error, "Не удалось удалить роль");
     }
@@ -97,56 +88,35 @@ export class AccessControlService {
 
   saveUser(params: SaveAccessUserParams): AccessUserSummary {
     const username = params.username.trim().toLowerCase();
-    const roleIds = [...new Set(params.roleIds.map(Number))].filter(
-      Number.isFinite,
-    );
+    const requestedRoleIds = [...new Set(params.roleIds.map(Number))].filter(Number.isFinite);
+    const roleIds = this.includeRequiredLeadershipRoles(params.employeeId, requestedRoleIds);
     const existingUser = params.id ? this.repository.getUserById(params.id) : null;
 
     if (params.id && !existingUser) throw new Error("Пользователь не найден");
-    if (!Number.isFinite(params.employeeId) || params.employeeId <= 0) {
-      throw new Error("Выберите сотрудника");
-    }
-    if (!this.repository.employeeExists(params.employeeId)) {
-      throw new Error("Выбранный сотрудник не найден");
-    }
+    if (!Number.isFinite(params.employeeId) || params.employeeId <= 0) throw new Error("Выберите сотрудника");
+    if (!this.repository.employeeExists(params.employeeId)) throw new Error("Выбранный сотрудник не найден");
     if (!usernamePattern.test(username)) {
-      throw new Error(
-        "Логин должен содержать 3–64 символа: латинские буквы, цифры, точку, дефис или подчёркивание",
-      );
+      throw new Error("Логин должен содержать 3–64 символа: латинские буквы, цифры, точку, дефис или подчёркивание");
     }
     if (username === "superadmin") {
-      throw new Error(
-        "Логин superadmin зарезервирован для встроенного системного администратора",
-      );
+      throw new Error("Логин superadmin зарезервирован для встроенного системного администратора");
     }
-    if (this.repository.usernameExists(username, params.id)) {
-      throw new Error("Пользователь с таким логином уже существует");
-    }
+    if (this.repository.usernameExists(username, params.id)) throw new Error("Пользователь с таким логином уже существует");
     if (this.repository.employeeHasUser(params.employeeId, params.id)) {
       throw new Error("Для этого сотрудника уже создана учётная запись");
     }
-    if (roleIds.length === 0) {
-      throw new Error("Назначьте пользователю хотя бы одну роль");
-    }
-    if (!this.repository.rolesExist(roleIds)) {
-      throw new Error("Одна из выбранных ролей не найдена");
-    }
-    if (!params.id && !params.password) {
-      throw new Error("Укажите временный пароль для нового пользователя");
-    }
+    if (roleIds.length === 0) throw new Error("Назначьте пользователю хотя бы одну роль");
+    if (!this.repository.rolesExist(roleIds)) throw new Error("Одна из выбранных ролей не найдена");
+    if (!params.id && !params.password) throw new Error("Укажите временный пароль для нового пользователя");
     if (params.password) validatePassword(params.password);
 
     const systemRoles = this.repository.getSystemRolesByIds(roleIds);
     if (systemRoles.includes("superadmin")) {
-      throw new Error(
-        "Роль Superadmin принадлежит только встроенной системной учётной записи",
-      );
+      throw new Error("Роль Superadmin принадлежит только встроенной системной учётной записи");
     }
-
     this.validateSystemRoleAssignments(params.employeeId, systemRoles);
 
     const password = params.password ? hashPassword(params.password) : null;
-
     try {
       return this.repository.saveUser({
         id: params.id,
@@ -164,9 +134,7 @@ export class AccessControlService {
   }
 
   resetPassword(params: ResetAccessPasswordParams): { success: true } {
-    if (!this.repository.getUserById(params.userId)) {
-      throw new Error("Пользователь не найден");
-    }
+    if (!this.repository.getUserById(params.userId)) throw new Error("Пользователь не найден");
     validatePassword(params.password);
     const password = hashPassword(params.password);
     this.repository.resetPassword(
@@ -175,51 +143,52 @@ export class AccessControlService {
       password.salt,
       params.mustChangePassword ?? true,
     );
-    return { success: true };
+    return { success: true as const };
   }
 
   deleteUser(id: number): { success: true } {
-    if (!this.repository.getUserById(id)) {
-      throw new Error("Пользователь не найден");
-    }
-
+    if (!this.repository.getUserById(id)) throw new Error("Пользователь не найден");
     try {
       this.repository.deleteUser(id);
-      return { success: true };
+      return { success: true as const };
     } catch (error) {
       throw normalizeDatabaseError(error, "Не удалось удалить пользователя");
     }
   }
 
-  private validateSystemRoleAssignments(
-    employeeId: number,
-    systemRoles: SystemRoleKey[],
-  ): void {
-    if (
-      systemRoles.includes("enterprise_director") &&
-      !this.repository.isEnterpriseDirector(employeeId)
-    ) {
-      throw new Error(
-        "Роль «Директор предприятия» можно назначить только сотруднику, указанному генеральным директором предприятия",
-      );
-    }
+  private includeRequiredLeadershipRoles(employeeId: number, roleIds: number[]): number[] {
+    const requiredSystemKeys: SystemRoleKey[] = [];
+    if (this.repository.isEnterpriseDirector(employeeId)) requiredSystemKeys.push("enterprise_director");
+    if (this.repository.isDepartmentHead(employeeId)) requiredSystemKeys.push("department_head");
+    const requiredIds = this.repository
+      .listRoles()
+      .filter((role) => role.systemKey && requiredSystemKeys.includes(role.systemKey))
+      .map((role) => role.id);
+    return [...new Set([...roleIds, ...requiredIds])];
+  }
 
-    if (
-      systemRoles.includes("department_head") &&
-      !this.repository.isDepartmentHead(employeeId)
-    ) {
-      throw new Error(
-        "Роль «Начальник отдела» можно назначить только действующему директору отдела",
-      );
+  private validateSystemRoleAssignments(employeeId: number, systemRoles: SystemRoleKey[]): void {
+    if (systemRoles.includes("enterprise_director") && !this.repository.isEnterpriseDirector(employeeId)) {
+      throw new Error("Роль «Руководитель предприятия» можно назначить только фактическому руководителю предприятия");
+    }
+    if (systemRoles.includes("department_head") && !this.repository.isDepartmentHead(employeeId)) {
+      throw new Error("Роль «Руководитель отдела» можно назначить только фактическому руководителю отдела");
     }
   }
 }
 
+function normalizePermissionDependencies(codes: string[]): string[] {
+  const normalized = new Set(codes);
+  for (const code of [...normalized]) {
+    const dependency = permissionDependencies[code];
+    if (dependency) normalized.add(dependency);
+  }
+  return [...normalized];
+}
+
 function validatePassword(password: string): void {
   if (password.length < minimumPasswordLength) {
-    throw new Error(
-      `Пароль должен содержать минимум ${minimumPasswordLength} символов`,
-    );
+    throw new Error(`Пароль должен содержать минимум ${minimumPasswordLength} символов`);
   }
   if (!/[A-Za-zА-Яа-я]/.test(password) || !/\d/.test(password)) {
     throw new Error("Пароль должен содержать хотя бы одну букву и одну цифру");
@@ -238,14 +207,8 @@ function createCustomRoleCode(): string {
 
 function normalizeDatabaseError(error: unknown, fallback: string): Error {
   const message = error instanceof Error ? error.message : String(error);
-  if (message.includes("roles.name")) {
-    return new Error("Роль с таким названием уже существует");
-  }
-  if (message.includes("users.username")) {
-    return new Error("Пользователь с таким логином уже существует");
-  }
-  if (message.includes("users.employee_id")) {
-    return new Error("Для этого сотрудника уже создана учётная запись");
-  }
+  if (message.includes("roles.name")) return new Error("Роль с таким названием уже существует");
+  if (message.includes("users.username")) return new Error("Пользователь с таким логином уже существует");
+  if (message.includes("users.employee_id")) return new Error("Для этого сотрудника уже создана учётная запись");
   return new Error(message || fallback);
 }

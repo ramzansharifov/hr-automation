@@ -1,29 +1,41 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./app/AppLayout";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { AuthSessionSynchronizer } from "./features/auth/AuthSessionSynchronizer";
 import {
   AuthorizedHome,
   OwnProfileRedirect,
   RequirePermission,
 } from "./features/auth/PermissionRoute";
+import { AuditLogPage } from "./pages/AuditLogPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { FiltersPage } from "./pages/FiltersPage";
+import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { VacationsPage } from "./pages/VacationsPage";
 import { AccessControlPage } from "./pages/access/AccessControlPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { CandidatesPage } from "./pages/recruitment/CandidatesPage";
 import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
 import { VacancyFormPage } from "./pages/recruitment/VacancyFormPage";
 import { EmptyState } from "./shared/ui";
 
+function AuthenticatedLayout(): JSX.Element {
+  return (
+    <>
+      <AuthSessionSynchronizer />
+      <AppLayout />
+    </>
+  );
+}
+
 function App(): JSX.Element {
   return (
     <AuthProvider>
       <Routes>
-        <Route element={<AppLayout />}>
+        <Route element={<AuthenticatedLayout />}>
           <Route index element={<AuthorizedHome />} />
           <Route
             path="dashboard"
@@ -106,6 +118,14 @@ function App(): JSX.Element {
             }
           />
           <Route
+            path="audit"
+            element={
+              <RequirePermission anyOf={["audit.view"]}>
+                <AuditLogPage />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="enterprises"
             element={
               <RequirePermission anyOf={["organization.view"]}>
@@ -133,7 +153,11 @@ function App(): JSX.Element {
           <Route path="positions" element={<Navigate to="/enterprises" replace />} />
           <Route
             path="vacations"
-            element={<Navigate to="/filters?module=vacations" replace />}
+            element={
+              <RequirePermission anyOf={["vacations.view"]}>
+                <VacationsPage />
+              </RequirePermission>
+            }
           />
           <Route
             path="profile"
@@ -143,14 +167,7 @@ function App(): JSX.Element {
               </RequirePermission>
             }
           />
-          <Route
-            path="settings"
-            element={
-              <RequirePermission anyOf={["settings.manage"]}>
-                <SettingsPage />
-              </RequirePermission>
-            }
-          />
+          <Route path="settings" element={<SettingsPage />} />
           <Route
             path="no-access"
             element={

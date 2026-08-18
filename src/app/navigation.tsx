@@ -1,10 +1,12 @@
 import type { IconType } from "react-icons";
 import {
+  FiActivity,
   FiBriefcase,
+  FiCalendar,
   FiClipboard,
+  FiFilter,
   FiHome,
   FiLayers,
-  FiFilter,
   FiSettings,
   FiShield,
   FiUser,
@@ -16,7 +18,7 @@ export interface AppNavigationItem {
   titleKey: string;
   path: string;
   icon: IconType;
-  permissionCode: string;
+  permissionCode?: string;
   entity?: HrEntityKey;
 }
 
@@ -42,6 +44,13 @@ export const navigationItems: AppNavigationItem[] = [
     entity: "enterprises",
   },
   {
+    titleKey: "Отпуска",
+    path: "/vacations",
+    icon: FiCalendar,
+    permissionCode: "vacations.view",
+    entity: "vacations",
+  },
+  {
     titleKey: "navigation.vacancies",
     path: "/vacancies",
     icon: FiBriefcase,
@@ -65,6 +74,12 @@ export const navigationItems: AppNavigationItem[] = [
     icon: FiShield,
     permissionCode: "access.manage",
   },
+  {
+    titleKey: "Журнал действий",
+    path: "/audit",
+    icon: FiActivity,
+    permissionCode: "audit.view",
+  },
 ];
 
 export const bottomNavigationItems: AppNavigationItem[] = [
@@ -78,6 +93,5 @@ export const bottomNavigationItems: AppNavigationItem[] = [
     titleKey: "navigation.settings",
     path: "/settings",
     icon: FiSettings,
-    permissionCode: "settings.manage",
   },
 ];

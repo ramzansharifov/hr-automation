@@ -8,10 +8,14 @@ const numberFieldNames = new Set([
   'department_id',
   'position_id',
   'employee_id',
+  'vacation_type_id',
   'days_count',
   'base_salary',
   'salary',
   'is_current',
+  'is_paid',
+  'is_paid_default',
+  'is_active',
 ])
 
 export function getHrEntityDefaultValues(
