@@ -24,7 +24,7 @@ interface EmployeeOperationalPanelProps {
 }
 
 interface RecordActions {
-  onDelete: () => void;
+  onDelete?: () => void;
   onEdit: () => void;
 }
 
@@ -74,7 +74,7 @@ export function EmployeeVacationsPanel({
   }
 
   function openDelete(record: HrRecord): void {
-    if (!canManage) return;
+    if (!canManage || !canDeleteVacation(record)) return;
     setDeletingRecord(record);
     setIsDeleteOpen(true);
   }
@@ -126,7 +126,7 @@ export function EmployeeVacationsPanel({
           <div className="flex flex-wrap gap-3">
             <Link
               className="app-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition"
-              to={`/filters?module=vacations&employee=${employeeId}`}
+              to={`/vacations?employee=${employeeId}`}
             >
               <FiExternalLink className="h-4 w-4" />
               Открыть общий реестр
@@ -158,7 +158,9 @@ export function EmployeeVacationsPanel({
               actions={
                 canManage
                   ? {
-                      onDelete: () => openDelete(record),
+                      onDelete: canDeleteVacation(record)
+                        ? () => openDelete(record)
+                        : undefined,
                       onEdit: () => openEdit(record),
                     }
                   : undefined
@@ -272,9 +274,11 @@ function RecordActionsButtons({ actions }: { actions: RecordActions }): JSX.Elem
       <Button aria-label="Редактировать отпуск" className="h-10 w-10 p-0" onClick={actions.onEdit} type="button" variant="ghost">
         <FiEdit2 className="h-4 w-4" />
       </Button>
-      <Button aria-label="Удалить отпуск" className="h-10 w-10 p-0" onClick={actions.onDelete} type="button" variant="ghost">
-        <FiTrash2 className="h-4 w-4" />
-      </Button>
+      {actions.onDelete && (
+        <Button aria-label="Удалить отпуск" className="h-10 w-10 p-0" onClick={actions.onDelete} type="button" variant="ghost">
+          <FiTrash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -306,6 +310,10 @@ async function loadEmployeeVacations(employeeId: number): Promise<HrRecord[]> {
     page += 1;
   } while (page <= totalPages);
   return records;
+}
+
+function canDeleteVacation(record: HrRecord): boolean {
+  return ["planned", "rejected"].includes(String(record.status ?? "planned"));
 }
 
 function getRecordId(record: HrRecord | null): number {
