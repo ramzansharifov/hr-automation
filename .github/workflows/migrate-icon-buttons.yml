@@ -17,8 +17,8 @@ jobs:
         with:
           ref: fix/skill-fields-and-icon-buttons
           fetch-depth: 0
-      - name: Run migration
-        run: python .github/scripts/migrate_icon_buttons.py || true
+      - name: Finalize icon button migration
+        run: python .github/scripts/finalize_icon_buttons.py
       - name: Commit migration
         shell: bash
         run: |
@@ -28,6 +28,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No migration changes"
           else
-            git commit -m "Standardize icon-only actions and skill fields"
+            git commit -m "Finish icon-only button migration"
             git push origin HEAD:fix/skill-fields-and-icon-buttons
           fi
