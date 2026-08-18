@@ -4,7 +4,6 @@ import {
   FiBriefcase,
   FiCheck,
   FiCheckCircle,
-  FiChevronRight,
   FiMessageCircle,
   FiPlus,
   FiSave,
@@ -24,6 +23,7 @@ import type {
 } from "../../shared/types/hr";
 import {
   Button,
+  IconButton,
   Input,
   LoadingState,
   Select,
@@ -268,15 +268,7 @@ export function VacancyFormPage(): JSX.Element {
       <section className="app-surface app-border rounded-[30px] border p-6 sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
-            <Button
-              aria-label="Вернуться к вакансиям"
-              className="h-11 w-11 shrink-0 rounded-full p-0"
-              onClick={() => navigate("/vacancies")}
-              type="button"
-              variant="ghost"
-            >
-              <FiArrowLeft className="h-5 w-5" />
-            </Button>
+            <IconButton className="rounded-full" icon={<FiArrowLeft />} label="Вернуться к вакансиям" onClick={() => navigate("/vacancies")} size="lg" />
             <div>
               <span className="app-accent-soft app-accent-text inline-flex items-center gap-2 rounded-full border border-[var(--accent-border)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em]">
                 <FiBriefcase className="h-3.5 w-3.5" />
@@ -550,8 +542,10 @@ function SkillSection({
         </Button>
       </div>
 
-      <div className="app-muted mt-4 flex items-center gap-2 text-xs font-bold">
-        <span>Уровень 1–10</span><FiChevronRight className="h-3.5 w-3.5" /><span>вес 1–5</span>
+      <div className="app-surface-muted app-border mt-4 rounded-2xl border px-4 py-3">
+        <p className="app-text-soft text-xs font-semibold leading-5">
+          <strong className="app-text">Уровень</strong> — ожидаемое владение навыком по шкале 1–10. <strong className="app-text">Важность</strong> — насколько этот навык влияет на оценку кандидата, по шкале 1–5.
+        </p>
       </div>
 
       <div className="mt-5 space-y-3">
@@ -565,41 +559,57 @@ function SkillSection({
           <article className="app-surface-muted app-border rounded-[22px] border p-4" key={skill.key}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="app-text text-sm font-black">{String(index + 1).padStart(2, "0")} · {skill.name.trim() || "Новый навык"}</p>
-              <Button aria-label="Удалить навык" className="h-9 w-9 rounded-xl p-0" onClick={() => onRemove(skill.key)} type="button" variant="ghost">
-                <FiX className="h-4 w-4" />
-              </Button>
+              <IconButton icon={<FiX />} label="Удалить навык" onClick={() => onRemove(skill.key)} size="sm" tone="danger" />
             </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_110px_100px]">
-              <Input
-                aria-label={`${title}, навык ${index + 1}`}
-                onChange={(event) => onUpdate(skill.key, { name: event.target.value })}
-                placeholder={skill.type === "hard" ? "Например: SQL" : "Например: Командная работа"}
-                required
-                value={skill.name}
-              />
-              <Input
-                aria-label="Требуемый уровень"
-                max="10"
-                min="1"
-                onChange={(event) => onUpdate(skill.key, { requiredLevel: Number(event.target.value) })}
-                required
-                type="number"
-                value={skill.requiredLevel}
-              />
-              <Input
-                aria-label="Вес навыка"
-                max="5"
-                min="1"
-                onChange={(event) => onUpdate(skill.key, { weight: Number(event.target.value) })}
-                required
-                type="number"
-                value={skill.weight}
-              />
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px_150px]">
+              <SkillInputField label="Навык">
+                <Input
+                  aria-label={`${title}, навык ${index + 1}`}
+                  onChange={(event) => onUpdate(skill.key, { name: event.target.value })}
+                  placeholder={skill.type === "hard" ? "Например: SQL" : "Например: Командная работа"}
+                  required
+                  value={skill.name}
+                />
+              </SkillInputField>
+              <SkillInputField hint="1–10" label="Уровень">
+                <Input
+                  aria-label="Требуемый уровень навыка от 1 до 10"
+                  max="10"
+                  min="1"
+                  onChange={(event) => onUpdate(skill.key, { requiredLevel: Number(event.target.value) })}
+                  required
+                  type="number"
+                  value={skill.requiredLevel}
+                />
+              </SkillInputField>
+              <SkillInputField hint="1–5" label="Важность">
+                <Input
+                  aria-label="Важность навыка от 1 до 5"
+                  max="5"
+                  min="1"
+                  onChange={(event) => onUpdate(skill.key, { weight: Number(event.target.value) })}
+                  required
+                  type="number"
+                  value={skill.weight}
+                />
+              </SkillInputField>
             </div>
           </article>
         ))}
       </div>
     </section>
+  );
+}
+
+function SkillInputField({ children, hint, label }: { children: JSX.Element; hint?: string; label: string }): JSX.Element {
+  return (
+    <label className="grid gap-1.5">
+      <span className="flex items-center justify-between gap-2 px-1 text-xs font-black">
+        <span className="app-text-soft">{label}</span>
+        {hint && <span className="app-muted font-bold">{hint}</span>}
+      </span>
+      {children}
+    </label>
   );
 }
 

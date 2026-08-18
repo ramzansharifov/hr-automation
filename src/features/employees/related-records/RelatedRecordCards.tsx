@@ -12,7 +12,7 @@ import {
 } from "react-icons/fi";
 
 import type { HrRecord } from "../../../shared/types/hr";
-import { Button, EmptyState, LoadingState } from "../../../shared/ui";
+import { Button, EmptyState, IconButton, LoadingState } from "../../../shared/ui";
 import {
   formatRelatedDate,
   getEducationLevelFromRecord,
@@ -237,14 +237,10 @@ function RecordCardHeader({
       {(onEdit || onDelete) && (
         <div className="flex shrink-0 gap-2 self-end sm:self-auto">
           {onEdit && (
-            <Button aria-label={editLabel} className="app-table-action-button app-table-action-button--edit h-10 w-10 rounded-xl border p-0" onClick={onEdit} type="button" variant="ghost">
-              <FiEdit2 className="h-4 w-4" />
-            </Button>
+            <IconButton className="app-table-action-button app-table-action-button--edit" icon={<FiEdit2 />} label={editLabel} onClick={onEdit} />
           )}
           {onDelete && (
-            <Button aria-label={deleteLabel} className="app-table-action-button app-table-action-button--delete h-10 w-10 rounded-xl border p-0" onClick={onDelete} type="button" variant="ghost">
-              <FiTrash2 className="h-4 w-4" />
-            </Button>
+            <IconButton className="app-table-action-button app-table-action-button--delete" icon={<FiTrash2 />} label={deleteLabel} onClick={onDelete} tone="danger" />
           )}
         </div>
       )}
