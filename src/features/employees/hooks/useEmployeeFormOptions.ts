@@ -11,7 +11,6 @@ interface EmployeeFormOptions {
   genderOptions: SelectOption[];
   isRelationsLoading: boolean;
   positions: PositionOption[];
-  statusOptions: SelectOption[];
 }
 
 export function useEmployeeFormOptions(): EmployeeFormOptions {
@@ -19,14 +18,6 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
   const [departments, setDepartments] = useState<SelectOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
   const [isRelationsLoading, setIsRelationsLoading] = useState(true);
-
-  const statusOptions = useMemo<SelectOption[]>(
-    () => [
-      { value: "active", label: t("common.status.active") },
-      { value: "inactive", label: t("common.status.inactive") },
-    ],
-    [t],
-  );
 
   const genderOptions = useMemo<SelectOption[]>(
     () => [
@@ -38,12 +29,10 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
 
   useEffect(() => {
     let isActive = true;
-
     setIsRelationsLoading(true);
     loadEmployeeRelationOptions()
       .then((options) => {
         if (!isActive) return;
-
         setDepartments(options.departments);
         setPositions(options.positions);
       })
@@ -64,6 +53,5 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
     genderOptions,
     isRelationsLoading,
     positions,
-    statusOptions,
   };
 }
