@@ -64,7 +64,6 @@ interface CandidateSkillState {
   vacancySkillId: number;
   name: string;
   requiredLevel: number;
-  weight: number;
   score: number;
 }
 
@@ -200,7 +199,6 @@ export function CandidatesPage(): JSX.Element {
           vacancySkillId: Number(skill.id),
           name: String(skill.name ?? ""),
           requiredLevel: Number(skill.required_level ?? 5),
-          weight: Number(skill.weight ?? 3),
           score: 0,
         })),
       }));
@@ -408,7 +406,7 @@ export function CandidatesPage(): JSX.Element {
                 <div className="app-surface app-border grid gap-4 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_110px] sm:items-center" key={skill.vacancySkillId}>
                   <div>
                     <p className="app-text font-black">{skill.name}</p>
-                    <p className="app-muted mt-1 text-xs font-semibold">Требуется: {skill.requiredLevel}/10 · Важность: {skill.weight}/5</p>
+                    <p className="app-muted mt-1 text-xs font-semibold">Требуется: {skill.requiredLevel}/10</p>
                   </div>
                   <Input
                     aria-label={`Оценка навыка ${skill.name}`}
@@ -652,7 +650,6 @@ function profileToForm(profile: CandidateProfile): CandidateFormState {
         vacancySkillId: Number(skill.id),
         name: String(skill.name),
         requiredLevel: Number(skill.required_level),
-        weight: Number(skill.weight),
         score: Number(score?.score ?? 0),
       };
     }),
@@ -660,13 +657,12 @@ function profileToForm(profile: CandidateProfile): CandidateFormState {
 }
 
 function calculateMatch(skills: CandidateSkillState[]): number {
-  const totalWeight = skills.reduce((sum, skill) => sum + skill.weight, 0);
-  if (totalWeight === 0) return 0;
+  if (skills.length === 0) return 0;
   const points = skills.reduce(
-    (sum, skill) => sum + Math.min(skill.score / Math.max(skill.requiredLevel, 1), 1) * skill.weight,
+    (sum, skill) => sum + Math.min(skill.score / Math.max(skill.requiredLevel, 1), 1),
     0,
   );
-  return Math.round((points / totalWeight) * 100);
+  return Math.round((points / skills.length) * 100);
 }
 
 const candidateStatusOptions: SelectOption[] = [

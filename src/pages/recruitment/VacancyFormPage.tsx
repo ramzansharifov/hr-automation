@@ -124,7 +124,6 @@ export function VacancyFormPage(): JSX.Element {
         type: normalizeSkillType(skill.skill_type),
         name: String(skill.name ?? ""),
         requiredLevel: Number(skill.required_level ?? 5),
-        weight: Number(skill.weight ?? 3),
       }));
 
       setForm({
@@ -212,12 +211,11 @@ export function VacancyFormPage(): JSX.Element {
         status: form.status,
         employmentType: form.employmentType,
         openingsCount: Number(form.openingsCount),
-        skills: allSkills.map(({ id: skillId, type, name, requiredLevel, weight }) => ({
+        skills: allSkills.map(({ id: skillId, type, name, requiredLevel }) => ({
           id: skillId,
           type,
           name,
           requiredLevel,
-          weight,
         })),
       });
       toast.success(isEdit ? "Вакансия обновлена" : "Вакансия создана");
@@ -265,6 +263,7 @@ export function VacancyFormPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6">
+      {isEdit && (
       <section className="app-surface app-border rounded-[30px] border p-6 sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
@@ -288,6 +287,7 @@ export function VacancyFormPage(): JSX.Element {
           />
         </div>
       </section>
+      )}
 
       <form onSubmit={saveVacancy}>
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
@@ -544,7 +544,7 @@ function SkillSection({
 
       <div className="app-surface-muted app-border mt-4 rounded-2xl border px-4 py-3">
         <p className="app-text-soft text-xs font-semibold leading-5">
-          <strong className="app-text">Уровень</strong> — ожидаемое владение навыком по шкале 1–10. <strong className="app-text">Важность</strong> — насколько этот навык влияет на оценку кандидата, по шкале 1–5.
+          <strong className="app-text">Уровень</strong> — ожидаемое владение навыком по шкале 1–10.
         </p>
       </div>
 
@@ -561,7 +561,7 @@ function SkillSection({
               <p className="app-text text-sm font-black">{String(index + 1).padStart(2, "0")} · {skill.name.trim() || "Новый навык"}</p>
               <IconButton icon={<FiX />} label="Удалить навык" onClick={() => onRemove(skill.key)} size="sm" tone="danger" />
             </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px_150px]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px]">
               <SkillInputField label="Навык">
                 <Input
                   aria-label={`${title}, навык ${index + 1}`}
@@ -580,17 +580,6 @@ function SkillSection({
                   required
                   type="number"
                   value={skill.requiredLevel}
-                />
-              </SkillInputField>
-              <SkillInputField hint="1–5" label="Важность">
-                <Input
-                  aria-label="Важность навыка от 1 до 5"
-                  max="5"
-                  min="1"
-                  onChange={(event) => onUpdate(skill.key, { weight: Number(event.target.value) })}
-                  required
-                  type="number"
-                  value={skill.weight}
                 />
               </SkillInputField>
             </div>
@@ -639,7 +628,6 @@ function newSkill(type: VacancySkillType): VacancySkillState {
     type,
     name: "",
     requiredLevel: 5,
-    weight: 3,
   };
 }
 

@@ -43,7 +43,6 @@ export class RecruitmentService {
         skillIds.add(skill.id);
       }
       assertRange(skill.requiredLevel, 1, 10, "Требуемый уровень навыка");
-      assertRange(skill.weight, 1, 5, "Вес навыка");
     });
 
     return this.repository.saveVacancy(params);

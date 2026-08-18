@@ -121,7 +121,6 @@ export interface VacancySkillInput {
   type: VacancySkillType;
   name: string;
   requiredLevel: number;
-  weight: number;
 }
 
 export interface SaveVacancyParams {
