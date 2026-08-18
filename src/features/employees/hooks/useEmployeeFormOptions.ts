@@ -11,6 +11,7 @@ interface EmployeeFormOptions {
   genderOptions: SelectOption[];
   isRelationsLoading: boolean;
   positions: PositionOption[];
+  statusOptions: SelectOption[];
 }
 
 export function useEmployeeFormOptions(): EmployeeFormOptions {
@@ -23,6 +24,14 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
     () => [
       { value: "male", label: t("common.status.male") },
       { value: "female", label: t("common.status.female") },
+    ],
+    [t],
+  );
+
+  const statusOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "active", label: t("common.status.active") },
+      { value: "terminated", label: "Уволен" },
     ],
     [t],
   );
@@ -53,5 +62,6 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
     genderOptions,
     isRelationsLoading,
     positions,
+    statusOptions,
   };
 }
