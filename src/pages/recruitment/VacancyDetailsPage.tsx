@@ -456,14 +456,6 @@ const employmentTypeOptions = [
   { value: "temporary", label: "Временная работа" },
   { value: "internship", label: "Стажировка" },
 ];
-const candidateStatusOptions = [
-  { value: "new", label: "Новый" },
-  { value: "screening", label: "Первичный отбор" },
-  { value: "interview", label: "Собеседование" },
-  { value: "offer", label: "Оффер" },
-  { value: "hired", label: "Принят" },
-  { value: "rejected", label: "Отклонён" },
-];
 
 function vacancyStatusLabel(value: string): string {
   return vacancyStatusOptions.find((item) => item.value === value)?.label ?? value;
