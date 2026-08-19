@@ -19,6 +19,7 @@ import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
 import { CandidatesPage } from "./pages/recruitment/CandidatesPage";
 import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
+import { VacancyDetailsPage } from "./pages/recruitment/VacancyDetailsPage";
 import { VacancyFormPage } from "./pages/recruitment/VacancyFormPage";
 import { EmptyState } from "./shared/ui";
 
@@ -90,6 +91,14 @@ function App(): JSX.Element {
             element={
               <RequirePermission anyOf={["recruitment.manage"]}>
                 <VacancyFormPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="vacancies/:id"
+            element={
+              <RequirePermission anyOf={["recruitment.view"]}>
+                <VacancyDetailsPage />
               </RequirePermission>
             }
           />
