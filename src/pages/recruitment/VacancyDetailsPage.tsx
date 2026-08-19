@@ -4,8 +4,6 @@ import {
   FiAward,
   FiBriefcase,
   FiEdit2,
-  FiMail,
-  FiPhone,
   FiPlus,
   FiUserPlus,
   FiUsers,
@@ -14,9 +12,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { CandidateSummaryCard } from "../../features/recruitment/CandidateSummaryCard";
 import {
   FormField,
-  MatchBar,
   RecruitmentBadge,
 } from "../../features/recruitment/RecruitmentUi";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
@@ -282,12 +280,13 @@ export function VacancyDetailsPage(): JSX.Element {
         ) : (
           <div className="grid gap-4 p-5 xl:grid-cols-2">
             {rankedCandidates.map((candidate, index) => (
-              <CandidateRankCard
+              <CandidateSummaryCard
                 candidate={candidate}
                 isBest={index === 0 && Number(candidate.match_percentage ?? 0) > 0}
                 key={String(candidate.id)}
                 onOpen={() => navigate(`/candidates?candidate=${String(candidate.id)}`)}
                 rank={index + 1}
+                showStructure={false}
               />
             ))}
           </div>
@@ -442,76 +441,6 @@ function SkillGroup({ title, skills }: { title: string; skills: HrRecord[] }): J
         </div>
       )}
     </div>
-  );
-}
-
-function CandidateRankCard({
-  candidate,
-  isBest,
-  onOpen,
-  rank,
-}: {
-  candidate: HrRecord;
-  isBest: boolean;
-  onOpen: () => void;
-  rank: number;
-}): JSX.Element {
-  const name = [candidate.last_name, candidate.first_name, candidate.middle_name]
-    .filter(Boolean)
-    .join(" ");
-  const match = Number(candidate.match_percentage ?? 0);
-  const skillRows = String(candidate.skills_summary ?? "")
-    .split(String.fromCharCode(31))
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return (
-    <article className="app-surface app-border rounded-[24px] border p-5 transition hover:border-[var(--accent-border)]">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="app-accent-soft app-accent-text flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black">
-            #{rank}
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="app-text truncate text-lg font-black">{name || "Кандидат"}</h3>
-              {isBest && (
-                <RecruitmentBadge tone="success">Лучшее соответствие</RecruitmentBadge>
-              )}
-            </div>
-            <div className="app-muted mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold">
-              {candidate.phone && <span className="flex items-center gap-1.5"><FiPhone />{String(candidate.phone)}</span>}
-              {candidate.email && <span className="flex items-center gap-1.5"><FiMail />{String(candidate.email)}</span>}
-            </div>
-          </div>
-        </div>
-        <RecruitmentBadge tone={candidate.status === "hired" ? "success" : candidate.status === "offer" ? "warning" : "neutral"}>
-          {candidateStatusLabel(String(candidate.status))}
-        </RecruitmentBadge>
-      </div>
-
-      <div className="mt-5">
-        <MatchBar value={match} />
-      </div>
-
-      {skillRows.length > 0 && (
-        <div className="app-border-soft mt-4 border-t pt-4">
-          <p className="app-muted mb-2 text-xs font-black uppercase tracking-[0.12em]">Навыки</p>
-          <div className="flex flex-wrap gap-2">
-            {skillRows.slice(0, 4).map((skill) => (
-              <RecruitmentBadge key={skill}>{skill}</RecruitmentBadge>
-            ))}
-            {skillRows.length > 4 && <RecruitmentBadge>+{skillRows.length - 4}</RecruitmentBadge>}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-5 flex justify-end">
-        <Button onClick={onOpen} type="button" variant="secondary">
-          Открыть карточку
-        </Button>
-      </div>
-    </article>
   );
 }
 

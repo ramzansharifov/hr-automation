@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
   FiEdit2,
-  FiMail,
-  FiPhone,
   FiRefreshCw,
   FiTrash2,
   FiUserPlus,
@@ -12,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { CandidateSummaryCard } from "../../features/recruitment/CandidateSummaryCard";
 import {
   FormField,
   MatchBar,
@@ -341,11 +340,12 @@ export function CandidatesPage(): JSX.Element {
         ) : viewMode === "cards" ? (
           <div className="space-y-4 p-5">
             {filteredCandidates.map((candidate) => (
-              <CandidateCard
+              <CandidateSummaryCard
                 canManage={canManage}
                 candidate={candidate}
                 key={String(candidate.id)}
                 onDelete={() => setDeleteTarget(candidate)}
+                onEdit={() => void openCandidate(candidate)}
                 onOpen={() => void openCandidate(candidate)}
               />
             ))}
@@ -579,46 +579,6 @@ function CandidatesTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-function CandidateCard({
-  canManage,
-  candidate,
-  onDelete,
-  onOpen,
-}: {
-  canManage: boolean;
-  candidate: HrRecord;
-  onDelete: () => void;
-  onOpen: () => void;
-}): JSX.Element {
-  const skills = String(candidate.skills_summary ?? "").split("\u001f").filter(Boolean);
-  return (
-    <article className="app-surface app-border grid gap-5 rounded-[26px] border p-5 transition-colors hover:border-[var(--accent-border)] lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-center">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <RecruitmentBadge tone={candidate.status === "hired" ? "success" : "accent"}>{candidateStatusLabel(String(candidate.status))}</RecruitmentBadge>
-          {candidate.source && <RecruitmentBadge>{String(candidate.source)}</RecruitmentBadge>}
-        </div>
-        <h2 className="app-text mt-3 text-xl font-black">{candidateFullName(candidate)}</h2>
-        <p className="app-muted mt-1 text-sm font-bold">{[candidate.enterprise_name, candidate.department_name, candidate.position_name].filter(Boolean).join(" · ")}</p>
-        <div className="app-muted mt-3 flex flex-wrap gap-4 text-sm">
-          {candidate.phone && <span className="flex items-center gap-2"><FiPhone className="h-4 w-4" /> {String(candidate.phone)}</span>}
-          {candidate.email && <span className="flex items-center gap-2"><FiMail className="h-4 w-4" /> {String(candidate.email)}</span>}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {skills.slice(0, 5).map((skill) => <RecruitmentBadge key={skill}>{skill}</RecruitmentBadge>)}
-        </div>
-      </div>
-      <MatchBar value={Number(candidate.match_percentage ?? 0)} />
-      <div className="flex gap-2 lg:justify-end">
-        <IconButton icon={<FiEdit2 />} label={canManage ? "Редактировать кандидата" : "Открыть кандидата"} onClick={onOpen} />
-        {canManage && !candidate.employee_id && (
-          <IconButton icon={<FiTrash2 />} label="Удалить кандидата" onClick={onDelete} tone="danger" />
-        )}
-      </div>
-    </article>
   );
 }
 
