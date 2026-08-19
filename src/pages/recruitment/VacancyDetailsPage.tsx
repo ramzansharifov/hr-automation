@@ -471,9 +471,6 @@ function vacancyStatusLabel(value: string): string {
 function employmentTypeLabel(value: string): string {
   return employmentTypeOptions.find((item) => item.value === value)?.label ?? value;
 }
-function candidateStatusLabel(value: string): string {
-  return candidateStatusOptions.find((item) => item.value === value)?.label ?? value;
-}
 function errorMessage(error: unknown, fallback: string): string {
   const parts = error instanceof Error ? error.message.split("Error: ") : [];
   return parts.length > 0 ? parts[parts.length - 1] : fallback;
