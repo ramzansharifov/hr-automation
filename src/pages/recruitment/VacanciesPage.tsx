@@ -67,6 +67,10 @@ export function VacanciesPage(): JSX.Element {
     }
   }
 
+  function openVacancy(vacancy: HrRecord): void {
+    navigate(`/vacancies/${String(vacancy.id)}`);
+  }
+
   function editVacancy(vacancy: HrRecord): void {
     if (!canManage) return;
     navigate(`/vacancies/${String(vacancy.id)}/edit`);
@@ -122,6 +126,7 @@ export function VacanciesPage(): JSX.Element {
                 key={String(vacancy.id)}
                 onDelete={() => setDeleteTarget(vacancy)}
                 onEdit={() => editVacancy(vacancy)}
+                onOpen={() => openVacancy(vacancy)}
                 vacancy={vacancy}
               />
             ))}
@@ -131,6 +136,7 @@ export function VacanciesPage(): JSX.Element {
             canManage={canManage}
             onDelete={setDeleteTarget}
             onEdit={editVacancy}
+            onOpen={openVacancy}
             vacancies={vacancies}
           />
         )}
@@ -156,11 +162,13 @@ function VacanciesTable({
   canManage,
   onDelete,
   onEdit,
+  onOpen,
   vacancies,
 }: {
   canManage: boolean;
   onDelete: (vacancy: HrRecord) => void;
   onEdit: (vacancy: HrRecord) => void;
+  onOpen: (vacancy: HrRecord) => void;
   vacancies: HrRecord[];
 }): JSX.Element {
   return (
@@ -183,9 +191,9 @@ function VacanciesTable({
           <tbody>
             {vacancies.map((vacancy) => (
               <tr
-                className={canManage ? "app-hover-muted cursor-pointer transition" : "transition"}
+                className="app-hover-muted cursor-pointer transition"
                 key={String(vacancy.id)}
-                onClick={canManage ? () => onEdit(vacancy) : undefined}
+                onClick={() => onOpen(vacancy)}
               >
                 <td className="app-border-soft app-text border-b px-5 py-4 font-black">
                   {String(vacancy.position_name ?? "Должность не указана")}
@@ -236,18 +244,23 @@ function VacancyCard({
   canManage,
   onDelete,
   onEdit,
+  onOpen,
   vacancy,
 }: {
   canManage: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onOpen: () => void;
   vacancy: HrRecord;
 }): JSX.Element {
   const hardSkills = splitSkills(vacancy.hard_skills_summary);
   const softSkills = splitSkills(vacancy.soft_skills_summary);
 
   return (
-    <article className="app-surface app-border group relative overflow-hidden rounded-[28px] border p-6 transition-colors hover:border-[var(--accent-border)]">
+    <article
+      className="app-surface app-border group relative cursor-pointer overflow-hidden rounded-[28px] border p-6 transition-colors hover:border-[var(--accent-border)]"
+      onClick={onOpen}
+    >
       <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" />
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -270,7 +283,7 @@ function VacancyCard({
           </p>
         </div>
         {canManage && (
-          <div className="flex gap-2">
+          <div className="flex gap-2" onClick={(event) => event.stopPropagation()}>
             <IconButton icon={<FiEdit2 />} label="Редактировать вакансию" onClick={onEdit} />
             <IconButton icon={<FiTrash2 />} label="Удалить вакансию" onClick={onDelete} tone="danger" />
           </div>
