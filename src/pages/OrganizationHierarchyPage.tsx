@@ -223,30 +223,41 @@ export function OrganizationHierarchyPage(): JSX.Element {
     );
   }
 
-  const breadcrumbs =
+  const hierarchyBreadcrumbs =
     enterprise || department ? (
       <nav
         aria-label="Организационная структура"
-        className="flex flex-wrap items-center gap-2 text-sm font-bold text-white/80"
+        className="flex flex-wrap items-center gap-2 px-1 text-sm font-bold"
       >
-        <Link className="transition hover:text-white" to="/enterprises">
+        <Link
+          className="app-muted transition hover:text-[var(--accent)]"
+          to="/enterprises"
+        >
           Предприятия
         </Link>
         {enterprise && (
           <>
-            <FiChevronRight className="h-4 w-4" />
-            <Link
-              className="transition hover:text-white"
-              to={`/enterprises/${enterpriseId}/departments`}
-            >
-              {recordName(enterprise)}
-            </Link>
+            <FiChevronRight className="app-muted h-4 w-4" />
+            {department ? (
+              <Link
+                className="app-muted transition hover:text-[var(--accent)]"
+                to={`/enterprises/${enterpriseId}/departments`}
+              >
+                {recordName(enterprise)}
+              </Link>
+            ) : (
+              <span aria-current="page" className="app-text">
+                {recordName(enterprise)}
+              </span>
+            )}
           </>
         )}
         {department && (
           <>
-            <FiChevronRight className="h-4 w-4" />
-            <span className="text-white">{recordName(department)}</span>
+            <FiChevronRight className="app-muted h-4 w-4" />
+            <span aria-current="page" className="app-text">
+              {recordName(department)}
+            </span>
           </>
         )}
       </nav>
@@ -254,7 +265,6 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
   const headerActions = (
     <div className="flex flex-wrap items-center justify-end gap-3">
-      {breadcrumbs}
       {canManage && level === "departments" && enterprise && (
         <Button
           className="border-white/20 bg-white/10 text-white"
@@ -304,6 +314,8 @@ export function OrganizationHierarchyPage(): JSX.Element {
         icon={<FiLayers />}
         title={page.title}
       />
+
+      {hierarchyBreadcrumbs}
 
       <HrEntityTable
         ref={tableRef}
