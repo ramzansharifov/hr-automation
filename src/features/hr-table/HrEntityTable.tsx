@@ -25,7 +25,7 @@ import type {
 } from '../../shared/types/hr'
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
-import { Button, EmptyState, IconButton, LoadingState, Select, type SelectOption } from '../../shared/ui'
+import { Button, DataTable, EmptyState, IconButton, LoadingState, Select, type DataTableColumn, type SelectOption } from '../../shared/ui'
 import { HrEntityDeleteDialog } from '../hr-entities/components/HrEntityDeleteDialog'
 import { HrEntityDialog } from '../hr-entities/components/HrEntityDialog'
 import { getEntityConfig, renderCell } from './hrEntityConfig'
@@ -319,7 +319,6 @@ export function HrEntityTable({
   const canGoBack = result.page > 1
   const canGoForward = result.totalPages > 0 && result.page < result.totalPages
   const hasActions = canManageEntity && entity !== 'employees'
-  const tableColumnCount = visibleColumns.length + (hasActions ? 1 : 0)
   const cardMetaColumns = visibleColumns.slice(1, 4)
 
   return (
@@ -397,93 +396,75 @@ export function HrEntityTable({
       )}
 
       <div className={viewMode === 'table' ? 'min-h-0 flex-1 overflow-auto' : 'hidden'}>
-        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-          <thead>
-            <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
-              {visibleColumns.map((column) => (
-                <th key={column.key} className="app-border-soft border-b px-5 py-4 font-black">
-                  <button
-                    type="button"
-                    onClick={() => handleSort(column.key)}
-                    className="flex items-center gap-2 text-left transition hover:text-[var(--accent)]"
-                  >
-                    {column.label}
-                    {orderBy === column.key && (
-                      <span className="app-accent-soft rounded-full px-2 py-0.5 text-[10px]">
-                        {orderDirection === 'asc'
-                          ? t('common.table.sort.asc')
-                          : t('common.table.sort.desc')}
-                      </span>
-                    )}
-                  </button>
-                </th>
-              ))}
-              {hasActions && (
-                <th className="app-border-soft border-b px-5 py-4 text-center font-black">
-                  {t('common.table.actions')}
-                </th>
-              )}
-            </tr>
-          </thead>
-
-          <tbody>
-            {result.items.map((record, index) => (
-              <motion.tr
-                key={String(record.id ?? index)}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.22,
-                  delay: Math.min(index * 0.035, 0.18),
-                  ease: 'easeOut',
-                }}
-                whileHover={{ scale: onRowClick ? 1.002 : 1 }}
-                className={['app-hover-muted transition', onRowClick ? 'cursor-pointer' : ''].join(' ')}
-                onClick={onRowClick ? () => onRowClick(record) : undefined}
-                onKeyDown={(event) => handleRowKeyDown(event, record)}
-                role={onRowClick ? 'button' : undefined}
-                tabIndex={onRowClick ? 0 : undefined}
-              >
-                {visibleColumns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={[
-                      'app-border-soft app-text-soft max-w-[280px] border-b px-5 py-4 align-top',
-                      column.className ?? '',
-                    ].join(' ')}
-                  >
-                    <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
-                  </td>
-                ))}
-                {hasActions && (
-                  <td className="app-border-soft border-b px-5 py-4 align-top">
-                    <div className="flex items-center justify-center gap-2" onClick={(event) => event.stopPropagation()}>
-                      <IconButton className="app-table-action-button app-table-action-button--edit" icon={<FiEdit2 />} label={t('common.actions.edit')} onClick={() => handleEditClick(record)} size="sm" />
-
-                      <IconButton className="app-table-action-button app-table-action-button--delete" icon={<FiTrash2 />} label={t('common.actions.delete')} onClick={() => handleDeleteClick(record)} size="sm" tone="danger" />
-                    </div>
-                  </td>
-                )}
-              </motion.tr>
-            ))}
-
-            {!isLoading && result.items.length === 0 && (
-              <tr>
-                <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
-                  <EmptyState title={t('common.table.empty')} />
-                </td>
-              </tr>
-            )}
-
-            {isLoading && (
-              <tr>
-                <td colSpan={tableColumnCount} className="px-5 py-16 text-center">
-                  <LoadingState label={t('common.table.loading')} />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={[
+            ...visibleColumns.map((column): DataTableColumn<HrRecord> => ({
+              key: column.key,
+              header: (
+                <button
+                  type="button"
+                  onClick={() => handleSort(column.key)}
+                  className="flex items-center gap-2 text-left transition hover:text-[var(--accent)]"
+                >
+                  {column.label}
+                  {orderBy === column.key && (
+                    <span className="app-accent-soft rounded-full px-2 py-0.5 text-[10px]">
+                      {orderDirection === 'asc'
+                        ? t('common.table.sort.asc')
+                        : t('common.table.sort.desc')}
+                    </span>
+                  )}
+                </button>
+              ),
+              className: [
+                'app-text-soft max-w-[280px] align-top',
+                column.className ?? '',
+              ].join(' '),
+              render: (record) => (
+                <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
+              ),
+            })),
+            ...(hasActions
+              ? [
+                  {
+                    key: 'actions',
+                    header: t('common.table.actions'),
+                    align: 'center' as const,
+                    className: 'align-top',
+                    render: (record: HrRecord) => (
+                      <div
+                        className="flex items-center justify-center gap-2"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <IconButton
+                          className="app-table-action-button app-table-action-button--edit"
+                          icon={<FiEdit2 />}
+                          label={t('common.actions.edit')}
+                          onClick={() => handleEditClick(record)}
+                          size="sm"
+                        />
+                        <IconButton
+                          className="app-table-action-button app-table-action-button--delete"
+                          icon={<FiTrash2 />}
+                          label={t('common.actions.delete')}
+                          onClick={() => handleDeleteClick(record)}
+                          size="sm"
+                          tone="danger"
+                        />
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+          emptyTitle={t('common.table.empty')}
+          frame={false}
+          getRowKey={(record, index) => String(record.id ?? index)}
+          isLoading={isLoading}
+          loadingLabel={t('common.table.loading')}
+          onRowClick={onRowClick}
+          rows={result.items}
+        />
       </div>
 
       {viewMode === 'cards' && (

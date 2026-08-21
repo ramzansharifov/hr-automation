@@ -2,10 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   FiBriefcase,
   FiEdit2,
-  FiMapPin,
   FiRefreshCw,
   FiTrash2,
-  FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -20,11 +18,9 @@ import type { HrRecord } from "../../shared/types/hr";
 import {
   Button,
   ConfirmDialog,
+  DataTable,
   IconButton,
-  EmptyState,
-  LoadingState,
-  ViewModeToggle,
-  useStoredViewMode,
+  type DataTableColumn,
 } from "../../shared/ui";
 
 export function VacanciesPage(): JSX.Element {
@@ -32,7 +28,6 @@ export function VacanciesPage(): JSX.Element {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("recruitment.manage");
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
-  const [viewMode, setViewMode] = useStoredViewMode("vacancies", "cards");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
@@ -76,6 +71,100 @@ export function VacanciesPage(): JSX.Element {
     navigate(`/vacancies/${String(vacancy.id)}/edit`);
   }
 
+  const columns: DataTableColumn<HrRecord>[] = [
+    {
+      key: "position",
+      header: "Должность",
+      render: (vacancy) => (
+        <span className="app-text font-black">
+          {String(vacancy.position_name ?? "Должность не указана")}
+        </span>
+      ),
+    },
+    {
+      key: "structure",
+      header: "Структура",
+      render: (vacancy) => (
+        <span className="app-text-soft">
+          {[vacancy.enterprise_name, vacancy.department_name]
+            .filter(Boolean)
+            .join(" · ") || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Статус",
+      render: (vacancy) => (
+        <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
+          {vacancyStatusLabel(String(vacancy.status))}
+        </RecruitmentBadge>
+      ),
+    },
+    {
+      key: "employment",
+      header: "Занятость",
+      render: (vacancy) => (
+        <span className="app-text-soft">
+          {employmentTypeLabel(String(vacancy.employment_type))}
+        </span>
+      ),
+    },
+    {
+      key: "openings",
+      header: "Мест",
+      align: "center",
+      render: (vacancy) => (
+        <span className="app-text font-black">{String(vacancy.openings_count ?? 1)}</span>
+      ),
+    },
+    {
+      key: "candidates",
+      header: "Кандидатов",
+      align: "center",
+      render: (vacancy) => (
+        <span className="app-text font-black">{String(vacancy.candidates_count ?? 0)}</span>
+      ),
+    },
+    {
+      key: "skills",
+      header: "Навыков",
+      align: "center",
+      render: (vacancy) => (
+        <span className="app-text-soft">{String(vacancy.skills_count ?? 0)}</span>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "Действия",
+            align: "center" as const,
+            render: (vacancy: HrRecord) => (
+              <div
+                className="flex items-center justify-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <IconButton
+                  icon={<FiEdit2 />}
+                  label="Редактировать вакансию"
+                  onClick={() => editVacancy(vacancy)}
+                  size="sm"
+                />
+                <IconButton
+                  icon={<FiTrash2 />}
+                  label="Удалить вакансию"
+                  onClick={() => setDeleteTarget(vacancy)}
+                  size="sm"
+                  tone="danger"
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
@@ -86,61 +175,42 @@ export function VacanciesPage(): JSX.Element {
         title="Вакансии"
       />
 
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-end">
-          <ViewModeToggle onChange={setViewMode} value={viewMode} />
-          <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
-            onClick={() => void loadData()}
-            type="button"
-            variant="secondary"
-          >
-            Обновить
-          </Button>
-        </div>
-
-        {isLoading ? (
-          <div className="px-5 py-16">
-            <LoadingState label="Загрузка вакансий..." />
-          </div>
-        ) : vacancies.length === 0 ? (
-          <div className="py-16">
-            <EmptyState
-              title="Вакансий пока нет"
-              description={
-                canManage
-                  ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
-                  : "В доступной области пока нет вакансий."
+      <DataTable
+        ariaLabel="Реестр вакансий"
+        columns={columns}
+        emptyDescription={
+          canManage
+            ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
+            : "В доступной области пока нет вакансий."
+        }
+        emptyTitle="Вакансий пока нет"
+        footer={
+          <>
+            Всего: <span className="app-text font-black">{vacancies.length}</span>
+          </>
+        }
+        getRowKey={(vacancy) => String(vacancy.id)}
+        isLoading={isLoading}
+        loadingLabel="Загрузка вакансий..."
+        onRowClick={openVacancy}
+        rows={vacancies}
+        toolbar={
+          <div className="ml-auto">
+            <Button
+              leftIcon={
+                <FiRefreshCw
+                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                />
               }
-            />
+              onClick={() => void loadData()}
+              type="button"
+              variant="secondary"
+            >
+              Обновить
+            </Button>
           </div>
-        ) : viewMode === "cards" ? (
-          <div className="grid gap-5 p-5 xl:grid-cols-2">
-            {vacancies.map((vacancy) => (
-              <VacancyCard
-                canManage={canManage}
-                key={String(vacancy.id)}
-                onDelete={() => setDeleteTarget(vacancy)}
-                onEdit={() => editVacancy(vacancy)}
-                onOpen={() => openVacancy(vacancy)}
-                vacancy={vacancy}
-              />
-            ))}
-          </div>
-        ) : (
-          <VacanciesTable
-            canManage={canManage}
-            onDelete={setDeleteTarget}
-            onEdit={editVacancy}
-            onOpen={openVacancy}
-            vacancies={vacancies}
-          />
-        )}
-      </section>
+        }
+      />
 
       {canManage && (
         <ConfirmDialog
@@ -158,193 +228,28 @@ export function VacanciesPage(): JSX.Element {
   );
 }
 
-function VacanciesTable({
-  canManage,
-  onDelete,
-  onEdit,
-  onOpen,
-  vacancies,
-}: {
-  canManage: boolean;
-  onDelete: (vacancy: HrRecord) => void;
-  onEdit: (vacancy: HrRecord) => void;
-  onOpen: (vacancy: HrRecord) => void;
-  vacancies: HrRecord[];
-}): JSX.Element {
-  return (
-    <>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-          <thead>
-            <tr className="app-surface-muted app-muted text-xs">
-              <th className="app-border-soft border-b px-5 py-4 font-black">Должность</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Структура</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Статус</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Занятость</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Мест</th>
-              <th className="app-border-soft border-b px-5 py-4 font-black">Кандидатов</th>
-              {canManage && (
-                <th className="app-border-soft border-b px-5 py-4 text-center font-black">Действия</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {vacancies.map((vacancy) => (
-              <tr
-                className="app-hover-muted cursor-pointer transition"
-                key={String(vacancy.id)}
-                onClick={() => onOpen(vacancy)}
-              >
-                <td className="app-border-soft app-text border-b px-5 py-4 font-black">
-                  {String(vacancy.position_name ?? "Должность не указана")}
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  {[vacancy.enterprise_name, vacancy.department_name]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </td>
-                <td className="app-border-soft border-b px-5 py-4">
-                  <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
-                    {vacancyStatusLabel(String(vacancy.status))}
-                  </RecruitmentBadge>
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  {employmentTypeLabel(String(vacancy.employment_type))}
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  {String(vacancy.openings_count ?? 1)}
-                </td>
-                <td className="app-border-soft app-text-soft border-b px-5 py-4">
-                  {String(vacancy.candidates_count ?? 0)}
-                </td>
-                {canManage && (
-                  <td className="app-border-soft border-b px-5 py-4">
-                    <div
-                      className="flex items-center justify-center gap-2"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <IconButton icon={<FiEdit2 />} label="Редактировать вакансию" onClick={() => onEdit(vacancy)} size="sm" />
-                      <IconButton icon={<FiTrash2 />} label="Удалить вакансию" onClick={() => onDelete(vacancy)} size="sm" tone="danger" />
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
-        Всего: <span className="app-text font-black">{vacancies.length}</span>
-      </div>
-    </>
-  );
-}
-
-function VacancyCard({
-  canManage,
-  onDelete,
-  onEdit,
-  onOpen,
-  vacancy,
-}: {
-  canManage: boolean;
-  onDelete: () => void;
-  onEdit: () => void;
-  onOpen: () => void;
-  vacancy: HrRecord;
-}): JSX.Element {
-  const hardSkills = splitSkills(vacancy.hard_skills_summary);
-  const softSkills = splitSkills(vacancy.soft_skills_summary);
-
-  return (
-    <article
-      className="app-surface app-border group relative cursor-pointer overflow-hidden rounded-[28px] border p-6 transition-colors hover:border-[var(--accent-border)]"
-      onClick={onOpen}
-    >
-      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" />
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
-              {vacancyStatusLabel(String(vacancy.status))}
-            </RecruitmentBadge>
-            <RecruitmentBadge>
-              {employmentTypeLabel(String(vacancy.employment_type))}
-            </RecruitmentBadge>
-          </div>
-          <h2 className="app-text mt-4 text-2xl font-black tracking-tight">
-            {String(vacancy.position_name ?? "Должность не указана")}
-          </h2>
-          <p className="app-muted mt-2 flex items-center gap-2 text-sm">
-            <FiMapPin className="h-4 w-4" />
-            {[vacancy.enterprise_name, vacancy.department_name]
-              .filter(Boolean)
-              .join(" · ") || "Структура не указана"}
-          </p>
-        </div>
-        {canManage && (
-          <div className="flex gap-2" onClick={(event) => event.stopPropagation()}>
-            <IconButton icon={<FiEdit2 />} label="Редактировать вакансию" onClick={onEdit} />
-            <IconButton icon={<FiTrash2 />} label="Удалить вакансию" onClick={onDelete} tone="danger" />
-          </div>
-        )}
-      </div>
-
-      <SkillPreview label="Hard skills" skills={hardSkills} />
-      <SkillPreview label="Soft skills" skills={softSkills} />
-
-      <div className="app-border-soft app-muted mt-5 flex flex-wrap gap-5 border-t pt-4 text-sm font-bold">
-        <span className="flex items-center gap-2">
-          <FiUsers className="h-4 w-4" />
-          Кандидатов: {String(vacancy.candidates_count ?? 0)}
-        </span>
-        <span>Мест: {String(vacancy.openings_count ?? 1)}</span>
-        <span>Навыков: {String(vacancy.skills_count ?? 0)}</span>
-      </div>
-    </article>
-  );
-}
-
-function SkillPreview({ label, skills }: { label: string; skills: string[] }): JSX.Element {
-  if (skills.length === 0) return <></>;
-  return (
-    <div className="mt-5">
-      <p className="app-muted mb-2 text-xs font-black uppercase tracking-[0.14em]">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {skills.slice(0, 5).map((skill) => (
-          <RecruitmentBadge key={`${label}-${skill}`} tone="accent">{skill}</RecruitmentBadge>
-        ))}
-        {skills.length > 5 && <RecruitmentBadge>+{skills.length - 5}</RecruitmentBadge>}
-      </div>
-    </div>
-  );
-}
-
-function splitSkills(value: unknown): string[] {
-  return String(value ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 const vacancyStatusOptions = [
   { value: "open", label: "Открыта" },
   { value: "draft", label: "Черновик" },
   { value: "paused", label: "Приостановлена" },
   { value: "closed", label: "Закрыта" },
 ];
+
 const employmentTypeOptions = [
   { value: "full_time", label: "Полная занятость" },
   { value: "part_time", label: "Частичная занятость" },
   { value: "temporary", label: "Временная работа" },
   { value: "internship", label: "Стажировка" },
 ];
+
 function vacancyStatusLabel(value: string): string {
   return vacancyStatusOptions.find((item) => item.value === value)?.label ?? value;
 }
+
 function employmentTypeLabel(value: string): string {
   return employmentTypeOptions.find((item) => item.value === value)?.label ?? value;
 }
+
 function errorMessage(error: unknown, fallback: string): string {
   const parts = error instanceof Error ? error.message.split("Error: ") : [];
   return parts.length > 0 ? parts[parts.length - 1] : fallback;

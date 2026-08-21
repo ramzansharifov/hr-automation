@@ -28,14 +28,15 @@ import type { HrRecord } from "../../shared/types/hr";
 import {
   Button,
   ConfirmDialog,
+  DataTable,
   Dialog,
-  EmptyState,
   IconButton,
   Input,
   LoadingState,
   PageHeader,
   Select,
   Textarea,
+  type DataTableColumn,
   type SelectOption,
 } from "../../shared/ui";
 
@@ -442,115 +443,137 @@ function UsersSection({
   systemAdmin: SystemAdminSummary;
   users: AccessUserSummary[];
 }): JSX.Element {
-  return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <SystemAdminCard admin={systemAdmin} />
-      {users.map((user) => (
-        <article className="app-surface-muted app-border rounded-[22px] border p-5" key={user.id}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border">
-                <FiUserCheck className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="app-text break-words text-lg font-black">{user.employeeName}</h2>
-                  <StatusBadge status={user.status} />
-                </div>
-                <p className="app-accent-text mt-1 text-sm font-black">@{user.username}</p>
-                <p className="app-muted mt-2 text-xs font-semibold">
-                  {[user.enterpriseName, user.departmentName].filter(Boolean).join(" · ") ||
-                    "Организационная привязка не указана"}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 self-end sm:self-auto">
-              <IconButton label="Сбросить пароль" onClick={() => onResetPassword(user)}>
-                <FiKey />
-              </IconButton>
-              <IconButton label="Редактировать" onClick={() => onEdit(user)}>
-                <FiEdit2 />
-              </IconButton>
-              <IconButton danger label="Удалить" onClick={() => onDelete(user)}>
-                <FiTrash2 />
-              </IconButton>
-            </div>
-          </div>
+  type UserRow =
+    | { kind: "system"; id: string; admin: SystemAdminSummary }
+    | { kind: "user"; id: string; user: AccessUserSummary };
 
-          <div className="app-border-soft mt-4 border-t pt-4">
-            <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">Назначенные роли</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {user.roles.map((role) => (
-                <span className="app-surface app-border rounded-full border px-3 py-1 text-xs font-bold" key={role.id}>
-                  {role.name}
-                </span>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
-              <span className="app-muted">Разрешений: {user.effectivePermissionCodes.length}</span>
-              {user.mustChangePassword && (
-                <span className="text-amber-600 dark:text-amber-300">Требуется смена пароля</span>
-              )}
-            </div>
-          </div>
-        </article>
-      ))}
-      {users.length === 0 && (
-        <EmptyState
-          title="Учётных записей сотрудников пока нет"
-          description="Встроенный superadmin уже доступен. Для рабочих ролей создайте учётные записи и свяжите их с активными сотрудниками."
-        />
-      )}
-    </div>
-  );
-}
+  const rows: UserRow[] = [
+    { kind: "system", id: "system-superadmin", admin: systemAdmin },
+    ...users.map((user) => ({ kind: "user" as const, id: String(user.id), user })),
+  ];
 
-function SystemAdminCard({ admin }: { admin: SystemAdminSummary }): JSX.Element {
-  return (
-    <article className="app-accent-gradient-panel rounded-[22px] border p-5 text-white xl:col-span-2">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
+  const columns: DataTableColumn<UserRow>[] = [
+    {
+      key: "account",
+      header: "Учётная запись",
+      render: (row) => row.kind === "system" ? (
+        <div className="flex min-w-[210px] items-center gap-3">
+          <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
             <FiShield className="h-5 w-5" />
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-black">Системный администратор</h2>
-              <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-black">
-                Встроенная учётная запись
-              </span>
+              <span className="app-text font-black">Системный администратор</span>
+              <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">Встроенная</span>
             </div>
-            <p className="mt-1 text-sm font-black text-white">@{admin.username}</p>
-            <p className="mt-2 max-w-2xl text-xs font-semibold text-white/75">
-              Не связан с сотрудником, не удаляется и не получает роли через обычные назначения. Имеет фиксированную системную роль Superadmin.
-            </p>
+            <p className="app-accent-text mt-1 text-xs font-black">@{row.admin.username}</p>
           </div>
         </div>
-        <span className="rounded-full border border-emerald-200/30 bg-emerald-400/15 px-3 py-1 text-xs font-black text-white">
-          Активен
-        </span>
-      </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <SystemAdminMetric label="Роль" value="Superadmin" />
-        <SystemAdminMetric
-          label="Последний вход"
-          value={admin.lastLoginAt ? formatDateTime(admin.lastLoginAt) : "Ещё не входил"}
-        />
-        <SystemAdminMetric
-          label="Пароль"
-          value={admin.mustChangePassword ? "Требуется смена" : "Установлен"}
-        />
-      </div>
-    </article>
-  );
-}
+      ) : (
+        <div className="flex min-w-[210px] items-center gap-3">
+          <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+            <FiUserCheck className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="app-text font-black">{row.user.employeeName}</p>
+            <p className="app-accent-text mt-1 text-xs font-black">@{row.user.username}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "structure",
+      header: "Сотрудник / структура",
+      render: (row) => row.kind === "system" ? (
+        <span className="app-muted text-sm">Не связан с сотрудником</span>
+      ) : (
+        <div className="min-w-[180px]">
+          <p className="app-text-soft text-sm font-semibold">{row.user.employeeName}</p>
+          <p className="app-muted mt-1 text-xs">
+            {[row.user.enterpriseName, row.user.departmentName].filter(Boolean).join(" · ") || "—"}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Статус",
+      render: (row) => row.kind === "system" ? <StatusBadge status="active" /> : <StatusBadge status={row.user.status} />,
+    },
+    {
+      key: "roles",
+      header: "Роли",
+      render: (row) => (
+        <div className="flex max-w-[260px] flex-wrap gap-1.5">
+          {row.kind === "system" ? (
+            <span className="app-surface-muted app-border rounded-full border px-2.5 py-1 text-xs font-bold">Superadmin</span>
+          ) : row.user.roles.length > 0 ? (
+            row.user.roles.slice(0, 3).map((role) => (
+              <span className="app-surface-muted app-border rounded-full border px-2.5 py-1 text-xs font-bold" key={role.id}>
+                {role.name}
+              </span>
+            ))
+          ) : (
+            <span className="app-muted text-xs">Нет ролей</span>
+          )}
+          {row.kind === "user" && row.user.roles.length > 3 && (
+            <span className="app-muted text-xs font-bold">+{row.user.roles.length - 3}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "access",
+      header: "Доступ",
+      render: (row) => row.kind === "system" ? (
+        <div>
+          <p className="app-text font-bold">Полный системный доступ</p>
+          <p className="app-muted mt-1 text-xs">Пароль: {row.admin.mustChangePassword ? "требуется смена" : "установлен"}</p>
+        </div>
+      ) : (
+        <div>
+          <p className="app-text font-bold">{row.user.effectivePermissionCodes.length} разрешений</p>
+          {row.user.mustChangePassword && (
+            <p className="mt-1 text-xs font-semibold text-amber-600 dark:text-amber-300">Требуется смена пароля</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Действия",
+      align: "center",
+      render: (row) => row.kind === "system" ? (
+        <span className="app-muted text-xs font-semibold">Системная</span>
+      ) : (
+        <div className="flex items-center justify-center gap-2">
+          <IconButton label="Сбросить пароль" onClick={() => onResetPassword(row.user)}>
+            <FiKey />
+          </IconButton>
+          <IconButton label="Редактировать" onClick={() => onEdit(row.user)}>
+            <FiEdit2 />
+          </IconButton>
+          <IconButton danger label="Удалить" onClick={() => onDelete(row.user)}>
+            <FiTrash2 />
+          </IconButton>
+        </div>
+      ),
+    },
+  ];
 
-function SystemAdminMetric({ label, value }: { label: string; value: string }): JSX.Element {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
-      <p className="text-[11px] font-black uppercase tracking-wide text-white/65">{label}</p>
-      <p className="mt-1 text-sm font-black text-white">{value}</p>
-    </div>
+    <DataTable
+      ariaLabel="Пользователи системы"
+      columns={columns}
+      footer={
+        <>
+          Учётных записей: <span className="app-text font-black">{rows.length}</span>
+        </>
+      }
+      frame={false}
+      getRowKey={(row) => row.id}
+      rows={rows}
+    />
   );
 }
 
@@ -566,61 +589,84 @@ function RolesSection({
   roles: AccessRoleSummary[];
 }): JSX.Element {
   const permissionMap = new Map(permissions.map((permission) => [permission.code, permission]));
-
-  return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      {roles.map((role) => (
-        <article className="app-surface-muted app-border rounded-[22px] border p-5" key={role.id}>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border">
-                <FiShield className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="app-text text-lg font-black">{role.name}</h2>
-                  {role.isSystem && (
-                    <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-black text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
-                      Системная
-                    </span>
-                  )}
-                </div>
-                <p className="app-muted mt-1 text-sm leading-6">{role.description}</p>
-              </div>
-            </div>
-            {!role.isSystem && (
-              <div className="flex gap-2">
-                <IconButton label="Редактировать" onClick={() => onEdit(role)}>
-                  <FiEdit2 />
-                </IconButton>
-                <IconButton danger label="Удалить" onClick={() => onDelete(role)}>
-                  <FiTrash2 />
-                </IconButton>
-              </div>
+  const columns: DataTableColumn<AccessRoleSummary>[] = [
+    {
+      key: "role",
+      header: "Роль",
+      render: (role) => (
+        <div className="min-w-[220px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="app-text font-black">{role.name}</span>
+            {role.isSystem && (
+              <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">Системная</span>
             )}
           </div>
+          <p className="app-muted mt-1 max-w-[360px] text-xs leading-5">{role.description || "—"}</p>
+        </div>
+      ),
+    },
+    {
+      key: "scope",
+      header: "Область данных",
+      render: (role) => <span className="app-text-soft font-semibold">{scopeLabel(role.scopeType)}</span>,
+    },
+    {
+      key: "users",
+      header: "Пользователей",
+      align: "center",
+      render: (role) => <span className="app-text font-black">{role.userCount}</span>,
+    },
+    {
+      key: "permissions",
+      header: "Разрешения",
+      render: (role) => (
+        <div className="flex max-w-[360px] flex-wrap gap-1.5">
+          {role.permissionCodes.slice(0, 3).map((code) => (
+            <span className="app-surface-muted app-border inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold" key={code}>
+              <FiCheck className="app-accent-text h-3 w-3" />
+              {permissionMap.get(code)?.name ?? code}
+            </span>
+          ))}
+          {role.permissionCodes.length > 3 && (
+            <span className="app-muted self-center text-xs font-bold">+{role.permissionCodes.length - 3}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Действия",
+      align: "center",
+      render: (role) => role.isSystem ? (
+        <span className="app-muted text-xs font-semibold">Защищена</span>
+      ) : (
+        <div className="flex items-center justify-center gap-2">
+          <IconButton label="Редактировать" onClick={() => onEdit(role)}>
+            <FiEdit2 />
+          </IconButton>
+          <IconButton danger label="Удалить" onClick={() => onDelete(role)}>
+            <FiTrash2 />
+          </IconButton>
+        </div>
+      ),
+    },
+  ];
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <RoleMetric label="Область" value={scopeLabel(role.scopeType)} />
-            <RoleMetric label="Пользователей" value={String(role.userCount)} />
-          </div>
-
-          <div className="app-border-soft mt-4 border-t pt-4">
-            <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">
-              Разрешения ({role.permissionCodes.length})
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {role.permissionCodes.map((code) => (
-                <span className="app-surface app-border inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold" key={code}>
-                  <FiCheck className="app-accent-text h-3.5 w-3.5" />
-                  {permissionMap.get(code)?.name ?? code}
-                </span>
-              ))}
-            </div>
-          </div>
-        </article>
-      ))}
-    </div>
+  return (
+    <DataTable
+      ariaLabel="Роли доступа"
+      columns={columns}
+      emptyDescription="Создайте первую кастомную роль или используйте системные роли."
+      emptyTitle="Ролей пока нет"
+      footer={
+        <>
+          Ролей: <span className="app-text font-black">{roles.length}</span>
+        </>
+      }
+      frame={false}
+      getRowKey={(role) => role.id}
+      rows={roles}
+    />
   );
 }
 
@@ -911,15 +957,6 @@ function StatusBadge({ status }: { status: AccessUserStatus }): JSX.Element {
   );
 }
 
-function RoleMetric({ label, value }: { label: string; value: string }): JSX.Element {
-  return (
-    <div className="app-surface app-border rounded-2xl border p-4">
-      <p className="app-muted text-xs font-bold">{label}</p>
-      <p className="app-text mt-1 text-sm font-black">{value}</p>
-    </div>
-  );
-}
-
 function Field({ children, label }: { children: React.ReactNode; label: string }): JSX.Element {
   return (
     <label className="grid gap-2">
@@ -994,15 +1031,6 @@ async function loadEmployees(): Promise<EmployeeOption[]> {
       enterpriseName: enterpriseMap.get(department?.enterpriseId ?? 0) ?? "",
     };
   });
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("ru-RU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {

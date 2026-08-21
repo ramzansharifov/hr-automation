@@ -20,10 +20,10 @@ import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
 import {
   Button,
-  EmptyState,
+  DataTable,
   IconButton,
-  LoadingState,
   PageHeader,
+  type DataTableColumn,
 } from "../shared/ui";
 
 export function VacationsPage(): JSX.Element {
@@ -123,6 +123,103 @@ export function VacationsPage(): JSX.Element {
     );
   }).length;
 
+  const columns: DataTableColumn<HrRecord>[] = [
+    {
+      key: "employee",
+      header: "Сотрудник",
+      render: (record) => (
+        <span className="app-text font-black">
+          {String(record.employee_name ?? "Сотрудник")}
+        </span>
+      ),
+    },
+    {
+      key: "type",
+      header: "Вид отпуска",
+      render: (record) => (
+        <span className="app-accent-text font-bold">
+          {String(record.vacation_type_name ?? "Отпуск")}
+        </span>
+      ),
+    },
+    {
+      key: "period",
+      header: "Период",
+      render: (record) => (
+        <span className="app-text-soft whitespace-nowrap">
+          {formatDate(record.starts_at)} — {formatDate(record.ends_at)}
+        </span>
+      ),
+    },
+    {
+      key: "days",
+      header: "Дней",
+      align: "center",
+      render: (record) => (
+        <span className="app-text font-black">{String(record.days_count ?? "—")}</span>
+      ),
+    },
+    {
+      key: "paid",
+      header: "Оплата",
+      render: (record) => (
+        <span className="app-surface-muted app-border rounded-full border px-3 py-1 text-xs font-black">
+          {Number(record.is_paid) === 1 ? "Оплачиваемый" : "Неоплачиваемый"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Статус",
+      render: (record) => <StatusBadge status={String(record.status ?? "planned")} />,
+    },
+    {
+      key: "approval",
+      header: "Согласование",
+      render: (record) => (
+        <div className="min-w-[150px]">
+          <p className="app-text-soft text-sm font-semibold">
+            {record.approved_by_name ? String(record.approved_by_name) : "—"}
+          </p>
+          <p className="app-muted mt-1 text-xs">
+            {record.approved_at ? formatDate(record.approved_at) : "Не согласован"}
+          </p>
+        </div>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "Действия",
+            align: "center" as const,
+            render: (record: HrRecord) => {
+              const canDelete = String(record.status ?? "planned") === "planned";
+              return (
+                <div className="flex items-center justify-center gap-2">
+                  <IconButton
+                    icon={<FiEdit2 />}
+                    label="Редактировать отпуск"
+                    onClick={() => openEdit(record)}
+                    size="sm"
+                  />
+                  {canDelete && (
+                    <IconButton
+                      icon={<FiTrash2 />}
+                      label="Удалить отпуск"
+                      onClick={() => openDelete(record)}
+                      size="sm"
+                      tone="danger"
+                    />
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -176,52 +273,41 @@ export function VacationsPage(): JSX.Element {
         </section>
       )}
 
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft flex justify-end border-b p-5">
-          <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
-            onClick={() => void loadData()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
-        </div>
-
-        {employeeFilter && (
-          <div className="app-border-soft app-surface-muted border-b px-5 py-3 text-sm font-bold">
-            Показаны отпуска выбранного сотрудника · {records.length}
+      <DataTable
+        ariaLabel="Реестр отпусков"
+        columns={columns}
+        emptyDescription="В доступной области данных пока нет записей об отпусках."
+        emptyTitle="Отпусков пока нет"
+        footer={
+          <>
+            Всего: <span className="app-text font-black">{records.length}</span>
+          </>
+        }
+        getRowKey={(record) => String(record.id)}
+        isLoading={isLoading}
+        loadingLabel="Загрузка отпусков..."
+        notice={
+          employeeFilter
+            ? `Показаны отпуска выбранного сотрудника · ${records.length}`
+            : undefined
+        }
+        rows={records}
+        toolbar={
+          <div className="ml-auto">
+            <Button
+              leftIcon={
+                <FiRefreshCw
+                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                />
+              }
+              onClick={() => void loadData()}
+              variant="secondary"
+            >
+              Обновить
+            </Button>
           </div>
-        )}
-
-        {isLoading ? (
-          <div className="p-12">
-            <LoadingState label="Загрузка отпусков..." />
-          </div>
-        ) : records.length === 0 ? (
-          <div className="py-14">
-            <EmptyState
-              description="В доступной области данных пока нет записей об отпусках."
-              title="Отпусков пока нет"
-            />
-          </div>
-        ) : (
-          <div className="grid gap-4 p-5 xl:grid-cols-2">
-            {records.map((record) => (
-              <VacationCard
-                canManage={canManage}
-                key={String(record.id)}
-                onDelete={() => openDelete(record)}
-                onEdit={() => openEdit(record)}
-                record={record}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+        }
+      />
 
       {canManage && (
         <>
@@ -255,79 +341,6 @@ export function VacationsPage(): JSX.Element {
   );
 }
 
-function VacationCard({
-  canManage,
-  onDelete,
-  onEdit,
-  record,
-}: {
-  canManage: boolean;
-  onDelete: () => void;
-  onEdit: () => void;
-  record: HrRecord;
-}): JSX.Element {
-  const status = String(record.status ?? "planned");
-  const canDelete = canManage && status === "planned";
-
-  return (
-    <article className="app-surface-muted app-border rounded-[24px] border p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={status} />
-            <span className="app-surface app-border rounded-full border px-3 py-1 text-xs font-black">
-              {Number(record.is_paid) === 1 ? "Оплачиваемый" : "Неоплачиваемый"}
-            </span>
-          </div>
-          <h2 className="app-text mt-3 text-lg font-black">
-            {String(record.employee_name ?? "Сотрудник")}
-          </h2>
-          <p className="app-accent-text mt-1 text-sm font-bold">
-            {String(record.vacation_type_name ?? "Отпуск")}
-          </p>
-        </div>
-        {canManage && (
-          <div className="flex shrink-0 gap-2">
-            <IconButton icon={<FiEdit2 />} label="Редактировать отпуск" onClick={onEdit} size="sm" />
-            {canDelete && (
-              <IconButton icon={<FiTrash2 />} label="Удалить отпуск" onClick={onDelete} size="sm" tone="danger" />
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <SmallMetric
-          label="Период"
-          value={`${formatDate(record.starts_at)} — ${formatDate(record.ends_at)}`}
-        />
-        <SmallMetric label="Дней" value={String(record.days_count ?? "—")} />
-        <SmallMetric
-          label="Согласование"
-          value={record.approved_at ? formatDate(record.approved_at) : "—"}
-        />
-      </div>
-
-      {(record.reason || record.approved_by_name) && (
-        <div className="app-border-soft mt-4 space-y-2 border-t pt-4 text-sm">
-          {record.approved_by_name && (
-            <p className="app-text-soft">
-              <span className="app-text font-black">Согласовал: </span>
-              {String(record.approved_by_name)}
-            </p>
-          )}
-          {record.reason && (
-            <p className="app-text-soft">
-              <span className="app-text font-black">Основание: </span>
-              {String(record.reason)}
-            </p>
-          )}
-        </div>
-      )}
-    </article>
-  );
-}
-
 function MetricCard({
   icon,
   label,
@@ -349,15 +362,6 @@ function MetricCard({
         </div>
       </div>
     </article>
-  );
-}
-
-function SmallMetric({ label, value }: { label: string; value: string }): JSX.Element {
-  return (
-    <div className="app-surface app-border rounded-2xl border p-3">
-      <p className="app-muted text-[11px] font-black uppercase tracking-wide">{label}</p>
-      <p className="app-text mt-1 text-sm font-bold">{value}</p>
-    </div>
   );
 }
 

@@ -10,7 +10,6 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
-import { CandidateSummaryCard } from "../../features/recruitment/CandidateSummaryCard";
 import {
   FormField,
   MatchBar,
@@ -33,14 +32,12 @@ import type {
 import {
   Button,
   ConfirmDialog,
-  IconButton,
+  DataTable,
   Dialog,
-  EmptyState,
+  IconButton,
   Input,
-  LoadingState,
   Select,
-  ViewModeToggle,
-  useStoredViewMode,
+  type DataTableColumn,
   type SelectOption,
 } from "../../shared/ui";
 
@@ -110,7 +107,6 @@ export function CandidatesPage(): JSX.Element {
   const [filters, setFilters] = useState<CandidateFilterValues>(
     getStoredCandidateFilterValues,
   );
-  const [viewMode, setViewMode] = useStoredViewMode("candidates", "cards");
   const [form, setForm] = useState<CandidateFormState>(emptyForm);
   const [hireForm, setHireForm] = useState<HireFormState>(emptyHireForm);
   const [isLoading, setIsLoading] = useState(true);
@@ -309,56 +305,15 @@ export function CandidatesPage(): JSX.Element {
         title="Кандидаты"
       />
 
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-          <ViewModeToggle onChange={setViewMode} value={viewMode} />
-          <Button
-            leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
-            onClick={() => void loadData()}
-            type="button"
-            variant="secondary"
-          >
-            Обновить
-          </Button>
-        </div>
-
-        {isLoading ? (
-          <div className="px-5 py-16"><LoadingState label="Загрузка кандидатов..." /></div>
-        ) : filteredCandidates.length === 0 ? (
-          <div className="py-16">
-            <EmptyState
-              title={candidates.length === 0 ? "Кандидатов пока нет" : "Нет кандидатов по выбранным фильтрам"}
-              description={
-                candidates.length === 0
-                  ? canManage
-                    ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
-                    : "В доступной области пока нет кандидатов."
-                  : "Измените или очистите фильтры."
-              }
-            />
-          </div>
-        ) : viewMode === "cards" ? (
-          <div className="space-y-4 p-5">
-            {filteredCandidates.map((candidate) => (
-              <CandidateSummaryCard
-                canManage={canManage}
-                candidate={candidate}
-                key={String(candidate.id)}
-                onDelete={() => setDeleteTarget(candidate)}
-                onEdit={() => void openCandidate(candidate)}
-                onOpen={() => void openCandidate(candidate)}
-              />
-            ))}
-          </div>
-        ) : (
-          <CandidatesTable
-            canManage={canManage}
-            candidates={filteredCandidates}
-            onDelete={setDeleteTarget}
-            onOpen={(candidate) => void openCandidate(candidate)}
-          />
-        )}
-      </section>
+      <CandidatesTable
+        canManage={canManage}
+        candidates={filteredCandidates}
+        hasAnyCandidates={candidates.length > 0}
+        isLoading={isLoading}
+        onDelete={setDeleteTarget}
+        onOpen={(candidate) => void openCandidate(candidate)}
+        onRefresh={() => void loadData()}
+      />
 
       <Dialog
         description={form.employeeId ? "Кандидат уже принят на работу. Запись сохранена как история подбора." : "Карточка кандидата, этап подбора и оценка навыков."}
@@ -539,46 +494,143 @@ function HireField({
 function CandidatesTable({
   canManage,
   candidates,
+  hasAnyCandidates,
+  isLoading,
   onDelete,
   onOpen,
+  onRefresh,
 }: {
   canManage: boolean;
   candidates: HrRecord[];
+  hasAnyCandidates: boolean;
+  isLoading: boolean;
   onDelete: (candidate: HrRecord) => void;
   onOpen: (candidate: HrRecord) => void;
+  onRefresh: () => void;
 }): JSX.Element {
+  const columns: DataTableColumn<HrRecord>[] = [
+    {
+      key: "name",
+      header: "ФИО",
+      render: (candidate) => (
+        <span className="app-text font-black">{candidateFullName(candidate)}</span>
+      ),
+    },
+    {
+      key: "vacancy",
+      header: "Вакансия / структура",
+      render: (candidate) => (
+        <div className="min-w-[210px]">
+          <p className="app-text font-bold">{String(candidate.position_name ?? "—")}</p>
+          <p className="app-muted mt-1 text-xs font-semibold">
+            {[candidate.enterprise_name, candidate.department_name].filter(Boolean).join(" · ") || "—"}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "contacts",
+      header: "Контакты",
+      render: (candidate) => (
+        <div className="min-w-[170px] space-y-1">
+          <p className="app-text-soft text-sm">{String(candidate.phone ?? "—")}</p>
+          <p className="app-muted truncate text-xs">{String(candidate.email ?? "—")}</p>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Этап",
+      render: (candidate) => (
+        <RecruitmentBadge tone={candidate.status === "hired" ? "success" : candidate.status === "offer" ? "warning" : "accent"}>
+          {candidateStatusLabel(String(candidate.status))}
+        </RecruitmentBadge>
+      ),
+    },
+    {
+      key: "match",
+      header: "Соответствие",
+      render: (candidate) => (
+        <div className="min-w-[160px]">
+          <MatchBar value={Number(candidate.match_percentage ?? 0)} />
+        </div>
+      ),
+    },
+    {
+      key: "source",
+      header: "Источник",
+      render: (candidate) => (
+        <span className="app-text-soft">{String(candidate.source ?? "—")}</span>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "Действия",
+            align: "center" as const,
+            render: (candidate: HrRecord) => (
+              <div
+                className="flex items-center justify-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <IconButton
+                  icon={<FiEdit2 />}
+                  label="Редактировать кандидата"
+                  onClick={() => onOpen(candidate)}
+                  size="sm"
+                />
+                {!candidate.employee_id && (
+                  <IconButton
+                    icon={<FiTrash2 />}
+                    label="Удалить кандидата"
+                    onClick={() => onDelete(candidate)}
+                    size="sm"
+                    tone="danger"
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-        <thead>
-          <tr className="app-surface-muted app-muted text-xs">
-            {['ФИО', 'Вакансия', 'Контакты', 'Этап', 'Соответствие', 'Источник', 'Действия'].map((label) => (
-              <th className="app-border-soft border-b px-5 py-4 font-black" key={label}>{label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {candidates.map((candidate) => (
-            <tr className="app-hover-muted cursor-pointer transition" key={String(candidate.id)} onClick={() => onOpen(candidate)}>
-              <td className="app-border-soft app-text border-b px-5 py-4 font-black">{candidateFullName(candidate)}</td>
-              <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.position_name ?? "—")}</td>
-              <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.phone ?? candidate.email ?? "—")}</td>
-              <td className="app-border-soft border-b px-5 py-4"><RecruitmentBadge tone="accent">{candidateStatusLabel(String(candidate.status))}</RecruitmentBadge></td>
-              <td className="app-border-soft border-b px-5 py-4"><MatchBar value={Number(candidate.match_percentage ?? 0)} /></td>
-              <td className="app-border-soft app-text-soft border-b px-5 py-4">{String(candidate.source ?? "—")}</td>
-              <td className="app-border-soft border-b px-5 py-4">
-                <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                  <IconButton icon={<FiEdit2 />} label={canManage ? "Редактировать кандидата" : "Открыть кандидата"} onClick={() => onOpen(candidate)} size="sm" />
-                  {canManage && !candidate.employee_id && (
-                    <IconButton icon={<FiTrash2 />} label="Удалить кандидата" onClick={() => onDelete(candidate)} size="sm" tone="danger" />
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      ariaLabel="Реестр кандидатов"
+      columns={columns}
+      emptyDescription={
+        hasAnyCandidates
+          ? "Измените или очистите фильтры на странице фильтров."
+          : canManage
+            ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
+            : "В доступной области пока нет кандидатов."
+      }
+      emptyTitle={hasAnyCandidates ? "Нет кандидатов по выбранным фильтрам" : "Кандидатов пока нет"}
+      footer={
+        <>
+          Всего в выборке: <span className="app-text font-black">{candidates.length}</span>
+        </>
+      }
+      getRowKey={(candidate) => String(candidate.id)}
+      isLoading={isLoading}
+      loadingLabel="Загрузка кандидатов..."
+      onRowClick={onOpen}
+      rows={candidates}
+      toolbar={
+        <div className="ml-auto">
+          <Button
+            leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
+            onClick={onRefresh}
+            type="button"
+            variant="secondary"
+          >
+            Обновить
+          </Button>
+        </div>
+      }
+    />
   );
 }
 
