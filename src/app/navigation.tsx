@@ -10,6 +10,7 @@ import {
   FiSettings,
   FiShield,
   FiUser,
+  FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
 import type { HrEntityKey } from "../shared/types/hr";
@@ -69,8 +70,14 @@ export const navigationItems: AppNavigationItem[] = [
     permissionCode: "filters.use",
   },
   {
-    titleKey: "Роли и пользователи",
-    path: "/access",
+    titleKey: "Пользователи",
+    path: "/users",
+    icon: FiUserCheck,
+    permissionCode: "access.manage",
+  },
+  {
+    titleKey: "Роли",
+    path: "/roles",
     icon: FiShield,
     permissionCode: "access.manage",
   },
