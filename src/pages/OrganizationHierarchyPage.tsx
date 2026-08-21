@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronRight, FiLayers, FiPlus, FiUserCheck } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
-import { HrEntityTable } from "../features/hr-table/HrEntityTable";
+import {
+  HrEntityTable,
+  type HrEntityTableHandle,
+} from "../features/hr-table/HrEntityTable";
 import {
   ENTERPRISE_FILTERS_EVENT,
   getStoredEnterpriseHrFilters,
@@ -22,7 +25,6 @@ import {
   LoadingState,
   PageHeader,
   Select,
-  ViewModeToggle,
   useStoredViewMode,
   type SelectOption,
 } from "../shared/ui";
@@ -35,6 +37,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
   const { hasPermission, session } = useAuth();
+  const tableRef = useRef<HrEntityTableHandle>(null);
   const canManage = hasPermission("organization.manage");
   const enterpriseId = toId(params.enterpriseId);
   const departmentId = toId(params.departmentId);
@@ -276,13 +279,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
         <Button
           className="border-white/20 shadow-xl hover:opacity-90"
           leftIcon={<FiPlus className="h-4 w-4" />}
-          onClick={() =>
-            document
-              .querySelector<HTMLButtonElement>(
-                ".organization-entity-table .app-button-primary",
-              )
-              ?.click()
-          }
+          onClick={() => tableRef.current?.openCreate()}
           style={{ background: "#ffffff", color: "#0f172a" }}
           variant="ghost"
         >
@@ -296,11 +293,8 @@ export function OrganizationHierarchyPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader actions={headerActions} icon={<FiLayers />} title={page.title} />
 
-      <div className="flex justify-start">
-        <ViewModeToggle onChange={setViewMode} value={viewMode} />
-      </div>
-
       <HrEntityTable
+        ref={tableRef}
         className={`organization-entity-table${canManage ? "" : " organization-entity-table--read-only"}`}
         createInitialRecord={page.createInitialRecord}
         entity={page.entity}
@@ -308,7 +302,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
           level === "enterprises" ? enterpriseFilters : page.filters
         }
         hiddenColumnKeys={page.hiddenColumnKeys}
-        hideCreateButton={!canCreate}
+        hideCreateButton
         hideToolbarSearch
         onRowClick={
           level === "enterprises"
