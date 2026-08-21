@@ -4,7 +4,6 @@ import {
   FiEdit2,
   FiPlus,
   FiRefreshCw,
-  FiSettings,
   FiTrash2,
   FiUser,
 } from "react-icons/fi";
@@ -14,7 +13,6 @@ import { toast } from "react-toastify";
 import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
-import { HrEntityTable } from "../features/hr-table/HrEntityTable";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
@@ -28,12 +26,10 @@ import {
 } from "../shared/ui";
 
 export function VacationsPage(): JSX.Element {
-  const { hasPermission, session } = useAuth();
+  const { hasPermission } = useAuth();
   const [searchParams] = useSearchParams();
   const employeeFilter = positiveId(searchParams.get("employee"));
   const canManage = hasPermission("vacations.manage");
-  const canManageTypes =
-    canManage && session.permissionScopes["vacations.manage"] === "global";
   const [viewMode, setViewMode] = useStoredViewMode("vacations");
 
   const [records, setRecords] = useState<HrRecord[]>([]);
@@ -42,7 +38,6 @@ export function VacationsPage(): JSX.Element {
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [showTypes, setShowTypes] = useState(false);
 
   const loadData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -233,28 +228,16 @@ export function VacationsPage(): JSX.Element {
       <PageHeader
         icon={<FiCalendar />}
         actions={
-          <>
-            {canManageTypes && (
-              <Button
-                leftIcon={<FiSettings className="h-4 w-4" />}
-                onClick={() => setShowTypes((current) => !current)}
-                style={{ background: "#ffffff", color: "#0f172a" }}
-                variant="ghost"
-              >
-                Виды отпусков
-              </Button>
-            )}
-            {canManage && (
-              <Button
-                leftIcon={<FiPlus className="h-4 w-4" />}
-                onClick={openCreate}
-                style={{ background: "#ffffff", color: "#0f172a" }}
-                variant="ghost"
-              >
-                Оформить отпуск
-              </Button>
-            )}
-          </>
+          canManage ? (
+            <Button
+              leftIcon={<FiPlus className="h-4 w-4" />}
+              onClick={openCreate}
+              style={{ background: "#ffffff", color: "#0f172a" }}
+              variant="ghost"
+            >
+              Оформить отпуск
+            </Button>
+          ) : undefined
         }
         title="Отпуска"
       />
@@ -268,22 +251,6 @@ export function VacationsPage(): JSX.Element {
           value={`${approvedCount} / ${upcomingCount}`}
         />
       </section>
-
-      {canManageTypes && showTypes && (
-        <section className="space-y-3">
-          <div>
-            <h2 className="app-text text-xl font-black">Справочник видов отпусков</h2>
-            <p className="app-muted mt-1 text-sm">
-              Виды отпусков едины для всей системы. Неактивные варианты сохраняются в истории, но не должны использоваться для новых записей.
-            </p>
-          </div>
-          <HrEntityTable
-            entity="vacation_types"
-            onViewModeChange={setViewMode}
-            viewMode={viewMode}
-          />
-        </section>
-      )}
 
       <DataTable
         ariaLabel="Реестр отпусков"
