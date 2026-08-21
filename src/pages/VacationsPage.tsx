@@ -23,6 +23,7 @@ import {
   DataTable,
   IconButton,
   PageHeader,
+  useStoredViewMode,
   type DataTableColumn,
 } from "../shared/ui";
 
@@ -33,6 +34,7 @@ export function VacationsPage(): JSX.Element {
   const canManage = hasPermission("vacations.manage");
   const canManageTypes =
     canManage && session.permissionScopes["vacations.manage"] === "global";
+  const [viewMode, setViewMode] = useStoredViewMode("vacations");
 
   const [records, setRecords] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +113,29 @@ export function VacationsPage(): JSX.Element {
     });
     setDeleteTarget(null);
     await loadData();
+  }
+
+  function renderActions(record: HrRecord): JSX.Element {
+    const canDelete = String(record.status ?? "planned") === "planned";
+    return (
+      <>
+        <IconButton
+          icon={<FiEdit2 />}
+          label="Редактировать отпуск"
+          onClick={() => openEdit(record)}
+          size="sm"
+        />
+        {canDelete && (
+          <IconButton
+            icon={<FiTrash2 />}
+            label="Удалить отпуск"
+            onClick={() => openDelete(record)}
+            size="sm"
+            tone="danger"
+          />
+        )}
+      </>
+    );
   }
 
   const plannedCount = records.filter((record) => record.status === "planned").length;
@@ -193,28 +218,11 @@ export function VacationsPage(): JSX.Element {
             key: "actions",
             header: "Действия",
             align: "center" as const,
-            render: (record: HrRecord) => {
-              const canDelete = String(record.status ?? "planned") === "planned";
-              return (
-                <div className="flex items-center justify-center gap-2">
-                  <IconButton
-                    icon={<FiEdit2 />}
-                    label="Редактировать отпуск"
-                    onClick={() => openEdit(record)}
-                    size="sm"
-                  />
-                  {canDelete && (
-                    <IconButton
-                      icon={<FiTrash2 />}
-                      label="Удалить отпуск"
-                      onClick={() => openDelete(record)}
-                      size="sm"
-                      tone="danger"
-                    />
-                  )}
-                </div>
-              );
-            },
+            render: (record: HrRecord) => (
+              <div className="flex items-center justify-center gap-2">
+                {renderActions(record)}
+              </div>
+            ),
           },
         ]
       : []),
@@ -269,12 +277,38 @@ export function VacationsPage(): JSX.Element {
               Виды отпусков едины для всей системы. Неактивные варианты сохраняются в истории, но не должны использоваться для новых записей.
             </p>
           </div>
-          <HrEntityTable entity="vacation_types" />
+          <HrEntityTable
+            entity="vacation_types"
+            onViewModeChange={setViewMode}
+            viewMode={viewMode}
+          />
         </section>
       )}
 
       <DataTable
         ariaLabel="Реестр отпусков"
+        card={{
+          leading: () => <FiCalendar className="h-5 w-5" />,
+          title: (record) => String(record.employee_name ?? "Сотрудник"),
+          meta: (record) => (
+            <>
+              <span className="app-text-soft">
+                <span className="app-muted">Вид: </span>
+                {String(record.vacation_type_name ?? "Отпуск")}
+              </span>
+              <span className="app-text-soft">
+                <span className="app-muted">Период: </span>
+                {formatDate(record.starts_at)} — {formatDate(record.ends_at)}
+              </span>
+              <span className="app-text-soft">
+                <span className="app-muted">Дней: </span>
+                {String(record.days_count ?? "—")}
+              </span>
+              <StatusBadge status={String(record.status ?? "planned")} />
+            </>
+          ),
+          actions: canManage ? (record) => renderActions(record) : undefined,
+        }}
         columns={columns}
         emptyDescription="В доступной области данных пока нет записей об отпусках."
         emptyTitle="Отпусков пока нет"
@@ -291,22 +325,22 @@ export function VacationsPage(): JSX.Element {
             ? `Показаны отпуска выбранного сотрудника · ${records.length}`
             : undefined
         }
+        onViewModeChange={setViewMode}
         rows={records}
         toolbar={
-          <div className="ml-auto">
-            <Button
-              leftIcon={
-                <FiRefreshCw
-                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-                />
-              }
-              onClick={() => void loadData()}
-              variant="secondary"
-            >
-              Обновить
-            </Button>
-          </div>
+          <Button
+            leftIcon={
+              <FiRefreshCw
+                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+              />
+            }
+            onClick={() => void loadData()}
+            variant="secondary"
+          >
+            Обновить
+          </Button>
         }
+        viewMode={viewMode}
       />
 
       {canManage && (
