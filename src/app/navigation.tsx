@@ -1,6 +1,7 @@
 import type { IconType } from "react-icons";
 import {
   FiActivity,
+  FiBookOpen,
   FiBriefcase,
   FiCalendar,
   FiClipboard,
@@ -20,10 +21,11 @@ export interface AppNavigationItem {
   path: string;
   icon: IconType;
   permissionCode?: string;
+  requiredGlobalScope?: boolean;
   entity?: HrEntityKey;
 }
 
-export const navigationItems: AppNavigationItem[] = [
+export const mainNavigationItems: AppNavigationItem[] = [
   {
     titleKey: "navigation.dashboard",
     path: "/dashboard",
@@ -68,6 +70,17 @@ export const navigationItems: AppNavigationItem[] = [
     path: "/filters",
     icon: FiFilter,
     permissionCode: "filters.use",
+  },
+];
+
+export const administrationNavigationItems: AppNavigationItem[] = [
+  {
+    titleKey: "Виды отпусков",
+    path: "/vacation-types",
+    icon: FiBookOpen,
+    permissionCode: "vacations.manage",
+    requiredGlobalScope: true,
+    entity: "vacation_types",
   },
   {
     titleKey: "Пользователи",
