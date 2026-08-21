@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from "react";
 
 import type {
@@ -22,6 +23,15 @@ import {
   type RoleDraft,
   type UserDraft,
 } from "./accessControlData";
+
+export {
+  emptyRoleDraft,
+  emptyUserDraft,
+  getErrorMessage,
+  loadEmployees,
+  scopeLabel,
+} from "./accessControlData";
+export type { EmployeeOption, RoleDraft, UserDraft } from "./accessControlData";
 
 export function RoleDialog({
   draft,
