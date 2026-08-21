@@ -20,6 +20,7 @@ import {
   ConfirmDialog,
   DataTable,
   IconButton,
+  useStoredViewMode,
   type DataTableColumn,
 } from "../../shared/ui";
 
@@ -27,6 +28,7 @@ export function VacanciesPage(): JSX.Element {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canManage = hasPermission("recruitment.manage");
+  const [viewMode, setViewMode] = useStoredViewMode("vacancies");
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,6 +71,26 @@ export function VacanciesPage(): JSX.Element {
   function editVacancy(vacancy: HrRecord): void {
     if (!canManage) return;
     navigate(`/vacancies/${String(vacancy.id)}/edit`);
+  }
+
+  function renderActions(vacancy: HrRecord): JSX.Element {
+    return (
+      <>
+        <IconButton
+          icon={<FiEdit2 />}
+          label="Редактировать вакансию"
+          onClick={() => editVacancy(vacancy)}
+          size="sm"
+        />
+        <IconButton
+          icon={<FiTrash2 />}
+          label="Удалить вакансию"
+          onClick={() => setDeleteTarget(vacancy)}
+          size="sm"
+          tone="danger"
+        />
+      </>
+    );
   }
 
   const columns: DataTableColumn<HrRecord>[] = [
@@ -145,19 +167,7 @@ export function VacanciesPage(): JSX.Element {
                 className="flex items-center justify-center gap-2"
                 onClick={(event) => event.stopPropagation()}
               >
-                <IconButton
-                  icon={<FiEdit2 />}
-                  label="Редактировать вакансию"
-                  onClick={() => editVacancy(vacancy)}
-                  size="sm"
-                />
-                <IconButton
-                  icon={<FiTrash2 />}
-                  label="Удалить вакансию"
-                  onClick={() => setDeleteTarget(vacancy)}
-                  size="sm"
-                  tone="danger"
-                />
+                {renderActions(vacancy)}
               </div>
             ),
           },
@@ -177,6 +187,30 @@ export function VacanciesPage(): JSX.Element {
 
       <DataTable
         ariaLabel="Реестр вакансий"
+        card={{
+          leading: () => <FiBriefcase className="h-5 w-5" />,
+          title: (vacancy) => String(vacancy.position_name ?? "Должность не указана"),
+          meta: (vacancy) => (
+            <>
+              <span className="app-text-soft">
+                <span className="app-muted">Структура: </span>
+                {[vacancy.enterprise_name, vacancy.department_name].filter(Boolean).join(" · ") || "—"}
+              </span>
+              <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
+                {vacancyStatusLabel(String(vacancy.status))}
+              </RecruitmentBadge>
+              <span className="app-text-soft">
+                <span className="app-muted">Занятость: </span>
+                {employmentTypeLabel(String(vacancy.employment_type))}
+              </span>
+              <span className="app-text-soft">
+                <span className="app-muted">Кандидатов: </span>
+                {String(vacancy.candidates_count ?? 0)}
+              </span>
+            </>
+          ),
+          actions: canManage ? (vacancy) => renderActions(vacancy) : undefined,
+        }}
         columns={columns}
         emptyDescription={
           canManage
@@ -193,23 +227,23 @@ export function VacanciesPage(): JSX.Element {
         isLoading={isLoading}
         loadingLabel="Загрузка вакансий..."
         onRowClick={openVacancy}
+        onViewModeChange={setViewMode}
         rows={vacancies}
         toolbar={
-          <div className="ml-auto">
-            <Button
-              leftIcon={
-                <FiRefreshCw
-                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-                />
-              }
-              onClick={() => void loadData()}
-              type="button"
-              variant="secondary"
-            >
-              Обновить
-            </Button>
-          </div>
+          <Button
+            leftIcon={
+              <FiRefreshCw
+                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+              />
+            }
+            onClick={() => void loadData()}
+            type="button"
+            variant="secondary"
+          >
+            Обновить
+          </Button>
         }
+        viewMode={viewMode}
       />
 
       {canManage && (
