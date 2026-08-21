@@ -1,10 +1,11 @@
 import type { KeyboardEvent, ReactNode } from 'react'
 import { motion } from 'framer-motion'
+import { FiFileText } from 'react-icons/fi'
 
 import { EmptyState } from './EmptyState'
 import { LoadingState } from './LoadingState'
 import { ViewModeToggle } from './ViewModeToggle'
-import type { CollectionViewMode } from './useStoredViewMode'
+import { useStoredViewMode, type CollectionViewMode } from './useStoredViewMode'
 
 export interface DataTableColumn<T> {
   key: string
@@ -65,8 +66,12 @@ export function DataTable<T>({
   onViewModeChange,
   rows,
   toolbar,
-  viewMode = 'table',
+  viewMode,
 }: DataTableProps<T>): JSX.Element {
+  const [storedViewMode, setStoredViewMode] = useStoredViewMode('shared-data-table')
+  const resolvedViewMode = viewMode ?? storedViewMode
+  const resolvedViewModeChange = onViewModeChange ?? (frame ? setStoredViewMode : undefined)
+
   function handleActivate(
     event: KeyboardEvent<HTMLElement>,
     row: T,
@@ -76,8 +81,36 @@ export function DataTable<T>({
     onRowClick(row)
   }
 
-  const effectiveViewMode = viewMode === 'cards' && card ? 'cards' : 'table'
-  const hasToolbar = Boolean(toolbar || onViewModeChange)
+  const actionColumn = columns.find((column) => column.key === 'actions')
+  const contentColumns = columns.filter((column) => column.key !== 'actions')
+  const titleColumn = contentColumns[0]
+  const metaColumns = contentColumns.slice(1, 4)
+  const hasToolbar = Boolean(toolbar || resolvedViewModeChange)
+
+  function renderCardTitle(row: T, index: number): ReactNode {
+    if (card) return card.title(row, index)
+    return titleColumn ? titleColumn.render(row, index) : 'Запись'
+  }
+
+  function renderCardLeading(row: T, index: number): ReactNode {
+    if (card?.leading) return card.leading(row, index)
+    return <FiFileText className="h-5 w-5" />
+  }
+
+  function renderCardMeta(row: T, index: number): ReactNode {
+    if (card?.meta) return card.meta(row, index)
+    return metaColumns.map((column) => (
+      <span className="app-text-soft min-w-0" key={column.key}>
+        <span className="app-muted">{column.header}: </span>
+        {column.render(row, index)}
+      </span>
+    ))
+  }
+
+  function renderCardActions(row: T, index: number): ReactNode {
+    if (card?.actions) return card.actions(row, index)
+    return actionColumn?.render(row, index)
+  }
 
   const collectionContent = isLoading ? (
     <div className="px-5 py-16">
@@ -87,60 +120,59 @@ export function DataTable<T>({
     <div className="py-16">
       <EmptyState title={emptyTitle} description={emptyDescription} />
     </div>
-  ) : effectiveViewMode === 'cards' && card ? (
+  ) : resolvedViewMode === 'cards' ? (
     <div className="min-h-0 flex-1 overflow-auto p-5" aria-label={ariaLabel}>
       <div className="grid gap-3">
-        {rows.map((row, index) => (
-          <motion.article
-            animate={{ opacity: 1, y: 0 }}
-            className={[
-              'app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4 transition',
-              onRowClick
-                ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]'
-                : '',
-            ].join(' ')}
-            initial={{ opacity: 0, y: 8 }}
-            key={getRowKey(row, index)}
-            onClick={onRowClick ? () => onRowClick(row) : undefined}
-            onKeyDown={(event) => handleActivate(event, row)}
-            role={onRowClick ? 'button' : undefined}
-            tabIndex={onRowClick ? 0 : undefined}
-            transition={{
-              duration: 0.22,
-              delay: Math.min(index * 0.035, 0.18),
-              ease: 'easeOut',
-            }}
-            whileHover={{ y: onRowClick ? -2 : 0 }}
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-4">
-              {card.leading && (
+        {rows.map((row, index) => {
+          const actions = renderCardActions(row, index)
+          return (
+            <motion.article
+              animate={{ opacity: 1, y: 0 }}
+              className={[
+                'app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4 transition',
+                onRowClick
+                  ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-border)]'
+                  : '',
+              ].join(' ')}
+              initial={{ opacity: 0, y: 8 }}
+              key={getRowKey(row, index)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onKeyDown={(event) => handleActivate(event, row)}
+              role={onRowClick ? 'button' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              transition={{
+                duration: 0.22,
+                delay: Math.min(index * 0.035, 0.18),
+                ease: 'easeOut',
+              }}
+              whileHover={{ y: onRowClick ? -2 : 0 }}
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-4">
                 <span className="app-accent-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-black">
-                  {card.leading(row, index)}
+                  {renderCardLeading(row, index)}
                 </span>
-              )}
 
-              <div className="min-w-0 flex-1">
-                <h4 className="app-text truncate text-sm font-black">
-                  {card.title(row, index)}
-                </h4>
-                {card.meta && (
+                <div className="min-w-0 flex-1">
+                  <h4 className="app-text truncate text-sm font-black">
+                    {renderCardTitle(row, index)}
+                  </h4>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold">
-                    {card.meta(row, index)}
+                    {renderCardMeta(row, index)}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
 
-            {card.actions && (
-              <div
-                className="flex shrink-0 items-center justify-center gap-2"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {card.actions(row, index)}
-              </div>
-            )}
-          </motion.article>
-        ))}
+              {actions && (
+                <div
+                  className="flex shrink-0 items-center justify-center gap-2"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {actions}
+                </div>
+              )}
+            </motion.article>
+          )
+        })}
       </div>
     </div>
   ) : (
@@ -203,10 +235,10 @@ export function DataTable<T>({
     <>
       {hasToolbar && (
         <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-          {onViewModeChange && (
-            <ViewModeToggle onChange={onViewModeChange} value={viewMode} />
+          {resolvedViewModeChange && (
+            <ViewModeToggle onChange={resolvedViewModeChange} value={resolvedViewMode} />
           )}
-          {toolbar && <div className={onViewModeChange ? 'sm:ml-auto' : 'w-full'}>{toolbar}</div>}
+          {toolbar && <div className={resolvedViewModeChange ? 'sm:ml-auto' : 'w-full'}>{toolbar}</div>}
         </div>
       )}
 
