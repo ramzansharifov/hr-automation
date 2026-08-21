@@ -72,8 +72,7 @@ export function DataTable<T>({
 }: DataTableProps<T>): JSX.Element {
   const [storedViewMode, setStoredViewMode] = useStoredViewMode('shared-data-table')
   const resolvedViewMode = viewMode ?? storedViewMode
-  const shouldShowViewModeToggle =
-    showViewModeToggle ?? Boolean(onViewModeChange || (frame && viewMode === undefined))
+  const shouldShowViewModeToggle = showViewModeToggle ?? frame
 
   function handleViewModeChange(mode: CollectionViewMode): void {
     if (onViewModeChange) {
