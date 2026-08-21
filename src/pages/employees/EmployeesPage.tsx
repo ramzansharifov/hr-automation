@@ -49,6 +49,7 @@ export function EmployeesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
+        description="Единый реестр сотрудников, их должностей, подразделений и кадрового статуса."
         icon={<FiUsers />}
         actions={
           canManageEmployees ? (

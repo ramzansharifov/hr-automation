@@ -289,9 +289,21 @@ export function OrganizationHierarchyPage(): JSX.Element {
     </div>
   );
 
+  const headerDescription =
+    level === "enterprises"
+      ? "Организационная структура предприятий, отделов и должностей."
+      : level === "departments"
+        ? "Подразделения выбранного предприятия и назначение ответственных руководителей."
+        : "Должности выбранного отдела и их место в организационной структуре.";
+
   return (
     <div className="space-y-6">
-      <PageHeader actions={headerActions} icon={<FiLayers />} title={page.title} />
+      <PageHeader
+        actions={headerActions}
+        description={headerDescription}
+        icon={<FiLayers />}
+        title={page.title}
+      />
 
       <HrEntityTable
         ref={tableRef}

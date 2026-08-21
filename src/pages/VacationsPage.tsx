@@ -226,6 +226,7 @@ export function VacationsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
+        description="Оформление, согласование и контроль отпусков сотрудников."
         icon={<FiCalendar />}
         actions={
           canManage ? (
