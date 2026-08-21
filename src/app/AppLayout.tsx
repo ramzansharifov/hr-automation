@@ -12,7 +12,11 @@ import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../features/auth/AuthContext";
 import type { AppNavigationItem } from "./navigation";
-import { bottomNavigationItems, navigationItems } from "./navigation";
+import {
+  administrationNavigationItems,
+  bottomNavigationItems,
+  mainNavigationItems,
+} from "./navigation";
 import { HRLogo } from "./brand/HRLogo";
 import { GlobalSearch } from "./GlobalSearch";
 
@@ -93,15 +97,75 @@ function SidebarItem({
   );
 }
 
+function SidebarSection({
+  isCollapsed,
+  items,
+  separated = false,
+  title,
+}: {
+  isCollapsed: boolean;
+  items: AppNavigationItem[];
+  separated?: boolean;
+  title: string;
+}): JSX.Element | null {
+  if (items.length === 0) return null;
+
+  return (
+    <section
+      aria-label={title}
+      className={separated ? "border-t border-white/[0.08] pt-4" : ""}
+    >
+      {!isCollapsed && (
+        <p className="mb-2 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-600">
+          {title}
+        </p>
+      )}
+      <div className="space-y-1.5">
+        {items.map((item, index) => (
+          <motion.div
+            animate={{ opacity: 1, x: 0 }}
+            className={isCollapsed ? "w-11" : "w-full"}
+            initial={{ opacity: 0, x: -8 }}
+            key={item.path}
+            transition={{ duration: 0.2, delay: index * 0.025 }}
+          >
+            <SidebarItem
+              end={item.path === "/"}
+              isCollapsed={isCollapsed}
+              item={item}
+            />
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { t } = useTranslation();
   const { hasPermission, logout, session } = useAuth();
-  const visibleNavigationItems = navigationItems.filter(
-    (item) => !item.permissionCode || hasPermission(item.permissionCode),
+
+  function isNavigationItemVisible(item: AppNavigationItem): boolean {
+    if (item.permissionCode && !hasPermission(item.permissionCode)) return false;
+    if (
+      item.requiredGlobalScope &&
+      item.permissionCode &&
+      session.permissionScopes[item.permissionCode] !== "global"
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  const visibleMainNavigationItems = mainNavigationItems.filter(
+    isNavigationItemVisible,
+  );
+  const visibleAdministrationNavigationItems = administrationNavigationItems.filter(
+    isNavigationItemVisible,
   );
   const visibleBottomItems = bottomNavigationItems.filter(
-    (item) => !item.permissionCode || hasPermission(item.permissionCode),
+    isNavigationItemVisible,
   );
   const canSearch = [
     "employees.view",
@@ -185,25 +249,21 @@ export function AppLayout(): JSX.Element {
           <nav
             aria-label={t("app.sidebar.mainNavigation")}
             className={[
-              "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-4",
+              "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4",
               isSidebarCollapsed ? "items-center px-3" : "px-4",
             ].join(" ")}
           >
-            {visibleNavigationItems.map((item, index) => (
-              <motion.div
-                animate={{ opacity: 1, x: 0 }}
-                className={isSidebarCollapsed ? "w-11" : "w-full"}
-                initial={{ opacity: 0, x: -8 }}
-                key={item.path}
-                transition={{ duration: 0.2, delay: index * 0.025 }}
-              >
-                <SidebarItem
-                  end={item.path === "/"}
-                  isCollapsed={isSidebarCollapsed}
-                  item={item}
-                />
-              </motion.div>
-            ))}
+            <SidebarSection
+              isCollapsed={isSidebarCollapsed}
+              items={visibleMainNavigationItems}
+              title="Основное"
+            />
+            <SidebarSection
+              isCollapsed={isSidebarCollapsed}
+              items={visibleAdministrationNavigationItems}
+              separated={visibleMainNavigationItems.length > 0}
+              title="Администрирование"
+            />
           </nav>
 
           <footer className={isSidebarCollapsed ? "px-3 pb-4" : "px-4 pb-4"}>
