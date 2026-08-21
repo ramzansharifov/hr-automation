@@ -1,0 +1,156 @@
+import type { KeyboardEvent, ReactNode } from 'react'
+
+import { EmptyState } from './EmptyState'
+import { LoadingState } from './LoadingState'
+
+export interface DataTableColumn<T> {
+  key: string
+  header: ReactNode
+  render: (row: T, index: number) => ReactNode
+  align?: 'left' | 'center' | 'right'
+  className?: string
+  headerClassName?: string
+}
+
+interface DataTableProps<T> {
+  ariaLabel?: string
+  className?: string
+  columns: DataTableColumn<T>[]
+  emptyDescription?: string
+  emptyTitle?: string
+  footer?: ReactNode
+  frame?: boolean
+  getRowKey: (row: T, index: number) => string | number
+  isLoading?: boolean
+  loadingLabel?: string
+  notice?: ReactNode
+  onRowClick?: (row: T) => void
+  rows: T[]
+  toolbar?: ReactNode
+}
+
+function alignmentClass(align: DataTableColumn<unknown>['align']): string {
+  if (align === 'center') return 'text-center'
+  if (align === 'right') return 'text-right'
+  return 'text-left'
+}
+
+export function DataTable<T>({
+  ariaLabel,
+  className = '',
+  columns,
+  emptyDescription = 'В доступной области пока нет данных.',
+  emptyTitle = 'Данных пока нет',
+  footer,
+  frame = true,
+  getRowKey,
+  isLoading = false,
+  loadingLabel = 'Загрузка данных...',
+  notice,
+  onRowClick,
+  rows,
+  toolbar,
+}: DataTableProps<T>): JSX.Element {
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, row: T): void {
+    if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) return
+    event.preventDefault()
+    onRowClick(row)
+  }
+
+  const content = (
+    <>
+      {toolbar && (
+        <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+          {toolbar}
+        </div>
+      )}
+
+      {notice && (
+        <div className="app-border-soft app-surface-muted border-b px-5 py-3 text-sm font-bold">
+          {notice}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="px-5 py-16">
+          <LoadingState label={loadingLabel} />
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="py-16">
+          <EmptyState title={emptyTitle} description={emptyDescription} />
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table
+            aria-label={ariaLabel}
+            className="min-w-full border-separate border-spacing-0 text-left text-sm"
+          >
+            <thead>
+              <tr className="app-surface-muted app-muted text-xs uppercase tracking-wide">
+                {columns.map((column) => (
+                  <th
+                    className={[
+                      'app-border-soft border-b px-5 py-4 font-black',
+                      alignmentClass(column.align),
+                      column.headerClassName ?? '',
+                    ].join(' ')}
+                    key={column.key}
+                  >
+                    {column.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr
+                  className={[
+                    'app-hover-muted transition-colors',
+                    onRowClick ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--accent-border)]' : '',
+                  ].join(' ')}
+                  key={getRowKey(row, index)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onKeyDown={(event) => handleRowKeyDown(event, row)}
+                  role={onRowClick ? 'button' : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                >
+                  {columns.map((column) => (
+                    <td
+                      className={[
+                        'app-border-soft border-b px-5 py-4 align-middle',
+                        alignmentClass(column.align),
+                        column.className ?? '',
+                      ].join(' ')}
+                      key={column.key}
+                    >
+                      {column.render(row, index)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {footer && (
+        <div className="app-border-soft app-muted border-t px-5 py-4 text-sm">
+          {footer}
+        </div>
+      )}
+    </>
+  )
+
+  if (!frame) return <div className={className}>{content}</div>
+
+  return (
+    <section
+      className={[
+        'app-surface app-border flex flex-col overflow-hidden rounded-[28px] border',
+        className,
+      ].join(' ')}
+    >
+      {content}
+    </section>
+  )
+}
