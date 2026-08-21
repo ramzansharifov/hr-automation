@@ -18,7 +18,8 @@ function replaceOnce(content, before, after, label) {
 }
 
 function replaceRegex(content, regex, after, label) {
-  const matches = [...content.matchAll(regex)]
+  const checkRegex = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : `${regex.flags}g`)
+  const matches = [...content.matchAll(checkRegex)]
   if (matches.length !== 1) throw new Error(`${label}: expected 1 match, got ${matches.length}`)
   return content.replace(regex, after)
 }
