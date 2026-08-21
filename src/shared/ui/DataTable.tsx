@@ -39,6 +39,7 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void
   onViewModeChange?: (mode: CollectionViewMode) => void
   rows: T[]
+  showViewModeToggle?: boolean
   toolbar?: ReactNode
   viewMode?: CollectionViewMode
 }
@@ -65,12 +66,22 @@ export function DataTable<T>({
   onRowClick,
   onViewModeChange,
   rows,
+  showViewModeToggle,
   toolbar,
   viewMode,
 }: DataTableProps<T>): JSX.Element {
   const [storedViewMode, setStoredViewMode] = useStoredViewMode('shared-data-table')
   const resolvedViewMode = viewMode ?? storedViewMode
-  const resolvedViewModeChange = onViewModeChange ?? (frame ? setStoredViewMode : undefined)
+  const shouldShowViewModeToggle =
+    showViewModeToggle ?? Boolean(onViewModeChange || (frame && viewMode === undefined))
+
+  function handleViewModeChange(mode: CollectionViewMode): void {
+    if (onViewModeChange) {
+      onViewModeChange(mode)
+      return
+    }
+    setStoredViewMode(mode)
+  }
 
   function handleActivate(
     event: KeyboardEvent<HTMLElement>,
@@ -85,7 +96,7 @@ export function DataTable<T>({
   const contentColumns = columns.filter((column) => column.key !== 'actions')
   const titleColumn = contentColumns[0]
   const metaColumns = contentColumns.slice(1, 4)
-  const hasToolbar = Boolean(toolbar || resolvedViewModeChange)
+  const hasToolbar = Boolean(toolbar || shouldShowViewModeToggle)
 
   function renderCardTitle(row: T, index: number): ReactNode {
     if (card) return card.title(row, index)
@@ -235,10 +246,10 @@ export function DataTable<T>({
     <>
       {hasToolbar && (
         <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-          {resolvedViewModeChange && (
-            <ViewModeToggle onChange={resolvedViewModeChange} value={resolvedViewMode} />
+          {shouldShowViewModeToggle && (
+            <ViewModeToggle onChange={handleViewModeChange} value={resolvedViewMode} />
           )}
-          {toolbar && <div className={resolvedViewModeChange ? 'sm:ml-auto' : 'w-full'}>{toolbar}</div>}
+          {toolbar && <div className={shouldShowViewModeToggle ? 'sm:ml-auto' : 'w-full'}>{toolbar}</div>}
         </div>
       )}
 
