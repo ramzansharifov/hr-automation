@@ -1,0 +1,36 @@
+name: Fix unified table migration helper
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'ui/unified-main-tables'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/unified-main-tables
+      - name: Fix non-global matchAll helper
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/unifyMainTables.mjs')
+          text = path.read_text()
+          old = "  const matches = [...content.matchAll(regex)]\n"
+          new = "  const checkRegex = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : `${regex.flags}g`)\n  const matches = [...content.matchAll(checkRegex)]\n"
+          if old not in text:
+              raise SystemExit('matchAll helper line not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit helper fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/unifyMainTables.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix unified table migration helper [migration-helper-fix]"
+          git push origin HEAD:ui/unified-main-tables
