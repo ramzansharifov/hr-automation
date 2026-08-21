@@ -582,6 +582,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
             onRowClick={onRowClick}
             onViewModeChange={hideToolbar ? undefined : onViewModeChange}
             rows={result.items}
+            showViewModeToggle={!hideToolbar}
             toolbar={toolbar}
             viewMode={viewMode}
           />
