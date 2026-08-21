@@ -12,6 +12,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { FiltersPage } from "./pages/FiltersPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { VacationTypesPage } from "./pages/VacationTypesPage";
 import { VacationsPage } from "./pages/VacationsPage";
 import { AccessRolesPage } from "./pages/access/AccessRolesPage";
 import { AccessUsersPage } from "./pages/access/AccessUsersPage";
@@ -59,6 +60,7 @@ function App(): JSX.Element {
           <Route path="departments" element={<Navigate to="/enterprises" replace />} />
           <Route path="positions" element={<Navigate to="/enterprises" replace />} />
           <Route path="vacations" element={<RequirePermission anyOf={["vacations.view"]}><VacationsPage /></RequirePermission>} />
+          <Route path="vacation-types" element={<RequirePermission anyOf={["vacations.manage"]}><VacationTypesPage /></RequirePermission>} />
           <Route path="profile" element={<RequirePermission anyOf={["profile.view"]}><OwnProfileRedirect /></RequirePermission>} />
           <Route path="settings" element={<SettingsPage />} />
           <Route
