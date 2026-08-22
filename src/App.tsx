@@ -10,6 +10,7 @@ import {
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { FiltersPage } from "./pages/FiltersPage";
+import { OrganizationDetailsPage } from "./pages/OrganizationDetailsPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { VacationTypesPage } from "./pages/VacationTypesPage";
@@ -60,7 +61,9 @@ function App(): JSX.Element {
           <Route path="access" element={<Navigate to="/users" replace />} />
           <Route path="audit" element={<RequirePermission anyOf={["audit.view"]}><AuditLogPage /></RequirePermission>} />
           <Route path="enterprises" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
+          <Route path="enterprises/:enterpriseId" element={<RequirePermission anyOf={["organization.view"]}><OrganizationDetailsPage /></RequirePermission>} />
           <Route path="enterprises/:enterpriseId/departments" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
+          <Route path="enterprises/:enterpriseId/departments/:departmentId" element={<RequirePermission anyOf={["organization.view"]}><OrganizationDetailsPage /></RequirePermission>} />
           <Route path="enterprises/:enterpriseId/departments/:departmentId/positions" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
           <Route path="departments" element={<Navigate to="/enterprises" replace />} />
           <Route path="positions" element={<Navigate to="/enterprises" replace />} />
