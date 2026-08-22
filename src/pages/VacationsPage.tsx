@@ -29,7 +29,11 @@ export function VacationsPage(): JSX.Element {
   const { hasPermission } = useAuth();
   const [searchParams] = useSearchParams();
   const employeeFilter = positiveId(searchParams.get("employee"));
-  const canManage = hasPermission("vacations.manage");
+  const canCreate = hasPermission("vacations.create");
+  const canEdit = hasPermission("vacations.edit");
+  const canDelete = hasPermission("vacations.delete");
+  const canApprove = hasPermission("vacations.approve");
+  const canOpenEditor = canEdit || canApprove;
   const [viewMode, setViewMode] = useStoredViewMode("vacations");
 
   const [records, setRecords] = useState<HrRecord[]>([]);
@@ -73,16 +77,19 @@ export function VacationsPage(): JSX.Element {
   }, [loadData]);
 
   function openCreate(): void {
+    if (!canCreate) return;
     setEditingRecord(null);
     setIsFormOpen(true);
   }
 
   function openEdit(record: HrRecord): void {
+    if (!canOpenEditor) return;
     setEditingRecord(record);
     setIsFormOpen(true);
   }
 
   function openDelete(record: HrRecord): void {
+    if (!canDelete) return;
     setDeleteTarget(record);
     setIsDeleteOpen(true);
   }
@@ -101,7 +108,7 @@ export function VacationsPage(): JSX.Element {
   }
 
   async function deleteVacation(): Promise<void> {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !canDelete) return;
     await hrApiClient.delete({
       entity: "vacations",
       id: Number(deleteTarget.id),
@@ -111,16 +118,18 @@ export function VacationsPage(): JSX.Element {
   }
 
   function renderActions(record: HrRecord): JSX.Element {
-    const canDelete = String(record.status ?? "planned") === "planned";
+    const recordCanDelete = String(record.status ?? "planned") === "planned";
     return (
       <>
-        <IconButton
-          icon={<FiEdit2 />}
-          label="Редактировать отпуск"
-          onClick={() => openEdit(record)}
-          size="sm"
-        />
-        {canDelete && (
+        {canOpenEditor && (
+          <IconButton
+            icon={<FiEdit2 />}
+            label={canEdit && canApprove ? "Редактировать или согласовать отпуск" : canApprove ? "Согласовать отпуск" : "Редактировать отпуск"}
+            onClick={() => openEdit(record)}
+            size="sm"
+          />
+        )}
+        {canDelete && recordCanDelete && (
           <IconButton
             icon={<FiTrash2 />}
             label="Удалить отпуск"
@@ -142,6 +151,7 @@ export function VacationsPage(): JSX.Element {
       startsAt >= todayIso()
     );
   }).length;
+  const hasActions = canOpenEditor || canDelete;
 
   const columns: DataTableColumn<HrRecord>[] = [
     {
@@ -207,7 +217,7 @@ export function VacationsPage(): JSX.Element {
         </div>
       ),
     },
-    ...(canManage
+    ...(hasActions
       ? [
           {
             key: "actions",
@@ -229,7 +239,7 @@ export function VacationsPage(): JSX.Element {
         description="Оформление, согласование и контроль отпусков сотрудников."
         icon={<FiCalendar />}
         actions={
-          canManage ? (
+          canCreate ? (
             <Button
               leftIcon={<FiPlus className="h-4 w-4" />}
               onClick={openCreate}
@@ -275,7 +285,7 @@ export function VacationsPage(): JSX.Element {
               <StatusBadge status={String(record.status ?? "planned")} />
             </>
           ),
-          actions: canManage ? (record) => renderActions(record) : undefined,
+          actions: hasActions ? (record) => renderActions(record) : undefined,
         }}
         columns={columns}
         emptyDescription="В доступной области данных пока нет записей об отпусках."
@@ -311,33 +321,33 @@ export function VacationsPage(): JSX.Element {
         viewMode={viewMode}
       />
 
-      {canManage && (
-        <>
-          <HrEntityDialog
-            entity="vacations"
-            initialRecord={
-              editingRecord ??
-              (employeeFilter
-                ? { employee_id: employeeFilter, status: "planned", is_paid: 1 }
-                : { status: "planned", is_paid: 1 })
-            }
-            mode={editingRecord ? "edit" : "create"}
-            onOpenChange={(open) => {
-              setIsFormOpen(open);
-              if (!open) setEditingRecord(null);
-            }}
-            onSubmit={saveVacation}
-            open={isFormOpen}
-          />
-          <HrEntityDeleteDialog
-            onConfirm={deleteVacation}
-            onOpenChange={(open) => {
-              setIsDeleteOpen(open);
-              if (!open) setDeleteTarget(null);
-            }}
-            open={isDeleteOpen}
-          />
-        </>
+      {(canCreate || canOpenEditor) && (
+        <HrEntityDialog
+          entity="vacations"
+          initialRecord={
+            editingRecord ??
+            (employeeFilter
+              ? { employee_id: employeeFilter, status: "planned", is_paid: 1 }
+              : { status: "planned", is_paid: 1 })
+          }
+          mode={editingRecord ? "edit" : "create"}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) setEditingRecord(null);
+          }}
+          onSubmit={saveVacation}
+          open={isFormOpen}
+        />
+      )}
+      {canDelete && (
+        <HrEntityDeleteDialog
+          onConfirm={deleteVacation}
+          onOpenChange={(open) => {
+            setIsDeleteOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          open={isDeleteOpen}
+        />
       )}
     </div>
   );
