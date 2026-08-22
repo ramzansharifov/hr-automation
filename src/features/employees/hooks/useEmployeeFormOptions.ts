@@ -4,10 +4,14 @@ import { toast } from "react-toastify";
 
 import type { SelectOption } from "../../../shared/ui";
 import { loadEmployeeRelationOptions } from "../lib/employeeRelations";
-import type { PositionOption } from "../lib/employeeRelations";
+import type {
+  DepartmentOption,
+  PositionOption,
+} from "../lib/employeeRelations";
 
 interface EmployeeFormOptions {
-  departments: SelectOption[];
+  departments: DepartmentOption[];
+  enterprises: SelectOption[];
   genderOptions: SelectOption[];
   isRelationsLoading: boolean;
   positions: PositionOption[];
@@ -16,7 +20,8 @@ interface EmployeeFormOptions {
 
 export function useEmployeeFormOptions(): EmployeeFormOptions {
   const { t } = useTranslation();
-  const [departments, setDepartments] = useState<SelectOption[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [enterprises, setEnterprises] = useState<SelectOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
   const [isRelationsLoading, setIsRelationsLoading] = useState(true);
 
@@ -43,6 +48,7 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
       .then((options) => {
         if (!isActive) return;
         setDepartments(options.departments);
+        setEnterprises(options.enterprises);
         setPositions(options.positions);
       })
       .catch(() => {
@@ -59,6 +65,7 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
 
   return {
     departments,
+    enterprises,
     genderOptions,
     isRelationsLoading,
     positions,
