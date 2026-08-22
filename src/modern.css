@@ -209,14 +209,6 @@ main section.app-surface > .app-border-soft:first-child form.relative {
 }
 
 /* Collection pages use one title and one primary action in the hero. */
-.organization-entity-table > .app-border-soft:first-child > div:first-child {
-  display: none;
-}
-
-.organization-entity-table > .app-border-soft:first-child {
-  justify-content: flex-end;
-}
-
 .organization-entity-table > .app-border-soft:first-child > div:last-child > .app-button-primary {
   display: none;
 }
