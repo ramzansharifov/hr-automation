@@ -39,7 +39,9 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const params = useParams();
   const { hasPermission, session } = useAuth();
   const tableRef = useRef<HrEntityTableHandle>(null);
-  const canManage = hasPermission("organization.manage");
+  const canEditStructure = hasPermission("organization.edit");
+  const canDeleteStructure = hasPermission("organization.delete");
+  const canAssignLeader = hasPermission("organization.assign_leader");
   const enterpriseId = toId(params.enterpriseId);
   const departmentId = toId(params.departmentId);
   const level: HierarchyLevel = departmentId
@@ -48,9 +50,10 @@ export function OrganizationHierarchyPage(): JSX.Element {
       ? "departments"
       : "enterprises";
   const canCreate =
-    canManage &&
+    hasPermission("organization.create") &&
     (level !== "enterprises" ||
-      session.permissionScopes["organization.manage"] === "global");
+      session.permissionScopes["organization.create"] === "global");
+  const canModifyStructure = canCreate || canEditStructure || canDeleteStructure;
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
   const [isLoading, setIsLoading] = useState(level !== "enterprises");
@@ -137,7 +140,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
   );
 
   async function openLeaderDialog(target: LeaderTarget): Promise<void> {
-    if (!canManage) return;
+    if (!canAssignLeader) return;
     setLeaderLoading(true);
     setLeaderTarget(target);
     setLeaderOptions([]);
@@ -179,7 +182,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
   }
 
   async function saveLeader(): Promise<void> {
-    if (!leaderTarget) return;
+    if (!leaderTarget || !canAssignLeader) return;
     setLeaderLoading(true);
     try {
       if (leaderTarget === "enterprise" && enterpriseId) {
@@ -267,7 +270,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
   const headerActions = (
     <div className="flex flex-wrap items-center justify-end gap-3">
-      {canManage && level === "departments" && enterprise && (
+      {canAssignLeader && level === "departments" && enterprise && (
         <Button
           className="border-white/20 bg-white/10 text-white"
           leftIcon={<FiUserCheck className="h-4 w-4" />}
@@ -277,7 +280,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
           Руководитель предприятия
         </Button>
       )}
-      {canManage && level === "positions" && department && (
+      {canAssignLeader && level === "positions" && department && (
         <Button
           className="border-white/20 bg-white/10 text-white"
           leftIcon={<FiUserCheck className="h-4 w-4" />}
@@ -321,7 +324,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
       <HrEntityTable
         ref={tableRef}
-        className={`organization-entity-table${canManage ? "" : " organization-entity-table--read-only"}`}
+        className={`organization-entity-table${canModifyStructure ? "" : " organization-entity-table--read-only"}`}
         createInitialRecord={page.createInitialRecord}
         entity={page.entity}
         externalFilters={
