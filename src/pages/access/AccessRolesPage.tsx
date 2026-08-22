@@ -23,7 +23,7 @@ import {
   PageHeader,
   type DataTableColumn,
 } from "../../shared/ui";
-import { AccessMetric, getErrorMessage, scopeLabel } from "./AccessControlShared";
+import { AccessMetric, getErrorMessage } from "./AccessControlShared";
 
 const emptyOverview: AccessControlOverview = {
   permissions: [],
@@ -144,13 +144,6 @@ export function AccessRolesPage(): JSX.Element {
       ),
     },
     {
-      key: "scope",
-      header: "Область данных",
-      render: (role) => (
-        <span className="app-text-soft font-semibold">{scopeLabel(role.scopeType)}</span>
-      ),
-    },
-    {
       key: "users",
       header: "Пользователей",
       align: "center",
@@ -160,8 +153,8 @@ export function AccessRolesPage(): JSX.Element {
       key: "permissions",
       header: "Разрешения",
       render: (role) => (
-        <div className="flex max-w-[360px] flex-wrap gap-1.5">
-          {role.permissionCodes.slice(0, 3).map((code) => (
+        <div className="flex max-w-[460px] flex-wrap gap-1.5">
+          {role.permissionCodes.slice(0, 4).map((code) => (
             <span
               className="app-surface-muted app-border inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold"
               key={code}
@@ -170,9 +163,9 @@ export function AccessRolesPage(): JSX.Element {
               {permissionMap.get(code)?.name ?? code}
             </span>
           ))}
-          {role.permissionCodes.length > 3 && (
+          {role.permissionCodes.length > 4 && (
             <span className="app-muted self-center text-xs font-bold">
-              +{role.permissionCodes.length - 3}
+              +{role.permissionCodes.length - 4}
             </span>
           )}
         </div>
@@ -205,7 +198,7 @@ export function AccessRolesPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        description="Системные и пользовательские роли, область видимости данных и набор разрешений."
+        description="Системные и пользовательские роли с точечным набором разрешённых действий."
         icon={<FiShield />}
         title="Роли"
       />
@@ -224,7 +217,6 @@ export function AccessRolesPage(): JSX.Element {
           meta: (role) => (
             <>
               {role.isSystem && <span className="app-accent-text font-black">Системная</span>}
-              <span className="app-text-soft"><span className="app-muted">Область: </span>{scopeLabel(role.scopeType)}</span>
               <span className="app-text-soft"><span className="app-muted">Пользователей: </span>{role.userCount}</span>
               <span className="app-text-soft"><span className="app-muted">Разрешений: </span>{role.permissionCodes.length}</span>
             </>

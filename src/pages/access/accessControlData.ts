@@ -2,7 +2,6 @@ import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessPermission,
   AccessRoleSummary,
-  AccessScopeType,
   AccessUserStatus,
 } from "../../shared/types/access";
 import type { HrRecord } from "../../shared/types/hr";
@@ -32,21 +31,10 @@ export const emptyUserDraft: UserDraft = {
   mustChangePassword: true,
 };
 
-export const scopeOptions: SelectOption[] = [
-  { value: "global", label: "Все данные системы" },
-  { value: "enterprise", label: "Только своё предприятие" },
-  { value: "department", label: "Только свой отдел" },
-  { value: "self", label: "Только собственные данные" },
-];
-
 export const statusOptions: SelectOption[] = [
   { value: "active", label: "Активен" },
   { value: "blocked", label: "Заблокирован" },
 ];
-
-export function scopeLabel(scope: AccessScopeType): string {
-  return scopeOptions.find((option) => option.value === scope)?.label ?? scope;
-}
 
 export function groupPermissions(
   permissions: AccessPermission[],

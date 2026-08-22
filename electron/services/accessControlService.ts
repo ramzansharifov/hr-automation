@@ -63,29 +63,6 @@ const permissionDependencies: Record<string, string[]> = {
   "settings.backups_open_folder": ["settings.view"],
 };
 
-const globalOnlyPermissions = new Set([
-  "access.manage",
-  "settings.manage",
-  "audit.view",
-  "vacation_types.create",
-  "vacation_types.edit",
-  "vacation_types.delete",
-  "users.view",
-  "users.create",
-  "users.edit",
-  "users.delete",
-  "users.reset_password",
-  "roles.view",
-  "roles.create",
-  "roles.edit",
-  "roles.delete",
-  "settings.backups_view",
-  "settings.backups_create",
-  "settings.backups_restore",
-  "settings.backups_open_folder",
-  "employees.export",
-]);
-
 export class AccessControlService {
   constructor(private readonly repository: AccessControlRepository) {}
 
@@ -110,13 +87,6 @@ export class AccessControlService {
       throw new Error("В роли указано неизвестное разрешение");
     }
 
-    const hasGlobalOnlyPermission = permissionCodes.some((code) =>
-      globalOnlyPermissions.has(code),
-    );
-    if (hasGlobalOnlyPermission && params.scopeType !== "global") {
-      throw new Error("Одно или несколько выбранных разрешений требуют глобальной области данных");
-    }
-
     if (params.id) {
       const existingRole = this.repository.getRoleById(params.id);
       if (!existingRole) throw new Error("Роль не найдена");
@@ -129,7 +99,7 @@ export class AccessControlService {
         code: params.id ? "" : createCustomRoleCode(),
         name,
         description,
-        scopeType: params.scopeType,
+        scopeType: "global",
         permissionCodes,
       });
     } catch (error) {

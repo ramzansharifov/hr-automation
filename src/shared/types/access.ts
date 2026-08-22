@@ -67,7 +67,6 @@ export interface SaveAccessRoleParams {
   id?: number;
   name: string;
   description?: string;
-  scopeType: AccessScopeType;
   permissionCodes: string[];
 }
 

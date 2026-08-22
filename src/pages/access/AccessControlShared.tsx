@@ -12,7 +12,6 @@ import {
   Select,
 } from "../../shared/ui";
 import {
-  scopeLabel,
   statusOptions,
   type EmployeeOption,
   type UserDraft,
@@ -22,7 +21,6 @@ export {
   emptyUserDraft,
   getErrorMessage,
   loadEmployees,
-  scopeLabel,
 } from "./accessControlData";
 export type { EmployeeOption, UserDraft } from "./accessControlData";
 
@@ -141,7 +139,8 @@ export function UserDialog({
                         {role.name}
                       </span>
                       <span className="app-muted mt-1 block text-xs leading-5">
-                        {scopeLabel(role.scopeType)} · {role.permissionCodes.length} разрешений
+                        {role.permissionCodes.length} разрешений
+                        {role.isSystem ? " · системная роль" : ""}
                       </span>
                     </span>
                   </div>

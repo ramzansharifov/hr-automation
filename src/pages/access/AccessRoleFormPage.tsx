@@ -14,7 +14,6 @@ import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessControlOverview,
   AccessPermission,
-  AccessScopeType,
   SaveAccessRoleParams,
 } from "../../shared/types/access";
 import {
@@ -23,12 +22,10 @@ import {
   Input,
   LoadingState,
   PageHeader,
-  Select,
   Textarea,
 } from "../../shared/ui";
-import { getErrorMessage, scopeOptions } from "./accessControlData";
+import { getErrorMessage } from "./accessControlData";
 import {
-  globalOnlyPermissionCodes,
   legacyPermissionCodes,
   permissionDependencies,
   rolePermissionSections,
@@ -59,7 +56,6 @@ export function AccessRoleFormPage(): JSX.Element {
   const [isSaving, setIsSaving] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [scopeType, setScopeType] = useState<AccessScopeType>("self");
   const [permissionCodes, setPermissionCodes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -75,7 +71,6 @@ export function AccessRoleFormPage(): JSX.Element {
           if (!role) return;
           setName(role.name);
           setDescription(role.description);
-          setScopeType(role.scopeType);
           setPermissionCodes(
             role.permissionCodes.filter((code) => !legacyPermissionCodes.has(code)),
           );
@@ -114,16 +109,11 @@ export function AccessRoleFormPage(): JSX.Element {
     section.permissions.some((permission) => permissionCodes.includes(permission.code)),
   ).length;
 
-  function togglePermission(
-    section: RolePermissionSectionDefinition,
-    code: string,
-    checked: boolean,
-  ): void {
-    void section;
+  function togglePermission(code: string, checked: boolean): void {
     setPermissionCodes((current) => {
       const next = new Set(current);
       if (checked) {
-        addPermissionWithDependencies(next, code, permissionMap, scopeType);
+        addPermissionWithDependencies(next, code, permissionMap);
       } else {
         removePermissionAndDependents(next, code);
       }
@@ -137,29 +127,16 @@ export function AccessRoleFormPage(): JSX.Element {
   ): void {
     setPermissionCodes((current) => {
       const next = new Set(current);
-      const availableCodes = section.permissionCodes.filter(
-        (code) => permissionMap.has(code) && permissionAllowedForScope(code, scopeType),
+      const availableCodes = section.permissionCodes.filter((code) =>
+        permissionMap.has(code),
       );
 
       if (checked) {
         availableCodes.forEach((code) =>
-          addPermissionWithDependencies(next, code, permissionMap, scopeType),
+          addPermissionWithDependencies(next, code, permissionMap),
         );
       } else {
         availableCodes.forEach((code) => removePermissionAndDependents(next, code));
-      }
-      return [...next];
-    });
-  }
-
-  function changeScope(nextScope: AccessScopeType): void {
-    setScopeType(nextScope);
-    if (nextScope === "global") return;
-
-    setPermissionCodes((current) => {
-      const next = new Set(current);
-      for (const code of globalOnlyPermissionCodes) {
-        if (next.has(code)) removePermissionAndDependents(next, code);
       }
       return [...next];
     });
@@ -176,10 +153,7 @@ export function AccessRoleFormPage(): JSX.Element {
         id: roleId ?? undefined,
         name: name.trim(),
         description: description.trim(),
-        scopeType,
-        permissionCodes: permissionCodes.filter(
-          (code) => permissionMap.has(code) && permissionAllowedForScope(code, scopeType),
-        ),
+        permissionCodes: permissionCodes.filter((code) => permissionMap.has(code)),
       };
       const saved = await hrApiClient.saveAccessRole(params);
       toast.success(isEditMode ? "Роль обновлена" : "Роль создана");
@@ -248,7 +222,7 @@ export function AccessRoleFormPage(): JSX.Element {
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="app-surface app-border rounded-[28px] border p-6">
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5">
             <label className="grid gap-2">
               <span className="app-text text-sm font-black">Название роли</span>
               <Input
@@ -258,14 +232,6 @@ export function AccessRoleFormPage(): JSX.Element {
               />
             </label>
             <label className="grid gap-2">
-              <span className="app-text text-sm font-black">Область данных</span>
-              <Select
-                onValueChange={(value) => changeScope(value as AccessScopeType)}
-                options={scopeOptions}
-                value={scopeType}
-              />
-            </label>
-            <label className="grid gap-2 lg:col-span-2">
               <span className="app-text text-sm font-black">Описание</span>
               <Textarea
                 onChange={(event) => setDescription(event.target.value)}
@@ -283,7 +249,7 @@ export function AccessRoleFormPage(): JSX.Element {
             </span>
             <div>
               <p className="app-text font-black">Доступ роли</p>
-              <p className="app-muted mt-1 text-xs">Обновляется сразу при переключении</p>
+              <p className="app-muted mt-1 text-xs">Определяется только разрешениями</p>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -291,7 +257,7 @@ export function AccessRoleFormPage(): JSX.Element {
             <SummaryValue label="Разделов" value={enabledSections} />
           </div>
           <p className="app-muted mt-4 text-xs leading-5">
-            Просмотр и другие технически необходимые разрешения включаются автоматически. При отключении базового доступа зависящие от него действия также отключаются.
+            Администратор сам определяет доступ переключателями ниже. Просмотр и другие технически необходимые разрешения включаются автоматически. При отключении базового доступа зависящие от него действия также отключаются.
           </p>
         </aside>
       </section>
@@ -305,8 +271,8 @@ export function AccessRoleFormPage(): JSX.Element {
             </div>
             <div className="grid gap-4 xl:grid-cols-2">
               {sections.map((section) => {
-                const availableCodes = section.permissionCodes.filter(
-                  (code) => permissionMap.has(code) && permissionAllowedForScope(code, scopeType),
+                const availableCodes = section.permissionCodes.filter((code) =>
+                  permissionMap.has(code),
                 );
                 const activeCount = section.permissions.filter((permission) =>
                   permissionCodes.includes(permission.code),
@@ -327,42 +293,32 @@ export function AccessRoleFormPage(): JSX.Element {
                       <PermissionSwitch
                         checked={allEnabled}
                         disabled={availableCodes.length === 0}
-                        label={`Все доступные разрешения раздела «${section.title}»`}
+                        label={`Все разрешения раздела «${section.title}»`}
                         onCheckedChange={(checked) => toggleSection(section, checked)}
                       />
                     </header>
                     <div className="divide-y divide-[var(--color-border-soft)]">
-                      {section.permissions.map((permission) => {
-                        const requiresGlobalScope = globalOnlyPermissionCodes.has(permission.code);
-                        const disabled = !permissionAllowedForScope(permission.code, scopeType);
-                        return (
-                          <div className="flex items-center justify-between gap-5 px-5 py-4" key={permission.code}>
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="app-text text-sm font-black">{permission.name}</p>
-                                {permissionCodes.includes(permission.code) && (
-                                  <FiCheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
-                                )}
-                                {requiresGlobalScope && (
-                                  <span className="app-surface-muted app-border rounded-full border px-2 py-0.5 text-[10px] font-black">
-                                    Глобальная область
-                                  </span>
-                                )}
-                              </div>
-                              <p className="app-muted mt-1 text-xs leading-5">{permission.description}</p>
-                              <code className="app-muted mt-2 block truncate text-[10px] font-bold">{permission.code}</code>
+                      {section.permissions.map((permission) => (
+                        <div className="flex items-center justify-between gap-5 px-5 py-4" key={permission.code}>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="app-text text-sm font-black">{permission.name}</p>
+                              {permissionCodes.includes(permission.code) && (
+                                <FiCheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
+                              )}
                             </div>
-                            <PermissionSwitch
-                              checked={permissionCodes.includes(permission.code)}
-                              disabled={disabled}
-                              label={permission.name}
-                              onCheckedChange={(checked) =>
-                                togglePermission(section, permission.code, checked)
-                              }
-                            />
+                            <p className="app-muted mt-1 text-xs leading-5">{permission.description}</p>
+                            <code className="app-muted mt-2 block truncate text-[10px] font-bold">{permission.code}</code>
                           </div>
-                        );
-                      })}
+                          <PermissionSwitch
+                            checked={permissionCodes.includes(permission.code)}
+                            label={permission.name}
+                            onCheckedChange={(checked) =>
+                              togglePermission(permission.code, checked)
+                            }
+                          />
+                        </div>
+                      ))}
                     </div>
                   </article>
                 );
@@ -375,18 +331,13 @@ export function AccessRoleFormPage(): JSX.Element {
   );
 }
 
-function permissionAllowedForScope(code: string, scopeType: AccessScopeType): boolean {
-  return scopeType === "global" || !globalOnlyPermissionCodes.has(code);
-}
-
 function addPermissionWithDependencies(
   selected: Set<string>,
   code: string,
   permissionMap: Map<string, AccessPermission>,
-  scopeType: AccessScopeType,
   visiting = new Set<string>(),
 ): boolean {
-  if (!permissionMap.has(code) || !permissionAllowedForScope(code, scopeType)) return false;
+  if (!permissionMap.has(code)) return false;
   if (selected.has(code)) return true;
   if (visiting.has(code)) return false;
 
@@ -397,7 +348,6 @@ function addPermissionWithDependencies(
         selected,
         dependency,
         permissionMap,
-        scopeType,
         visiting,
       )
     ) {
