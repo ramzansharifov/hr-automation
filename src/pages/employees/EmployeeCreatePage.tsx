@@ -36,8 +36,14 @@ export function EmployeeCreatePage(): JSX.Element {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { departments, genderOptions, isRelationsLoading, positions } =
-    useEmployeeFormOptions();
+  const [selectedEnterpriseId, setSelectedEnterpriseId] = useState("");
+  const {
+    departments,
+    enterprises,
+    genderOptions,
+    isRelationsLoading,
+    positions,
+  } = useEmployeeFormOptions();
   const {
     control,
     formState: { errors },
@@ -52,11 +58,35 @@ export function EmployeeCreatePage(): JSX.Element {
     resolver: zodResolver(employeeCreateSchema) as Resolver<EmployeeFormValues>,
   });
   const watchedValues = watch();
-  const availablePositions = positions.filter(
-    (position) =>
-      !watchedValues.department_id ||
-      position.departmentId === watchedValues.department_id,
-  );
+  const availableDepartments = selectedEnterpriseId
+    ? departments.filter(
+        (department) => department.enterpriseId === selectedEnterpriseId,
+      )
+    : [];
+  const availablePositions = watchedValues.department_id
+    ? positions.filter(
+        (position) => position.departmentId === watchedValues.department_id,
+      )
+    : [];
+
+  useEffect(() => {
+    if (!watchedValues.department_id) return;
+    const selectedDepartment = departments.find(
+      (department) => department.value === watchedValues.department_id,
+    );
+    if (
+      !selectedDepartment ||
+      selectedDepartment.enterpriseId !== selectedEnterpriseId
+    ) {
+      setValue("department_id", "");
+      setValue("position_id", "");
+    }
+  }, [
+    departments,
+    selectedEnterpriseId,
+    setValue,
+    watchedValues.department_id,
+  ]);
 
   useEffect(() => {
     if (!watchedValues.position_id) return;
@@ -65,8 +95,8 @@ export function EmployeeCreatePage(): JSX.Element {
     );
     if (
       !selectedPosition ||
-      (watchedValues.department_id &&
-        selectedPosition.departmentId !== watchedValues.department_id)
+      !watchedValues.department_id ||
+      selectedPosition.departmentId !== watchedValues.department_id
     ) {
       setValue("position_id", "");
     }
@@ -77,8 +107,19 @@ export function EmployeeCreatePage(): JSX.Element {
     watchedValues.position_id,
   ]);
 
+  function handleEnterpriseChange(enterpriseId: string): void {
+    if (enterpriseId === selectedEnterpriseId) return;
+    setSelectedEnterpriseId(enterpriseId);
+    setValue("department_id", "");
+    setValue("position_id", "");
+  }
+
   async function handleNext(): Promise<void> {
     if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) return;
+    if (activeStep === 2 && !selectedEnterpriseId) {
+      toast.error("Выберите предприятие");
+      return;
+    }
     const currentStep = employeeCreateSteps[activeStep];
     const isStepValid = await trigger(currentStep.fields);
     if (!isStepValid) return;
@@ -181,11 +222,15 @@ export function EmployeeCreatePage(): JSX.Element {
         {activeStep === 2 && (
           <EmployeeCompanyFormSection
             control={control}
-            departments={departments}
+            departments={availableDepartments}
+            enterpriseId={selectedEnterpriseId}
+            enterprises={enterprises}
             errors={errors}
             isRelationsLoading={isRelationsLoading}
+            onEnterpriseChange={handleEnterpriseChange}
             positions={availablePositions}
             register={register}
+            selectedDepartmentId={watchedValues.department_id}
             t={t}
           />
         )}
