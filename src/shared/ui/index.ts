@@ -1,6 +1,7 @@
 export { Button } from './Button'
 export { ConfirmDialog } from './ConfirmDialog'
 export { DataTable, type DataTableColumn } from './DataTable'
+export { DatePicker, type DatePickerProps } from './DatePicker'
 export { Dialog } from './Dialog'
 export { DropdownMenu, type DropdownMenuAction } from './DropdownMenu'
 export { EmptyState } from './EmptyState'
