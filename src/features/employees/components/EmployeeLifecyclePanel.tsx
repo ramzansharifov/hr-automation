@@ -23,7 +23,8 @@ import {
 } from "../../../shared/ui";
 
 interface EmployeeLifecyclePanelProps {
-  canManage: boolean;
+  canChangeEmployment: boolean;
+  canTerminate: boolean;
   employee: HrRecord;
   employeeId: number;
   locale: string;
@@ -31,7 +32,8 @@ interface EmployeeLifecyclePanelProps {
 }
 
 export function EmployeeLifecyclePanel({
-  canManage,
+  canChangeEmployment,
+  canTerminate,
   employee,
   employeeId,
   locale,
@@ -143,6 +145,7 @@ export function EmployeeLifecyclePanel({
 
   async function saveCareerChange(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    if (!canChangeEmployment) return;
     if (!career.positionId || !career.departmentId) {
       toast.error("Выберите отдел и должность");
       return;
@@ -173,6 +176,7 @@ export function EmployeeLifecyclePanel({
 
   async function terminate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    if (!canTerminate) return;
     setSaving(true);
     try {
       const updated = await hrApiClient.terminateEmployee({
@@ -194,6 +198,7 @@ export function EmployeeLifecyclePanel({
 
   async function correctHireDate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    if (!canChangeEmployment) return;
     setSaving(true);
     try {
       const updated = await hrApiClient.correctHireDate({
@@ -247,28 +252,30 @@ export function EmployeeLifecyclePanel({
               Кадровый журнал
             </h2>
           </div>
-          {canManage && (
+          {(canChangeEmployment || canTerminate) && (
             <div className="flex flex-wrap gap-2">
-              <Button
-                leftIcon={<FiCalendar />}
-                onClick={() => setCorrectionOpen(true)}
-                variant="secondary"
-              >
-                Исправить дату приёма
-              </Button>
-              {isActive && (
-                <>
-                  <Button leftIcon={<FiPlus />} onClick={() => setCareerOpen(true)}>
-                    Кадровое изменение
-                  </Button>
-                  <Button
-                    leftIcon={<FiUserX />}
-                    onClick={() => setTerminationOpen(true)}
-                    variant="secondary"
-                  >
-                    Уволить
-                  </Button>
-                </>
+              {canChangeEmployment && (
+                <Button
+                  leftIcon={<FiCalendar />}
+                  onClick={() => setCorrectionOpen(true)}
+                  variant="secondary"
+                >
+                  Исправить дату приёма
+                </Button>
+              )}
+              {isActive && canChangeEmployment && (
+                <Button leftIcon={<FiPlus />} onClick={() => setCareerOpen(true)}>
+                  Кадровое изменение
+                </Button>
+              )}
+              {isActive && canTerminate && (
+                <Button
+                  leftIcon={<FiUserX />}
+                  onClick={() => setTerminationOpen(true)}
+                  variant="secondary"
+                >
+                  Уволить
+                </Button>
               )}
             </div>
           )}
@@ -291,153 +298,159 @@ export function EmployeeLifecyclePanel({
         </div>
       </section>
 
-      <Dialog
-        open={careerOpen}
-        onOpenChange={setCareerOpen}
-        title="Кадровое изменение"
-        description="Перевод, повышение, понижение или изменение оклада с обязательной датой и основанием."
-      >
-        <form className="grid gap-4" onSubmit={saveCareerChange}>
-          <Field label="Отдел">
-            <Select
-              options={departments}
-              value={career.departmentId}
-              onValueChange={(departmentId) =>
-                setCareer((value) => ({ ...value, departmentId, positionId: "" }))
-              }
-              placeholder="Выберите отдел"
-            />
-          </Field>
-          <Field label="Новая должность">
-            <Select
-              options={positions.filter(
-                (item) =>
-                  !career.departmentId || item.departmentId === career.departmentId,
+      {canChangeEmployment && (
+        <>
+          <Dialog
+            open={careerOpen}
+            onOpenChange={setCareerOpen}
+            title="Кадровое изменение"
+            description="Перевод, повышение, понижение или изменение оклада с обязательной датой и основанием."
+          >
+            <form className="grid gap-4" onSubmit={saveCareerChange}>
+              <Field label="Отдел">
+                <Select
+                  options={departments}
+                  value={career.departmentId}
+                  onValueChange={(departmentId) =>
+                    setCareer((value) => ({ ...value, departmentId, positionId: "" }))
+                  }
+                  placeholder="Выберите отдел"
+                />
+              </Field>
+              <Field label="Новая должность">
+                <Select
+                  options={positions.filter(
+                    (item) =>
+                      !career.departmentId || item.departmentId === career.departmentId,
+                  )}
+                  value={career.positionId}
+                  onValueChange={(positionId) =>
+                    setCareer((value) => ({ ...value, positionId }))
+                  }
+                  placeholder="Выберите должность"
+                />
+              </Field>
+              <Field label="Оклад">
+                <Select
+                  value={career.salaryMode}
+                  onValueChange={(salaryMode) =>
+                    setCareer((value) => ({ ...value, salaryMode }))
+                  }
+                  options={[
+                    { value: "keep", label: "Оставить без изменений" },
+                    { value: "custom", label: "Указать новый оклад" },
+                  ]}
+                />
+              </Field>
+              {career.salaryMode === "custom" && (
+                <Field label="Новый оклад">
+                  <Input
+                    min="0"
+                    type="number"
+                    value={career.salary}
+                    onChange={(event) =>
+                      setCareer((value) => ({ ...value, salary: event.target.value }))
+                    }
+                  />
+                </Field>
               )}
-              value={career.positionId}
-              onValueChange={(positionId) =>
-                setCareer((value) => ({ ...value, positionId }))
-              }
-              placeholder="Выберите должность"
-            />
-          </Field>
-          <Field label="Оклад">
-            <Select
-              value={career.salaryMode}
-              onValueChange={(salaryMode) =>
-                setCareer((value) => ({ ...value, salaryMode }))
-              }
-              options={[
-                { value: "keep", label: "Оставить без изменений" },
-                { value: "custom", label: "Указать новый оклад" },
-              ]}
-            />
-          </Field>
-          {career.salaryMode === "custom" && (
-            <Field label="Новый оклад">
+              <Field label="Дата вступления в силу">
+                <Input
+                  required
+                  type="date"
+                  value={career.effectiveAt}
+                  onChange={(event) =>
+                    setCareer((value) => ({ ...value, effectiveAt: event.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Основание изменения">
+                <Textarea
+                  required
+                  placeholder="Например: приказ №12 от 13.07.2026"
+                  rows={3}
+                  value={career.reason}
+                  onChange={(event) =>
+                    setCareer((value) => ({ ...value, reason: event.target.value }))
+                  }
+                />
+              </Field>
+              <DialogActions onCancel={() => setCareerOpen(false)} saving={saving} />
+            </form>
+          </Dialog>
+
+          <Dialog
+            open={correctionOpen}
+            onOpenChange={setCorrectionOpen}
+            title="Исправить дату приёма"
+            description="Исправление синхронно обновит карточку сотрудника и исходную запись о приёме в кадровом журнале."
+          >
+            <form className="grid gap-4" onSubmit={correctHireDate}>
+              <Field label="Дата приёма">
+                <Input
+                  required
+                  type="date"
+                  value={correction.hireDate}
+                  onChange={(event) =>
+                    setCorrection((value) => ({ ...value, hireDate: event.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Причина исправления">
+                <Textarea
+                  required
+                  rows={3}
+                  value={correction.reason}
+                  onChange={(event) =>
+                    setCorrection((value) => ({ ...value, reason: event.target.value }))
+                  }
+                />
+              </Field>
+              <DialogActions onCancel={() => setCorrectionOpen(false)} saving={saving} />
+            </form>
+          </Dialog>
+        </>
+      )}
+
+      {canTerminate && (
+        <Dialog
+          open={terminationOpen}
+          onOpenChange={setTerminationOpen}
+          title="Уволить сотрудника"
+          description="Карточка и вся кадровая история останутся в системе. Связанная учётная запись будет заблокирована автоматически."
+        >
+          <form className="grid gap-4" onSubmit={terminate}>
+            <Field label="Дата увольнения">
               <Input
-                min="0"
-                type="number"
-                value={career.salary}
+                required
+                type="date"
+                value={termination.effectiveAt}
                 onChange={(event) =>
-                  setCareer((value) => ({ ...value, salary: event.target.value }))
+                  setTermination((value) => ({
+                    ...value,
+                    effectiveAt: event.target.value,
+                  }))
                 }
               />
             </Field>
-          )}
-          <Field label="Дата вступления в силу">
-            <Input
-              required
-              type="date"
-              value={career.effectiveAt}
-              onChange={(event) =>
-                setCareer((value) => ({ ...value, effectiveAt: event.target.value }))
-              }
-            />
-          </Field>
-          <Field label="Основание изменения">
-            <Textarea
-              required
-              placeholder="Например: приказ №12 от 13.07.2026"
-              rows={3}
-              value={career.reason}
-              onChange={(event) =>
-                setCareer((value) => ({ ...value, reason: event.target.value }))
-              }
-            />
-          </Field>
-          <DialogActions onCancel={() => setCareerOpen(false)} saving={saving} />
-        </form>
-      </Dialog>
-
-      <Dialog
-        open={correctionOpen}
-        onOpenChange={setCorrectionOpen}
-        title="Исправить дату приёма"
-        description="Исправление синхронно обновит карточку сотрудника и исходную запись о приёме в кадровом журнале."
-      >
-        <form className="grid gap-4" onSubmit={correctHireDate}>
-          <Field label="Дата приёма">
-            <Input
-              required
-              type="date"
-              value={correction.hireDate}
-              onChange={(event) =>
-                setCorrection((value) => ({ ...value, hireDate: event.target.value }))
-              }
-            />
-          </Field>
-          <Field label="Причина исправления">
-            <Textarea
-              required
-              rows={3}
-              value={correction.reason}
-              onChange={(event) =>
-                setCorrection((value) => ({ ...value, reason: event.target.value }))
-              }
-            />
-          </Field>
-          <DialogActions onCancel={() => setCorrectionOpen(false)} saving={saving} />
-        </form>
-      </Dialog>
-
-      <Dialog
-        open={terminationOpen}
-        onOpenChange={setTerminationOpen}
-        title="Уволить сотрудника"
-        description="Карточка и вся кадровая история останутся в системе. Связанная учётная запись будет заблокирована автоматически."
-      >
-        <form className="grid gap-4" onSubmit={terminate}>
-          <Field label="Дата увольнения">
-            <Input
-              required
-              type="date"
-              value={termination.effectiveAt}
-              onChange={(event) =>
-                setTermination((value) => ({
-                  ...value,
-                  effectiveAt: event.target.value,
-                }))
-              }
-            />
-          </Field>
-          <Field label="Основание увольнения">
-            <Textarea
-              required
-              placeholder="Приказ, заявление или иное основание"
-              rows={4}
-              value={termination.reason}
-              onChange={(event) =>
-                setTermination((value) => ({ ...value, reason: event.target.value }))
-              }
-            />
-          </Field>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-            Сотрудник не удаляется: он переходит в завершённый кадровый статус, а данные остаются доступны в истории.
-          </div>
-          <DialogActions onCancel={() => setTerminationOpen(false)} saving={saving} destructive />
-        </form>
-      </Dialog>
+            <Field label="Основание увольнения">
+              <Textarea
+                required
+                placeholder="Приказ, заявление или иное основание"
+                rows={4}
+                value={termination.reason}
+                onChange={(event) =>
+                  setTermination((value) => ({ ...value, reason: event.target.value }))
+                }
+              />
+            </Field>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              Сотрудник не удаляется: он переходит в завершённый кадровый статус, а данные остаются доступны в истории.
+            </div>
+            <DialogActions onCancel={() => setTerminationOpen(false)} saving={saving} destructive />
+          </form>
+        </Dialog>
+      )}
     </div>
   );
 }
