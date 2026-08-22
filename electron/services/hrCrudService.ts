@@ -95,7 +95,7 @@ export class HrCrudService {
 
   delete(params: HrDeleteParams): { success: true } {
     if (params.entity === "employment_history") {
-      throw new Error("Записи кадрового журнала нельзя удалять вручную");
+      throw new Error("Записи кадрового журнала нельзя удалять");
     }
     if (params.entity === "employees") {
       throw new Error(
@@ -203,7 +203,10 @@ export class HrCrudService {
     data: HrRecord,
   ): void {
     const field = "general_director_employee_id";
-    if (!(field in data) || normalizeComparable(data[field]) === normalizeComparable(enterprise[field])) {
+    if (
+      !(field in data) ||
+      normalizeComparable(data[field]) === normalizeComparable(enterprise[field])
+    ) {
       return;
     }
 
@@ -219,7 +222,9 @@ export class HrCrudService {
       departmentId,
     );
     if (!department || Number(department.enterprise_id) !== enterpriseId) {
-      throw new Error("Руководителем предприятия можно назначить только сотрудника этого предприятия");
+      throw new Error(
+        "Руководителем предприятия можно назначить только сотрудника этого предприятия",
+      );
     }
   }
 
@@ -229,7 +234,10 @@ export class HrCrudService {
     data: HrRecord,
   ): void {
     const field = "director_employee_id";
-    if (!(field in data) || normalizeComparable(data[field]) === normalizeComparable(department[field])) {
+    if (
+      !(field in data) ||
+      normalizeComparable(data[field]) === normalizeComparable(department[field])
+    ) {
       return;
     }
 
@@ -237,7 +245,9 @@ export class HrCrudService {
     if (employeeId === null) return;
     const employee = this.getLeaderCandidate(employeeId);
     if (Number(employee.department_id) !== departmentId) {
-      throw new Error("Руководителем отдела можно назначить только сотрудника этого отдела");
+      throw new Error(
+        "Руководителем отдела можно назначить только сотрудника этого отдела",
+      );
     }
   }
 
