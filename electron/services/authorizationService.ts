@@ -10,19 +10,68 @@ import type {
 } from "../../src/shared/types/hr";
 import { AuthenticationService } from "./authenticationService";
 
-const entityPermissions: Record<
-  HrEntityKey,
-  { view: string; manage: string }
-> = {
-  enterprises: { view: "organization.view", manage: "organization.manage" },
-  departments: { view: "organization.view", manage: "organization.manage" },
-  positions: { view: "organization.view", manage: "organization.manage" },
-  employees: { view: "employees.view", manage: "employees.manage" },
-  employee_education: { view: "employees.view", manage: "employees.manage" },
-  employee_experience: { view: "employees.view", manage: "employees.manage" },
-  employment_history: { view: "employees.view", manage: "employees.manage" },
-  vacation_types: { view: "vacations.view", manage: "vacations.manage" },
-  vacations: { view: "vacations.view", manage: "vacations.manage" },
+type EntityPermissionSet = {
+  view: string;
+  create: string;
+  edit: string;
+  delete: string;
+};
+
+const entityPermissions: Record<HrEntityKey, EntityPermissionSet> = {
+  enterprises: {
+    view: "organization.view",
+    create: "organization.create",
+    edit: "organization.edit",
+    delete: "organization.delete",
+  },
+  departments: {
+    view: "organization.view",
+    create: "organization.create",
+    edit: "organization.edit",
+    delete: "organization.delete",
+  },
+  positions: {
+    view: "organization.view",
+    create: "organization.create",
+    edit: "organization.edit",
+    delete: "organization.delete",
+  },
+  employees: {
+    view: "employees.view",
+    create: "employees.create",
+    edit: "employees.edit",
+    delete: "employees.edit",
+  },
+  employee_education: {
+    view: "employees.view",
+    create: "employees.edit",
+    edit: "employees.edit",
+    delete: "employees.edit",
+  },
+  employee_experience: {
+    view: "employees.view",
+    create: "employees.edit",
+    edit: "employees.edit",
+    delete: "employees.edit",
+  },
+  employment_history: {
+    view: "employees.view",
+    create: "employees.edit",
+    edit: "employees.edit",
+    delete: "employees.edit",
+  },
+  vacation_types: {
+    view: "vacation_types.view",
+    create: "vacation_types.create",
+    edit: "vacation_types.edit",
+    delete: "vacation_types.delete",
+  },
+  vacations: {
+    view: "vacations.view",
+    create: "vacations.create",
+    edit: "vacations.edit",
+    delete: "vacations.delete",
+  },
 };
 
 export class AuthorizationService {
@@ -46,6 +95,16 @@ export class AuthorizationService {
       throw new Error("Это действие доступно только роли с глобальной областью данных");
     }
     return session;
+  }
+
+  requireAnyGlobalPermission(permissionCodes: string[]): AuthSession {
+    const session = this.authenticationService.requireSession();
+    for (const code of permissionCodes) {
+      if (session.permissionScopes[code] === "global") {
+        return { ...session, scopeType: "global" };
+      }
+    }
+    throw new Error("Недостаточно прав для выполнения действия");
   }
 
   scopeListParams(entity: HrEntityKey, params: HrListParams): HrListParams {
@@ -74,7 +133,7 @@ export class AuthorizationService {
   }
 
   assertCanCreate(entity: HrEntityKey, data: HrRecord): void {
-    const session = this.requireManagePermission(entity);
+    const session = this.requirePermission(entityPermissions[entity].create);
     if (
       (entity === "enterprises" || entity === "vacation_types") &&
       session.scopeType !== "global"
@@ -85,7 +144,13 @@ export class AuthorizationService {
   }
 
   assertCanUpdate(entity: HrEntityKey, existing: HrRecord, data: HrRecord): void {
-    const session = this.requireManagePermission(entity);
+    const permissionCode =
+      entity === "vacations" &&
+      "status" in data &&
+      normalizeComparable(data.status) !== normalizeComparable(existing.status)
+        ? "vacations.approve"
+        : entityPermissions[entity].edit;
+    const session = this.requirePermission(permissionCode);
     if (entity === "vacation_types" && session.scopeType !== "global") {
       throw new Error("Справочник отпусков доступен для изменения только глобально");
     }
@@ -94,51 +159,62 @@ export class AuthorizationService {
   }
 
   assertCanDelete(entity: HrEntityKey, existing: HrRecord): void {
-    const session = this.requireManagePermission(entity);
+    const session = this.requirePermission(entityPermissions[entity].delete);
     if (entity === "vacation_types" && session.scopeType !== "global") {
       throw new Error("Справочник отпусков доступен для изменения только глобально");
     }
     this.assertRecordInScope(entity, existing, session);
   }
 
-  assertCanChangeEmployment(employee: HrRecord): void {
-    const session = this.requirePermission("employees.manage");
+  assertCanChangeEmployment(
+    employee: HrRecord,
+    action: "change" | "terminate" = "change",
+  ): void {
+    const session = this.requirePermission(
+      action === "terminate" ? "employees.terminate" : "employees.change_employment",
+    );
     this.assertRecordInScope("employees", employee, session);
   }
 
   filterVacancies(records: HrRecord[]): HrRecord[] {
-    const session = this.requirePermission("recruitment.view");
+    const session = this.requirePermission("vacancies.view");
     return records.filter((record) => this.isVacancyInScope(record, session));
   }
 
   assertCanViewVacancy(record: HrRecord): void {
-    const session = this.requirePermission("recruitment.view");
+    const session = this.requirePermission("vacancies.view");
     if (!this.isVacancyInScope(record, session)) {
       throw new Error("Вакансия находится вне доступной области данных");
     }
   }
 
-  assertCanManageVacancy(record: HrRecord): void {
-    const session = this.requirePermission("recruitment.manage");
+  assertCanManageVacancy(
+    record: HrRecord,
+    action: "create" | "edit" | "delete",
+  ): void {
+    const session = this.requirePermission(`vacancies.${action}`);
     if (!this.isVacancyInScope(record, session)) {
       throw new Error("Вакансия находится вне доступной области данных");
     }
   }
 
   filterCandidates(records: HrRecord[]): HrRecord[] {
-    const session = this.requirePermission("recruitment.view");
+    const session = this.requirePermission("candidates.view");
     return records.filter((record) => this.isCandidateInScope(record, session));
   }
 
   assertCanViewCandidate(record: HrRecord): void {
-    const session = this.requirePermission("recruitment.view");
+    const session = this.requirePermission("candidates.view");
     if (!this.isCandidateInScope(record, session)) {
       throw new Error("Кандидат находится вне доступной области данных");
     }
   }
 
-  assertCanManageCandidate(record: HrRecord): void {
-    const session = this.requirePermission("recruitment.manage");
+  assertCanManageCandidate(
+    record: HrRecord,
+    action: "create" | "edit" | "delete" | "hire",
+  ): void {
+    const session = this.requirePermission(`candidates.${action}`);
     if (!this.isCandidateInScope(record, session)) {
       throw new Error("Кандидат находится вне доступной области данных");
     }
@@ -205,10 +281,6 @@ export class AuthorizationService {
     }
 
     throw new Error("Недостаточно прав для просмотра данных");
-  }
-
-  private requireManagePermission(entity: HrEntityKey): AuthSession {
-    return this.requirePermission(entityPermissions[entity].manage);
   }
 
   private getEntityRestriction(
@@ -540,4 +612,8 @@ function compactIds(values: Array<number | null>): number[] {
 function toPositiveNumber(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function normalizeComparable(value: unknown): string {
+  return value === null || value === undefined ? "" : String(value);
 }
