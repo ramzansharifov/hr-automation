@@ -6,7 +6,7 @@ INSERT OR IGNORE INTO permissions (code, name, module, description) VALUES
   ('employees.edit', 'Редактирование сотрудников', 'Сотрудники', 'Изменение персональных и кадровых данных сотрудника.'),
   ('employees.change_employment', 'Кадровые изменения', 'Сотрудники', 'Перевод сотрудника, изменение должности, отдела, оклада и даты приёма.'),
   ('employees.terminate', 'Увольнение сотрудников', 'Сотрудники', 'Оформление увольнения активного сотрудника.'),
-  ('employees.export', 'Экспорт сотрудников', 'Сотрудники', 'Выгрузка реестра сотрудников в CSV.'),
+  ('employees.export', 'Экспорт сотрудников', 'Настройки', 'Выгрузка реестра сотрудников в CSV.'),
 
   ('organization.create', 'Создание элементов структуры', 'Предприятия', 'Создание предприятий, отделов и должностей.'),
   ('organization.edit', 'Редактирование структуры', 'Предприятия', 'Изменение предприятий, отделов и должностей.'),
@@ -29,7 +29,7 @@ INSERT OR IGNORE INTO permissions (code, name, module, description) VALUES
   ('candidates.delete', 'Удаление кандидатов', 'Кандидаты', 'Удаление кандидата.'),
   ('candidates.hire', 'Приём кандидата на работу', 'Кандидаты', 'Создание сотрудника из кандидата и завершение найма.'),
 
-  ('vacation_types.view', 'Просмотр видов отпусков', 'Виды отпусков', 'Просмотр справочника видов отпусков.'),
+  ('vacation_types.view', 'Просмотр видов отпусков', 'Виды отпусков', 'Просмотр справочника видов отпусков и использование его при оформлении отпуска.'),
   ('vacation_types.create', 'Создание видов отпусков', 'Виды отпусков', 'Добавление нового вида отпуска.'),
   ('vacation_types.edit', 'Редактирование видов отпусков', 'Виды отпусков', 'Изменение вида отпуска.'),
   ('vacation_types.delete', 'Удаление видов отпусков', 'Виды отпусков', 'Удаление вида отпуска.'),
@@ -68,7 +68,14 @@ INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT rp.role_id, target.id
 FROM role_permissions rp
 JOIN permissions source ON source.id = rp.permission_id AND source.code = 'vacations.manage'
-JOIN permissions target ON target.code IN ('vacations.create', 'vacations.edit', 'vacations.delete', 'vacations.approve', 'vacation_types.view', 'vacation_types.create', 'vacation_types.edit', 'vacation_types.delete');
+JOIN permissions target ON target.code IN ('vacations.create', 'vacations.edit', 'vacations.delete', 'vacations.approve', 'vacation_types.view');
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN roles role ON role.id = rp.role_id AND role.scope_type = 'global'
+JOIN permissions source ON source.id = rp.permission_id AND source.code = 'vacations.manage'
+JOIN permissions target ON target.code IN ('vacation_types.create', 'vacation_types.edit', 'vacation_types.delete');
 
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT rp.role_id, target.id
@@ -85,24 +92,126 @@ JOIN permissions target ON target.code IN ('vacancies.create', 'vacancies.edit',
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT rp.role_id, target.id
 FROM role_permissions rp
+JOIN roles role ON role.id = rp.role_id AND role.scope_type = 'global'
 JOIN permissions source ON source.id = rp.permission_id AND source.code = 'access.manage'
 JOIN permissions target ON target.code IN ('users.view', 'users.create', 'users.edit', 'users.delete', 'users.reset_password', 'roles.view', 'roles.create', 'roles.edit', 'roles.delete');
 
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT rp.role_id, target.id
 FROM role_permissions rp
+JOIN roles role ON role.id = rp.role_id AND role.scope_type = 'global'
 JOIN permissions source ON source.id = rp.permission_id AND source.code = 'settings.manage'
-JOIN permissions target ON target.code IN ('settings.view', 'settings.backups_view', 'settings.backups_create', 'settings.backups_restore', 'settings.backups_open_folder');
+JOIN permissions target ON target.code IN ('settings.backups_view', 'settings.backups_create', 'settings.backups_restore', 'settings.backups_open_folder');
 
+-- Настройки интерфейса раньше были доступны всем авторизованным пользователям.
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r CROSS JOIN permissions p WHERE p.code = 'settings.view';
 
+-- Зависимости: action-разрешение всегда получает базовый просмотр, необходимый реальному UI.
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
-SELECT r.id, target.id
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('employees.create', 'employees.edit', 'employees.change_employment', 'employees.terminate', 'employees.export')
+JOIN permissions target ON target.code = 'employees.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('employees.create', 'employees.edit', 'employees.change_employment', 'vacancies.create', 'vacancies.edit')
+JOIN permissions target ON target.code = 'organization.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('organization.create', 'organization.edit', 'organization.delete', 'organization.assign_leader')
+JOIN permissions target ON target.code = 'organization.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id AND source.code = 'organization.assign_leader'
+JOIN permissions target ON target.code = 'employees.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('vacations.create', 'vacations.edit', 'vacations.delete', 'vacations.approve')
+JOIN permissions target ON target.code = 'vacations.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('vacations.create', 'vacations.edit', 'vacations.approve')
+JOIN permissions target ON target.code IN ('employees.view', 'vacation_types.view');
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('vacancies.create', 'vacancies.edit', 'vacancies.delete')
+JOIN permissions target ON target.code = 'vacancies.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('candidates.create', 'candidates.edit', 'candidates.delete', 'candidates.hire')
+JOIN permissions target ON target.code = 'candidates.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('candidates.create', 'candidates.edit')
+JOIN permissions target ON target.code = 'vacancies.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('vacation_types.create', 'vacation_types.edit', 'vacation_types.delete')
+JOIN permissions target ON target.code = 'vacation_types.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('users.create', 'users.edit', 'users.delete', 'users.reset_password')
+JOIN permissions target ON target.code = 'users.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('users.create', 'users.edit')
+JOIN permissions target ON target.code = 'employees.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('roles.create', 'roles.edit', 'roles.delete')
+JOIN permissions target ON target.code = 'roles.view';
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT rp.role_id, target.id
+FROM role_permissions rp
+JOIN permissions source ON source.id = rp.permission_id
+  AND source.code IN ('settings.backups_view', 'settings.backups_create', 'settings.backups_restore', 'settings.backups_open_folder', 'employees.export')
+JOIN permissions target ON target.code = 'settings.view';
+
+-- Экспорт остаётся глобальной административной операцией.
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
 FROM roles r
 JOIN role_permissions rp ON rp.role_id = r.id
 JOIN permissions source ON source.id = rp.permission_id AND source.code = 'employees.view'
-JOIN permissions target ON target.code = 'employees.export'
+JOIN permissions p ON p.code = 'employees.export'
 WHERE r.scope_type = 'global';
 
 -- Superadmin всегда получает все разрешения, включая добавленные в этой миграции.
