@@ -3,8 +3,13 @@ import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { SelectOption } from "../../../shared/ui";
 
 export interface EmployeeRelationOptions {
-  departments: SelectOption[];
+  departments: DepartmentOption[];
+  enterprises: SelectOption[];
   positions: PositionOption[];
+}
+
+export interface DepartmentOption extends SelectOption {
+  enterpriseId: string;
 }
 
 export interface PositionOption extends SelectOption {
@@ -12,12 +17,22 @@ export interface PositionOption extends SelectOption {
 }
 
 export async function loadEmployeeRelationOptions(): Promise<EmployeeRelationOptions> {
-  const [departments, positions] = await Promise.all([
-    loadEntityOptions("departments"),
+  const [enterprises, departments, positions] = await Promise.all([
+    loadEntityOptions("enterprises"),
+    loadDepartmentOptions(),
     loadPositionOptions(),
   ]);
 
-  return { departments, positions };
+  return { departments, enterprises, positions };
+}
+
+async function loadDepartmentOptions(): Promise<DepartmentOption[]> {
+  const records = await loadAll("departments");
+  return records.map((item) => ({
+    value: String(item.id ?? ""),
+    label: getRecordLabel(item),
+    enterpriseId: String(item.enterprise_id ?? ""),
+  }));
 }
 
 async function loadPositionOptions(): Promise<PositionOption[]> {
@@ -35,7 +50,7 @@ export function getRecordLabel(record: HrRecord | null | undefined): string {
 }
 
 async function loadEntityOptions(
-  entity: Extract<HrEntityKey, "departments" | "positions">,
+  entity: Extract<HrEntityKey, "enterprises" | "departments" | "positions">,
 ): Promise<SelectOption[]> {
   const records = await loadAll(entity);
   return records.map((item) => ({
@@ -45,7 +60,7 @@ async function loadEntityOptions(
 }
 
 async function loadAll(
-  entity: Extract<HrEntityKey, "departments" | "positions">,
+  entity: Extract<HrEntityKey, "enterprises" | "departments" | "positions">,
 ): Promise<HrRecord[]> {
   const records: HrRecord[] = [];
   let page = 1;
