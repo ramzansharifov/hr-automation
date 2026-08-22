@@ -170,7 +170,8 @@ export function AppLayout(): JSX.Element {
   const canSearch = [
     "employees.view",
     "organization.view",
-    "recruitment.view",
+    "vacancies.view",
+    "candidates.view",
   ].some(hasPermission);
   const sidebarWidth = isSidebarCollapsed
     ? COLLAPSED_SIDEBAR_WIDTH

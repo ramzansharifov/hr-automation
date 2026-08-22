@@ -57,13 +57,13 @@ export const mainNavigationItems: AppNavigationItem[] = [
     titleKey: "navigation.vacancies",
     path: "/vacancies",
     icon: FiBriefcase,
-    permissionCode: "recruitment.view",
+    permissionCode: "vacancies.view",
   },
   {
     titleKey: "navigation.candidates",
     path: "/candidates",
     icon: FiClipboard,
-    permissionCode: "recruitment.view",
+    permissionCode: "candidates.view",
   },
   {
     titleKey: "navigation.filters",
@@ -78,7 +78,7 @@ export const administrationNavigationItems: AppNavigationItem[] = [
     titleKey: "Виды отпусков",
     path: "/vacation-types",
     icon: FiBookOpen,
-    permissionCode: "vacations.manage",
+    permissionCode: "vacation_types.view",
     requiredGlobalScope: true,
     entity: "vacation_types",
   },
@@ -86,19 +86,22 @@ export const administrationNavigationItems: AppNavigationItem[] = [
     titleKey: "Пользователи",
     path: "/users",
     icon: FiUserCheck,
-    permissionCode: "access.manage",
+    permissionCode: "users.view",
+    requiredGlobalScope: true,
   },
   {
     titleKey: "Роли",
     path: "/roles",
     icon: FiShield,
-    permissionCode: "access.manage",
+    permissionCode: "roles.view",
+    requiredGlobalScope: true,
   },
   {
     titleKey: "Журнал действий",
     path: "/audit",
     icon: FiActivity,
     permissionCode: "audit.view",
+    requiredGlobalScope: true,
   },
 ];
 
@@ -113,5 +116,6 @@ export const bottomNavigationItems: AppNavigationItem[] = [
     titleKey: "navigation.settings",
     path: "/settings",
     icon: FiSettings,
+    permissionCode: "settings.view",
   },
 ];

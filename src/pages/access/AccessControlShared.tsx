@@ -2,9 +2,7 @@
 import type { ReactNode } from "react";
 
 import type {
-  AccessPermission,
   AccessRoleSummary,
-  AccessScopeType,
   AccessUserStatus,
 } from "../../shared/types/access";
 import {
@@ -12,141 +10,21 @@ import {
   Dialog,
   Input,
   Select,
-  Textarea,
 } from "../../shared/ui";
 import {
-  groupPermissions,
   scopeLabel,
-  scopeOptions,
   statusOptions,
   type EmployeeOption,
-  type RoleDraft,
   type UserDraft,
 } from "./accessControlData";
 
 export {
-  emptyRoleDraft,
   emptyUserDraft,
   getErrorMessage,
   loadEmployees,
   scopeLabel,
 } from "./accessControlData";
-export type { EmployeeOption, RoleDraft, UserDraft } from "./accessControlData";
-
-export function RoleDialog({
-  draft,
-  isSaving,
-  onChange,
-  onOpenChange,
-  onSave,
-  open,
-  permissions,
-}: {
-  draft: RoleDraft;
-  isSaving: boolean;
-  onChange: (draft: RoleDraft) => void;
-  onOpenChange: (open: boolean) => void;
-  onSave: () => void;
-  open: boolean;
-  permissions: AccessPermission[];
-}): JSX.Element {
-  const grouped = groupPermissions(permissions);
-
-  return (
-    <Dialog
-      description="Кастомная роль объединяет область видимости данных и набор разрешённых действий. Системные роли изменять нельзя."
-      onOpenChange={onOpenChange}
-      open={open}
-      title={draft.id ? "Редактировать роль" : "Новая роль"}
-    >
-      <div className="grid gap-4">
-        <Field label="Название роли">
-          <Input
-            onChange={(event) => onChange({ ...draft, name: event.target.value })}
-            placeholder="Например, Кадровик"
-            value={draft.name}
-          />
-        </Field>
-
-        <Field label="Описание">
-          <Textarea
-            onChange={(event) => onChange({ ...draft, description: event.target.value })}
-            placeholder="Для кого предназначена роль и что она позволяет делать"
-            value={draft.description}
-          />
-        </Field>
-
-        <Field label="Область данных">
-          <Select
-            onValueChange={(value) =>
-              onChange({ ...draft, scopeType: value as AccessScopeType })
-            }
-            options={scopeOptions}
-            value={draft.scopeType}
-          />
-        </Field>
-
-        <div>
-          <p className="app-text text-sm font-black">Разрешения</p>
-          <div className="mt-3 space-y-3">
-            {grouped.map(([module, modulePermissions]) => (
-              <section
-                className="app-surface-muted app-border rounded-2xl border p-4"
-                key={module}
-              >
-                <p className="app-text text-sm font-black">{module}</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {modulePermissions.map((permission) => {
-                    const checked = draft.permissionCodes.includes(permission.code);
-                    return (
-                      <label
-                        className="app-surface app-border flex cursor-pointer items-start gap-3 rounded-xl border p-3"
-                        key={permission.code}
-                      >
-                        <input
-                          checked={checked}
-                          className="mt-1 h-4 w-4 accent-[var(--accent)]"
-                          onChange={() =>
-                            onChange({
-                              ...draft,
-                              permissionCodes: checked
-                                ? draft.permissionCodes.filter(
-                                    (code) => code !== permission.code,
-                                  )
-                                : [...draft.permissionCodes, permission.code],
-                            })
-                          }
-                          type="checkbox"
-                        />
-                        <span>
-                          <span className="app-text block text-sm font-bold">
-                            {permission.name}
-                          </span>
-                          <span className="app-muted mt-1 block text-xs leading-5">
-                            {permission.description}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-2">
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Отмена
-          </Button>
-          <Button disabled={isSaving} onClick={onSave}>
-            Сохранить роль
-          </Button>
-        </div>
-      </div>
-    </Dialog>
-  );
-}
+export type { EmployeeOption, UserDraft } from "./accessControlData";
 
 export function UserDialog({
   draft,

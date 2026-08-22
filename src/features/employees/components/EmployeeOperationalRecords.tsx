@@ -18,20 +18,24 @@ import { HrEntityDeleteDialog } from "../../hr-entities/components/HrEntityDelet
 import { HrEntityDialog } from "../../hr-entities/components/HrEntityDialog";
 
 interface EmployeeOperationalPanelProps {
-  canManage: boolean;
+  canCreate: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
   employeeId: number;
   locale: string;
 }
 
 interface RecordActions {
   onDelete?: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
 }
 
 const hiddenEmployeeFieldNames = ["employee_id"];
 
 export function EmployeeVacationsPanel({
-  canManage,
+  canCreate,
+  canDelete,
+  canEdit,
   employeeId,
   locale,
 }: EmployeeOperationalPanelProps): JSX.Element {
@@ -60,21 +64,21 @@ export function EmployeeVacationsPanel({
   }, [loadRecords]);
 
   function openCreate(): void {
-    if (!canManage) return;
+    if (!canCreate) return;
     setDialogMode("create");
     setEditingRecord(null);
     setIsFormOpen(true);
   }
 
   function openEdit(record: HrRecord): void {
-    if (!canManage) return;
+    if (!canEdit) return;
     setDialogMode("edit");
     setEditingRecord(record);
     setIsFormOpen(true);
   }
 
   function openDelete(record: HrRecord): void {
-    if (!canManage || !canDeleteVacation(record)) return;
+    if (!canDelete || !canDeleteVacation(record)) return;
     setDeletingRecord(record);
     setIsDeleteOpen(true);
   }
@@ -82,8 +86,10 @@ export function EmployeeVacationsPanel({
   async function saveRecord(data: HrRecord): Promise<void> {
     const employeeRecord = { ...data, employee_id: employeeId };
     if (dialogMode === "create") {
+      if (!canCreate) return;
       await hrApiClient.create({ entity: "vacations", data: employeeRecord });
     } else {
+      if (!canEdit) return;
       await hrApiClient.update({
         entity: "vacations",
         id: getRecordId(editingRecord),
@@ -94,6 +100,7 @@ export function EmployeeVacationsPanel({
   }
 
   async function deleteRecord(): Promise<void> {
+    if (!canDelete) return;
     await hrApiClient.delete({
       entity: "vacations",
       id: getRecordId(deletingRecord),
@@ -101,6 +108,8 @@ export function EmployeeVacationsPanel({
     setDeletingRecord(null);
     await loadRecords();
   }
+
+  const hasActions = canEdit || canDelete;
 
   return (
     <div className="space-y-5">
@@ -131,7 +140,7 @@ export function EmployeeVacationsPanel({
               <FiExternalLink className="h-4 w-4" />
               Открыть общий реестр
             </Link>
-            {canManage && (
+            {canCreate && (
               <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={openCreate}>
                 Оформить отпуск
               </Button>
@@ -146,7 +155,7 @@ export function EmployeeVacationsPanel({
         <EmptyState
           title="У сотрудника пока нет отпусков"
           description={
-            canManage
+            canCreate
               ? "Оформите первый отпуск сотрудника или откройте общий реестр отпусков."
               : "Записи об отпусках пока отсутствуют."
           }
@@ -156,12 +165,13 @@ export function EmployeeVacationsPanel({
           {records.map((record) => (
             <VacationCard
               actions={
-                canManage
+                hasActions
                   ? {
-                      onDelete: canDeleteVacation(record)
-                        ? () => openDelete(record)
-                        : undefined,
-                      onEdit: () => openEdit(record),
+                      onDelete:
+                        canDelete && canDeleteVacation(record)
+                          ? () => openDelete(record)
+                          : undefined,
+                      onEdit: canEdit ? () => openEdit(record) : undefined,
                     }
                   : undefined
               }
@@ -174,34 +184,34 @@ export function EmployeeVacationsPanel({
         </div>
       )}
 
-      {canManage && (
-        <>
-          <HrEntityDialog
-            entity="vacations"
-            hiddenFieldNames={hiddenEmployeeFieldNames}
-            initialRecord={
-              dialogMode === "edit"
-                ? editingRecord
-                : { employee_id: employeeId, status: "planned", is_paid: 1 }
-            }
-            mode={dialogMode}
-            onOpenChange={(open) => {
-              setIsFormOpen(open);
-              if (!open) setEditingRecord(null);
-            }}
-            onSubmit={saveRecord}
-            open={isFormOpen}
-          />
+      {(canCreate || canEdit) && (
+        <HrEntityDialog
+          entity="vacations"
+          hiddenFieldNames={hiddenEmployeeFieldNames}
+          initialRecord={
+            dialogMode === "edit"
+              ? editingRecord
+              : { employee_id: employeeId, status: "planned", is_paid: 1 }
+          }
+          mode={dialogMode}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) setEditingRecord(null);
+          }}
+          onSubmit={saveRecord}
+          open={isFormOpen}
+        />
+      )}
 
-          <HrEntityDeleteDialog
-            onConfirm={deleteRecord}
-            onOpenChange={(open) => {
-              setIsDeleteOpen(open);
-              if (!open) setDeletingRecord(null);
-            }}
-            open={isDeleteOpen}
-          />
-        </>
+      {canDelete && (
+        <HrEntityDeleteDialog
+          onConfirm={deleteRecord}
+          onOpenChange={(open) => {
+            setIsDeleteOpen(open);
+            if (!open) setDeletingRecord(null);
+          }}
+          open={isDeleteOpen}
+        />
       )}
     </div>
   );
@@ -271,7 +281,9 @@ function VacationCard({
 function RecordActionsButtons({ actions }: { actions: RecordActions }): JSX.Element {
   return (
     <div className="flex shrink-0 gap-2">
-      <IconButton icon={<FiEdit2 />} label="Редактировать отпуск" onClick={actions.onEdit} />
+      {actions.onEdit && (
+        <IconButton icon={<FiEdit2 />} label="Редактировать отпуск" onClick={actions.onEdit} />
+      )}
       {actions.onDelete && (
         <IconButton icon={<FiTrash2 />} label="Удалить отпуск" onClick={actions.onDelete} tone="danger" />
       )}

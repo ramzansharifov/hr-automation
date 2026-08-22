@@ -50,7 +50,9 @@ export function VacancyDetailsPage(): JSX.Element {
   const { id } = useParams();
   const vacancyId = Number(id);
   const { hasPermission } = useAuth();
-  const canManage = hasPermission("recruitment.manage");
+  const canEditVacancy = hasPermission("vacancies.edit");
+  const canViewCandidates = hasPermission("candidates.view");
+  const canCreateCandidate = hasPermission("candidates.create");
 
   const [profile, setProfile] = useState<VacancyProfile | null>(null);
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
@@ -66,24 +68,27 @@ export function VacancyDetailsPage(): JSX.Element {
 
     setIsLoading(true);
     try {
-      const [vacancyProfile, candidateRows] = await Promise.all([
-        hrApiClient.getVacancy(vacancyId),
-        hrApiClient.listCandidates({}),
-      ]);
+      const vacancyProfile = await hrApiClient.getVacancy(vacancyId);
       if (!vacancyProfile) throw new Error("Вакансия не найдена");
       setProfile(vacancyProfile);
-      setCandidates(
-        candidateRows.filter(
-          (candidate) => Number(candidate.vacancy_id) === vacancyId,
-        ),
-      );
+
+      if (canViewCandidates) {
+        const candidateRows = await hrApiClient.listCandidates({});
+        setCandidates(
+          candidateRows.filter(
+            (candidate) => Number(candidate.vacancy_id) === vacancyId,
+          ),
+        );
+      } else {
+        setCandidates([]);
+      }
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось загрузить вакансию"));
       navigate("/vacancies", { replace: true });
     } finally {
       setIsLoading(false);
     }
-  }, [navigate, vacancyId]);
+  }, [canViewCandidates, navigate, vacancyId]);
 
   useEffect(() => {
     void loadData();
@@ -115,7 +120,7 @@ export function VacancyDetailsPage(): JSX.Element {
   const hiredCount = candidates.filter((item) => item.status === "hired").length;
 
   function openCandidateCreate(): void {
-    if (!canManage || !profile) return;
+    if (!canCreateCandidate || !profile) return;
     setCandidateDraft({
       lastName: "",
       firstName: "",
@@ -134,7 +139,7 @@ export function VacancyDetailsPage(): JSX.Element {
 
   async function saveCandidate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    if (!candidateDraft || !canManage) return;
+    if (!candidateDraft || !canCreateCandidate) return;
     setIsSaving(true);
     try {
       await hrApiClient.saveCandidate({
@@ -182,7 +187,7 @@ export function VacancyDetailsPage(): JSX.Element {
             >
               К списку
             </Button>
-            {canManage && (
+            {canEditVacancy && (
               <Button
                 leftIcon={<FiEdit2 className="h-4 w-4" />}
                 onClick={() => navigate(`/vacancies/${vacancyId}/edit`)}
@@ -193,7 +198,7 @@ export function VacancyDetailsPage(): JSX.Element {
                 Редактировать
               </Button>
             )}
-            {canManage && (
+            {canCreateCandidate && (
               <Button
                 leftIcon={<FiUserPlus className="h-4 w-4" />}
                 onClick={openCandidateCreate}
@@ -229,12 +234,14 @@ export function VacancyDetailsPage(): JSX.Element {
         title={title}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={<FiUsers />} label="Кандидатов" value={String(candidates.length)} />
-        <MetricCard icon={<FiAward />} label="Лучшее соответствие" value={`${Math.round(bestMatch)}%`} />
-        <MetricCard icon={<FiBriefcase />} label="На этапе оффера" value={String(offerCount)} />
-        <MetricCard icon={<FiUserPlus />} label="Принято" value={String(hiredCount)} />
-      </div>
+      {canViewCandidates && (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard icon={<FiUsers />} label="Кандидатов" value={String(candidates.length)} />
+          <MetricCard icon={<FiAward />} label="Лучшее соответствие" value={`${Math.round(bestMatch)}%`} />
+          <MetricCard icon={<FiBriefcase />} label="На этапе оффера" value={String(offerCount)} />
+          <MetricCard icon={<FiUserPlus />} label="Принято" value={String(hiredCount)} />
+        </div>
+      )}
 
       <section className="app-surface app-border rounded-[28px] border p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -250,50 +257,52 @@ export function VacancyDetailsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.14em]">Подбор</p>
-            <h2 className="app-text mt-1 text-2xl font-black">Кандидаты на вакансию</h2>
-            <p className="app-muted mt-1 text-sm">
-              Список автоматически отсортирован от наиболее подходящего кандидата к наименее подходящему.
-            </p>
+      {canViewCandidates && (
+        <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+          <div className="app-border-soft flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="app-accent-text text-xs font-black uppercase tracking-[0.14em]">Подбор</p>
+              <h2 className="app-text mt-1 text-2xl font-black">Кандидаты на вакансию</h2>
+              <p className="app-muted mt-1 text-sm">
+                Список автоматически отсортирован от наиболее подходящего кандидата к наименее подходящему.
+              </p>
+            </div>
+            {canCreateCandidate && (
+              <Button leftIcon={<FiPlus />} onClick={openCandidateCreate} type="button">
+                Добавить кандидата
+              </Button>
+            )}
           </div>
-          {canManage && (
-            <Button leftIcon={<FiPlus />} onClick={openCandidateCreate} type="button">
-              Добавить кандидата
-            </Button>
-          )}
-        </div>
 
-        {rankedCandidates.length === 0 ? (
-          <div className="py-16">
-            <EmptyState
-              title="Кандидатов пока нет"
-              description={
-                canManage
-                  ? "Добавьте первого кандидата и оцените его навыки относительно требований этой вакансии."
-                  : "К этой вакансии пока не добавлены кандидаты."
-              }
-            />
-          </div>
-        ) : (
-          <div className="grid gap-4 p-5 xl:grid-cols-2">
-            {rankedCandidates.map((candidate, index) => (
-              <CandidateSummaryCard
-                candidate={candidate}
-                isBest={index === 0 && Number(candidate.match_percentage ?? 0) > 0}
-                key={String(candidate.id)}
-                onOpen={() => navigate(`/candidates?candidate=${String(candidate.id)}`)}
-                rank={index + 1}
-                showStructure={false}
+          {rankedCandidates.length === 0 ? (
+            <div className="py-16">
+              <EmptyState
+                title="Кандидатов пока нет"
+                description={
+                  canCreateCandidate
+                    ? "Добавьте первого кандидата и оцените его навыки относительно требований этой вакансии."
+                    : "К этой вакансии пока не добавлены кандидаты."
+                }
               />
-            ))}
-          </div>
-        )}
-      </section>
+            </div>
+          ) : (
+            <div className="grid gap-4 p-5 xl:grid-cols-2">
+              {rankedCandidates.map((candidate, index) => (
+                <CandidateSummaryCard
+                  candidate={candidate}
+                  isBest={index === 0 && Number(candidate.match_percentage ?? 0) > 0}
+                  key={String(candidate.id)}
+                  onOpen={() => navigate(`/candidates?candidate=${String(candidate.id)}`)}
+                  rank={index + 1}
+                  showStructure={false}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
-      {candidateDraft && (
+      {candidateDraft && canCreateCandidate && (
         <Dialog
           description={`Кандидат будет сразу привязан к вакансии «${title}». Оцените навыки по шкале 0–10.`}
           footer={

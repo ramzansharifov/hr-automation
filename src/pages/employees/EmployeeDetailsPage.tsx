@@ -19,7 +19,6 @@ import { formatCurrency, formatDate, humanizeStatus } from "../../shared/lib/for
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import { useAuth } from "../../features/auth/AuthContext";
-import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import {
   EmployeeInfoField,
   EmployeeInfoPanel,
@@ -44,8 +43,12 @@ export function EmployeeDetailsPage(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
   const employeeId = Number(params.id);
-  const canManageEmployee = hasPermission("employees.manage");
-  const canManageVacations = hasPermission("vacations.manage");
+  const canEditEmployee = hasPermission("employees.edit");
+  const canChangeEmployment = hasPermission("employees.change_employment");
+  const canTerminateEmployee = hasPermission("employees.terminate");
+  const canCreateVacation = hasPermission("vacations.create");
+  const canEditVacation = hasPermission("vacations.edit");
+  const canDeleteVacation = hasPermission("vacations.delete");
 
   const [employee, setEmployee] = useState<HrRecord | null>(null);
   const [departmentName, setDepartmentName] = useState("");
@@ -75,21 +78,8 @@ export function EmployeeDetailsPage(): JSX.Element {
         });
         if (!isActive) return;
         setEmployee(record);
-        if (!record) return;
-
-        const departmentId = toNumber(record.department_id);
-        const positionId = toNumber(record.position_id);
-        const [department, position] = await Promise.all([
-          departmentId
-            ? hrApiClient.getById({ entity: "departments", id: departmentId })
-            : Promise.resolve(null),
-          positionId
-            ? hrApiClient.getById({ entity: "positions", id: positionId })
-            : Promise.resolve(null),
-        ]);
-        if (!isActive) return;
-        setDepartmentName(getRecordLabel(department));
-        setPositionName(getRecordLabel(position));
+        setDepartmentName(String(record?.department_name ?? ""));
+        setPositionName(String(record?.position_name ?? ""));
       } catch {
         if (isActive) {
           setHasError(true);
@@ -106,28 +96,14 @@ export function EmployeeDetailsPage(): JSX.Element {
     };
   }, [employeeId, t]);
 
-  async function refreshEmployeeRelationLabels(record: HrRecord): Promise<void> {
-    const departmentId = toNumber(record.department_id);
-    const positionId = toNumber(record.position_id);
-    const [department, position] = await Promise.all([
-      departmentId
-        ? hrApiClient.getById({ entity: "departments", id: departmentId })
-        : Promise.resolve(null),
-      positionId
-        ? hrApiClient.getById({ entity: "positions", id: positionId })
-        : Promise.resolve(null),
-    ]);
-    setDepartmentName(getRecordLabel(department));
-    setPositionName(getRecordLabel(position));
-  }
-
   async function handleEmployeeSaved(updatedEmployee: HrRecord): Promise<void> {
     setEmployee(updatedEmployee);
-    await refreshEmployeeRelationLabels(updatedEmployee);
+    setDepartmentName(String(updatedEmployee.department_name ?? ""));
+    setPositionName(String(updatedEmployee.position_name ?? ""));
   }
 
   function openSectionEditor(section: EmployeeFormSectionKey): void {
-    if (!canManageEmployee) return;
+    if (!canEditEmployee) return;
     setEditingSection(section);
     setIsEditOpen(true);
   }
@@ -166,7 +142,7 @@ export function EmployeeDetailsPage(): JSX.Element {
         isActive={getString(employee.status) === "active"}
         onBack={() => navigate("/employees")}
         onEdit={
-          canManageEmployee ? () => openSectionEditor("personal") : undefined
+          canEditEmployee ? () => openSectionEditor("personal") : undefined
         }
         position={valueOrEmpty(positionName, t)}
         status={status}
@@ -212,10 +188,10 @@ export function EmployeeDetailsPage(): JSX.Element {
               fullName={fullName}
               locale={locale}
               onEditAddress={
-                canManageEmployee ? () => openSectionEditor("address") : undefined
+                canEditEmployee ? () => openSectionEditor("address") : undefined
               }
               onEditPersonal={
-                canManageEmployee ? () => openSectionEditor("personal") : undefined
+                canEditEmployee ? () => openSectionEditor("personal") : undefined
               }
               t={t}
             />
@@ -266,7 +242,7 @@ export function EmployeeDetailsPage(): JSX.Element {
 
               <EmployeeInfoPanel
                 action={
-                  canManageEmployee ? (
+                  canEditEmployee ? (
                     <Button
                       leftIcon={<FiEdit2 className="h-4 w-4" />}
                       onClick={() => openSectionEditor("company")}
@@ -313,12 +289,12 @@ export function EmployeeDetailsPage(): JSX.Element {
           <Tabs.Content value="education-experience" className="outline-none">
             <div className="grid items-start gap-5 xl:grid-cols-2">
               <EmployeeEducationPanel
-                canManage={canManageEmployee}
+                canManage={canEditEmployee}
                 employeeId={employeeId}
                 locale={locale}
               />
               <EmployeeExperiencePanel
-                canManage={canManageEmployee}
+                canManage={canEditEmployee}
                 employeeId={employeeId}
                 locale={locale}
               />
@@ -327,7 +303,9 @@ export function EmployeeDetailsPage(): JSX.Element {
 
           <Tabs.Content value="vacations" className="outline-none">
             <EmployeeVacationsPanel
-              canManage={canManageVacations}
+              canCreate={canCreateVacation}
+              canDelete={canDeleteVacation}
+              canEdit={canEditVacation}
               employeeId={employeeId}
               locale={locale}
             />
@@ -335,7 +313,8 @@ export function EmployeeDetailsPage(): JSX.Element {
 
           <Tabs.Content value="history" className="outline-none">
             <EmployeeLifecyclePanel
-              canManage={canManageEmployee}
+              canChangeEmployment={canChangeEmployment}
+              canTerminate={canTerminateEmployee}
               employee={employee}
               employeeId={employeeId}
               locale={locale}
@@ -345,7 +324,7 @@ export function EmployeeDetailsPage(): JSX.Element {
         </div>
       </Tabs.Root>
 
-      {canManageEmployee && (
+      {canEditEmployee && (
         <EmployeeSectionEditDialog
           employee={employee}
           employeeId={employeeId}
@@ -370,11 +349,6 @@ const detailsTabTriggerClass = [
 function getString(value: unknown): string {
   if (value === null || value === undefined) return "";
   return String(value);
-}
-
-function toNumber(value: unknown): number | null {
-  const numberValue = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
 }
 
 function valueOrEmpty(value: string, t: (key: string) => string): string {

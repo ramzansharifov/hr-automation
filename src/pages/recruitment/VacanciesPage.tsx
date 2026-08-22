@@ -27,7 +27,9 @@ import {
 export function VacanciesPage(): JSX.Element {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
-  const canManage = hasPermission("recruitment.manage");
+  const canCreate = hasPermission("vacancies.create");
+  const canEdit = hasPermission("vacancies.edit");
+  const canDelete = hasPermission("vacancies.delete");
   const [viewMode, setViewMode] = useStoredViewMode("vacancies");
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,7 @@ export function VacanciesPage(): JSX.Element {
   }, [loadData]);
 
   async function deleteVacancy(): Promise<void> {
-    if (!deleteTarget || !canManage) return;
+    if (!deleteTarget || !canDelete) return;
     setIsDeleting(true);
     try {
       await hrApiClient.deleteVacancy(Number(deleteTarget.id));
@@ -68,31 +70,31 @@ export function VacanciesPage(): JSX.Element {
     navigate(`/vacancies/${String(vacancy.id)}`);
   }
 
-  function editVacancy(vacancy: HrRecord): void {
-    if (!canManage) return;
-    navigate(`/vacancies/${String(vacancy.id)}/edit`);
-  }
-
   function renderActions(vacancy: HrRecord): JSX.Element {
     return (
       <>
-        <IconButton
-          icon={<FiEdit2 />}
-          label="Редактировать вакансию"
-          onClick={() => editVacancy(vacancy)}
-          size="sm"
-        />
-        <IconButton
-          icon={<FiTrash2 />}
-          label="Удалить вакансию"
-          onClick={() => setDeleteTarget(vacancy)}
-          size="sm"
-          tone="danger"
-        />
+        {canEdit && (
+          <IconButton
+            icon={<FiEdit2 />}
+            label="Редактировать вакансию"
+            onClick={() => navigate(`/vacancies/${String(vacancy.id)}/edit`)}
+            size="sm"
+          />
+        )}
+        {canDelete && (
+          <IconButton
+            icon={<FiTrash2 />}
+            label="Удалить вакансию"
+            onClick={() => setDeleteTarget(vacancy)}
+            size="sm"
+            tone="danger"
+          />
+        )}
       </>
     );
   }
 
+  const hasActions = canEdit || canDelete;
   const columns: DataTableColumn<HrRecord>[] = [
     {
       key: "position",
@@ -156,7 +158,7 @@ export function VacanciesPage(): JSX.Element {
         <span className="app-text-soft">{String(vacancy.skills_count ?? 0)}</span>
       ),
     },
-    ...(canManage
+    ...(hasActions
       ? [
           {
             key: "actions",
@@ -178,10 +180,10 @@ export function VacanciesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
-        actionLabel={canManage ? "Создать вакансию" : undefined}
+        actionLabel={canCreate ? "Создать вакансию" : undefined}
         description="Открытые должности, формат занятости и требования по hard и soft skills."
         icon={<FiBriefcase className="h-6 w-6" />}
-        onAction={canManage ? () => navigate("/vacancies/new") : undefined}
+        onAction={canCreate ? () => navigate("/vacancies/new") : undefined}
         title="Вакансии"
       />
 
@@ -209,11 +211,11 @@ export function VacanciesPage(): JSX.Element {
               </span>
             </>
           ),
-          actions: canManage ? (vacancy) => renderActions(vacancy) : undefined,
+          actions: hasActions ? (vacancy) => renderActions(vacancy) : undefined,
         }}
         columns={columns}
         emptyDescription={
-          canManage
+          canCreate
             ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
             : "В доступной области пока нет вакансий."
         }
@@ -246,7 +248,7 @@ export function VacanciesPage(): JSX.Element {
         viewMode={viewMode}
       />
 
-      {canManage && (
+      {canDelete && (
         <ConfirmDialog
           cancelLabel="Отмена"
           confirmLabel="Удалить"

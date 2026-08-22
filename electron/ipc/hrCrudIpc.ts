@@ -139,7 +139,7 @@ export function registerHrCrudIpcHandlers(): void {
     const params = ipcValidation.employmentChange(raw);
     const employee = service.getById({ entity: "employees", id: params.employeeId });
     if (!employee) throw new Error("Сотрудник не найден");
-    authorizationService.assertCanChangeEmployment(employee);
+    authorizationService.assertCanChangeEmployment(employee, "change");
     const updated = service.changeEmployment(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -158,7 +158,7 @@ export function registerHrCrudIpcHandlers(): void {
     const params = ipcValidation.termination(raw);
     const employee = service.getById({ entity: "employees", id: params.employeeId });
     if (!employee) throw new Error("Сотрудник не найден");
-    authorizationService.assertCanChangeEmployment(employee);
+    authorizationService.assertCanChangeEmployment(employee, "terminate");
     const updated = service.terminateEmployee(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -177,7 +177,7 @@ export function registerHrCrudIpcHandlers(): void {
     const params = ipcValidation.hireDateCorrection(raw);
     const employee = service.getById({ entity: "employees", id: params.employeeId });
     if (!employee) throw new Error("Сотрудник не найден");
-    authorizationService.assertCanChangeEmployment(employee);
+    authorizationService.assertCanChangeEmployment(employee, "change");
     const updated = service.correctHireDate(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -229,9 +229,13 @@ export function registerHrCrudIpcHandlers(): void {
   ipcMain.handle("recruitment:saveVacancy", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.saveVacancy(raw);
+    const action = params.id ? "edit" : "create";
     const existing = params.id ? recruitmentService.getVacancy(params.id) : null;
-    if (existing) authorizationService.assertCanManageVacancy(existing.vacancy);
-    authorizationService.assertCanManageVacancy({ position_id: params.positionId });
+    if (existing) authorizationService.assertCanManageVacancy(existing.vacancy, action);
+    authorizationService.assertCanManageVacancy(
+      { position_id: params.positionId },
+      action,
+    );
     const saved = recruitmentService.saveVacancy(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -248,7 +252,7 @@ export function registerHrCrudIpcHandlers(): void {
     const id = ipcValidation.id(raw);
     const existing = recruitmentService.getVacancy(id);
     if (!existing) throw new Error("Вакансия не найдена");
-    authorizationService.assertCanManageVacancy(existing.vacancy);
+    authorizationService.assertCanManageVacancy(existing.vacancy, "delete");
     const result = recruitmentService.deleteVacancy(id);
     auditService.record(
       authenticationService.requireSession(),
@@ -276,9 +280,13 @@ export function registerHrCrudIpcHandlers(): void {
   ipcMain.handle("recruitment:saveCandidate", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.saveCandidate(raw);
+    const action = params.id ? "edit" : "create";
     const existing = params.id ? recruitmentService.getCandidate(params.id) : null;
-    if (existing) authorizationService.assertCanManageCandidate(existing.candidate);
-    authorizationService.assertCanManageCandidate({ vacancy_id: params.vacancyId });
+    if (existing) authorizationService.assertCanManageCandidate(existing.candidate, action);
+    authorizationService.assertCanManageCandidate(
+      { vacancy_id: params.vacancyId },
+      action,
+    );
     const saved = recruitmentService.saveCandidate(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -295,7 +303,7 @@ export function registerHrCrudIpcHandlers(): void {
     const params = ipcValidation.hireCandidate(raw);
     const existing = recruitmentService.getCandidate(params.candidateId);
     if (!existing) throw new Error("Кандидат не найден");
-    authorizationService.assertCanManageCandidate(existing.candidate);
+    authorizationService.assertCanManageCandidate(existing.candidate, "hire");
     const employee = recruitmentService.hireCandidate(params);
     const session = authenticationService.requireSession();
     auditService.record(
@@ -323,7 +331,7 @@ export function registerHrCrudIpcHandlers(): void {
     const id = ipcValidation.id(raw);
     const existing = recruitmentService.getCandidate(id);
     if (!existing) throw new Error("Кандидат не найден");
-    authorizationService.assertCanManageCandidate(existing.candidate);
+    authorizationService.assertCanManageCandidate(existing.candidate, "delete");
     const result = recruitmentService.deleteCandidate(id);
     auditService.record(
       authenticationService.requireSession(),
@@ -337,14 +345,28 @@ export function registerHrCrudIpcHandlers(): void {
 
   ipcMain.handle("access:overview", (event) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("access.manage");
+    authorizationService.requireAnyGlobalPermission([
+      "users.view",
+      "users.create",
+      "users.edit",
+      "users.delete",
+      "users.reset_password",
+      "roles.view",
+      "roles.create",
+      "roles.edit",
+      "roles.delete",
+    ]);
     return accessService.getOverview();
   });
   ipcMain.handle("access:saveRole", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("access.manage");
     const params = ipcValidation.saveRole(raw);
-    const before = params.id ? accessService.getOverview().roles.find((r) => r.id === params.id) : null;
+    authorizationService.requireGlobalPermission(
+      params.id ? "roles.edit" : "roles.create",
+    );
+    const before = params.id
+      ? accessService.getOverview().roles.find((role) => role.id === params.id)
+      : null;
     const saved = accessService.saveRole(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -358,7 +380,7 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("access:deleteRole", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("access.manage");
+    authorizationService.requireGlobalPermission("roles.delete");
     const id = ipcValidation.id(raw);
     const before = accessService.getOverview().roles.find((role) => role.id === id);
     const result = accessService.deleteRole(id);
@@ -373,9 +395,13 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("access:saveUser", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("access.manage");
     const params = ipcValidation.saveUser(raw);
-    const before = params.id ? accessService.getOverview().users.find((u) => u.id === params.id) : null;
+    authorizationService.requireGlobalPermission(
+      params.id ? "users.edit" : "users.create",
+    );
+    const before = params.id
+      ? accessService.getOverview().users.find((user) => user.id === params.id)
+      : null;
     const saved = accessService.saveUser(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -389,7 +415,7 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("access:resetPassword", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("access.manage");
+    authorizationService.requireGlobalPermission("users.reset_password");
     const params = ipcValidation.resetPassword(raw);
     const result = accessService.resetPassword(params);
     auditService.record(
@@ -402,7 +428,7 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("access:deleteUser", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("access.manage");
+    authorizationService.requireGlobalPermission("users.delete");
     const id = ipcValidation.id(raw);
     const before = accessService.getOverview().users.find((user) => user.id === id);
     const result = accessService.deleteUser(id);
@@ -424,12 +450,12 @@ export function registerHrCrudIpcHandlers(): void {
 
   ipcMain.handle("admin:listBackups", (event) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("settings.manage");
+    authorizationService.requireGlobalPermission("settings.backups_view");
     return backupService.list();
   });
   ipcMain.handle("admin:createBackup", async (event) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("settings.manage");
+    authorizationService.requireGlobalPermission("settings.backups_create");
     const backup = await backupService.create();
     auditService.record(
       authenticationService.requireSession(),
@@ -444,7 +470,7 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("admin:restoreBackup", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("settings.manage");
+    authorizationService.requireGlobalPermission("settings.backups_restore");
     const name = ipcValidation.backupName(raw);
     auditService.record(
       authenticationService.requireSession(),
@@ -459,12 +485,12 @@ export function registerHrCrudIpcHandlers(): void {
   });
   ipcMain.handle("admin:openBackupsFolder", async (event) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("settings.manage");
+    authorizationService.requireGlobalPermission("settings.backups_open_folder");
     return backupService.openFolder();
   });
   ipcMain.handle("admin:exportEmployeesCsv", (event) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("employees.view");
+    authorizationService.requireGlobalPermission("employees.export");
     const result = adminDataService.exportEmployeesCsv();
     if (!result.canceled) {
       auditService.record(

@@ -12,12 +12,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../../features/auth/AuthContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
-import type {
-  AccessControlOverview,
-  AccessRoleSummary,
-  SaveAccessRoleParams,
-} from "../../shared/types/access";
+import type { AccessControlOverview, AccessRoleSummary } from "../../shared/types/access";
 import {
   Button,
   ConfirmDialog,
@@ -26,14 +23,7 @@ import {
   PageHeader,
   type DataTableColumn,
 } from "../../shared/ui";
-import {
-  AccessMetric,
-  RoleDialog,
-  emptyRoleDraft,
-  getErrorMessage,
-  scopeLabel,
-  type RoleDraft,
-} from "./AccessControlShared";
+import { AccessMetric, getErrorMessage, scopeLabel } from "./AccessControlShared";
 
 const emptyOverview: AccessControlOverview = {
   permissions: [],
@@ -51,11 +41,13 @@ const emptyOverview: AccessControlOverview = {
 
 export function AccessRolesPage(): JSX.Element {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("roles.create");
+  const canEdit = hasPermission("roles.edit");
+  const canDelete = hasPermission("roles.delete");
   const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [roleDraft, setRoleDraft] = useState<RoleDraft>(emptyRoleDraft);
-  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [deleteRole, setDeleteRole] = useState<AccessRoleSummary | null>(null);
 
   const loadData = useCallback(async () => {
@@ -73,45 +65,8 @@ export function AccessRolesPage(): JSX.Element {
     void loadData();
   }, [loadData]);
 
-  function openCreateRole(): void {
-    setRoleDraft(emptyRoleDraft);
-    setRoleDialogOpen(true);
-  }
-
-  function openEditRole(role: AccessRoleSummary): void {
-    setRoleDraft({
-      id: role.id,
-      name: role.name,
-      description: role.description,
-      scopeType: role.scopeType,
-      permissionCodes: role.permissionCodes,
-    });
-    setRoleDialogOpen(true);
-  }
-
-  async function saveRole(): Promise<void> {
-    setIsSaving(true);
-    try {
-      const params: SaveAccessRoleParams = {
-        id: roleDraft.id,
-        name: roleDraft.name,
-        description: roleDraft.description,
-        scopeType: roleDraft.scopeType,
-        permissionCodes: roleDraft.permissionCodes,
-      };
-      await hrApiClient.saveAccessRole(params);
-      toast.success(roleDraft.id ? "Роль обновлена" : "Роль создана");
-      setRoleDialogOpen(false);
-      await loadData();
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить роль"));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
   async function confirmDeleteRole(): Promise<void> {
-    if (!deleteRole) return;
+    if (!deleteRole || !canDelete) return;
     setIsSaving(true);
     try {
       await hrApiClient.deleteAccessRole(deleteRole.id);
@@ -141,19 +96,23 @@ export function AccessRolesPage(): JSX.Element {
           <span className="app-muted text-xs font-semibold">Защищена</span>
         ) : (
           <>
-            <IconButton
-              icon={<FiEdit2 />}
-              label="Редактировать"
-              onClick={() => openEditRole(role)}
-              size="sm"
-            />
-            <IconButton
-              icon={<FiTrash2 />}
-              label="Удалить"
-              onClick={() => setDeleteRole(role)}
-              size="sm"
-              tone="danger"
-            />
+            {canEdit && (
+              <IconButton
+                icon={<FiEdit2 />}
+                label="Редактировать"
+                onClick={() => navigate(`/roles/${role.id}/edit`)}
+                size="sm"
+              />
+            )}
+            {canDelete && (
+              <IconButton
+                icon={<FiTrash2 />}
+                label="Удалить"
+                onClick={() => setDeleteRole(role)}
+                size="sm"
+                tone="danger"
+              />
+            )}
           </>
         )}
       </div>
@@ -188,18 +147,14 @@ export function AccessRolesPage(): JSX.Element {
       key: "scope",
       header: "Область данных",
       render: (role) => (
-        <span className="app-text-soft font-semibold">
-          {scopeLabel(role.scopeType)}
-        </span>
+        <span className="app-text-soft font-semibold">{scopeLabel(role.scopeType)}</span>
       ),
     },
     {
       key: "users",
       header: "Пользователей",
       align: "center",
-      render: (role) => (
-        <span className="app-text font-black">{role.userCount}</span>
-      ),
+      render: (role) => <span className="app-text font-black">{role.userCount}</span>,
     },
     {
       key: "permissions",
@@ -238,15 +193,17 @@ export function AccessRolesPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            className="border-white/20 shadow-xl hover:opacity-90"
-            leftIcon={<FiPlus className="h-4 w-4" />}
-            onClick={openCreateRole}
-            style={{ background: "#ffffff", color: "#0f172a" }}
-            variant="ghost"
-          >
-            Создать роль
-          </Button>
+          canCreate ? (
+            <Button
+              className="border-white/20 shadow-xl hover:opacity-90"
+              leftIcon={<FiPlus className="h-4 w-4" />}
+              onClick={() => navigate("/roles/new")}
+              style={{ background: "#ffffff", color: "#0f172a" }}
+              variant="ghost"
+            >
+              Создать роль
+            </Button>
+          ) : undefined
         }
         description="Системные и пользовательские роли, область видимости данных и набор разрешений."
         icon={<FiShield />}
@@ -266,33 +223,18 @@ export function AccessRolesPage(): JSX.Element {
           title: (role) => role.name,
           meta: (role) => (
             <>
-              {role.isSystem && (
-                <span className="app-accent-text font-black">Системная</span>
-              )}
-              <span className="app-text-soft">
-                <span className="app-muted">Область: </span>
-                {scopeLabel(role.scopeType)}
-              </span>
-              <span className="app-text-soft">
-                <span className="app-muted">Пользователей: </span>
-                {role.userCount}
-              </span>
-              <span className="app-text-soft">
-                <span className="app-muted">Разрешений: </span>
-                {role.permissionCodes.length}
-              </span>
+              {role.isSystem && <span className="app-accent-text font-black">Системная</span>}
+              <span className="app-text-soft"><span className="app-muted">Область: </span>{scopeLabel(role.scopeType)}</span>
+              <span className="app-text-soft"><span className="app-muted">Пользователей: </span>{role.userCount}</span>
+              <span className="app-text-soft"><span className="app-muted">Разрешений: </span>{role.permissionCodes.length}</span>
             </>
           ),
           actions: (role) => renderRoleActions(role),
         }}
         columns={columns}
-        emptyDescription="Создайте первую кастомную роль или используйте системные роли."
+        emptyDescription="Создайте первую пользовательскую роль или используйте системные роли."
         emptyTitle="Ролей пока нет"
-        footer={
-          <>
-            Ролей: <span className="app-text font-black">{overview.roles.length}</span>
-          </>
-        }
+        footer={<>Ролей: <span className="app-text font-black">{overview.roles.length}</span></>}
         getRowKey={(role) => role.id}
         isLoading={isLoading}
         loadingLabel="Загрузка ролей..."
@@ -301,27 +243,13 @@ export function AccessRolesPage(): JSX.Element {
         rows={overview.roles}
         toolbar={
           <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
+            leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
             onClick={() => void loadData()}
             variant="secondary"
           >
             Обновить
           </Button>
         }
-      />
-
-      <RoleDialog
-        draft={roleDraft}
-        isSaving={isSaving}
-        onChange={setRoleDraft}
-        onOpenChange={setRoleDialogOpen}
-        onSave={() => void saveRole()}
-        open={roleDialogOpen}
-        permissions={overview.permissions}
       />
 
       <ConfirmDialog

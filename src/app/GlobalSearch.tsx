@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
+import { useAuth } from "../features/auth/AuthContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
 
@@ -43,12 +44,17 @@ const resultMeta: Record<
 
 export function GlobalSearch(): JSX.Element {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  const canSearchEmployees = hasPermission("employees.view");
+  const canSearchOrganization = hasPermission("organization.view");
+  const canSearchVacancies = hasPermission("vacancies.view");
+  const canSearchCandidates = hasPermission("candidates.view");
   const trimmedQuery = query.trim();
   const hasQuery = trimmedQuery.length >= 2;
   const visibleResults = useMemo(() => results.slice(0, 18), [results]);
@@ -83,116 +89,123 @@ export function GlobalSearch(): JSX.Element {
     const timeout = window.setTimeout(async () => {
       setIsLoading(true);
 
-      const settled = await Promise.allSettled([
-        hrApiClient.list({
-          entity: "employees",
-          page: 1,
-          pageSize: 5,
-          search: trimmedQuery,
-          orderBy: "last_name",
-        }),
-        hrApiClient.list({
-          entity: "enterprises",
-          page: 1,
-          pageSize: 4,
-          search: trimmedQuery,
-          orderBy: "name",
-        }),
-        hrApiClient.list({
-          entity: "departments",
-          page: 1,
-          pageSize: 4,
-          search: trimmedQuery,
-          orderBy: "name",
-        }),
-        hrApiClient.list({
-          entity: "positions",
-          page: 1,
-          pageSize: 4,
-          search: trimmedQuery,
-          orderBy: "name",
-        }),
-        hrApiClient.listVacancies({ search: trimmedQuery }),
-        hrApiClient.listCandidates({ search: trimmedQuery }),
-      ]);
+      const [employees, enterprises, departments, positions, vacancies, candidates] =
+        await Promise.all([
+          canSearchEmployees
+            ? hrApiClient
+                .list({
+                  entity: "employees",
+                  page: 1,
+                  pageSize: 5,
+                  search: trimmedQuery,
+                  orderBy: "last_name",
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+          canSearchOrganization
+            ? hrApiClient
+                .list({
+                  entity: "enterprises",
+                  page: 1,
+                  pageSize: 4,
+                  search: trimmedQuery,
+                  orderBy: "name",
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+          canSearchOrganization
+            ? hrApiClient
+                .list({
+                  entity: "departments",
+                  page: 1,
+                  pageSize: 4,
+                  search: trimmedQuery,
+                  orderBy: "name",
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+          canSearchOrganization
+            ? hrApiClient
+                .list({
+                  entity: "positions",
+                  page: 1,
+                  pageSize: 4,
+                  search: trimmedQuery,
+                  orderBy: "name",
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+          canSearchVacancies
+            ? hrApiClient.listVacancies({ search: trimmedQuery }).catch(() => null)
+            : Promise.resolve(null),
+          canSearchCandidates
+            ? hrApiClient.listCandidates({ search: trimmedQuery }).catch(() => null)
+            : Promise.resolve(null),
+        ]);
 
       if (!isActive) return;
 
       const nextResults: GlobalSearchResult[] = [];
-      const [employees, enterprises, departments, positions, vacancies, candidates] =
-        settled;
 
-      if (employees.status === "fulfilled") {
-        employees.value.items.forEach((record) => {
-          nextResults.push({
-            id: Number(record.id),
-            kind: "employee",
-            title: fullName(record),
-            subtitle: joinText(record.phone, record.email),
-            record,
-          });
+      employees?.items.forEach((record) => {
+        nextResults.push({
+          id: Number(record.id),
+          kind: "employee",
+          title: fullName(record),
+          subtitle: joinText(record.phone, record.email),
+          record,
         });
-      }
+      });
 
-      if (enterprises.status === "fulfilled") {
-        enterprises.value.items.forEach((record) => {
-          nextResults.push({
-            id: Number(record.id),
-            kind: "enterprise",
-            title: String(record.name ?? "Предприятие"),
-            subtitle: joinText(record.legal_name, record.phone),
-            record,
-          });
+      enterprises?.items.forEach((record) => {
+        nextResults.push({
+          id: Number(record.id),
+          kind: "enterprise",
+          title: String(record.name ?? "Предприятие"),
+          subtitle: joinText(record.legal_name, record.phone),
+          record,
         });
-      }
+      });
 
-      if (departments.status === "fulfilled") {
-        departments.value.items.forEach((record) => {
-          nextResults.push({
-            id: Number(record.id),
-            kind: "department",
-            title: String(record.name ?? "Отдел"),
-            subtitle: String(record.enterprise_name ?? "Организационная структура"),
-            record,
-          });
+      departments?.items.forEach((record) => {
+        nextResults.push({
+          id: Number(record.id),
+          kind: "department",
+          title: String(record.name ?? "Отдел"),
+          subtitle: String(record.enterprise_name ?? "Организационная структура"),
+          record,
         });
-      }
+      });
 
-      if (positions.status === "fulfilled") {
-        positions.value.items.forEach((record) => {
-          nextResults.push({
-            id: Number(record.id),
-            kind: "position",
-            title: String(record.name ?? "Должность"),
-            subtitle: String(record.department_name ?? "Организационная структура"),
-            record,
-          });
+      positions?.items.forEach((record) => {
+        nextResults.push({
+          id: Number(record.id),
+          kind: "position",
+          title: String(record.name ?? "Должность"),
+          subtitle: String(record.department_name ?? "Организационная структура"),
+          record,
         });
-      }
+      });
 
-      if (vacancies.status === "fulfilled") {
-        vacancies.value.slice(0, 5).forEach((record) => {
-          nextResults.push({
-            id: Number(record.id),
-            kind: "vacancy",
-            title: String(record.position_name ?? "Вакансия"),
-            subtitle: joinText(record.enterprise_name, record.department_name),
-            record,
-          });
+      vacancies?.slice(0, 5).forEach((record) => {
+        nextResults.push({
+          id: Number(record.id),
+          kind: "vacancy",
+          title: String(record.position_name ?? "Вакансия"),
+          subtitle: joinText(record.enterprise_name, record.department_name),
+          record,
         });
-      }
+      });
 
-      if (candidates.status === "fulfilled") {
-        candidates.value.slice(0, 5).forEach((record) => {
-          nextResults.push({
-            id: Number(record.id),
-            kind: "candidate",
-            title: fullName(record),
-            subtitle: joinText(record.position_name, record.email),
-            record,
-          });
+      candidates?.slice(0, 5).forEach((record) => {
+        nextResults.push({
+          id: Number(record.id),
+          kind: "candidate",
+          title: fullName(record),
+          subtitle: joinText(record.position_name, record.email),
+          record,
         });
-      }
+      });
 
       setResults(nextResults.filter((result) => Number.isFinite(result.id)));
       setIsLoading(false);
@@ -203,7 +216,14 @@ export function GlobalSearch(): JSX.Element {
       isActive = false;
       window.clearTimeout(timeout);
     };
-  }, [hasQuery, trimmedQuery]);
+  }, [
+    canSearchCandidates,
+    canSearchEmployees,
+    canSearchOrganization,
+    canSearchVacancies,
+    hasQuery,
+    trimmedQuery,
+  ]);
 
   async function openResult(result: GlobalSearchResult): Promise<void> {
     setIsOpen(false);
@@ -248,7 +268,7 @@ export function GlobalSearch(): JSX.Element {
     }
 
     if (result.kind === "vacancy") {
-      navigate(`/vacancies/${result.id}/edit`);
+      navigate(`/vacancies/${result.id}`);
       return;
     }
 

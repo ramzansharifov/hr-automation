@@ -14,7 +14,7 @@ import {
 export function EmployeesPage(): JSX.Element {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
-  const canManageEmployees = hasPermission("employees.manage");
+  const canCreateEmployees = hasPermission("employees.create");
   const [appliedFilters, setAppliedFilters] = useState<
     Record<string, HrFilterCondition> | undefined
   >(getStoredEmployeeHrFilters);
@@ -52,7 +52,7 @@ export function EmployeesPage(): JSX.Element {
         description="Единый реестр сотрудников, их должностей, подразделений и кадрового статуса."
         icon={<FiUsers />}
         actions={
-          canManageEmployees ? (
+          canCreateEmployees ? (
             <Button
               className="border-white/20 shadow-xl hover:opacity-90"
               leftIcon={<FiPlus className="h-4 w-4" />}

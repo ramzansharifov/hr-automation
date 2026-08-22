@@ -11,13 +11,16 @@ import { Button, PageHeader, useStoredViewMode } from "../shared/ui";
 
 export function VacationTypesPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
-  const canAdministerVacationTypes =
-    hasPermission("vacations.manage") &&
-    session.permissionScopes["vacations.manage"] === "global";
+  const canViewVacationTypes =
+    hasPermission("vacation_types.view") &&
+    session.permissionScopes["vacation_types.view"] === "global";
+  const canCreateVacationTypes =
+    hasPermission("vacation_types.create") &&
+    session.permissionScopes["vacation_types.create"] === "global";
   const [viewMode, setViewMode] = useStoredViewMode("vacation-types");
   const tableRef = useRef<HrEntityTableHandle>(null);
 
-  if (!canAdministerVacationTypes) {
+  if (!canViewVacationTypes) {
     return <Navigate replace to="/vacations" />;
   }
 
@@ -25,15 +28,17 @@ export function VacationTypesPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            className="border-white/20 shadow-xl hover:opacity-90"
-            leftIcon={<FiPlus className="h-4 w-4" />}
-            onClick={() => tableRef.current?.openCreate()}
-            style={{ background: "#ffffff", color: "#0f172a" }}
-            variant="ghost"
-          >
-            Добавить вид отпуска
-          </Button>
+          canCreateVacationTypes ? (
+            <Button
+              className="border-white/20 shadow-xl hover:opacity-90"
+              leftIcon={<FiPlus className="h-4 w-4" />}
+              onClick={() => tableRef.current?.openCreate()}
+              style={{ background: "#ffffff", color: "#0f172a" }}
+              variant="ghost"
+            >
+              Добавить вид отпуска
+            </Button>
+          ) : undefined
         }
         description="Единый справочник видов отпусков, используемых при оформлении кадровых записей."
         icon={<FiBookOpen />}
