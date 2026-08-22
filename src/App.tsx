@@ -14,6 +14,7 @@ import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { VacationTypesPage } from "./pages/VacationTypesPage";
 import { VacationsPage } from "./pages/VacationsPage";
+import { AccessRoleDetailsPage } from "./pages/access/AccessRoleDetailsPage";
 import { AccessRolesPage } from "./pages/access/AccessRolesPage";
 import { AccessUsersPage } from "./pages/access/AccessUsersPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
@@ -52,6 +53,7 @@ function App(): JSX.Element {
           <Route path="candidates" element={<RequirePermission anyOf={["recruitment.view"]}><CandidatesPage /></RequirePermission>} />
           <Route path="users" element={<RequirePermission anyOf={["access.manage"]}><AccessUsersPage /></RequirePermission>} />
           <Route path="roles" element={<RequirePermission anyOf={["access.manage"]}><AccessRolesPage /></RequirePermission>} />
+          <Route path="roles/:id" element={<RequirePermission anyOf={["access.manage"]}><AccessRoleDetailsPage /></RequirePermission>} />
           <Route path="access" element={<Navigate to="/users" replace />} />
           <Route path="audit" element={<RequirePermission anyOf={["audit.view"]}><AuditLogPage /></RequirePermission>} />
           <Route path="enterprises" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />

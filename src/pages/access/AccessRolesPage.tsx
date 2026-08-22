@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  FiArrowRight,
   FiCheck,
   FiEdit2,
   FiPlus,
@@ -8,6 +9,7 @@ import {
   FiTrash2,
   FiUsers,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { hrApiClient } from "../../shared/lib/hrApiClient";
@@ -48,6 +50,7 @@ const emptyOverview: AccessControlOverview = {
 };
 
 export function AccessRolesPage(): JSX.Element {
+  const navigate = useNavigate();
   const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -122,24 +125,38 @@ export function AccessRolesPage(): JSX.Element {
     }
   }
 
-  function renderRoleActions(role: AccessRoleSummary): JSX.Element | undefined {
-    if (role.isSystem) return undefined;
+  function renderRoleActions(role: AccessRoleSummary): JSX.Element {
     return (
-      <>
+      <div
+        className="flex items-center justify-center gap-2"
+        onClick={(event) => event.stopPropagation()}
+      >
         <IconButton
-          icon={<FiEdit2 />}
-          label="Редактировать"
-          onClick={() => openEditRole(role)}
+          icon={<FiArrowRight />}
+          label="Открыть роль"
+          onClick={() => navigate(`/roles/${role.id}`)}
           size="sm"
         />
-        <IconButton
-          icon={<FiTrash2 />}
-          label="Удалить"
-          onClick={() => setDeleteRole(role)}
-          size="sm"
-          tone="danger"
-        />
-      </>
+        {role.isSystem ? (
+          <span className="app-muted text-xs font-semibold">Защищена</span>
+        ) : (
+          <>
+            <IconButton
+              icon={<FiEdit2 />}
+              label="Редактировать"
+              onClick={() => openEditRole(role)}
+              size="sm"
+            />
+            <IconButton
+              icon={<FiTrash2 />}
+              label="Удалить"
+              onClick={() => setDeleteRole(role)}
+              size="sm"
+              tone="danger"
+            />
+          </>
+        )}
+      </div>
     );
   }
 
@@ -210,14 +227,7 @@ export function AccessRolesPage(): JSX.Element {
       key: "actions",
       header: "Действия",
       align: "center",
-      render: (role) =>
-        role.isSystem ? (
-          <span className="app-muted text-xs font-semibold">Защищена</span>
-        ) : (
-          <div className="flex items-center justify-center gap-2">
-            {renderRoleActions(role)}
-          </div>
-        ),
+      render: (role) => renderRoleActions(role),
     },
   ];
 
@@ -286,6 +296,8 @@ export function AccessRolesPage(): JSX.Element {
         getRowKey={(role) => role.id}
         isLoading={isLoading}
         loadingLabel="Загрузка ролей..."
+        notice="Нажмите на роль, чтобы открыть отдельную страницу с полным набором разрешений и назначенных пользователей."
+        onRowClick={(role) => navigate(`/roles/${role.id}`)}
         rows={overview.roles}
         toolbar={
           <Button
