@@ -12,12 +12,79 @@ import { AccessControlRepository } from "../repositories/accessControlRepository
 
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
-const permissionDependencies: Record<string, string> = {
-  "employees.manage": "employees.view",
-  "organization.manage": "organization.view",
-  "recruitment.manage": "recruitment.view",
-  "vacations.manage": "vacations.view",
+
+const permissionDependencies: Record<string, string[]> = {
+  "employees.manage": ["employees.view"],
+  "organization.manage": ["organization.view"],
+  "recruitment.manage": ["recruitment.view"],
+  "vacations.manage": ["vacations.view"],
+
+  "employees.create": ["employees.view", "organization.view"],
+  "employees.edit": ["employees.view", "organization.view"],
+  "employees.change_employment": ["employees.view", "organization.view"],
+  "employees.terminate": ["employees.view"],
+  "employees.export": ["employees.view", "settings.view"],
+
+  "organization.create": ["organization.view"],
+  "organization.edit": ["organization.view"],
+  "organization.delete": ["organization.view"],
+  "organization.assign_leader": ["organization.view", "employees.view"],
+
+  "vacations.create": ["vacations.view", "employees.view", "vacation_types.view"],
+  "vacations.edit": ["vacations.view", "employees.view", "vacation_types.view"],
+  "vacations.delete": ["vacations.view"],
+  "vacations.approve": ["vacations.view", "employees.view", "vacation_types.view"],
+
+  "vacancies.create": ["vacancies.view", "organization.view"],
+  "vacancies.edit": ["vacancies.view", "organization.view"],
+  "vacancies.delete": ["vacancies.view"],
+
+  "candidates.create": ["candidates.view", "vacancies.view"],
+  "candidates.edit": ["candidates.view", "vacancies.view"],
+  "candidates.delete": ["candidates.view"],
+  "candidates.hire": ["candidates.view"],
+
+  "vacation_types.create": ["vacation_types.view"],
+  "vacation_types.edit": ["vacation_types.view"],
+  "vacation_types.delete": ["vacation_types.view"],
+
+  "users.create": ["users.view", "employees.view"],
+  "users.edit": ["users.view", "employees.view"],
+  "users.delete": ["users.view"],
+  "users.reset_password": ["users.view"],
+
+  "roles.create": ["roles.view"],
+  "roles.edit": ["roles.view"],
+  "roles.delete": ["roles.view"],
+
+  "settings.backups_view": ["settings.view"],
+  "settings.backups_create": ["settings.view"],
+  "settings.backups_restore": ["settings.view"],
+  "settings.backups_open_folder": ["settings.view"],
 };
+
+const globalOnlyPermissions = new Set([
+  "access.manage",
+  "settings.manage",
+  "audit.view",
+  "vacation_types.create",
+  "vacation_types.edit",
+  "vacation_types.delete",
+  "users.view",
+  "users.create",
+  "users.edit",
+  "users.delete",
+  "users.reset_password",
+  "roles.view",
+  "roles.create",
+  "roles.edit",
+  "roles.delete",
+  "settings.backups_view",
+  "settings.backups_create",
+  "settings.backups_restore",
+  "settings.backups_open_folder",
+  "employees.export",
+]);
 
 export class AccessControlService {
   constructor(private readonly repository: AccessControlRepository) {}
@@ -43,14 +110,11 @@ export class AccessControlService {
       throw new Error("В роли указано неизвестное разрешение");
     }
 
-    const hasGlobalAdministrativePermission = permissionCodes.some((code) =>
-      ["access.manage", "settings.manage", "audit.view"].includes(code),
+    const hasGlobalOnlyPermission = permissionCodes.some((code) =>
+      globalOnlyPermissions.has(code),
     );
-    if (hasGlobalAdministrativePermission && params.scopeType !== "global") {
-      throw new Error("Административные разрешения требуют глобальной области данных");
-    }
-    if (permissionCodes.includes("access.manage") && !permissionCodes.includes("employees.view")) {
-      permissionCodes.push("employees.view");
+    if (hasGlobalOnlyPermission && params.scopeType !== "global") {
+      throw new Error("Одно или несколько выбранных разрешений требуют глобальной области данных");
     }
 
     if (params.id) {
@@ -179,10 +243,17 @@ export class AccessControlService {
 
 function normalizePermissionDependencies(codes: string[]): string[] {
   const normalized = new Set(codes);
-  for (const code of [...normalized]) {
-    const dependency = permissionDependencies[code];
-    if (dependency) normalized.add(dependency);
+  const queue = [...normalized];
+
+  while (queue.length > 0) {
+    const code = queue.shift()!;
+    for (const dependency of permissionDependencies[code] ?? []) {
+      if (normalized.has(dependency)) continue;
+      normalized.add(dependency);
+      queue.push(dependency);
+    }
   }
+
   return [...normalized];
 }
 
