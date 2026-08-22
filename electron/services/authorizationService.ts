@@ -144,18 +144,46 @@ export class AuthorizationService {
   }
 
   assertCanUpdate(entity: HrEntityKey, existing: HrRecord, data: HrRecord): void {
-    const permissionCode =
+    const changedKeys = Object.keys(data).filter(
+      (key) => normalizeComparable(data[key]) !== normalizeComparable(existing[key]),
+    );
+    const permissionCodes = new Set<string>();
+
+    if (
       entity === "vacations" &&
-      "status" in data &&
-      normalizeComparable(data.status) !== normalizeComparable(existing.status)
-        ? "vacations.approve"
-        : entityPermissions[entity].edit;
-    const session = this.requirePermission(permissionCode);
-    if (entity === "vacation_types" && session.scopeType !== "global") {
-      throw new Error("Справочник отпусков доступен для изменения только глобально");
+      changedKeys.includes("status")
+    ) {
+      permissionCodes.add("vacations.approve");
     }
-    this.assertRecordInScope(entity, existing, session);
-    this.assertRecordInScope(entity, { ...existing, ...data }, session);
+
+    const leaderField =
+      entity === "enterprises"
+        ? "general_director_employee_id"
+        : entity === "departments"
+          ? "director_employee_id"
+          : null;
+    if (leaderField && changedKeys.includes(leaderField)) {
+      permissionCodes.add("organization.assign_leader");
+    }
+
+    const specialKeys = new Set(
+      [entity === "vacations" ? "status" : null, leaderField].filter(
+        (value): value is string => Boolean(value),
+      ),
+    );
+    const hasRegularChanges = changedKeys.some((key) => !specialKeys.has(key));
+    if (hasRegularChanges || permissionCodes.size === 0) {
+      permissionCodes.add(entityPermissions[entity].edit);
+    }
+
+    for (const permissionCode of permissionCodes) {
+      const session = this.requirePermission(permissionCode);
+      if (entity === "vacation_types" && session.scopeType !== "global") {
+        throw new Error("Справочник отпусков доступен для изменения только глобально");
+      }
+      this.assertRecordInScope(entity, existing, session);
+      this.assertRecordInScope(entity, { ...existing, ...data }, session);
+    }
   }
 
   assertCanDelete(entity: HrEntityKey, existing: HrRecord): void {
