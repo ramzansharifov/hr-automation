@@ -79,16 +79,55 @@ const pageSizeOptions: SelectOption[] = [
   { value: '100', label: '100' },
 ]
 
-const managePermissionByEntity: Record<HrEntityKey, string> = {
-  enterprises: 'organization.manage',
-  departments: 'organization.manage',
-  positions: 'organization.manage',
-  employees: 'employees.manage',
-  employee_education: 'employees.manage',
-  employee_experience: 'employees.manage',
-  employment_history: 'employees.manage',
-  vacation_types: 'vacations.manage',
-  vacations: 'vacations.manage',
+const actionPermissionByEntity: Record<
+  HrEntityKey,
+  { create: string; edit: string; delete: string }
+> = {
+  enterprises: {
+    create: 'organization.create',
+    edit: 'organization.edit',
+    delete: 'organization.delete',
+  },
+  departments: {
+    create: 'organization.create',
+    edit: 'organization.edit',
+    delete: 'organization.delete',
+  },
+  positions: {
+    create: 'organization.create',
+    edit: 'organization.edit',
+    delete: 'organization.delete',
+  },
+  employees: {
+    create: 'employees.create',
+    edit: 'employees.edit',
+    delete: 'employees.edit',
+  },
+  employee_education: {
+    create: 'employees.edit',
+    edit: 'employees.edit',
+    delete: 'employees.edit',
+  },
+  employee_experience: {
+    create: 'employees.edit',
+    edit: 'employees.edit',
+    delete: 'employees.edit',
+  },
+  employment_history: {
+    create: 'employees.edit',
+    edit: 'employees.edit',
+    delete: 'employees.edit',
+  },
+  vacation_types: {
+    create: 'vacation_types.create',
+    edit: 'vacation_types.edit',
+    delete: 'vacation_types.delete',
+  },
+  vacations: {
+    create: 'vacations.create',
+    edit: 'vacations.edit',
+    delete: 'vacations.delete',
+  },
 }
 
 const maxVisiblePageButtons = 5
@@ -160,11 +199,14 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
       () => config.columns.filter((column) => !hiddenColumnKeys.includes(column.key)),
       [config.columns, hiddenColumnKeys],
     )
-    const permissionCode = managePermissionByEntity[entity]
-    const canManageEntity =
+    const actionPermissions = actionPermissionByEntity[entity]
+    const canUseAction = (permissionCode: string): boolean =>
       entity !== 'employment_history' &&
       hasPermission(permissionCode) &&
       (entity !== 'vacation_types' || session.permissionScopes[permissionCode] === 'global')
+    const canCreateEntity = canUseAction(actionPermissions.create)
+    const canEditEntity = canUseAction(actionPermissions.edit)
+    const canDeleteEntity = canUseAction(actionPermissions.delete)
     const [result, setResult] = useState<HrListResult>(emptyResult)
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
@@ -252,7 +294,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     }, [])
 
     const handleCreateClick = useCallback((): void => {
-      if (!canManageEntity) return
+      if (!canCreateEntity) return
       if (onCreateClick) {
         onCreateClick()
         return
@@ -261,7 +303,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
       setDialogMode('create')
       setEditingRecord(null)
       setIsFormOpen(true)
-    }, [canManageEntity, onCreateClick])
+    }, [canCreateEntity, onCreateClick])
 
     useImperativeHandle(
       ref,
@@ -273,14 +315,14 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     )
 
     function handleEditClick(record: HrRecord): void {
-      if (!canManageEntity) return
+      if (!canEditEntity) return
       setDialogMode('edit')
       setEditingRecord(record)
       setIsFormOpen(true)
     }
 
     function handleDeleteClick(record: HrRecord): void {
-      if (!canManageEntity) return
+      if (!canDeleteEntity) return
       setDeletingRecord(record)
       setIsDeleteOpen(true)
     }
@@ -293,13 +335,14 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     }
 
     async function handleFormSubmit(data: HrRecord): Promise<void> {
-      if (!canManageEntity) throw new Error('Недостаточно прав для изменения записи')
       if (dialogMode === 'create') {
+        if (!canCreateEntity) throw new Error('Недостаточно прав для создания записи')
         await hrApiClient.create({ entity, data })
         handleRefresh()
         return
       }
 
+      if (!canEditEntity) throw new Error('Недостаточно прав для изменения записи')
       await hrApiClient.update({
         entity,
         id: getRecordId(editingRecord),
@@ -309,7 +352,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     }
 
     async function handleDeleteConfirm(): Promise<void> {
-      if (!canManageEntity) throw new Error('Недостаточно прав для удаления записи')
+      if (!canDeleteEntity) throw new Error('Недостаточно прав для удаления записи')
       await hrApiClient.delete({
         entity,
         id: getRecordId(deletingRecord),
@@ -321,7 +364,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     const pageNumbers = getPageNumbers(result.page, totalPages)
     const canGoBack = result.page > 1
     const canGoForward = result.totalPages > 0 && result.page < result.totalPages
-    const hasActions = canManageEntity && entity !== 'employees'
+    const hasActions = (canEditEntity || canDeleteEntity) && entity !== 'employees'
     const cardMetaColumns = visibleColumns.slice(1, 4)
 
     const columns: DataTableColumn<HrRecord>[] = [
@@ -363,21 +406,25 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
                   className="flex items-center justify-center gap-2"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <IconButton
-                    className="app-table-action-button app-table-action-button--edit"
-                    icon={<FiEdit2 />}
-                    label={t('common.actions.edit')}
-                    onClick={() => handleEditClick(record)}
-                    size="sm"
-                  />
-                  <IconButton
-                    className="app-table-action-button app-table-action-button--delete"
-                    icon={<FiTrash2 />}
-                    label={t('common.actions.delete')}
-                    onClick={() => handleDeleteClick(record)}
-                    size="sm"
-                    tone="danger"
-                  />
+                  {canEditEntity && (
+                    <IconButton
+                      className="app-table-action-button app-table-action-button--edit"
+                      icon={<FiEdit2 />}
+                      label={t('common.actions.edit')}
+                      onClick={() => handleEditClick(record)}
+                      size="sm"
+                    />
+                  )}
+                  {canDeleteEntity && (
+                    <IconButton
+                      className="app-table-action-button app-table-action-button--delete"
+                      icon={<FiTrash2 />}
+                      label={t('common.actions.delete')}
+                      onClick={() => handleDeleteClick(record)}
+                      size="sm"
+                      tone="danger"
+                    />
+                  )}
                 </div>
               ),
             },
@@ -412,7 +459,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
           {t('common.actions.refresh')}
         </Button>
 
-        {!hideCreateButton && canManageEntity && (
+        {!hideCreateButton && canCreateEntity && (
           <Button
             type="button"
             onClick={handleCreateClick}
@@ -552,21 +599,25 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
               actions: hasActions
                 ? (record) => (
                     <>
-                      <IconButton
-                        className="app-table-action-button app-table-action-button--edit"
-                        icon={<FiEdit2 />}
-                        label={t('common.actions.edit')}
-                        onClick={() => handleEditClick(record)}
-                        size="sm"
-                      />
-                      <IconButton
-                        className="app-table-action-button app-table-action-button--delete"
-                        icon={<FiTrash2 />}
-                        label={t('common.actions.delete')}
-                        onClick={() => handleDeleteClick(record)}
-                        size="sm"
-                        tone="danger"
-                      />
+                      {canEditEntity && (
+                        <IconButton
+                          className="app-table-action-button app-table-action-button--edit"
+                          icon={<FiEdit2 />}
+                          label={t('common.actions.edit')}
+                          onClick={() => handleEditClick(record)}
+                          size="sm"
+                        />
+                      )}
+                      {canDeleteEntity && (
+                        <IconButton
+                          className="app-table-action-button app-table-action-button--delete"
+                          icon={<FiTrash2 />}
+                          label={t('common.actions.delete')}
+                          onClick={() => handleDeleteClick(record)}
+                          size="sm"
+                          tone="danger"
+                        />
+                      )}
                     </>
                   )
                 : undefined,
@@ -588,22 +639,26 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
           />
         </motion.div>
 
-        {canManageEntity && (
+        {(canCreateEntity || canEditEntity || canDeleteEntity) && (
           <>
-            <HrEntityDialog
-              entity={entity}
-              initialRecord={dialogMode === 'create' ? createInitialRecord : editingRecord}
-              mode={dialogMode}
-              onOpenChange={setIsFormOpen}
-              onSubmit={handleFormSubmit}
-              open={isFormOpen}
-            />
+            {(canCreateEntity || canEditEntity) && (
+              <HrEntityDialog
+                entity={entity}
+                initialRecord={dialogMode === 'create' ? createInitialRecord : editingRecord}
+                mode={dialogMode}
+                onOpenChange={setIsFormOpen}
+                onSubmit={handleFormSubmit}
+                open={isFormOpen}
+              />
+            )}
 
-            <HrEntityDeleteDialog
-              onConfirm={handleDeleteConfirm}
-              onOpenChange={setIsDeleteOpen}
-              open={isDeleteOpen}
-            />
+            {canDeleteEntity && (
+              <HrEntityDeleteDialog
+                onConfirm={handleDeleteConfirm}
+                onOpenChange={setIsDeleteOpen}
+                open={isDeleteOpen}
+              />
+            )}
           </>
         )}
       </>
