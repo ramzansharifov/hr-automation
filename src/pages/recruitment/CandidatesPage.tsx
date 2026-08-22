@@ -100,7 +100,11 @@ const emptyHireForm = (): HireFormState => ({
 
 export function CandidatesPage(): JSX.Element {
   const { hasPermission } = useAuth();
-  const canManage = hasPermission("recruitment.manage");
+  const canViewVacancies = hasPermission("vacancies.view");
+  const canCreate = hasPermission("candidates.create") && canViewVacancies;
+  const canEdit = hasPermission("candidates.edit") && canViewVacancies;
+  const canDelete = hasPermission("candidates.delete");
+  const canHire = hasPermission("candidates.hire");
   const [searchParams, setSearchParams] = useSearchParams();
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
@@ -134,10 +138,10 @@ export function CandidatesPage(): JSX.Element {
   const loadData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const [candidateRows, vacancyRows] = await Promise.all([
-        hrApiClient.listCandidates({}),
-        hrApiClient.listVacancies({}),
-      ]);
+      const candidateRows = await hrApiClient.listCandidates({});
+      const vacancyRows = canViewVacancies
+        ? await hrApiClient.listVacancies({})
+        : [];
       setCandidates(candidateRows);
       setVacancies(vacancyRows);
     } catch (error) {
@@ -145,7 +149,7 @@ export function CandidatesPage(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [canViewVacancies]);
 
   useEffect(() => {
     void loadData();
@@ -172,9 +176,9 @@ export function CandidatesPage(): JSX.Element {
   }, [isLoading, searchParams, setSearchParams]);
 
   function openCreate(): void {
-    if (!canManage) return;
+    if (!canCreate) return;
     if (vacancies.length === 0) {
-      toast.info("Сначала создайте вакансию с набором навыков");
+      toast.info("Сначала создайте или откройте вакансию с набором навыков");
       return;
     }
     setForm(emptyForm());
@@ -215,7 +219,7 @@ export function CandidatesPage(): JSX.Element {
 
   async function saveCandidate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    if (!canManage || form.employeeId) return;
+    if (form.employeeId || (form.id ? !canEdit : !canCreate)) return;
     setIsSaving(true);
     try {
       await hrApiClient.saveCandidate({
@@ -244,14 +248,14 @@ export function CandidatesPage(): JSX.Element {
   }
 
   function openHire(): void {
-    if (!canManage || !form.id || form.status !== "offer" || form.employeeId) return;
+    if (!canHire || !form.id || form.status !== "offer" || form.employeeId) return;
     setHireForm(emptyHireForm());
     setHireOpen(true);
   }
 
   async function hireCandidate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    if (!form.id) return;
+    if (!form.id || !canHire) return;
     setIsSaving(true);
     try {
       const params: HireCandidateParams = {
@@ -278,7 +282,7 @@ export function CandidatesPage(): JSX.Element {
   }
 
   async function deleteCandidate(): Promise<void> {
-    if (!deleteTarget || !canManage) return;
+    if (!deleteTarget || !canDelete) return;
     setIsSaving(true);
     try {
       await hrApiClient.deleteCandidate(Number(deleteTarget.id));
@@ -293,20 +297,22 @@ export function CandidatesPage(): JSX.Element {
   }
 
   const previewMatch = calculateMatch(form.skills);
-  const formDisabled = !canManage || Boolean(form.employeeId);
+  const formDisabled = Boolean(form.employeeId) || (form.id ? !canEdit : !canCreate);
 
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
-        actionLabel={canManage ? "Добавить кандидата" : undefined}
+        actionLabel={canCreate ? "Добавить кандидата" : undefined}
         description="Кандидаты по вакансиям, этапы подбора и оценка соответствия навыкам."
         icon={<FiUserPlus className="h-6 w-6" />}
-        onAction={canManage ? openCreate : undefined}
+        onAction={canCreate ? openCreate : undefined}
         title="Кандидаты"
       />
 
       <CandidatesTable
-        canManage={canManage}
+        canCreate={canCreate}
+        canDelete={canDelete}
+        canEdit={canEdit}
         candidates={filteredCandidates}
         hasAnyCandidates={candidates.length > 0}
         isLoading={isLoading}
@@ -397,50 +403,54 @@ export function CandidatesPage(): JSX.Element {
 
           <div className="flex flex-wrap justify-end gap-3">
             <Button onClick={() => setIsDialogOpen(false)} type="button" variant="secondary">Закрыть</Button>
-            {canManage && form.id && form.status === "offer" && !form.employeeId && (
+            {canHire && form.id && form.status === "offer" && !form.employeeId && (
               <Button leftIcon={<FiCheckCircle />} onClick={openHire} type="button">Принять на работу</Button>
             )}
-            {canManage && !form.employeeId && (
+            {!form.employeeId && ((form.id && canEdit) || (!form.id && canCreate)) && (
               <Button disabled={isSaving || form.skills.length === 0} type="submit">Сохранить кандидата</Button>
             )}
           </div>
         </form>
       </Dialog>
 
-      <Dialog
-        description="Сотрудник будет создан на предприятии, в отделе и на должности выбранной вакансии."
-        onOpenChange={setHireOpen}
-        open={hireOpen}
-        title="Принять кандидата на работу"
-      >
-        <form className="grid gap-4" onSubmit={hireCandidate}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <HireField label="Дата выхода" required type="date" value={hireForm.hireDate} onChange={(hireDate) => setHireForm((v) => ({ ...v, hireDate }))} />
-            <HireField label="Согласованный оклад" required min="0" type="number" value={hireForm.salary} onChange={(salary) => setHireForm((v) => ({ ...v, salary }))} />
-            <HireField label="Табельный номер" value={hireForm.employeeNumber} onChange={(employeeNumber) => setHireForm((v) => ({ ...v, employeeNumber }))} />
-            <HireField label="Номер трудового договора" value={hireForm.contractNumber} onChange={(contractNumber) => setHireForm((v) => ({ ...v, contractNumber }))} />
-            <HireField label="Дата договора" type="date" value={hireForm.contractDate} onChange={(contractDate) => setHireForm((v) => ({ ...v, contractDate }))} />
-            <HireField label="Окончание договора" type="date" value={hireForm.contractEndDate} onChange={(contractEndDate) => setHireForm((v) => ({ ...v, contractEndDate }))} />
-            <HireField label="Окончание испытательного срока" type="date" value={hireForm.probationEndDate} onChange={(probationEndDate) => setHireForm((v) => ({ ...v, probationEndDate }))} />
-            <HireField label="Место работы" value={hireForm.workplace} onChange={(workplace) => setHireForm((v) => ({ ...v, workplace }))} />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button onClick={() => setHireOpen(false)} type="button" variant="secondary">Отмена</Button>
-            <Button disabled={isSaving} type="submit">Создать сотрудника</Button>
-          </div>
-        </form>
-      </Dialog>
+      {canHire && (
+        <Dialog
+          description="Сотрудник будет создан на предприятии, в отделе и на должности выбранной вакансии."
+          onOpenChange={setHireOpen}
+          open={hireOpen}
+          title="Принять кандидата на работу"
+        >
+          <form className="grid gap-4" onSubmit={hireCandidate}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <HireField label="Дата выхода" required type="date" value={hireForm.hireDate} onChange={(hireDate) => setHireForm((v) => ({ ...v, hireDate }))} />
+              <HireField label="Согласованный оклад" required min="0" type="number" value={hireForm.salary} onChange={(salary) => setHireForm((v) => ({ ...v, salary }))} />
+              <HireField label="Табельный номер" value={hireForm.employeeNumber} onChange={(employeeNumber) => setHireForm((v) => ({ ...v, employeeNumber }))} />
+              <HireField label="Номер трудового договора" value={hireForm.contractNumber} onChange={(contractNumber) => setHireForm((v) => ({ ...v, contractNumber }))} />
+              <HireField label="Дата договора" type="date" value={hireForm.contractDate} onChange={(contractDate) => setHireForm((v) => ({ ...v, contractDate }))} />
+              <HireField label="Окончание договора" type="date" value={hireForm.contractEndDate} onChange={(contractEndDate) => setHireForm((v) => ({ ...v, contractEndDate }))} />
+              <HireField label="Окончание испытательного срока" type="date" value={hireForm.probationEndDate} onChange={(probationEndDate) => setHireForm((v) => ({ ...v, probationEndDate }))} />
+              <HireField label="Место работы" value={hireForm.workplace} onChange={(workplace) => setHireForm((v) => ({ ...v, workplace }))} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button onClick={() => setHireOpen(false)} type="button" variant="secondary">Отмена</Button>
+              <Button disabled={isSaving} type="submit">Создать сотрудника</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
 
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Удалить ошибочную запись"
-        description="Удаление предназначено только для ошибочно созданных кандидатов. Принятого кандидата удалить нельзя."
-        isLoading={isSaving}
-        onConfirm={() => void deleteCandidate()}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        open={Boolean(deleteTarget)}
-        title="Удалить кандидата?"
-      />
+      {canDelete && (
+        <ConfirmDialog
+          cancelLabel="Отмена"
+          confirmLabel="Удалить ошибочную запись"
+          description="Удаление предназначено только для ошибочно созданных кандидатов. Принятого кандидата удалить нельзя."
+          isLoading={isSaving}
+          onConfirm={() => void deleteCandidate()}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          open={Boolean(deleteTarget)}
+          title="Удалить кандидата?"
+        />
+      )}
     </div>
   );
 }
@@ -492,7 +502,9 @@ function HireField({
 }
 
 function CandidatesTable({
-  canManage,
+  canCreate,
+  canDelete,
+  canEdit,
   candidates,
   hasAnyCandidates,
   isLoading,
@@ -500,7 +512,9 @@ function CandidatesTable({
   onOpen,
   onRefresh,
 }: {
-  canManage: boolean;
+  canCreate: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
   candidates: HrRecord[];
   hasAnyCandidates: boolean;
   isLoading: boolean;
@@ -508,6 +522,7 @@ function CandidatesTable({
   onOpen: (candidate: HrRecord) => void;
   onRefresh: () => void;
 }): JSX.Element {
+  const hasActions = canEdit || canDelete;
   const columns: DataTableColumn<HrRecord>[] = [
     {
       key: "name",
@@ -563,7 +578,7 @@ function CandidatesTable({
         <span className="app-text-soft">{String(candidate.source ?? "—")}</span>
       ),
     },
-    ...(canManage
+    ...(hasActions
       ? [
           {
             key: "actions",
@@ -574,13 +589,15 @@ function CandidatesTable({
                 className="flex items-center justify-center gap-2"
                 onClick={(event) => event.stopPropagation()}
               >
-                <IconButton
-                  icon={<FiEdit2 />}
-                  label="Редактировать кандидата"
-                  onClick={() => onOpen(candidate)}
-                  size="sm"
-                />
-                {!candidate.employee_id && (
+                {canEdit && (
+                  <IconButton
+                    icon={<FiEdit2 />}
+                    label="Редактировать кандидата"
+                    onClick={() => onOpen(candidate)}
+                    size="sm"
+                  />
+                )}
+                {canDelete && !candidate.employee_id && (
                   <IconButton
                     icon={<FiTrash2 />}
                     label="Удалить кандидата"
@@ -603,16 +620,12 @@ function CandidatesTable({
       emptyDescription={
         hasAnyCandidates
           ? "Измените или очистите фильтры на странице фильтров."
-          : canManage
+          : canCreate
             ? "Добавьте кандидата к существующей вакансии и оцените его навыки."
             : "В доступной области пока нет кандидатов."
       }
       emptyTitle={hasAnyCandidates ? "Нет кандидатов по выбранным фильтрам" : "Кандидатов пока нет"}
-      footer={
-        <>
-          Всего в выборке: <span className="app-text font-black">{candidates.length}</span>
-        </>
-      }
+      footer={<>Кандидатов: <span className="app-text font-black">{candidates.length}</span></>}
       getRowKey={(candidate) => String(candidate.id)}
       isLoading={isLoading}
       loadingLabel="Загрузка кандидатов..."
