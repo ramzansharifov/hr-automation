@@ -13,12 +13,9 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../../features/auth/AuthContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
-import type {
-  AccessControlOverview,
-  AccessRoleSummary,
-  SaveAccessRoleParams,
-} from "../../shared/types/access";
+import type { AccessControlOverview, AccessRoleSummary } from "../../shared/types/access";
 import {
   Button,
   ConfirmDialog,
@@ -29,13 +26,12 @@ import {
 } from "../../shared/ui";
 import {
   AccessMetric,
-  RoleDialog,
   StatusBadge,
   getErrorMessage,
   scopeLabel,
-  type RoleDraft,
 } from "./AccessControlShared";
 import { groupPermissions } from "./accessControlData";
+import { legacyPermissionCodes } from "./rolePermissionSections";
 
 const emptyOverview: AccessControlOverview = {
   permissions: [],
@@ -55,11 +51,14 @@ export function AccessRoleDetailsPage(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
   const roleId = Number(params.id);
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("roles.edit");
+  const canDelete = hasPermission("roles.delete");
+  const canViewUsers = hasPermission("users.view");
   const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [permissionSearch, setPermissionSearch] = useState("");
-  const [roleDraft, setRoleDraft] = useState<RoleDraft | null>(null);
   const [deleteRole, setDeleteRole] = useState<AccessRoleSummary | null>(null);
 
   const loadData = useCallback(async () => {
@@ -83,9 +82,13 @@ export function AccessRoleDetailsPage(): JSX.Element {
   );
 
   const rolePermissions = useMemo(() => {
-    const permissionCodes = new Set(role?.permissionCodes ?? []);
-    return overview.permissions.filter((permission) =>
-      permissionCodes.has(permission.code),
+    const permissionCodes = new Set(
+      (role?.permissionCodes ?? []).filter((code) => !legacyPermissionCodes.has(code)),
+    );
+    return overview.permissions.filter(
+      (permission) =>
+        permissionCodes.has(permission.code) &&
+        !legacyPermissionCodes.has(permission.code),
     );
   }, [overview.permissions, role]);
 
@@ -117,41 +120,8 @@ export function AccessRoleDetailsPage(): JSX.Element {
   const visibleUserCount = assignedUsers.length + (includesSystemAdmin ? 1 : 0);
   const modulesCount = new Set(rolePermissions.map((permission) => permission.module)).size;
 
-  function openEditRole(): void {
-    if (!role || role.isSystem) return;
-    setRoleDraft({
-      id: role.id,
-      name: role.name,
-      description: role.description,
-      scopeType: role.scopeType,
-      permissionCodes: role.permissionCodes,
-    });
-  }
-
-  async function saveRole(): Promise<void> {
-    if (!roleDraft) return;
-    setIsSaving(true);
-    try {
-      const params: SaveAccessRoleParams = {
-        id: roleDraft.id,
-        name: roleDraft.name,
-        description: roleDraft.description,
-        scopeType: roleDraft.scopeType,
-        permissionCodes: roleDraft.permissionCodes,
-      };
-      await hrApiClient.saveAccessRole(params);
-      toast.success("Роль обновлена");
-      setRoleDraft(null);
-      await loadData();
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить роль"));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
   async function confirmDeleteRole(): Promise<void> {
-    if (!deleteRole) return;
+    if (!deleteRole || !canDelete) return;
     setIsSaving(true);
     try {
       await hrApiClient.deleteAccessRole(deleteRole.id);
@@ -165,9 +135,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
     }
   }
 
-  if (isLoading) {
-    return <LoadingState label="Загрузка роли..." />;
-  }
+  if (isLoading) return <LoadingState label="Загрузка роли..." />;
 
   if (!Number.isInteger(roleId) || roleId < 1 || !role) {
     return (
@@ -210,11 +178,11 @@ export function AccessRoleDetailsPage(): JSX.Element {
             >
               Все роли
             </Button>
-            {!role.isSystem && (
+            {!role.isSystem && canEdit && (
               <Button
                 className="border-white/20 shadow-xl hover:opacity-90"
                 leftIcon={<FiEdit2 className="h-4 w-4" />}
-                onClick={openEditRole}
+                onClick={() => navigate(`/roles/${role.id}/edit`)}
                 style={{ background: "#ffffff", color: "#0f172a" }}
                 variant="ghost"
               >
@@ -243,13 +211,9 @@ export function AccessRoleDetailsPage(): JSX.Element {
       />
 
       <section className="grid gap-4 md:grid-cols-3">
-        <AccessMetric
-          icon={<FiCheckCircle />}
-          label="Разрешения"
-          value={rolePermissions.length}
-        />
+        <AccessMetric icon={<FiCheckCircle />} label="Разрешения" value={rolePermissions.length} />
         <AccessMetric icon={<FiUsers />} label="Пользователи" value={visibleUserCount} />
-        <AccessMetric icon={<FiLayers />} label="Модули" value={modulesCount} />
+        <AccessMetric icon={<FiLayers />} label="Разделы" value={modulesCount} />
       </section>
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
@@ -257,7 +221,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
           <div>
             <h2 className="app-text text-lg font-black">Разрешения роли</h2>
             <p className="app-muted mt-1 text-sm">
-              Все действия, которые доступны пользователю благодаря этой роли.
+              Все доступные действия, сгруппированные по разделам приложения.
             </p>
           </div>
           <div className="relative w-full sm:max-w-sm">
@@ -266,7 +230,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
               aria-label="Поиск разрешений"
               className="pl-10"
               onChange={(event) => setPermissionSearch(event.target.value)}
-              placeholder="Поиск по названию, коду или модулю"
+              placeholder="Поиск по названию, коду или разделу"
               value={permissionSearch}
             />
           </div>
@@ -278,35 +242,23 @@ export function AccessRoleDetailsPage(): JSX.Element {
             title="Разрешения не назначены"
           />
         ) : permissionGroups.length === 0 ? (
-          <EmptyState
-            description="Попробуйте изменить поисковый запрос."
-            title="Ничего не найдено"
-          />
+          <EmptyState description="Попробуйте изменить поисковый запрос." title="Ничего не найдено" />
         ) : (
           <div className="space-y-4 p-5">
             {permissionGroups.map(([module, permissions]) => (
-              <section
-                className="app-surface-muted app-border rounded-2xl border p-4 sm:p-5"
-                key={module}
-              >
+              <section className="app-surface-muted app-border rounded-2xl border p-4 sm:p-5" key={module}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="app-text font-black">{module}</p>
-                    <p className="app-muted mt-1 text-xs">
-                      Разрешений в модуле: {permissions.length}
-                    </p>
+                    <p className="app-muted mt-1 text-xs">Разрешений: {permissions.length}</p>
                   </div>
                   <span className="app-accent-soft app-accent-text flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
                     <FiShield className="h-4 w-4" />
                   </span>
                 </div>
-
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   {permissions.map((permission) => (
-                    <article
-                      className="app-surface app-border flex items-start gap-3 rounded-2xl border p-4"
-                      key={permission.code}
-                    >
+                    <article className="app-surface app-border flex items-start gap-3 rounded-2xl border p-4" key={permission.code}>
                       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <FiCheckCircle className="h-4 w-4" />
                       </span>
@@ -332,17 +284,13 @@ export function AccessRoleDetailsPage(): JSX.Element {
         <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="app-text text-lg font-black">Пользователи с этой ролью</h2>
-            <p className="app-muted mt-1 text-sm">
-              Учётные записи, которым роль назначена напрямую или системой.
-            </p>
+            <p className="app-muted mt-1 text-sm">Учётные записи, которым роль назначена напрямую или системой.</p>
           </div>
-          <Button
-            leftIcon={<FiUsers className="h-4 w-4" />}
-            onClick={() => navigate("/users")}
-            variant="secondary"
-          >
-            Открыть пользователей
-          </Button>
+          {canViewUsers && (
+            <Button leftIcon={<FiUsers className="h-4 w-4" />} onClick={() => navigate("/users")} variant="secondary">
+              Открыть пользователей
+            </Button>
+          )}
         </div>
 
         {!includesSystemAdmin && assignedUsers.length === 0 ? (
@@ -360,20 +308,14 @@ export function AccessRoleDetailsPage(): JSX.Element {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="app-text font-black">Системный администратор</p>
-                    <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">
-                      Встроенная
-                    </span>
+                    <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">Встроенная</span>
                   </div>
                   <p className="app-muted mt-1 text-xs">@{overview.systemAdmin.username}</p>
                 </div>
               </article>
             )}
-
             {assignedUsers.map((user) => (
-              <article
-                className="app-surface-muted app-border flex items-center gap-4 rounded-2xl border p-4"
-                key={user.id}
-              >
+              <article className="app-surface-muted app-border flex items-center gap-4 rounded-2xl border p-4" key={user.id}>
                 <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border">
                   <FiUser className="h-5 w-5" />
                 </span>
@@ -382,13 +324,9 @@ export function AccessRoleDetailsPage(): JSX.Element {
                     <p className="app-text truncate font-black">{user.employeeName}</p>
                     <StatusBadge status={user.status} />
                   </div>
-                  <p className="app-accent-text mt-1 truncate text-xs font-black">
-                    @{user.username}
-                  </p>
+                  <p className="app-accent-text mt-1 truncate text-xs font-black">@{user.username}</p>
                   <p className="app-muted mt-1 truncate text-xs">
-                    {[user.enterpriseName, user.departmentName]
-                      .filter(Boolean)
-                      .join(" · ") || "Оргструктура не указана"}
+                    {[user.enterpriseName, user.departmentName].filter(Boolean).join(" · ") || "Оргструктура не указана"}
                   </p>
                 </div>
               </article>
@@ -397,49 +335,30 @@ export function AccessRoleDetailsPage(): JSX.Element {
         )}
       </section>
 
-      {!role.isSystem && (
+      {!role.isSystem && canDelete && (
         <section className="app-surface app-border flex flex-col gap-4 rounded-[28px] border p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="app-text font-black">Управление ролью</p>
-            <p className="app-muted mt-1 text-sm">
-              Пользовательскую роль можно изменить или удалить после снятия со всех пользователей.
-            </p>
+            <p className="app-text font-black">Удаление роли</p>
+            <p className="app-muted mt-1 text-sm">Роль можно удалить после снятия со всех пользователей.</p>
           </div>
-          <Button
-            leftIcon={<FiTrash2 className="h-4 w-4" />}
-            onClick={() => setDeleteRole(role)}
-            variant="danger"
-          >
+          <Button leftIcon={<FiTrash2 className="h-4 w-4" />} onClick={() => setDeleteRole(role)} variant="danger">
             Удалить роль
           </Button>
         </section>
       )}
 
-      <RoleDialog
-        draft={roleDraft ?? {
-          name: "",
-          description: "",
-          scopeType: "self",
-          permissionCodes: [],
-        }}
-        isSaving={isSaving}
-        onChange={setRoleDraft}
-        onOpenChange={(open) => !open && setRoleDraft(null)}
-        onSave={() => void saveRole()}
-        open={Boolean(roleDraft)}
-        permissions={overview.permissions}
-      />
-
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Удалить"
-        description="Роль можно удалить только после того, как она снята со всех пользователей."
-        isLoading={isSaving}
-        onConfirm={() => void confirmDeleteRole()}
-        onOpenChange={(open) => !open && setDeleteRole(null)}
-        open={Boolean(deleteRole)}
-        title={`Удалить роль «${deleteRole?.name ?? ""}»?`}
-      />
+      {canDelete && (
+        <ConfirmDialog
+          cancelLabel="Отмена"
+          confirmLabel="Удалить"
+          description="Роль можно удалить только после того, как она снята со всех пользователей."
+          isLoading={isSaving}
+          onConfirm={() => void confirmDeleteRole()}
+          onOpenChange={(open) => !open && setDeleteRole(null)}
+          open={Boolean(deleteRole)}
+          title={`Удалить роль «${deleteRole?.name ?? ""}»?`}
+        />
+      )}
     </div>
   );
 }
