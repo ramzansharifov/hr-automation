@@ -54,6 +54,9 @@ export function OrganizationDetailsPage(): JSX.Element {
   const canCreatePosition = hasPermission("organization.create");
   const canEditPosition = hasPermission("organization.edit");
   const canDeletePosition = hasPermission("organization.delete");
+  const canCreateDepartment = canCreatePosition;
+  const canEditDepartment = canEditPosition;
+  const canDeleteDepartment = canDeletePosition;
 
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
@@ -67,6 +70,13 @@ export function OrganizationDetailsPage(): JSX.Element {
   const [leaderOptions, setLeaderOptions] = useState<SelectOption[]>([]);
   const [leaderId, setLeaderId] = useState("");
   const [leaderLoading, setLeaderLoading] = useState(false);
+  const [departmentDialogMode, setDepartmentDialogMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [editingDepartment, setEditingDepartment] = useState<HrRecord | null>(null);
+  const [deletingDepartment, setDeletingDepartment] = useState<HrRecord | null>(null);
+  const [isDepartmentFormOpen, setIsDepartmentFormOpen] = useState(false);
+  const [isDepartmentDeleteOpen, setIsDepartmentDeleteOpen] = useState(false);
   const [positionDialogMode, setPositionDialogMode] = useState<"create" | "edit">(
     "create",
   );
@@ -263,6 +273,59 @@ export function OrganizationDetailsPage(): JSX.Element {
     } finally {
       setLeaderLoading(false);
     }
+  }
+
+  function openCreateDepartment(): void {
+    if (!canCreateDepartment || !enterpriseId || mode !== "enterprise") return;
+    setDepartmentDialogMode("create");
+    setEditingDepartment(null);
+    setIsDepartmentFormOpen(true);
+  }
+
+  function openEditDepartment(item: HrRecord): void {
+    if (!canEditDepartment || mode !== "enterprise") return;
+    setDepartmentDialogMode("edit");
+    setEditingDepartment(item);
+    setIsDepartmentFormOpen(true);
+  }
+
+  function openDeleteDepartment(item: HrRecord): void {
+    if (!canDeleteDepartment || mode !== "enterprise") return;
+    setDeletingDepartment(item);
+    setIsDepartmentDeleteOpen(true);
+  }
+
+  async function saveDepartment(data: HrRecord): Promise<void> {
+    if (!enterpriseId) throw new Error("Предприятие не найдено");
+
+    if (departmentDialogMode === "create") {
+      if (!canCreateDepartment) throw new Error("Недостаточно прав для создания отдела");
+      await hrApiClient.create({
+        entity: "departments",
+        data: { ...data, enterprise_id: enterpriseId },
+      });
+    } else {
+      if (!canEditDepartment) throw new Error("Недостаточно прав для изменения отдела");
+      const currentDepartmentId = positiveId(editingDepartment?.id);
+      if (!currentDepartmentId) throw new Error("Отдел не найден");
+      await hrApiClient.update({
+        entity: "departments",
+        id: currentDepartmentId,
+        data: { ...data, enterprise_id: enterpriseId },
+      });
+    }
+
+    setRefreshIndex((value) => value + 1);
+  }
+
+  async function deleteDepartment(): Promise<void> {
+    if (!canDeleteDepartment) throw new Error("Недостаточно прав для удаления отдела");
+    const currentDepartmentId = positiveId(deletingDepartment?.id);
+    if (!currentDepartmentId) throw new Error("Отдел не найден");
+
+    await hrApiClient.delete({ entity: "departments", id: currentDepartmentId });
+    setDeletingDepartment(null);
+    setRefreshIndex((value) => value + 1);
   }
 
   function openCreatePosition(): void {
@@ -496,7 +559,19 @@ export function OrganizationDetailsPage(): JSX.Element {
       {mode === "enterprise" ? (
         <section className="app-surface app-border overflow-hidden rounded-[28px] border">
           <SectionHeader
-            description="Подразделения предприятия, руководители и численность."
+            actions={
+              canCreateDepartment ? (
+                <Button
+                  leftIcon={<FiPlus className="h-4 w-4" />}
+                  onClick={openCreateDepartment}
+                  size="sm"
+                  type="button"
+                >
+                  Добавить отдел
+                </Button>
+              ) : undefined
+            }
+            description="Отделы предприятия можно добавлять, редактировать и удалять прямо на этой странице."
             icon={<FiLayers />}
             title="Отделы"
           />
@@ -505,40 +580,70 @@ export function OrganizationDetailsPage(): JSX.Element {
               {departments.map((item) => {
                 const id = positiveId(item.id);
                 return (
-                  <Link
-                    className="app-surface-muted app-border group rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-[var(--accent-border)] hover:shadow-lg"
+                  <article
+                    className="app-surface-muted app-border rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-[var(--accent-border)] hover:shadow-lg"
                     key={String(item.id)}
-                    to={`/enterprises/${enterpriseId}/departments/${id}`}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="app-text truncate font-black">{recordName(item)}</p>
-                        <p className="app-muted mt-1 truncate text-xs font-semibold">
-                          {displayValue(item.director_name) === "—"
-                            ? "Руководитель не назначен"
-                            : `Руководитель: ${displayValue(item.director_name)}`}
-                        </p>
-                      </div>
-                      <FiChevronRight className="app-muted mt-1 h-5 w-5 shrink-0 transition group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <MiniBadge
-                        label="Сотрудников"
-                        value={
-                          canViewEmployees
-                            ? employeeCountByDepartment.get(id ?? -1) ?? 0
-                            : "—"
-                        }
-                      />
-                      <MiniBadge
-                        label="Должностей"
-                        value={positionCountByDepartment.get(id ?? -1) ?? 0}
-                      />
-                      {item.location && (
-                        <MiniBadge label="Локация" value={String(item.location)} />
+                      <Link
+                        className="group min-w-0 flex-1"
+                        to={`/enterprises/${enterpriseId}/departments/${id}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="app-text truncate font-black">{recordName(item)}</p>
+                            <p className="app-muted mt-1 truncate text-xs font-semibold">
+                              {displayValue(item.director_name) === "—"
+                                ? "Руководитель не назначен"
+                                : `Руководитель: ${displayValue(item.director_name)}`}
+                            </p>
+                          </div>
+                          <FiChevronRight className="app-muted mt-1 h-5 w-5 shrink-0 transition group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <MiniBadge
+                            label="Сотрудников"
+                            value={
+                              canViewEmployees
+                                ? employeeCountByDepartment.get(id ?? -1) ?? 0
+                                : "—"
+                            }
+                          />
+                          <MiniBadge
+                            label="Должностей"
+                            value={positionCountByDepartment.get(id ?? -1) ?? 0}
+                          />
+                          {item.location && (
+                            <MiniBadge label="Локация" value={String(item.location)} />
+                          )}
+                        </div>
+                      </Link>
+
+                      {(canEditDepartment || canDeleteDepartment) && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          {canEditDepartment && (
+                            <IconButton
+                              className="app-table-action-button app-table-action-button--edit"
+                              icon={<FiEdit2 />}
+                              label="Редактировать отдел"
+                              onClick={() => openEditDepartment(item)}
+                              size="sm"
+                            />
+                          )}
+                          {canDeleteDepartment && (
+                            <IconButton
+                              className="app-table-action-button app-table-action-button--delete"
+                              icon={<FiTrash2 />}
+                              label="Удалить отдел"
+                              onClick={() => openDeleteDepartment(item)}
+                              size="sm"
+                              tone="danger"
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
-                  </Link>
+                  </article>
                 );
               })}
             </div>
@@ -720,6 +825,33 @@ export function OrganizationDetailsPage(): JSX.Element {
           </div>
         )}
       </Dialog>
+
+      {mode === "enterprise" && enterpriseId && (canCreateDepartment || canEditDepartment) && (
+        <HrEntityDialog
+          entity="departments"
+          hiddenFieldNames={["enterprise_id"]}
+          initialRecord={
+            departmentDialogMode === "create"
+              ? { enterprise_id: enterpriseId }
+              : editingDepartment
+          }
+          mode={departmentDialogMode}
+          onOpenChange={setIsDepartmentFormOpen}
+          onSubmit={saveDepartment}
+          open={isDepartmentFormOpen}
+        />
+      )}
+
+      {mode === "enterprise" && canDeleteDepartment && (
+        <HrEntityDeleteDialog
+          onConfirm={deleteDepartment}
+          onOpenChange={(open) => {
+            setIsDepartmentDeleteOpen(open);
+            if (!open) setDeletingDepartment(null);
+          }}
+          open={isDepartmentDeleteOpen}
+        />
+      )}
 
       {mode === "department" && departmentId && (canCreatePosition || canEditPosition) && (
         <HrEntityDialog
