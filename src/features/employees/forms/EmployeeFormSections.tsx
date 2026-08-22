@@ -32,9 +32,13 @@ export interface EmployeeAddressFormSectionProps extends EmployeeFormSectionComm
 
 export interface EmployeeCompanyFormSectionProps extends EmployeeFormSectionCommonProps {
   departments: SelectOption[];
+  enterpriseId?: string;
+  enterprises?: SelectOption[];
   includeAssignmentFields?: boolean;
   isRelationsLoading: boolean;
+  onEnterpriseChange?: (enterpriseId: string) => void;
   positions: SelectOption[];
+  selectedDepartmentId?: string;
 }
 
 const employmentTypeOptions: SelectOption[] = [
@@ -163,13 +167,19 @@ export function EmployeeAddressFormSection({
 export function EmployeeCompanyFormSection({
   control,
   departments,
+  enterpriseId = "",
+  enterprises = [],
   errors,
   includeAssignmentFields = true,
   isRelationsLoading,
+  onEnterpriseChange,
   positions,
   register,
+  selectedDepartmentId = "",
   t,
 }: EmployeeCompanyFormSectionProps): JSX.Element {
+  const hasEnterpriseSelector = includeAssignmentFields && Boolean(onEnterpriseChange);
+
   return (
     <FormCard
       description={
@@ -188,9 +198,24 @@ export function EmployeeCompanyFormSection({
 
       {includeAssignmentFields && (
         <>
+          {hasEnterpriseSelector && (
+            <StandaloneSelectField
+              disabled={isRelationsLoading}
+              label="Предприятие"
+              onValueChange={onEnterpriseChange!}
+              options={enterprises}
+              placeholder={
+                isRelationsLoading
+                  ? t("forms.placeholders.loadingOptions")
+                  : "Выберите предприятие"
+              }
+              required
+              value={enterpriseId}
+            />
+          )}
           <SelectField
             control={control}
-            disabled={isRelationsLoading}
+            disabled={isRelationsLoading || (hasEnterpriseSelector && !enterpriseId)}
             error={getError("department_id", errors, t)}
             label={t("forms.fields.departmentId")}
             name="department_id"
@@ -198,13 +223,18 @@ export function EmployeeCompanyFormSection({
             placeholder={
               isRelationsLoading
                 ? t("forms.placeholders.loadingOptions")
-                : t("forms.placeholders.selectDepartment")
+                : hasEnterpriseSelector && !enterpriseId
+                  ? "Сначала выберите предприятие"
+                  : t("forms.placeholders.selectDepartment")
             }
             required
           />
           <SelectField
             control={control}
-            disabled={isRelationsLoading}
+            disabled={
+              isRelationsLoading ||
+              (hasEnterpriseSelector && !selectedDepartmentId)
+            }
             error={getError("position_id", errors, t)}
             label={t("forms.fields.positionId")}
             name="position_id"
@@ -212,7 +242,9 @@ export function EmployeeCompanyFormSection({
             placeholder={
               isRelationsLoading
                 ? t("forms.placeholders.loadingOptions")
-                : t("forms.placeholders.selectPosition")
+                : hasEnterpriseSelector && !selectedDepartmentId
+                  ? "Сначала выберите отдел"
+                  : t("forms.placeholders.selectPosition")
             }
             required
           />
@@ -342,6 +374,44 @@ function TextareaField({ error, label, registration }: TextareaFieldProps): JSX.
       <span className="app-text mb-2 block text-sm font-bold">{label}</span>
       <Textarea {...registration} />
       <FieldError message={error} />
+    </label>
+  );
+}
+
+interface StandaloneSelectFieldProps {
+  disabled?: boolean;
+  label: string;
+  onValueChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder: string;
+  required?: boolean;
+  value: string;
+}
+
+function StandaloneSelectField({
+  disabled = false,
+  label,
+  onValueChange,
+  options,
+  placeholder,
+  required = false,
+  value,
+}: StandaloneSelectFieldProps): JSX.Element {
+  return (
+    <label className="block">
+      <span className="app-text mb-2 block text-sm font-bold">
+        {label}
+        {required && <span className="text-rose-500"> *</span>}
+      </span>
+      <Select
+        allowEmpty={!required}
+        disabled={disabled}
+        emptyOptionLabel="Не выбрано"
+        onValueChange={onValueChange}
+        options={options}
+        placeholder={placeholder}
+        value={value}
+      />
     </label>
   );
 }
