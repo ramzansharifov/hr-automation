@@ -88,7 +88,7 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
   {
     key: "vacation-types",
     title: "Виды отпусков",
-    description: "Справочник видов отпусков. Изменение справочника доступно только в глобальной области.",
+    description: "Администрирование справочника видов отпусков.",
     group: "Администрирование",
     permissionCodes: [
       "vacation_types.view",
@@ -195,28 +195,6 @@ export const permissionDependencies: Record<string, string[]> = {
   "settings.backups_restore": ["settings.view"],
   "settings.backups_open_folder": ["settings.view"],
 };
-
-/** Permissions whose backend operation is intentionally restricted to global scope. */
-export const globalOnlyPermissionCodes = new Set([
-  "vacation_types.create",
-  "vacation_types.edit",
-  "vacation_types.delete",
-  "users.view",
-  "users.create",
-  "users.edit",
-  "users.delete",
-  "users.reset_password",
-  "roles.view",
-  "roles.create",
-  "roles.edit",
-  "roles.delete",
-  "audit.view",
-  "settings.backups_view",
-  "settings.backups_create",
-  "settings.backups_restore",
-  "settings.backups_open_folder",
-  "employees.export",
-]);
 
 export const legacyPermissionCodes = new Set([
   "employees.manage",
