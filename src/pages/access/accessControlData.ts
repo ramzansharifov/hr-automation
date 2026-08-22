@@ -13,14 +13,6 @@ export interface EmployeeOption extends SelectOption {
   enterpriseName: string;
 }
 
-export interface RoleDraft {
-  id?: number;
-  name: string;
-  description: string;
-  scopeType: AccessScopeType;
-  permissionCodes: string[];
-}
-
 export interface UserDraft {
   id?: number;
   employeeId: string;
@@ -30,13 +22,6 @@ export interface UserDraft {
   password: string;
   mustChangePassword: boolean;
 }
-
-export const emptyRoleDraft: RoleDraft = {
-  name: "",
-  description: "",
-  scopeType: "self",
-  permissionCodes: [],
-};
 
 export const emptyUserDraft: UserDraft = {
   employeeId: "",
@@ -99,49 +84,7 @@ export async function loadEmployees(): Promise<EmployeeOption[]> {
     page += 1;
   } while (page <= totalPages);
 
-  const departmentIds = [
-    ...new Set(
-      records
-        .map((record) => Number(record.department_id))
-        .filter(Number.isFinite),
-    ),
-  ];
-  const departmentMap = new Map<number, { name: string; enterpriseId: number }>();
-
-  for (const departmentId of departmentIds) {
-    const department = await hrApiClient.getById({
-      entity: "departments",
-      id: departmentId,
-    });
-    if (department) {
-      departmentMap.set(departmentId, {
-        name: String(department.name ?? ""),
-        enterpriseId: Number(department.enterprise_id ?? 0),
-      });
-    }
-  }
-
-  const enterpriseIds = [
-    ...new Set(
-      [...departmentMap.values()]
-        .map((item) => item.enterpriseId)
-        .filter(Boolean),
-    ),
-  ];
-  const enterpriseMap = new Map<number, string>();
-
-  for (const enterpriseId of enterpriseIds) {
-    const enterprise = await hrApiClient.getById({
-      entity: "enterprises",
-      id: enterpriseId,
-    });
-    if (enterprise) {
-      enterpriseMap.set(enterpriseId, String(enterprise.name ?? ""));
-    }
-  }
-
   return records.map((record) => {
-    const department = departmentMap.get(Number(record.department_id));
     const fullName = [record.last_name, record.first_name, record.middle_name]
       .map((value) => String(value ?? "").trim())
       .filter(Boolean)
@@ -149,9 +92,9 @@ export async function loadEmployees(): Promise<EmployeeOption[]> {
 
     return {
       value: String(record.id),
-      label: fullName || `Сотрудник #${record.id}`,
-      departmentName: department?.name ?? "",
-      enterpriseName: enterpriseMap.get(department?.enterpriseId ?? 0) ?? "",
+      label: fullName || `Сотрудник #${String(record.id)}`,
+      departmentName: String(record.department_name ?? ""),
+      enterpriseName: String(record.enterprise_name ?? ""),
     };
   });
 }
