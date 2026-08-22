@@ -24,10 +24,16 @@ import type {
   HrFilterValue,
   HrRecord,
 } from "../shared/types/hr";
-import { Button, EmptyState, LoadingState } from "../shared/ui";
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  LoadingState,
+  SearchableSelect,
+  type SelectOption,
+} from "../shared/ui";
 
 type OrganizationDetailsMode = "enterprise" | "department";
-
 type OrganizationFilters = Record<string, HrFilterValue | HrFilterCondition>;
 
 export function OrganizationDetailsPage(): JSX.Element {
@@ -38,6 +44,7 @@ export function OrganizationDetailsPage(): JSX.Element {
   const departmentId = positiveId(params.departmentId);
   const mode: OrganizationDetailsMode = departmentId ? "department" : "enterprise";
   const canViewEmployees = hasPermission("employees.view");
+  const canAssignLeader = hasPermission("organization.assign_leader");
 
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
@@ -46,6 +53,11 @@ export function OrganizationDetailsPage(): JSX.Element {
   const [employees, setEmployees] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
+  const [isLeaderDialogOpen, setIsLeaderDialogOpen] = useState(false);
+  const [leaderOptions, setLeaderOptions] = useState<SelectOption[]>([]);
+  const [leaderId, setLeaderId] = useState("");
+  const [leaderLoading, setLeaderLoading] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -80,8 +92,8 @@ export function OrganizationDetailsPage(): JSX.Element {
           ? [departmentRecord]
           : await loadAllRecords("departments", { enterprise_id: enterpriseId }, "name");
         const departmentIds = departmentRows
-          .map((item) => Number(item.id))
-          .filter((id) => Number.isFinite(id) && id > 0);
+          .map((item) => positiveId(item.id))
+          .filter((id): id is number => Boolean(id));
 
         const [positionRows, employeeRows] = await Promise.all([
           departmentIds.length
@@ -129,7 +141,7 @@ export function OrganizationDetailsPage(): JSX.Element {
     return () => {
       isActive = false;
     };
-  }, [canViewEmployees, departmentId, enterpriseId, mode]);
+  }, [canViewEmployees, departmentId, enterpriseId, mode, refreshIndex]);
 
   const employeeCountByDepartment = useMemo(
     () => countById(employees, "department_id"),
@@ -143,6 +155,99 @@ export function OrganizationDetailsPage(): JSX.Element {
     () => countById(employees, "position_id"),
     [employees],
   );
+
+  async function openLeaderDialog(): Promise<void> {
+    if (!canAssignLeader || !enterpriseId) return;
+
+    const targetDepartmentIds =
+      mode === "department"
+        ? departmentId
+          ? [departmentId]
+          : []
+        : departments
+            .map((item) => positiveId(item.id))
+            .filter((id): id is number => Boolean(id));
+
+    setIsLeaderDialogOpen(true);
+    setLeaderLoading(true);
+    setLeaderOptions([]);
+    setLeaderId("");
+
+    try {
+      const candidates = targetDepartmentIds.length
+        ? await loadAllRecords(
+            "employees",
+            {
+              department_id: {
+                operator: "in",
+                value: targetDepartmentIds,
+              },
+              position_id: { operator: "is_null", value: true },
+              status: "active",
+            },
+            "last_name",
+          )
+        : [];
+
+      const options = candidates.map((employee) => ({
+        value: String(employee.id),
+        label: employeeName(employee),
+      }));
+      const currentLeaderId =
+        mode === "enterprise"
+          ? positiveId(enterprise?.general_director_employee_id)
+          : positiveId(department?.director_employee_id);
+      const currentValue = currentLeaderId ? String(currentLeaderId) : "";
+
+      setLeaderOptions(options);
+      setLeaderId(
+        currentValue && options.some((option) => option.value === currentValue)
+          ? currentValue
+          : "",
+      );
+    } catch (error) {
+      setIsLeaderDialogOpen(false);
+      toast.error(errorMessage(error, "Не удалось загрузить сотрудников для назначения"));
+    } finally {
+      setLeaderLoading(false);
+    }
+  }
+
+  async function saveLeader(): Promise<void> {
+    if (!canAssignLeader || !enterpriseId) return;
+    if (mode === "department" && !departmentId) return;
+
+    setLeaderLoading(true);
+    try {
+      if (mode === "enterprise") {
+        await hrApiClient.update({
+          entity: "enterprises",
+          id: enterpriseId,
+          data: {
+            general_director_employee_id: leaderId ? Number(leaderId) : null,
+          },
+        });
+      } else {
+        await hrApiClient.update({
+          entity: "departments",
+          id: departmentId!,
+          data: {
+            director_employee_id: leaderId ? Number(leaderId) : null,
+          },
+        });
+      }
+
+      toast.success(
+        leaderId ? "Руководитель назначен" : "Руководитель снят с назначения",
+      );
+      setIsLeaderDialogOpen(false);
+      setRefreshIndex((value) => value + 1);
+    } catch (error) {
+      toast.error(errorMessage(error, "Не удалось сохранить назначение руководителя"));
+    } finally {
+      setLeaderLoading(false);
+    }
+  }
 
   if (isLoading) {
     return <LoadingState label="Загрузка карточки организации..." />;
@@ -163,8 +268,20 @@ export function OrganizationDetailsPage(): JSX.Element {
     mode === "enterprise"
       ? displayValue(enterprise.legal_name)
       : `Предприятие: ${recordName(enterprise)}`;
-  const activeEmployees = employees.filter((employee) => String(employee.status) === "active");
-  const unassignedEmployees = employees.filter((employee) => !positiveId(employee.position_id));
+  const activeEmployees = employees.filter(
+    (employee) => String(employee.status) === "active",
+  );
+  const unassignedEmployees = employees.filter(
+    (employee) => !positiveId(employee.position_id),
+  );
+  const leaderEmployeeId =
+    mode === "enterprise"
+      ? positiveId(enterprise.general_director_employee_id)
+      : positiveId(department!.director_employee_id);
+  const leaderName =
+    mode === "enterprise"
+      ? displayValue(enterprise.general_director_name)
+      : displayValue(department!.director_name);
   const backPath =
     mode === "enterprise"
       ? "/enterprises"
@@ -270,7 +387,10 @@ export function OrganizationDetailsPage(): JSX.Element {
         {mode === "enterprise" ? (
           <InfoPanel icon={<FiBriefcase />} title="Основная информация">
             <InfoRow label="Категория" value={displayValue(enterprise.legal_form)} />
-            <InfoRow label="Юридическое название" value={displayValue(enterprise.legal_name)} />
+            <InfoRow
+              label="Юридическое название"
+              value={displayValue(enterprise.legal_name)}
+            />
             <InfoRow
               label="Регистрационный номер"
               value={displayValue(enterprise.registration_number)}
@@ -292,18 +412,16 @@ export function OrganizationDetailsPage(): JSX.Element {
         <div className="space-y-5">
           <ContactCard record={record} />
           <LeaderCard
+            canManage={canAssignLeader}
             canViewEmployee={canViewEmployees}
-            employeeId={
+            employeeId={leaderEmployeeId}
+            leaderName={leaderName}
+            onManage={() => void openLeaderDialog()}
+            title={
               mode === "enterprise"
-                ? positiveId(enterprise.general_director_employee_id)
-                : positiveId(department!.director_employee_id)
+                ? "Руководитель предприятия"
+                : "Руководитель отдела"
             }
-            leaderName={
-              mode === "enterprise"
-                ? displayValue(enterprise.general_director_name)
-                : displayValue(department!.director_name)
-            }
-            title={mode === "enterprise" ? "Руководитель предприятия" : "Руководитель отдела"}
           />
         </div>
       </section>
@@ -337,9 +455,21 @@ export function OrganizationDetailsPage(): JSX.Element {
                       <FiChevronRight className="app-muted mt-1 h-5 w-5 shrink-0 transition group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <MiniBadge label="Сотрудников" value={canViewEmployees ? employeeCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
-                      <MiniBadge label="Должностей" value={positionCountByDepartment.get(id ?? -1) ?? 0} />
-                      {item.location && <MiniBadge label="Локация" value={String(item.location)} />}
+                      <MiniBadge
+                        label="Сотрудников"
+                        value={
+                          canViewEmployees
+                            ? employeeCountByDepartment.get(id ?? -1) ?? 0
+                            : "—"
+                        }
+                      />
+                      <MiniBadge
+                        label="Должностей"
+                        value={positionCountByDepartment.get(id ?? -1) ?? 0}
+                      />
+                      {item.location && (
+                        <MiniBadge label="Локация" value={String(item.location)} />
+                      )}
                     </div>
                   </Link>
                 );
@@ -381,7 +511,11 @@ export function OrganizationDetailsPage(): JSX.Element {
                     <div className="mt-4">
                       <MiniBadge
                         label="Сотрудников"
-                        value={canViewEmployees ? employeeCountByPosition.get(id ?? -1) ?? 0 : "—"}
+                        value={
+                          canViewEmployees
+                            ? employeeCountByPosition.get(id ?? -1) ?? 0
+                            : "—"
+                        }
                       />
                     </div>
                   </article>
@@ -425,6 +559,60 @@ export function OrganizationDetailsPage(): JSX.Element {
           <EmptySection text="У текущей роли нет разрешения employees.view." />
         )}
       </section>
+
+      <Dialog
+        description={
+          mode === "enterprise"
+            ? "Выберите активного сотрудника этого предприятия без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
+            : "Выберите активного сотрудника этого отдела без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя отдела."
+        }
+        onOpenChange={(open) => {
+          setIsLeaderDialogOpen(open);
+          if (!open) {
+            setLeaderId("");
+            setLeaderOptions([]);
+          }
+        }}
+        open={isLeaderDialogOpen}
+        title={
+          mode === "enterprise"
+            ? "Назначить руководителя предприятия"
+            : "Назначить руководителя отдела"
+        }
+      >
+        {leaderLoading && leaderOptions.length === 0 ? (
+          <LoadingState label="Загрузка сотрудников..." />
+        ) : (
+          <div className="grid gap-5">
+            <div className="grid gap-2">
+              <span className="app-text text-sm font-black">Сотрудник</span>
+              <SearchableSelect
+                allowEmpty
+                ariaLabel="Сотрудник"
+                emptyOptionLabel="Не назначен"
+                noOptionsLabel="Свободные сотрудники не найдены"
+                onValueChange={setLeaderId}
+                options={leaderOptions}
+                placeholder="Выберите сотрудника"
+                searchPlaceholder="Поиск по фамилии или имени"
+                value={leaderId}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => setIsLeaderDialogOpen(false)}
+                type="button"
+                variant="secondary"
+              >
+                Отмена
+              </Button>
+              <Button disabled={leaderLoading} onClick={() => void saveLeader()}>
+                Сохранить назначение
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
     </motion.div>
   );
 }
@@ -487,7 +675,9 @@ function InfoRow({
   return (
     <div className={wide ? "sm:col-span-2" : ""}>
       <p className="app-muted text-[11px] font-black uppercase tracking-wide">{label}</p>
-      <div className="app-text-soft mt-1.5 break-words text-sm font-bold leading-6">{value}</div>
+      <div className="app-text-soft mt-1.5 break-words text-sm font-bold leading-6">
+        {value}
+      </div>
     </div>
   );
 }
@@ -497,10 +687,22 @@ function ContactCard({ record }: { record: HrRecord }): JSX.Element {
     <article className="app-surface app-border rounded-[24px] border p-5">
       <p className="app-muted text-[11px] font-black uppercase tracking-wide">Контакты</p>
       <div className="mt-4 space-y-3">
-        <ContactRow icon={<FiPhone />} label="Телефон" value={displayValue(record.phone)} />
-        <ContactRow icon={<FiMail />} label="Email" value={displayValue(record.email)} />
+        <ContactRow
+          icon={<FiPhone />}
+          label="Телефон"
+          value={displayValue(record.phone)}
+        />
+        <ContactRow
+          icon={<FiMail />}
+          label="Email"
+          value={displayValue(record.email)}
+        />
         {record.location && (
-          <ContactRow icon={<FiMapPin />} label="Расположение" value={String(record.location)} />
+          <ContactRow
+            icon={<FiMapPin />}
+            label="Расположение"
+            value={String(record.location)}
+          />
         )}
       </div>
     </article>
@@ -530,42 +732,57 @@ function ContactRow({
 }
 
 function LeaderCard({
+  canManage,
   canViewEmployee,
   employeeId,
   leaderName,
+  onManage,
   title,
 }: {
+  canManage: boolean;
   canViewEmployee: boolean;
   employeeId: number | null;
   leaderName: string;
+  onManage: () => void;
   title: string;
 }): JSX.Element {
-  const content = (
-    <div className="flex items-center gap-3">
-      <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-lg">
-        <FiUserCheck />
-      </span>
-      <div className="min-w-0">
-        <p className="app-muted text-[10px] font-black uppercase tracking-wide">{title}</p>
-        <p className="app-text mt-1 truncate text-sm font-black">
-          {leaderName === "—" ? "Не назначен" : leaderName}
-        </p>
-      </div>
-      {canViewEmployee && employeeId && (
-        <FiChevronRight className="app-muted ml-auto h-5 w-5 shrink-0" />
-      )}
-    </div>
-  );
+  const hasLeader = leaderName !== "—";
 
-  return canViewEmployee && employeeId ? (
-    <Link
-      className="app-surface app-border block rounded-[24px] border p-5 transition hover:border-[var(--accent-border)] hover:shadow-lg"
-      to={`/employees/${employeeId}`}
-    >
-      {content}
-    </Link>
-  ) : (
-    <article className="app-surface app-border rounded-[24px] border p-5">{content}</article>
+  return (
+    <article className="app-surface app-border rounded-[24px] border p-5">
+      <div className="flex items-start gap-3">
+        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-lg">
+          <FiUserCheck />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="app-muted text-[10px] font-black uppercase tracking-wide">{title}</p>
+          {canViewEmployee && employeeId ? (
+            <Link
+              className="app-text mt-1 inline-flex min-w-0 items-center gap-1 text-sm font-black transition hover:text-[var(--accent)]"
+              to={`/employees/${employeeId}`}
+            >
+              <span className="truncate">{hasLeader ? leaderName : "Не назначен"}</span>
+              <FiChevronRight className="h-4 w-4 shrink-0" />
+            </Link>
+          ) : (
+            <p className="app-text mt-1 truncate text-sm font-black">
+              {hasLeader ? leaderName : "Не назначен"}
+            </p>
+          )}
+        </div>
+        {canManage && (
+          <Button onClick={onManage} size="sm" type="button" variant="secondary">
+            {hasLeader ? "Изменить" : "Назначить"}
+          </Button>
+        )}
+      </div>
+      {canManage && (
+        <p className="app-muted mt-4 text-xs font-semibold leading-5">
+          Руководитель назначается здесь, в карточке организации. В списке доступны
+          только активные сотрудники без текущей должности.
+        </p>
+      )}
+    </article>
   );
 }
 
@@ -601,40 +818,40 @@ function MiniBadge({ label, value }: { label: string; value: ReactNode }): JSX.E
 }
 
 function EmployeeCard({ employee }: { employee: HrRecord }): JSX.Element {
-  const employeeId = positiveId(employee.id);
+  const id = positiveId(employee.id);
   const name = employeeName(employee);
   const status = String(employee.status ?? "active");
   const content = (
-    <>
-      <div className="flex items-start gap-3">
-        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-xs font-black">
-          {initials(name)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <p className="app-text truncate font-black">{name}</p>
-            <StatusBadge status={status} />
-          </div>
-          <p className="app-muted mt-1 truncate text-xs font-semibold">
-            {[employee.department_name, employee.position_name]
-              .map((value) => String(value ?? "").trim())
-              .filter(Boolean)
-              .join(" · ") || "Должность не назначена"}
-          </p>
+    <div className="flex items-start gap-3">
+      <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-xs font-black">
+        {initials(name)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <p className="app-text truncate font-black">{name}</p>
+          <StatusBadge status={status} />
         </div>
+        <p className="app-muted mt-1 truncate text-xs font-semibold">
+          {[employee.department_name, employee.position_name]
+            .map((value) => String(value ?? "").trim())
+            .filter(Boolean)
+            .join(" · ") || "Должность не назначена"}
+        </p>
       </div>
-    </>
+    </div>
   );
 
-  return employeeId ? (
+  return id ? (
     <Link
       className="app-surface-muted app-border rounded-2xl border p-4 transition hover:border-[var(--accent-border)] hover:shadow-lg"
-      to={`/employees/${employeeId}`}
+      to={`/employees/${id}`}
     >
       {content}
     </Link>
   ) : (
-    <article className="app-surface-muted app-border rounded-2xl border p-4">{content}</article>
+    <article className="app-surface-muted app-border rounded-2xl border p-4">
+      {content}
+    </article>
   );
 }
 
@@ -699,10 +916,12 @@ function recordName(record: HrRecord): string {
 }
 
 function employeeName(record: HrRecord): string {
-  return [record.last_name, record.first_name, record.middle_name]
-    .map((value) => String(value ?? "").trim())
-    .filter(Boolean)
-    .join(" ") || "Сотрудник";
+  return (
+    [record.last_name, record.first_name, record.middle_name]
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean)
+      .join(" ") || "Сотрудник"
+  );
 }
 
 function displayValue(value: unknown): string {
@@ -711,13 +930,15 @@ function displayValue(value: unknown): string {
 }
 
 function initials(value: string): string {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => Array.from(part)[0] ?? "")
-    .join("")
-    .toUpperCase() || "HR";
+  return (
+    value
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => Array.from(part)[0] ?? "")
+      .join("")
+      .toUpperCase() || "HR"
+  );
 }
 
 function positiveId(value: unknown): number | null {
@@ -726,5 +947,7 @@ function positiveId(value: unknown): number | null {
 }
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  if (!(error instanceof Error)) return fallback;
+  const parts = error.message.split("Error: ");
+  return parts[parts.length - 1] || fallback;
 }

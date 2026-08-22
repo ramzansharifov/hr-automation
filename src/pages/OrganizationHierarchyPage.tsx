@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronRight, FiLayers, FiPlus, FiUserCheck } from "react-icons/fi";
+import { FiChevronRight, FiLayers, FiPlus } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -16,23 +16,18 @@ import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
   HrEntityKey,
   HrFilterCondition,
-  HrFilterValue,
   HrRecord,
 } from "../shared/types/hr";
 import {
   Button,
-  Dialog,
   EmptyState,
   LoadingState,
   PageHeader,
-  SearchableSelect,
   useStoredViewMode,
-  type SelectOption,
 } from "../shared/ui";
 import "./OrganizationHierarchyPage.css";
 
 type HierarchyLevel = "enterprises" | "departments" | "positions";
-type LeaderTarget = "enterprise" | "department";
 
 export function OrganizationHierarchyPage(): JSX.Element {
   const navigate = useNavigate();
@@ -41,7 +36,6 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const tableRef = useRef<HrEntityTableHandle>(null);
   const canEditStructure = hasPermission("organization.edit");
   const canDeleteStructure = hasPermission("organization.delete");
-  const canAssignLeader = hasPermission("organization.assign_leader");
   const enterpriseId = toId(params.enterpriseId);
   const departmentId = toId(params.departmentId);
   const level: HierarchyLevel = departmentId
@@ -54,15 +48,11 @@ export function OrganizationHierarchyPage(): JSX.Element {
     (level !== "enterprises" ||
       session.permissionScopes["organization.create"] === "global");
   const canModifyStructure = canCreate || canEditStructure || canDeleteStructure;
+
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
   const [isLoading, setIsLoading] = useState(level !== "enterprises");
   const [hasError, setHasError] = useState(false);
-  const [refreshIndex, setRefreshIndex] = useState(0);
-  const [leaderTarget, setLeaderTarget] = useState<LeaderTarget | null>(null);
-  const [leaderOptions, setLeaderOptions] = useState<SelectOption[]>([]);
-  const [leaderId, setLeaderId] = useState("");
-  const [leaderLoading, setLeaderLoading] = useState(false);
   const [enterpriseFilters, setEnterpriseFilters] = useState<
     Record<string, HrFilterCondition> | undefined
   >(getStoredEnterpriseHrFilters);
@@ -98,6 +88,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
           setHasError(true);
           return;
         }
+
         setEnterprise(enterpriseRecord);
         setDepartment(departmentRecord);
       } catch (error) {
@@ -117,12 +108,13 @@ export function OrganizationHierarchyPage(): JSX.Element {
     return () => {
       isActive = false;
     };
-  }, [departmentId, enterpriseId, level, refreshIndex]);
+  }, [departmentId, enterpriseId, level]);
 
   useEffect(() => {
     function refreshEnterpriseFilters(): void {
       setEnterpriseFilters(getStoredEnterpriseHrFilters());
     }
+
     window.addEventListener(ENTERPRISE_FILTERS_EVENT, refreshEnterpriseFilters);
     window.addEventListener("storage", refreshEnterpriseFilters);
     return () => {
@@ -138,82 +130,6 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const [viewMode, setViewMode] = useStoredViewMode(
     `organization-${page.entity}`,
   );
-
-  async function openLeaderDialog(target: LeaderTarget): Promise<void> {
-    if (!canAssignLeader) return;
-    setLeaderLoading(true);
-    setLeaderTarget(target);
-    setLeaderOptions([]);
-    setLeaderId("");
-    try {
-      const currentId =
-        target === "enterprise"
-          ? enterprise?.general_director_employee_id
-          : department?.director_employee_id;
-      const employeeFilters =
-        target === "department"
-          ? { department_id: departmentId! }
-          : await getEnterpriseEmployeeFilter(enterpriseId!);
-      const employees = await loadLeaderCandidates({
-        ...employeeFilters,
-        position_id: { operator: "is_null", value: true },
-        status: "active",
-      });
-      const options = employees.map((employee) => ({
-        value: String(employee.id),
-        label: [employee.last_name, employee.first_name, employee.middle_name]
-          .filter(Boolean)
-          .join(" "),
-      }));
-      setLeaderOptions(options);
-
-      const currentValue = currentId ? String(currentId) : "";
-      setLeaderId(
-        currentValue && options.some((option) => option.value === currentValue)
-          ? currentValue
-          : "",
-      );
-    } catch (error) {
-      setLeaderTarget(null);
-      toast.error(getErrorMessage(error, "Не удалось загрузить сотрудников для назначения"));
-    } finally {
-      setLeaderLoading(false);
-    }
-  }
-
-  async function saveLeader(): Promise<void> {
-    if (!leaderTarget || !canAssignLeader) return;
-    setLeaderLoading(true);
-    try {
-      if (leaderTarget === "enterprise" && enterpriseId) {
-        await hrApiClient.update({
-          entity: "enterprises",
-          id: enterpriseId,
-          data: {
-            general_director_employee_id: leaderId ? Number(leaderId) : null,
-          },
-        });
-      }
-      if (leaderTarget === "department" && departmentId) {
-        await hrApiClient.update({
-          entity: "departments",
-          id: departmentId,
-          data: {
-            director_employee_id: leaderId ? Number(leaderId) : null,
-          },
-        });
-      }
-      toast.success(
-        leaderId ? "Руководитель назначен" : "Руководитель снят с назначения",
-      );
-      setLeaderTarget(null);
-      setRefreshIndex((value) => value + 1);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить назначение руководителя"));
-    } finally {
-      setLeaderLoading(false);
-    }
-  }
 
   if (isLoading) {
     return <LoadingState label="Загрузка организационной структуры..." />;
@@ -268,47 +184,25 @@ export function OrganizationHierarchyPage(): JSX.Element {
       </nav>
     ) : undefined;
 
-  const headerActions = (
+  const headerActions = canCreate ? (
     <div className="flex flex-wrap items-center justify-end gap-3">
-      {canAssignLeader && level === "departments" && enterprise && (
-        <Button
-          className="border-white/20 bg-white/10 text-white"
-          leftIcon={<FiUserCheck className="h-4 w-4" />}
-          onClick={() => void openLeaderDialog("enterprise")}
-          variant="ghost"
-        >
-          Руководитель предприятия
-        </Button>
-      )}
-      {canAssignLeader && level === "positions" && department && (
-        <Button
-          className="border-white/20 bg-white/10 text-white"
-          leftIcon={<FiUserCheck className="h-4 w-4" />}
-          onClick={() => void openLeaderDialog("department")}
-          variant="ghost"
-        >
-          Руководитель отдела
-        </Button>
-      )}
-      {canCreate && (
-        <Button
-          className="border-white/20 shadow-xl hover:opacity-90"
-          leftIcon={<FiPlus className="h-4 w-4" />}
-          onClick={() => tableRef.current?.openCreate()}
-          style={{ background: "#ffffff", color: "#0f172a" }}
-          variant="ghost"
-        >
-          {page.createLabel}
-        </Button>
-      )}
+      <Button
+        className="border-white/20 shadow-xl hover:opacity-90"
+        leftIcon={<FiPlus className="h-4 w-4" />}
+        onClick={() => tableRef.current?.openCreate()}
+        style={{ background: "#ffffff", color: "#0f172a" }}
+        variant="ghost"
+      >
+        {page.createLabel}
+      </Button>
     </div>
-  );
+  ) : undefined;
 
   const headerDescription =
     level === "enterprises"
       ? "Организационная структура предприятий, отделов и должностей."
       : level === "departments"
-        ? "Подразделения выбранного предприятия и назначение ответственных руководителей."
+        ? "Подразделения выбранного предприятия."
         : "Должности выбранного отдела и их место в организационной структуре.";
 
   return (
@@ -346,100 +240,8 @@ export function OrganizationHierarchyPage(): JSX.Element {
         onViewModeChange={setViewMode}
         viewMode={viewMode}
       />
-
-      <Dialog
-        description={
-          leaderTarget === "enterprise"
-            ? "Выберите активного сотрудника этого предприятия без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
-            : "Выберите активного сотрудника этого отдела без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя отдела."
-        }
-        onOpenChange={(open) => !open && setLeaderTarget(null)}
-        open={Boolean(leaderTarget)}
-        title={
-          leaderTarget === "enterprise"
-            ? "Назначить руководителя предприятия"
-            : "Назначить руководителя отдела"
-        }
-      >
-        {leaderLoading && leaderOptions.length === 0 ? (
-          <LoadingState label="Загрузка сотрудников..." />
-        ) : (
-          <div className="grid gap-5">
-            <div className="grid gap-2">
-              <span className="app-text text-sm font-black">Сотрудник</span>
-              <SearchableSelect
-                allowEmpty
-                ariaLabel="Сотрудник"
-                emptyOptionLabel="Не назначен"
-                noOptionsLabel="Свободные сотрудники не найдены"
-                onValueChange={setLeaderId}
-                options={leaderOptions}
-                placeholder="Выберите сотрудника"
-                searchPlaceholder="Поиск по фамилии или имени"
-                value={leaderId}
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                onClick={() => setLeaderTarget(null)}
-                type="button"
-                variant="secondary"
-              >
-                Отмена
-              </Button>
-              <Button disabled={leaderLoading} onClick={() => void saveLeader()}>
-                Сохранить назначение
-              </Button>
-            </div>
-          </div>
-        )}
-      </Dialog>
     </div>
   );
-}
-
-async function loadLeaderCandidates(
-  filters: Record<string, HrFilterValue | HrFilterCondition>,
-): Promise<HrRecord[]> {
-  const firstPage = await hrApiClient.list({
-    entity: "employees",
-    page: 1,
-    pageSize: 100,
-    filters,
-    orderBy: "last_name",
-  });
-  if (firstPage.totalPages <= 1) return firstPage.items;
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-      hrApiClient.list({
-        entity: "employees",
-        page: index + 2,
-        pageSize: 100,
-        filters,
-        orderBy: "last_name",
-      }),
-    ),
-  );
-  return [firstPage, ...remainingPages].flatMap((page) => page.items);
-}
-
-async function getEnterpriseEmployeeFilter(
-  enterpriseId: number,
-): Promise<{ department_id: { operator: "in"; value: number[] } }> {
-  const departments = await hrApiClient.list({
-    entity: "departments",
-    page: 1,
-    pageSize: 100,
-    filters: { enterprise_id: enterpriseId },
-    orderBy: "name",
-  });
-  return {
-    department_id: {
-      operator: "in",
-      value: departments.items.map((item) => Number(item.id)).filter(Number.isFinite),
-    },
-  };
 }
 
 function getPageContent(
@@ -492,10 +294,4 @@ function recordName(record: HrRecord | null): string {
 function toId(value: unknown): number | null {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) return fallback;
-  const parts = error.message.split("Error: ");
-  return parts[parts.length - 1] || fallback;
 }
