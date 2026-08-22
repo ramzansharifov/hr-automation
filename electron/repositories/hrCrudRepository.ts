@@ -384,6 +384,11 @@ export class HrCrudRepository {
         }
 
         const condition = normalizeFilterCondition(filter);
+        if (condition.operator === "is_null") {
+          conditions.push(`${column} IS NULL`);
+          return;
+        }
+
         const value = condition.value;
         if (value === undefined || value === null || value === "") return;
 
