@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FiArrowUpRight,
   FiCalendar,
@@ -67,15 +67,23 @@ export function EmployeeLifecyclePanel({
   });
 
   const loadData = useCallback(async () => {
-    const [historyResult, departmentResult, positionResult] = await Promise.all([
-      hrApiClient.list({
-        entity: "employment_history",
-        page: 1,
-        pageSize: 100,
-        filters: { employee_id: employeeId },
-        orderBy: "effective_at",
-        orderDirection: "desc",
-      }),
+    const historyResult = await hrApiClient.list({
+      entity: "employment_history",
+      page: 1,
+      pageSize: 100,
+      filters: { employee_id: employeeId },
+      orderBy: "effective_at",
+      orderDirection: "desc",
+    });
+    setHistory(historyResult.items);
+
+    if (!canChangeEmployment) {
+      setDepartments([]);
+      setPositions([]);
+      return;
+    }
+
+    const [departmentResult, positionResult] = await Promise.all([
       hrApiClient.list({
         entity: "departments",
         page: 1,
@@ -89,7 +97,6 @@ export function EmployeeLifecyclePanel({
         orderBy: "name",
       }),
     ]);
-    setHistory(historyResult.items);
     setDepartments(
       departmentResult.items.map((item) => ({
         value: String(item.id),
@@ -103,7 +110,7 @@ export function EmployeeLifecyclePanel({
         departmentId: String(item.department_id ?? ""),
       })),
     );
-  }, [employeeId]);
+  }, [canChangeEmployment, employeeId]);
 
   useEffect(() => {
     void loadData();
@@ -122,14 +129,6 @@ export function EmployeeLifecyclePanel({
     }));
   }, [employee]);
 
-  const positionLabels = useMemo(
-    () => new Map(positions.map((item) => [item.value, item.label])),
-    [positions],
-  );
-  const departmentLabels = useMemo(
-    () => new Map(departments.map((item) => [item.value, item.label])),
-    [departments],
-  );
   const currentAssignmentStartedAt = String(
     history.find(
       (item) =>
@@ -282,13 +281,7 @@ export function EmployeeLifecyclePanel({
         </div>
         <div className="mt-5 space-y-3">
           {history.map((item) => (
-            <HistoryItem
-              key={String(item.id)}
-              item={item}
-              locale={locale}
-              positions={positionLabels}
-              departments={departmentLabels}
-            />
+            <HistoryItem key={String(item.id)} item={item} locale={locale} />
           ))}
           {history.length === 0 && (
             <p className="app-muted rounded-2xl border border-dashed p-5 text-sm">
@@ -516,13 +509,9 @@ function Field({
 function HistoryItem({
   item,
   locale,
-  positions,
-  departments,
 }: {
   item: HrRecord;
   locale: string;
-  positions: Map<string, string>;
-  departments: Map<string, string>;
 }): JSX.Element {
   const changeType = String(item.change_type ?? "");
   const terminated = changeType === "terminated";
@@ -530,10 +519,10 @@ function HistoryItem({
     ? "Увольнение"
     : changeType === "hired"
       ? "Приём на работу"
-      : positions.get(String(item.new_position_id ?? "")) ?? "Кадровое изменение";
+      : String(item.new_position_name ?? "Кадровое изменение");
   const department = terminated
-    ? departments.get(String(item.previous_department_id ?? ""))
-    : departments.get(String(item.new_department_id ?? ""));
+    ? String(item.previous_department_name ?? "")
+    : String(item.new_department_name ?? "");
   const salary = terminated ? item.previous_salary : item.new_salary;
 
   return (
@@ -548,7 +537,7 @@ function HistoryItem({
         </time>
       </div>
       <p className="app-muted mt-2 text-sm">
-        {department ?? "Отдел не указан"}
+        {department || "Отдел не указан"}
         {salary !== null && salary !== undefined
           ? ` · ${formatCurrency(salary, locale)}`
           : ""}
