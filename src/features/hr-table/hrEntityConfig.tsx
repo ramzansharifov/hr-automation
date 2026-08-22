@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { TFunction } from "i18next";
+import { FiEye } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import type { HrEntityKey, HrRecord } from "../../shared/types/hr";
 import {
   formatCellValue,
@@ -220,24 +222,62 @@ function createColumnRender(
   return undefined;
 }
 
+function getOrganizationDetailsColumn(entity: HrEntityKey): HrEntityColumn | null {
+  if (entity !== "enterprises" && entity !== "departments") return null;
+
+  return {
+    key: "id",
+    label: "Просмотр",
+    className: "w-[88px] text-center",
+    render: (record) => {
+      const recordId = Number(record.id);
+      const enterpriseId =
+        entity === "enterprises" ? recordId : Number(record.enterprise_id);
+      if (!Number.isFinite(recordId) || !Number.isFinite(enterpriseId)) return "—";
+
+      const to =
+        entity === "enterprises"
+          ? `/enterprises/${recordId}`
+          : `/enterprises/${enterpriseId}/departments/${recordId}`;
+      const label = entity === "enterprises" ? "Открыть предприятие" : "Открыть отдел";
+
+      return (
+        <Link
+          aria-label={label}
+          className="app-table-action-button mx-auto flex h-8 w-8 items-center justify-center rounded-xl border transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+          onClick={(event) => event.stopPropagation()}
+          title={label}
+          to={to}
+        >
+          <FiEye className="h-4 w-4" />
+        </Link>
+      );
+    },
+  };
+}
+
 export function getEntityConfig(
   entity: HrEntityKey,
   t: TFunction,
   locale = "ru-RU",
 ): HrEntityPageConfig {
   const config = hrEntityConfigDefinitions[entity];
+  const columns: HrEntityColumn[] = config.columns.map((column) => ({
+    key: column.key,
+    label: t(column.labelKey),
+    className: column.className,
+    render: createColumnRender(column, t, locale),
+  }));
+  const organizationDetailsColumn = getOrganizationDetailsColumn(entity);
+  if (organizationDetailsColumn) columns.push(organizationDetailsColumn);
+
   return {
     entity: config.entity,
     title: t(config.titleKey),
     description: t(config.descriptionKey),
     createLabel: t(config.createLabelKey),
     defaultOrderBy: config.defaultOrderBy,
-    columns: config.columns.map((column) => ({
-      key: column.key,
-      label: t(column.labelKey),
-      className: column.className,
-      render: createColumnRender(column, t, locale),
-    })),
+    columns,
   };
 }
 
