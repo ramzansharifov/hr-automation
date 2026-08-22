@@ -28,7 +28,6 @@ import {
   AccessMetric,
   StatusBadge,
   getErrorMessage,
-  scopeLabel,
 } from "./AccessControlShared";
 import { groupPermissions } from "./accessControlData";
 import { legacyPermissionCodes } from "./rolePermissionSections";
@@ -198,9 +197,6 @@ export function AccessRoleDetailsPage(): JSX.Element {
           <div className="flex flex-wrap gap-2">
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black text-white/90">
               {role.isSystem ? "Системная роль" : "Пользовательская роль"}
-            </span>
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black text-white/90">
-              {scopeLabel(role.scopeType)}
             </span>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black text-white/90">
               {role.code}
