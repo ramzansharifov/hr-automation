@@ -7,6 +7,7 @@ import {
   useState,
   type InputHTMLAttributes,
   type MouseEvent,
+  type MutableRefObject,
   type Ref,
 } from 'react'
 import { FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
@@ -311,7 +312,7 @@ function assignRef<T>(ref: Ref<T>, value: T | null): void {
     return
   }
   if (ref) {
-    ref.current = value
+    ;(ref as MutableRefObject<T | null>).current = value
   }
 }
 
