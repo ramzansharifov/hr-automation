@@ -40,16 +40,34 @@ export function SettingsPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
   const { accentColor, resolvedTheme, setAccentColor, setTheme, theme } = useTheme();
   const currentLanguage = i18n.resolvedLanguage ?? i18n.language;
-  const canManageSystem = hasPermission("settings.manage");
+  const canViewBackups =
+    hasPermission("settings.backups_view") &&
+    session.permissionScopes["settings.backups_view"] === "global";
+  const canCreateBackup =
+    hasPermission("settings.backups_create") &&
+    session.permissionScopes["settings.backups_create"] === "global";
+  const canRestoreBackup =
+    hasPermission("settings.backups_restore") &&
+    session.permissionScopes["settings.backups_restore"] === "global";
+  const canOpenBackupsFolder =
+    hasPermission("settings.backups_open_folder") &&
+    session.permissionScopes["settings.backups_open_folder"] === "global";
   const canExportEmployees =
-    session.permissionScopes["employees.view"] === "global";
+    hasPermission("employees.export") &&
+    session.permissionScopes["employees.export"] === "global";
+  const hasSystemTools =
+    canViewBackups ||
+    canCreateBackup ||
+    canRestoreBackup ||
+    canOpenBackupsFolder ||
+    canExportEmployees;
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<BackupInfo | null>(null);
 
   const loadBackups = useCallback(async (): Promise<void> => {
-    if (!canManageSystem) return;
+    if (!canViewBackups) return;
     setIsLoadingBackups(true);
     try {
       setBackups(await hrApiClient.listBackups());
@@ -58,18 +76,19 @@ export function SettingsPage(): JSX.Element {
     } finally {
       setIsLoadingBackups(false);
     }
-  }, [canManageSystem]);
+  }, [canViewBackups]);
 
   useEffect(() => {
     void loadBackups();
   }, [loadBackups]);
 
   async function createBackup(): Promise<void> {
+    if (!canCreateBackup) return;
     setIsCreatingBackup(true);
     try {
       const backup = await hrApiClient.createBackup();
       toast.success(`Резервная копия создана: ${backup.name}`);
-      await loadBackups();
+      if (canViewBackups) await loadBackups();
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось создать резервную копию"));
     } finally {
@@ -78,7 +97,7 @@ export function SettingsPage(): JSX.Element {
   }
 
   async function restoreBackup(): Promise<void> {
-    if (!restoreTarget) return;
+    if (!restoreTarget || !canRestoreBackup) return;
     try {
       await hrApiClient.restoreBackup(restoreTarget.name);
       toast.info("База восстановлена. Приложение будет перезапущено.");
@@ -88,7 +107,17 @@ export function SettingsPage(): JSX.Element {
     }
   }
 
+  async function openBackupsFolder(): Promise<void> {
+    if (!canOpenBackupsFolder) return;
+    try {
+      await hrApiClient.openBackupsFolder();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось открыть папку резервных копий"));
+    }
+  }
+
   async function exportEmployees(): Promise<void> {
+    if (!canExportEmployees) return;
     try {
       const result = await hrApiClient.exportEmployeesCsv();
       if (!result.canceled) toast.success("Реестр сотрудников экспортирован");
@@ -101,7 +130,7 @@ export function SettingsPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         description={
-          <>Личные параметры интерфейса{canManageSystem ? " и системные инструменты администратора" : ""}.</>
+          <>Личные параметры интерфейса{hasSystemTools ? " и доступные системные инструменты" : ""}.</>
         }
         icon={<FiSettings />}
         meta={
@@ -194,103 +223,117 @@ export function SettingsPage(): JSX.Element {
         </SettingsCard>
       </section>
 
-      {canManageSystem && (
+      {hasSystemTools && (
         <section className="space-y-5">
           <div>
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Superadmin</p>
-            <h2 className="app-text mt-1 text-2xl font-black">Системное администрирование</h2>
+            <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Администрирование</p>
+            <h2 className="app-text mt-1 text-2xl font-black">Системные инструменты</h2>
             <p className="app-muted mt-2 max-w-3xl text-sm leading-6">
-              Резервные копии и переносимые выгрузки кадровых данных. Восстановление полностью заменяет текущую базу выбранной копией и перезапускает приложение.
+              Здесь отображаются только те операции, на которые у текущей роли есть отдельное разрешение.
             </p>
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.5fr)]">
-            <SettingsCard icon={<FiHardDrive className="h-5 w-5" />} title="Резервные копии">
-              <div className="mb-5 flex flex-wrap gap-3">
-                <Button
-                  disabled={isCreatingBackup}
-                  leftIcon={<FiArchive className="h-4 w-4" />}
-                  onClick={() => void createBackup()}
-                >
-                  {isCreatingBackup ? "Создание..." : "Создать копию"}
-                </Button>
-                <Button
-                  leftIcon={<FiFolder className="h-4 w-4" />}
-                  onClick={() => void hrApiClient.openBackupsFolder()}
-                  variant="secondary"
-                >
-                  Открыть папку
-                </Button>
-                <Button
-                  leftIcon={<FiRefreshCw className={isLoadingBackups ? "animate-spin" : ""} />}
-                  onClick={() => void loadBackups()}
-                  variant="ghost"
-                >
-                  Обновить
-                </Button>
-              </div>
-
-              {isLoadingBackups ? (
-                <LoadingState label="Загрузка резервных копий..." />
-              ) : backups.length === 0 ? (
-                <div className="app-surface-muted app-muted rounded-2xl border border-dashed p-6 text-center text-sm">
-                  Резервных копий пока нет.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {backups.map((backup) => (
-                    <div
-                      className="app-surface-muted app-border flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-                      key={backup.name}
+            {(canViewBackups || canCreateBackup || canRestoreBackup || canOpenBackupsFolder) && (
+              <SettingsCard icon={<FiHardDrive className="h-5 w-5" />} title="Резервные копии">
+                <div className="mb-5 flex flex-wrap gap-3">
+                  {canCreateBackup && (
+                    <Button
+                      disabled={isCreatingBackup}
+                      leftIcon={<FiArchive className="h-4 w-4" />}
+                      onClick={() => void createBackup()}
                     >
-                      <div className="min-w-0">
-                        <p className="app-text truncate text-sm font-black">{backup.name}</p>
-                        <p className="app-muted mt-1 text-xs font-bold">
-                          {new Date(backup.createdAt).toLocaleString("ru-RU")} · {formatBytes(backup.sizeBytes)}
-                        </p>
-                      </div>
-                      <Button onClick={() => setRestoreTarget(backup)} variant="secondary">
-                        Восстановить
-                      </Button>
-                    </div>
-                  ))}
+                      {isCreatingBackup ? "Создание..." : "Создать копию"}
+                    </Button>
+                  )}
+                  {canOpenBackupsFolder && (
+                    <Button
+                      leftIcon={<FiFolder className="h-4 w-4" />}
+                      onClick={() => void openBackupsFolder()}
+                      variant="secondary"
+                    >
+                      Открыть папку
+                    </Button>
+                  )}
+                  {canViewBackups && (
+                    <Button
+                      leftIcon={<FiRefreshCw className={isLoadingBackups ? "animate-spin" : ""} />}
+                      onClick={() => void loadBackups()}
+                      variant="ghost"
+                    >
+                      Обновить
+                    </Button>
+                  )}
                 </div>
-              )}
-            </SettingsCard>
 
-            <SettingsCard icon={<FiDownload className="h-5 w-5" />} title="Экспорт">
-              <p className="app-muted mb-4 text-sm leading-6">
-                Выгрузка реестра сотрудников в CSV для резервного просмотра и внешней обработки.
-              </p>
-              {canExportEmployees ? (
+                {canViewBackups ? (
+                  isLoadingBackups ? (
+                    <LoadingState label="Загрузка резервных копий..." />
+                  ) : backups.length === 0 ? (
+                    <div className="app-surface-muted app-muted rounded-2xl border border-dashed p-6 text-center text-sm">
+                      Резервных копий пока нет.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {backups.map((backup) => (
+                        <div
+                          className="app-surface-muted app-border flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                          key={backup.name}
+                        >
+                          <div className="min-w-0">
+                            <p className="app-text truncate text-sm font-black">{backup.name}</p>
+                            <p className="app-muted mt-1 text-xs font-bold">
+                              {new Date(backup.createdAt).toLocaleString("ru-RU")} · {formatBytes(backup.sizeBytes)}
+                            </p>
+                          </div>
+                          {canRestoreBackup && (
+                            <Button onClick={() => setRestoreTarget(backup)} variant="secondary">
+                              Восстановить
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <p className="app-muted text-sm">
+                    Просмотр списка копий отключён. Доступны только разрешённые операции выше.
+                  </p>
+                )}
+              </SettingsCard>
+            )}
+
+            {canExportEmployees && (
+              <SettingsCard icon={<FiDownload className="h-5 w-5" />} title="Экспорт">
+                <p className="app-muted mb-4 text-sm leading-6">
+                  Выгрузка реестра сотрудников в CSV для резервного просмотра и внешней обработки.
+                </p>
                 <Button className="w-full" leftIcon={<FiDownload />} onClick={() => void exportEmployees()}>
                   Экспортировать сотрудников
                 </Button>
-              ) : (
-                <p className="app-muted text-sm">
-                  Для экспорта требуется глобальное право просмотра сотрудников.
-                </p>
-              )}
-            </SettingsCard>
+              </SettingsCard>
+            )}
           </div>
         </section>
       )}
 
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Восстановить базу"
-        description={
-          restoreTarget
-            ? `Текущая база будет заменена копией «${restoreTarget.name}». После восстановления приложение автоматически перезапустится.`
-            : ""
-        }
-        onConfirm={() => void restoreBackup()}
-        onOpenChange={(open) => {
-          if (!open) setRestoreTarget(null);
-        }}
-        open={Boolean(restoreTarget)}
-        title="Восстановить резервную копию?"
-      />
+      {canRestoreBackup && (
+        <ConfirmDialog
+          cancelLabel="Отмена"
+          confirmLabel="Восстановить базу"
+          description={
+            restoreTarget
+              ? `Текущая база будет заменена копией «${restoreTarget.name}». После восстановления приложение автоматически перезапустится.`
+              : ""
+          }
+          onConfirm={() => void restoreBackup()}
+          onOpenChange={(open) => {
+            if (!open) setRestoreTarget(null);
+          }}
+          open={Boolean(restoreTarget)}
+          title="Восстановить резервную копию?"
+        />
+      )}
     </div>
   );
 }
