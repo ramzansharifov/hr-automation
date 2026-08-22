@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   FiArrowLeft,
   FiBriefcase,
-  FiCalendar,
   FiChevronRight,
   FiHash,
   FiLayers,
