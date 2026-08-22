@@ -4,7 +4,13 @@ import { toast } from "react-toastify";
 
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { AuditEvent } from "../shared/types/hr";
-import { Button, EmptyState, Input, LoadingState, PageHeader } from "../shared/ui";
+import {
+  Button,
+  DataTable,
+  Input,
+  PageHeader,
+  type DataTableColumn,
+} from "../shared/ui";
 
 export function AuditLogPage(): JSX.Element {
   const [events, setEvents] = useState<AuditEvent[]>([]);
@@ -32,6 +38,56 @@ export function AuditLogPage(): JSX.Element {
     // The initial request intentionally ignores the empty mutable search field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const columns: DataTableColumn<AuditEvent>[] = [
+    {
+      key: "occurredAt",
+      header: "Дата и время",
+      render: (event) => (
+        <span className="app-text whitespace-nowrap font-bold">
+          {formatAuditDate(event.occurredAt)}
+        </span>
+      ),
+    },
+    {
+      key: "actor",
+      header: "Кто",
+      render: (event) => (
+        <div className="min-w-[170px]">
+          <p className="app-text font-black">{event.actorUsername}</p>
+          <p className="app-muted mt-1 text-xs">
+            {actorTypeLabel(event.actorAccountType)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "action",
+      header: "Действие",
+      render: (event) => (
+        <span className="app-accent-soft app-accent-text inline-flex rounded-full border px-2.5 py-1 text-xs font-black">
+          {actionLabel(event.action)}
+        </span>
+      ),
+    },
+    {
+      key: "entity",
+      header: "Объект",
+      render: (event) => (
+        <div className="min-w-[130px]">
+          <p className="app-text font-bold">{entityLabel(event.entityType)}</p>
+          {event.entityId !== null && (
+            <p className="app-muted mt-1 text-xs">ID {event.entityId}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "change",
+      header: "Изменение",
+      render: (event) => <ChangeSummary event={event} />,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -85,67 +141,25 @@ export function AuditLogPage(): JSX.Element {
         </form>
       </section>
 
-      {isLoading ? (
-        <LoadingState label="Загрузка журнала действий..." />
-      ) : events.length === 0 ? (
-        <EmptyState
-          title="Записей нет"
-          description="По выбранному запросу события не найдены."
-        />
-      ) : (
-        <section className="app-surface app-border overflow-hidden rounded-[26px] border">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left">
-              <thead className="app-surface-muted">
-                <tr className="app-border-soft border-b">
-                  <HeaderCell>Дата и время</HeaderCell>
-                  <HeaderCell>Кто</HeaderCell>
-                  <HeaderCell>Действие</HeaderCell>
-                  <HeaderCell>Объект</HeaderCell>
-                  <HeaderCell>Изменение</HeaderCell>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((event) => (
-                  <tr className="app-border-soft border-b last:border-b-0" key={event.id}>
-                    <Cell>
-                      <span className="font-bold">{formatAuditDate(event.occurredAt)}</span>
-                    </Cell>
-                    <Cell>
-                      <p className="app-text font-black">{event.actorUsername}</p>
-                      <p className="app-muted mt-1 text-xs">{actorTypeLabel(event.actorAccountType)}</p>
-                    </Cell>
-                    <Cell>
-                      <span className="app-accent-soft app-accent-text inline-flex rounded-full border px-2.5 py-1 text-xs font-black">
-                        {actionLabel(event.action)}
-                      </span>
-                    </Cell>
-                    <Cell>
-                      <p className="app-text font-bold">{entityLabel(event.entityType)}</p>
-                      {event.entityId !== null && (
-                        <p className="app-muted mt-1 text-xs">ID {event.entityId}</p>
-                      )}
-                    </Cell>
-                    <Cell>
-                      <ChangeSummary event={event} />
-                    </Cell>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+      <DataTable
+        ariaLabel="Журнал действий"
+        columns={columns}
+        emptyDescription="По выбранному запросу события не найдены."
+        emptyTitle="Записей нет"
+        footer={
+          <>
+            Записей: <span className="app-text font-black">{events.length}</span>
+          </>
+        }
+        getRowKey={(event) => event.id}
+        isLoading={isLoading}
+        loadingLabel="Загрузка журнала действий..."
+        rows={events}
+        showViewModeToggle={false}
+        viewMode="table"
+      />
     </div>
   );
-}
-
-function HeaderCell({ children }: { children: React.ReactNode }): JSX.Element {
-  return <th className="app-muted px-5 py-4 text-xs font-black uppercase tracking-wide">{children}</th>;
-}
-
-function Cell({ children }: { children: React.ReactNode }): JSX.Element {
-  return <td className="app-text-soft px-5 py-4 align-top text-sm">{children}</td>;
 }
 
 function ChangeSummary({ event }: { event: AuditEvent }): JSX.Element {
@@ -165,7 +179,9 @@ function ChangeSummary({ event }: { event: AuditEvent }): JSX.Element {
     );
     return (
       <p className="app-muted max-w-md text-xs leading-5">
-        {changed.length > 0 ? `Изменены поля: ${changed.slice(0, 6).join(", ")}` : "Запись обновлена"}
+        {changed.length > 0
+          ? `Изменены поля: ${changed.slice(0, 6).join(", ")}`
+          : "Запись обновлена"}
       </p>
     );
   }
