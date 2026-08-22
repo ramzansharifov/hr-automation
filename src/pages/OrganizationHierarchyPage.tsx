@@ -16,6 +16,7 @@ import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
   HrEntityKey,
   HrFilterCondition,
+  HrFilterValue,
   HrRecord,
 } from "../shared/types/hr";
 import {
@@ -24,7 +25,7 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
-  Select,
+  SearchableSelect,
   useStoredViewMode,
   type SelectOption,
 } from "../shared/ui";
@@ -139,34 +140,35 @@ export function OrganizationHierarchyPage(): JSX.Element {
     if (!canManage) return;
     setLeaderLoading(true);
     setLeaderTarget(target);
+    setLeaderOptions([]);
+    setLeaderId("");
     try {
       const currentId =
         target === "enterprise"
           ? enterprise?.general_director_employee_id
           : department?.director_employee_id;
-      setLeaderId(currentId ? String(currentId) : "");
-
       const employeeFilters =
         target === "department"
           ? { department_id: departmentId! }
           : await getEnterpriseEmployeeFilter(enterpriseId!);
-      const result = await hrApiClient.list({
-        entity: "employees",
-        page: 1,
-        pageSize: 100,
-        filters: {
-          ...employeeFilters,
-          status: "active",
-        },
-        orderBy: "last_name",
+      const employees = await loadLeaderCandidates({
+        ...employeeFilters,
+        position_id: { operator: "is_null", value: true },
+        status: "active",
       });
-      setLeaderOptions(
-        result.items.map((employee) => ({
-          value: String(employee.id),
-          label: [employee.last_name, employee.first_name, employee.middle_name]
-            .filter(Boolean)
-            .join(" "),
-        })),
+      const options = employees.map((employee) => ({
+        value: String(employee.id),
+        label: [employee.last_name, employee.first_name, employee.middle_name]
+          .filter(Boolean)
+          .join(" "),
+      }));
+      setLeaderOptions(options);
+
+      const currentValue = currentId ? String(currentId) : "";
+      setLeaderId(
+        currentValue && options.some((option) => option.value === currentValue)
+          ? currentValue
+          : "",
       );
     } catch (error) {
       setLeaderTarget(null);
@@ -345,8 +347,8 @@ export function OrganizationHierarchyPage(): JSX.Element {
       <Dialog
         description={
           leaderTarget === "enterprise"
-            ? "Выберите активного сотрудника этого предприятия. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
-            : "Выберите активного сотрудника этого отдела. При наличии учётной записи ему автоматически будет выдана системная роль руководителя отдела."
+            ? "Выберите активного сотрудника этого предприятия без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
+            : "Выберите активного сотрудника этого отдела без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя отдела."
         }
         onOpenChange={(open) => !open && setLeaderTarget(null)}
         open={Boolean(leaderTarget)}
@@ -360,17 +362,20 @@ export function OrganizationHierarchyPage(): JSX.Element {
           <LoadingState label="Загрузка сотрудников..." />
         ) : (
           <div className="grid gap-5">
-            <label className="grid gap-2">
+            <div className="grid gap-2">
               <span className="app-text text-sm font-black">Сотрудник</span>
-              <Select
+              <SearchableSelect
                 allowEmpty
+                ariaLabel="Сотрудник"
                 emptyOptionLabel="Не назначен"
+                noOptionsLabel="Свободные сотрудники не найдены"
                 onValueChange={setLeaderId}
                 options={leaderOptions}
                 placeholder="Выберите сотрудника"
+                searchPlaceholder="Поиск по фамилии или имени"
                 value={leaderId}
               />
-            </label>
+            </div>
             <div className="flex justify-end gap-3">
               <Button
                 onClick={() => setLeaderTarget(null)}
@@ -388,6 +393,32 @@ export function OrganizationHierarchyPage(): JSX.Element {
       </Dialog>
     </div>
   );
+}
+
+async function loadLeaderCandidates(
+  filters: Record<string, HrFilterValue | HrFilterCondition>,
+): Promise<HrRecord[]> {
+  const firstPage = await hrApiClient.list({
+    entity: "employees",
+    page: 1,
+    pageSize: 100,
+    filters,
+    orderBy: "last_name",
+  });
+  if (firstPage.totalPages <= 1) return firstPage.items;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      hrApiClient.list({
+        entity: "employees",
+        page: index + 2,
+        pageSize: 100,
+        filters,
+        orderBy: "last_name",
+      }),
+    ),
+  );
+  return [firstPage, ...remainingPages].flatMap((page) => page.items);
 }
 
 async function getEnterpriseEmployeeFilter(

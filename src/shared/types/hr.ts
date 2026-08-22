@@ -29,7 +29,13 @@ export type HrScalarValue = string | number | boolean | null | undefined;
 export type HrRecord = Record<string, HrScalarValue>;
 export type HrFilterValue =
   string | number | boolean | null | Array<string | number | boolean | null>;
-export type HrFilterOperator = "equals" | "contains" | "gte" | "lte" | "in";
+export type HrFilterOperator =
+  | "equals"
+  | "contains"
+  | "gte"
+  | "lte"
+  | "in"
+  | "is_null";
 
 export interface HrFilterCondition {
   operator: HrFilterOperator;

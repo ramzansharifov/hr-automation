@@ -78,6 +78,12 @@ export class HrCrudService {
     if (params.entity === "employees") {
       this.assertEmploymentFieldsUnchanged(existing, params.data);
     }
+    if (params.entity === "enterprises") {
+      this.assertEnterpriseLeaderAssignment(params.id, existing, params.data);
+    }
+    if (params.entity === "departments") {
+      this.assertDepartmentLeaderAssignment(params.id, existing, params.data);
+    }
     if (params.entity === "vacations") {
       this.assertVacationTransition(existing, params.data);
       this.assertVacationDecisionFieldsUnchanged(existing, params.data);
@@ -89,7 +95,7 @@ export class HrCrudService {
 
   delete(params: HrDeleteParams): { success: true } {
     if (params.entity === "employment_history") {
-      throw new Error("Записи кадрового журнала нельзя удалять");
+      throw new Error("Записи кадрового журнала нельзя удалять вручную");
     }
     if (params.entity === "employees") {
       throw new Error(
@@ -191,6 +197,69 @@ export class HrCrudService {
     }
   }
 
+  private assertEnterpriseLeaderAssignment(
+    enterpriseId: number,
+    enterprise: HrRecord,
+    data: HrRecord,
+  ): void {
+    const field = "general_director_employee_id";
+    if (!(field in data) || normalizeComparable(data[field]) === normalizeComparable(enterprise[field])) {
+      return;
+    }
+
+    const employeeId = normalizeOptionalId(data[field]);
+    if (employeeId === null) return;
+    const employee = this.getLeaderCandidate(employeeId);
+    const departmentId = normalizeOptionalId(employee.department_id);
+    if (departmentId === null) {
+      throw new Error("Выбранный сотрудник не относится к этому предприятию");
+    }
+    const department = this.repository.getById(
+      getHrCrudEntityConfig("departments"),
+      departmentId,
+    );
+    if (!department || Number(department.enterprise_id) !== enterpriseId) {
+      throw new Error("Руководителем предприятия можно назначить только сотрудника этого предприятия");
+    }
+  }
+
+  private assertDepartmentLeaderAssignment(
+    departmentId: number,
+    department: HrRecord,
+    data: HrRecord,
+  ): void {
+    const field = "director_employee_id";
+    if (!(field in data) || normalizeComparable(data[field]) === normalizeComparable(department[field])) {
+      return;
+    }
+
+    const employeeId = normalizeOptionalId(data[field]);
+    if (employeeId === null) return;
+    const employee = this.getLeaderCandidate(employeeId);
+    if (Number(employee.department_id) !== departmentId) {
+      throw new Error("Руководителем отдела можно назначить только сотрудника этого отдела");
+    }
+  }
+
+  private getLeaderCandidate(employeeId: number): HrRecord {
+    const employee = this.repository.getById(
+      getHrCrudEntityConfig("employees"),
+      employeeId,
+    );
+    if (!employee) throw new Error("Сотрудник не найден");
+    if (String(employee.status ?? "") !== "active") {
+      throw new Error("Руководителем можно назначить только активного сотрудника");
+    }
+    if (
+      employee.position_id !== null &&
+      employee.position_id !== undefined &&
+      employee.position_id !== ""
+    ) {
+      throw new Error("У выбранного сотрудника уже назначена должность");
+    }
+    return employee;
+  }
+
   private assertVacationTransition(existing: HrRecord, data: HrRecord): void {
     if (!("status" in data)) return;
     const previousStatus = String(existing.status ?? "planned");
@@ -239,6 +308,15 @@ function calculateInclusiveDays(start: string, end: string): number {
     return 0;
   }
   return Math.floor((endTime - startTime) / 86_400_000) + 1;
+}
+
+function normalizeOptionalId(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1) {
+    throw new Error("Выбран некорректный сотрудник");
+  }
+  return id;
 }
 
 function normalizeComparable(value: unknown): string {
