@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   FiArrowRight,
-  FiCheck,
   FiEdit2,
   FiPlus,
   FiRefreshCw,
@@ -92,55 +91,59 @@ export function AccessRolesPage(): JSX.Element {
           onClick={() => navigate(`/roles/${role.id}`)}
           size="sm"
         />
-        {role.isSystem ? (
-          <span className="app-muted text-xs font-semibold">Защищена</span>
-        ) : (
-          <>
-            {canEdit && (
-              <IconButton
-                icon={<FiEdit2 />}
-                label="Редактировать"
-                onClick={() => navigate(`/roles/${role.id}/edit`)}
-                size="sm"
-              />
-            )}
-            {canDelete && (
-              <IconButton
-                icon={<FiTrash2 />}
-                label="Удалить"
-                onClick={() => setDeleteRole(role)}
-                size="sm"
-                tone="danger"
-              />
-            )}
-          </>
+        {!role.isSystem && canEdit && (
+          <IconButton
+            icon={<FiEdit2 />}
+            label="Редактировать"
+            onClick={() => navigate(`/roles/${role.id}/edit`)}
+            size="sm"
+          />
+        )}
+        {!role.isSystem && canDelete && (
+          <IconButton
+            icon={<FiTrash2 />}
+            label="Удалить"
+            onClick={() => setDeleteRole(role)}
+            size="sm"
+            tone="danger"
+          />
         )}
       </div>
     );
   }
-
-  const permissionMap = new Map(
-    overview.permissions.map((permission) => [permission.code, permission]),
-  );
 
   const columns: DataTableColumn<AccessRoleSummary>[] = [
     {
       key: "role",
       header: "Роль",
       render: (role) => (
-        <div className="min-w-[220px]">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="app-text font-black">{role.name}</span>
-            {role.isSystem && (
-              <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">
-                Системная
-              </span>
-            )}
+        <div className="flex min-w-[260px] items-center gap-3">
+          <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+            <FiShield className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="app-text truncate font-black">{role.name}</p>
+            <p className="app-muted mt-1 max-w-[420px] truncate text-xs">
+              {role.description || "Описание не указано"}
+            </p>
           </div>
-          <p className="app-muted mt-1 max-w-[360px] text-xs leading-5">
-            {role.description || "—"}
-          </p>
         </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Тип",
+      render: (role) => (
+        <span
+          className={[
+            "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold",
+            role.isSystem
+              ? "app-accent-soft app-accent-text"
+              : "app-surface-muted app-border app-text-soft",
+          ].join(" ")}
+        >
+          {role.isSystem ? "Системная" : "Пользовательская"}
+        </span>
       ),
     },
     {
@@ -151,24 +154,10 @@ export function AccessRolesPage(): JSX.Element {
     },
     {
       key: "permissions",
-      header: "Разрешения",
+      header: "Разрешений",
+      align: "center",
       render: (role) => (
-        <div className="flex max-w-[460px] flex-wrap gap-1.5">
-          {role.permissionCodes.slice(0, 4).map((code) => (
-            <span
-              className="app-surface-muted app-border inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold"
-              key={code}
-            >
-              <FiCheck className="app-accent-text h-3 w-3" />
-              {permissionMap.get(code)?.name ?? code}
-            </span>
-          ))}
-          {role.permissionCodes.length > 4 && (
-            <span className="app-muted self-center text-xs font-bold">
-              +{role.permissionCodes.length - 4}
-            </span>
-          )}
-        </div>
+        <span className="app-text font-black">{role.permissionCodes.length}</span>
       ),
     },
     {
@@ -230,7 +219,6 @@ export function AccessRolesPage(): JSX.Element {
         getRowKey={(role) => role.id}
         isLoading={isLoading}
         loadingLabel="Загрузка ролей..."
-        notice="Нажмите на роль, чтобы открыть отдельную страницу с полным набором разрешений и назначенных пользователей."
         onRowClick={(role) => navigate(`/roles/${role.id}`)}
         rows={overview.roles}
         toolbar={
