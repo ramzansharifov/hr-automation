@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../../features/auth/AuthContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessControlOverview,
@@ -60,6 +61,12 @@ type UserRow =
   | { kind: "user"; id: string; user: AccessUserSummary };
 
 export function AccessUsersPage(): JSX.Element {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("users.create");
+  const canEdit = hasPermission("users.edit");
+  const canDelete = hasPermission("users.delete");
+  const canResetPassword = hasPermission("users.reset_password");
+  const hasActions = canEdit || canDelete || canResetPassword;
   const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,18 +81,23 @@ export function AccessUsersPage(): JSX.Element {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [accessOverview, employeeOptions] = await Promise.all([
-        hrApiClient.getAccessOverview(),
-        loadEmployees(),
-      ]);
+      const accessOverview = await hrApiClient.getAccessOverview();
       setOverview(accessOverview);
-      setEmployees(employeeOptions);
+      if (canCreate || canEdit) {
+        try {
+          setEmployees(await loadEmployees());
+        } catch {
+          setEmployees([]);
+        }
+      } else {
+        setEmployees([]);
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось загрузить пользователей"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [canCreate, canEdit]);
 
   useEffect(() => {
     void loadData();
@@ -120,11 +132,13 @@ export function AccessUsersPage(): JSX.Element {
   ];
 
   function openCreateUser(): void {
+    if (!canCreate) return;
     setUserDraft(emptyUserDraft);
     setUserDialogOpen(true);
   }
 
   function openEditUser(user: AccessUserSummary): void {
+    if (!canEdit) return;
     setUserDraft({
       id: user.id,
       employeeId: String(user.employeeId),
@@ -138,6 +152,7 @@ export function AccessUsersPage(): JSX.Element {
   }
 
   async function saveUser(): Promise<void> {
+    if (userDraft.id ? !canEdit : !canCreate) return;
     setIsSaving(true);
     try {
       const params: SaveAccessUserParams = {
@@ -161,7 +176,7 @@ export function AccessUsersPage(): JSX.Element {
   }
 
   async function confirmDeleteUser(): Promise<void> {
-    if (!deleteUser) return;
+    if (!deleteUser || !canDelete) return;
     setIsSaving(true);
     try {
       await hrApiClient.deleteAccessUser(deleteUser.id);
@@ -176,7 +191,7 @@ export function AccessUsersPage(): JSX.Element {
   }
 
   async function resetPassword(): Promise<void> {
-    if (!passwordDialogUser) return;
+    if (!passwordDialogUser || !canResetPassword) return;
     setIsSaving(true);
     try {
       await hrApiClient.resetAccessPassword({
@@ -195,31 +210,38 @@ export function AccessUsersPage(): JSX.Element {
     }
   }
 
-  function renderUserActions(user: AccessUserSummary): JSX.Element {
+  function renderUserActions(user: AccessUserSummary): JSX.Element | undefined {
+    if (!hasActions) return undefined;
     return (
       <>
-        <IconButton
-          icon={<FiKey />}
-          label="Сбросить пароль"
-          onClick={() => {
-            setPassword("");
-            setPasswordDialogUser(user);
-          }}
-          size="sm"
-        />
-        <IconButton
-          icon={<FiEdit2 />}
-          label="Редактировать"
-          onClick={() => openEditUser(user)}
-          size="sm"
-        />
-        <IconButton
-          icon={<FiTrash2 />}
-          label="Удалить"
-          onClick={() => setDeleteUser(user)}
-          size="sm"
-          tone="danger"
-        />
+        {canResetPassword && (
+          <IconButton
+            icon={<FiKey />}
+            label="Сбросить пароль"
+            onClick={() => {
+              setPassword("");
+              setPasswordDialogUser(user);
+            }}
+            size="sm"
+          />
+        )}
+        {canEdit && (
+          <IconButton
+            icon={<FiEdit2 />}
+            label="Редактировать"
+            onClick={() => openEditUser(user)}
+            size="sm"
+          />
+        )}
+        {canDelete && (
+          <IconButton
+            icon={<FiTrash2 />}
+            label="Удалить"
+            onClick={() => setDeleteUser(user)}
+            size="sm"
+            tone="danger"
+          />
+        )}
       </>
     );
   }
@@ -342,19 +364,23 @@ export function AccessUsersPage(): JSX.Element {
           </div>
         ),
     },
-    {
-      key: "actions",
-      header: "Действия",
-      align: "center",
-      render: (row) =>
-        row.kind === "system" ? (
-          <span className="app-muted text-xs font-semibold">Системная</span>
-        ) : (
-          <div className="flex items-center justify-center gap-2">
-            {renderUserActions(row.user)}
-          </div>
-        ),
-    },
+    ...(hasActions
+      ? [
+          {
+            key: "actions",
+            header: "Действия",
+            align: "center" as const,
+            render: (row: UserRow) =>
+              row.kind === "system" ? (
+                <span className="app-muted text-xs font-semibold">Системная</span>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  {renderUserActions(row.user)}
+                </div>
+              ),
+          },
+        ]
+      : []),
   ];
 
   const activeUsers = overview.users.filter((user) => user.status === "active").length + 1;
@@ -364,15 +390,17 @@ export function AccessUsersPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            className="border-white/20 shadow-xl hover:opacity-90"
-            leftIcon={<FiPlus className="h-4 w-4" />}
-            onClick={openCreateUser}
-            style={{ background: "#ffffff", color: "#0f172a" }}
-            variant="ghost"
-          >
-            Добавить пользователя
-          </Button>
+          canCreate ? (
+            <Button
+              className="border-white/20 shadow-xl hover:opacity-90"
+              leftIcon={<FiPlus className="h-4 w-4" />}
+              onClick={openCreateUser}
+              style={{ background: "#ffffff", color: "#0f172a" }}
+              variant="ghost"
+            >
+              Добавить пользователя
+            </Button>
+          ) : undefined
         }
         description="Учётные записи сотрудников, назначенные роли и состояние доступа к системе."
         icon={<FiUsers />}
@@ -421,7 +449,11 @@ export function AccessUsersPage(): JSX.Element {
             row.kind === "user" ? renderUserActions(row.user) : undefined,
         }}
         columns={columns}
-        emptyDescription="Создайте учётную запись и свяжите её с активным сотрудником."
+        emptyDescription={
+          canCreate
+            ? "Создайте учётную запись и свяжите её с активным сотрудником."
+            : "Учётных записей пока нет."
+        }
         emptyTitle="Пользователей пока нет"
         footer={
           <>
@@ -447,57 +479,63 @@ export function AccessUsersPage(): JSX.Element {
         }
       />
 
-      <UserDialog
-        draft={userDraft}
-        employeeOptions={availableEmployeeOptions}
-        isSaving={isSaving}
-        onChange={setUserDraft}
-        onOpenChange={setUserDialogOpen}
-        onSave={() => void saveUser()}
-        open={userDialogOpen}
-        roles={assignableRoles}
-      />
+      {(canCreate || canEdit) && (
+        <UserDialog
+          draft={userDraft}
+          employeeOptions={availableEmployeeOptions}
+          isSaving={isSaving}
+          onChange={setUserDraft}
+          onOpenChange={setUserDialogOpen}
+          onSave={() => void saveUser()}
+          open={userDialogOpen}
+          roles={assignableRoles}
+        />
+      )}
 
-      <Dialog
-        description="Пароль хранится только в виде криптографического хеша. Пользователь должен сменить временный пароль при первом входе."
-        onOpenChange={(open) => {
-          if (!open) {
-            setPasswordDialogUser(null);
-            setPassword("");
-          }
-        }}
-        open={Boolean(passwordDialogUser)}
-        title={`Сбросить пароль: ${passwordDialogUser?.username ?? ""}`}
-      >
-        <Field label="Новый временный пароль">
-          <Input
-            autoComplete="new-password"
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Минимум 8 символов, буква и цифра"
-            type="password"
-            value={password}
-          />
-        </Field>
-        <div className="mt-5 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setPasswordDialogUser(null)}>
-            Отмена
-          </Button>
-          <Button disabled={isSaving} onClick={() => void resetPassword()}>
-            Установить пароль
-          </Button>
-        </div>
-      </Dialog>
+      {canResetPassword && (
+        <Dialog
+          description="Пароль хранится только в виде криптографического хеша. Пользователь должен сменить временный пароль при первом входе."
+          onOpenChange={(open) => {
+            if (!open) {
+              setPasswordDialogUser(null);
+              setPassword("");
+            }
+          }}
+          open={Boolean(passwordDialogUser)}
+          title={`Сбросить пароль: ${passwordDialogUser?.username ?? ""}`}
+        >
+          <Field label="Новый временный пароль">
+            <Input
+              autoComplete="new-password"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Минимум 8 символов, буква и цифра"
+              type="password"
+              value={password}
+            />
+          </Field>
+          <div className="mt-5 flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setPasswordDialogUser(null)}>
+              Отмена
+            </Button>
+            <Button disabled={isSaving} onClick={() => void resetPassword()}>
+              Установить пароль
+            </Button>
+          </div>
+        </Dialog>
+      )}
 
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Удалить"
-        description="Пользователь потеряет учётную запись, но связанный сотрудник и его кадровые данные останутся в системе."
-        isLoading={isSaving}
-        onConfirm={() => void confirmDeleteUser()}
-        onOpenChange={(open) => !open && setDeleteUser(null)}
-        open={Boolean(deleteUser)}
-        title={`Удалить пользователя ${deleteUser?.username ?? ""}?`}
-      />
+      {canDelete && (
+        <ConfirmDialog
+          cancelLabel="Отмена"
+          confirmLabel="Удалить"
+          description="Пользователь потеряет учётную запись, но связанный сотрудник и его кадровые данные останутся в системе."
+          isLoading={isSaving}
+          onConfirm={() => void confirmDeleteUser()}
+          onOpenChange={(open) => !open && setDeleteUser(null)}
+          open={Boolean(deleteUser)}
+          title={`Удалить пользователя ${deleteUser?.username ?? ""}?`}
+        />
+      )}
     </div>
   );
 }
