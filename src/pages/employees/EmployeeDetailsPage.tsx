@@ -19,7 +19,6 @@ import { formatCurrency, formatDate, humanizeStatus } from "../../shared/lib/for
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import { useAuth } from "../../features/auth/AuthContext";
-import { getRecordLabel } from "../../features/employees/lib/employeeRelations";
 import {
   EmployeeInfoField,
   EmployeeInfoPanel,
@@ -79,21 +78,8 @@ export function EmployeeDetailsPage(): JSX.Element {
         });
         if (!isActive) return;
         setEmployee(record);
-        if (!record) return;
-
-        const departmentId = toNumber(record.department_id);
-        const positionId = toNumber(record.position_id);
-        const [department, position] = await Promise.all([
-          departmentId
-            ? hrApiClient.getById({ entity: "departments", id: departmentId })
-            : Promise.resolve(null),
-          positionId
-            ? hrApiClient.getById({ entity: "positions", id: positionId })
-            : Promise.resolve(null),
-        ]);
-        if (!isActive) return;
-        setDepartmentName(getRecordLabel(department));
-        setPositionName(getRecordLabel(position));
+        setDepartmentName(String(record?.department_name ?? ""));
+        setPositionName(String(record?.position_name ?? ""));
       } catch {
         if (isActive) {
           setHasError(true);
@@ -110,24 +96,10 @@ export function EmployeeDetailsPage(): JSX.Element {
     };
   }, [employeeId, t]);
 
-  async function refreshEmployeeRelationLabels(record: HrRecord): Promise<void> {
-    const departmentId = toNumber(record.department_id);
-    const positionId = toNumber(record.position_id);
-    const [department, position] = await Promise.all([
-      departmentId
-        ? hrApiClient.getById({ entity: "departments", id: departmentId })
-        : Promise.resolve(null),
-      positionId
-        ? hrApiClient.getById({ entity: "positions", id: positionId })
-        : Promise.resolve(null),
-    ]);
-    setDepartmentName(getRecordLabel(department));
-    setPositionName(getRecordLabel(position));
-  }
-
   async function handleEmployeeSaved(updatedEmployee: HrRecord): Promise<void> {
     setEmployee(updatedEmployee);
-    await refreshEmployeeRelationLabels(updatedEmployee);
+    setDepartmentName(String(updatedEmployee.department_name ?? ""));
+    setPositionName(String(updatedEmployee.position_name ?? ""));
   }
 
   function openSectionEditor(section: EmployeeFormSectionKey): void {
@@ -377,11 +349,6 @@ const detailsTabTriggerClass = [
 function getString(value: unknown): string {
   if (value === null || value === undefined) return "";
   return String(value);
-}
-
-function toNumber(value: unknown): number | null {
-  const numberValue = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
 }
 
 function valueOrEmpty(value: string, t: (key: string) => string): string {
