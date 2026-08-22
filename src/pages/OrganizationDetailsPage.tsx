@@ -4,11 +4,14 @@ import {
   FiArrowLeft,
   FiBriefcase,
   FiChevronRight,
+  FiEdit2,
   FiHash,
   FiLayers,
   FiMail,
   FiMapPin,
   FiPhone,
+  FiPlus,
+  FiTrash2,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
@@ -16,6 +19,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntityDeleteDialog";
+import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
@@ -28,6 +33,7 @@ import {
   Button,
   Dialog,
   EmptyState,
+  IconButton,
   LoadingState,
   SearchableSelect,
   type SelectOption,
@@ -45,6 +51,9 @@ export function OrganizationDetailsPage(): JSX.Element {
   const mode: OrganizationDetailsMode = departmentId ? "department" : "enterprise";
   const canViewEmployees = hasPermission("employees.view");
   const canAssignLeader = hasPermission("organization.assign_leader");
+  const canCreatePosition = hasPermission("organization.create");
+  const canEditPosition = hasPermission("organization.edit");
+  const canDeletePosition = hasPermission("organization.delete");
 
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
@@ -58,6 +67,13 @@ export function OrganizationDetailsPage(): JSX.Element {
   const [leaderOptions, setLeaderOptions] = useState<SelectOption[]>([]);
   const [leaderId, setLeaderId] = useState("");
   const [leaderLoading, setLeaderLoading] = useState(false);
+  const [positionDialogMode, setPositionDialogMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [editingPosition, setEditingPosition] = useState<HrRecord | null>(null);
+  const [deletingPosition, setDeletingPosition] = useState<HrRecord | null>(null);
+  const [isPositionFormOpen, setIsPositionFormOpen] = useState(false);
+  const [isPositionDeleteOpen, setIsPositionDeleteOpen] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -249,6 +265,59 @@ export function OrganizationDetailsPage(): JSX.Element {
     }
   }
 
+  function openCreatePosition(): void {
+    if (!canCreatePosition || !departmentId) return;
+    setPositionDialogMode("create");
+    setEditingPosition(null);
+    setIsPositionFormOpen(true);
+  }
+
+  function openEditPosition(position: HrRecord): void {
+    if (!canEditPosition) return;
+    setPositionDialogMode("edit");
+    setEditingPosition(position);
+    setIsPositionFormOpen(true);
+  }
+
+  function openDeletePosition(position: HrRecord): void {
+    if (!canDeletePosition) return;
+    setDeletingPosition(position);
+    setIsPositionDeleteOpen(true);
+  }
+
+  async function savePosition(data: HrRecord): Promise<void> {
+    if (!departmentId) throw new Error("Отдел не найден");
+
+    if (positionDialogMode === "create") {
+      if (!canCreatePosition) throw new Error("Недостаточно прав для создания должности");
+      await hrApiClient.create({
+        entity: "positions",
+        data: { ...data, department_id: departmentId },
+      });
+    } else {
+      if (!canEditPosition) throw new Error("Недостаточно прав для изменения должности");
+      const positionId = positiveId(editingPosition?.id);
+      if (!positionId) throw new Error("Должность не найдена");
+      await hrApiClient.update({
+        entity: "positions",
+        id: positionId,
+        data: { ...data, department_id: departmentId },
+      });
+    }
+
+    setRefreshIndex((value) => value + 1);
+  }
+
+  async function deletePosition(): Promise<void> {
+    if (!canDeletePosition) throw new Error("Недостаточно прав для удаления должности");
+    const positionId = positiveId(deletingPosition?.id);
+    if (!positionId) throw new Error("Должность не найдена");
+
+    await hrApiClient.delete({ entity: "positions", id: positionId });
+    setDeletingPosition(null);
+    setRefreshIndex((value) => value + 1);
+  }
+
   if (isLoading) {
     return <LoadingState label="Загрузка карточки организации..." />;
   }
@@ -286,10 +355,6 @@ export function OrganizationDetailsPage(): JSX.Element {
     mode === "enterprise"
       ? "/enterprises"
       : `/enterprises/${enterpriseId}/departments`;
-  const structurePath =
-    mode === "enterprise"
-      ? `/enterprises/${enterpriseId}/departments`
-      : `/enterprises/${enterpriseId}/departments/${departmentId}/positions`;
 
   return (
     <motion.div
@@ -333,14 +398,16 @@ export function OrganizationDetailsPage(): JSX.Element {
                 Предприятие
               </Button>
             )}
-            <Button
-              className="border-white/20 shadow-lg"
-              onClick={() => navigate(structurePath)}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
-            >
-              {mode === "enterprise" ? "Открыть отделы" : "Открыть должности"}
-            </Button>
+            {mode === "enterprise" && (
+              <Button
+                className="border-white/20 shadow-lg"
+                onClick={() => navigate(`/enterprises/${enterpriseId}/departments`)}
+                style={{ background: "#ffffff", color: "#0f172a" }}
+                variant="ghost"
+              >
+                Открыть отделы
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -482,7 +549,19 @@ export function OrganizationDetailsPage(): JSX.Element {
       ) : (
         <section className="app-surface app-border overflow-hidden rounded-[28px] border">
           <SectionHeader
-            description="Должности отдела и количество назначенных сотрудников."
+            actions={
+              canCreatePosition ? (
+                <Button
+                  leftIcon={<FiPlus className="h-4 w-4" />}
+                  onClick={openCreatePosition}
+                  size="sm"
+                  type="button"
+                >
+                  Добавить должность
+                </Button>
+              ) : undefined
+            }
+            description="Должности отдела можно добавлять, редактировать и удалять прямо на этой странице."
             icon={<FiBriefcase />}
             title="Должности"
           />
@@ -496,17 +575,45 @@ export function OrganizationDetailsPage(): JSX.Element {
                     key={String(position.id)}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="app-text font-black">{recordName(position)}</p>
-                        <p className="app-muted mt-2 line-clamp-2 text-xs font-semibold leading-5">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+                            <FiBriefcase />
+                          </span>
+                          <p className="app-text min-w-0 truncate font-black">
+                            {recordName(position)}
+                          </p>
+                        </div>
+                        <p className="app-muted mt-3 line-clamp-2 text-xs font-semibold leading-5">
                           {displayValue(position.responsibilities) === "—"
                             ? "Обязанности не указаны"
                             : String(position.responsibilities)}
                         </p>
                       </div>
-                      <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
-                        <FiBriefcase />
-                      </span>
+
+                      {(canEditPosition || canDeletePosition) && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          {canEditPosition && (
+                            <IconButton
+                              className="app-table-action-button app-table-action-button--edit"
+                              icon={<FiEdit2 />}
+                              label="Редактировать должность"
+                              onClick={() => openEditPosition(position)}
+                              size="sm"
+                            />
+                          )}
+                          {canDeletePosition && (
+                            <IconButton
+                              className="app-table-action-button app-table-action-button--delete"
+                              icon={<FiTrash2 />}
+                              label="Удалить должность"
+                              onClick={() => openDeletePosition(position)}
+                              size="sm"
+                              tone="danger"
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="mt-4">
                       <MiniBadge
@@ -613,6 +720,33 @@ export function OrganizationDetailsPage(): JSX.Element {
           </div>
         )}
       </Dialog>
+
+      {mode === "department" && departmentId && (canCreatePosition || canEditPosition) && (
+        <HrEntityDialog
+          entity="positions"
+          hiddenFieldNames={["department_id"]}
+          initialRecord={
+            positionDialogMode === "create"
+              ? { department_id: departmentId }
+              : editingPosition
+          }
+          mode={positionDialogMode}
+          onOpenChange={setIsPositionFormOpen}
+          onSubmit={savePosition}
+          open={isPositionFormOpen}
+        />
+      )}
+
+      {mode === "department" && canDeletePosition && (
+        <HrEntityDeleteDialog
+          onConfirm={deletePosition}
+          onOpenChange={(open) => {
+            setIsPositionDeleteOpen(open);
+            if (!open) setDeletingPosition(null);
+          }}
+          open={isPositionDeleteOpen}
+        />
+      )}
     </motion.div>
   );
 }
@@ -787,23 +921,28 @@ function LeaderCard({
 }
 
 function SectionHeader({
+  actions,
   description,
   icon,
   title,
 }: {
+  actions?: ReactNode;
   description: string;
   icon: ReactNode;
   title: string;
 }): JSX.Element {
   return (
-    <div className="app-surface-muted app-border flex items-center gap-3 border-b px-5 py-4">
-      <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
-        {icon}
-      </span>
-      <div>
-        <h2 className="app-text text-lg font-black">{title}</h2>
-        <p className="app-muted mt-0.5 text-xs font-semibold">{description}</p>
+    <div className="app-surface-muted app-border flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h2 className="app-text text-lg font-black">{title}</h2>
+          <p className="app-muted mt-0.5 text-xs font-semibold">{description}</p>
+        </div>
       </div>
+      {actions && <div className="shrink-0">{actions}</div>}
     </div>
   );
 }
