@@ -369,11 +369,16 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
       entity === 'enterprises' || entity === 'departments'
         ? visibleColumns.find((column) => column.key === 'id')
         : undefined
-    const hasCardActions = hasActions || Boolean(organizationDetailsColumn)
-    const cardMetaColumns = visibleColumns.slice(1, 4)
+    const tableColumns = organizationDetailsColumn
+      ? visibleColumns.filter((column) => column !== organizationDetailsColumn)
+      : visibleColumns
+    const hasOrganizationViewAction = Boolean(organizationDetailsColumn)
+    const hasTableActions = hasActions || hasOrganizationViewAction
+    const hasCardActions = hasActions || hasOrganizationViewAction
+    const cardMetaColumns = tableColumns.slice(1, 4)
 
     const columns: DataTableColumn<HrRecord>[] = [
-      ...visibleColumns.map((column): DataTableColumn<HrRecord> => ({
+      ...tableColumns.map((column): DataTableColumn<HrRecord> => ({
         key: column.key,
         header: (
           <button
@@ -399,7 +404,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
           <span className="line-clamp-2">{renderCell(record, column, locale)}</span>
         ),
       })),
-      ...(hasActions
+      ...(hasTableActions
         ? [
             {
               key: 'actions',
@@ -411,6 +416,8 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
                   className="flex items-center justify-center gap-2"
                   onClick={(event) => event.stopPropagation()}
                 >
+                  {organizationDetailsColumn &&
+                    renderCell(record, organizationDetailsColumn, locale)}
                   {canEditEntity && (
                     <IconButton
                       className="app-table-action-button app-table-action-button--edit"
