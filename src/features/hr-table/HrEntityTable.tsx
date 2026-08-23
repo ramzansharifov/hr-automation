@@ -365,6 +365,11 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     const canGoBack = result.page > 1
     const canGoForward = result.totalPages > 0 && result.page < result.totalPages
     const hasActions = (canEditEntity || canDeleteEntity) && entity !== 'employees'
+    const organizationDetailsColumn =
+      entity === 'enterprises' || entity === 'departments'
+        ? visibleColumns.find((column) => column.key === 'id')
+        : undefined
+    const hasCardActions = hasActions || Boolean(organizationDetailsColumn)
     const cardMetaColumns = visibleColumns.slice(1, 4)
 
     const columns: DataTableColumn<HrRecord>[] = [
@@ -596,9 +601,11 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
                   ))}
                 </>
               ),
-              actions: hasActions
+              actions: hasCardActions
                 ? (record) => (
                     <>
+                      {organizationDetailsColumn &&
+                        renderCell(record, organizationDetailsColumn, locale)}
                       {canEditEntity && (
                         <IconButton
                           className="app-table-action-button app-table-action-button--edit"
