@@ -1,11 +1,21 @@
 -- requires_foreign_keys_off
 
 -- Расширяем допустимые system_key, сохраняя идентификаторы существующих ролей.
+-- Перед перестроением roles временно снимаем все триггеры других таблиц,
+-- которые читают roles: SQLite проверяет их SQL при DROP TABLE.
 DROP TRIGGER IF EXISTS roles_system_update_guard;
 DROP TRIGGER IF EXISTS roles_system_delete_guard;
 DROP TRIGGER IF EXISTS roles_updated_at;
 DROP TRIGGER IF EXISTS role_permissions_system_insert_guard;
 DROP TRIGGER IF EXISTS role_permissions_system_delete_guard;
+DROP TRIGGER IF EXISTS user_roles_superadmin_insert_guard;
+DROP TRIGGER IF EXISTS user_roles_superadmin_update_guard;
+DROP TRIGGER IF EXISTS enterprises_revoke_director_access;
+DROP TRIGGER IF EXISTS departments_revoke_head_access;
+DROP TRIGGER IF EXISTS enterprises_revoke_director_access_after_delete;
+DROP TRIGGER IF EXISTS departments_revoke_head_access_after_delete;
+DROP TRIGGER IF EXISTS enterprises_grant_director_access;
+DROP TRIGGER IF EXISTS departments_grant_head_access;
 
 CREATE TABLE roles_next (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -163,4 +173,120 @@ WHEN EXISTS (
 )
 BEGIN
   SELECT RAISE(ABORT, 'Разрешения системной роли нельзя изменять');
+END;
+
+CREATE TRIGGER user_roles_superadmin_insert_guard
+BEFORE INSERT ON user_roles
+WHEN EXISTS (
+  SELECT 1 FROM roles WHERE id = NEW.role_id AND system_key = 'superadmin'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Роль superadmin принадлежит только встроенной системной учётной записи');
+END;
+
+CREATE TRIGGER user_roles_superadmin_update_guard
+BEFORE UPDATE OF role_id ON user_roles
+WHEN EXISTS (
+  SELECT 1 FROM roles WHERE id = NEW.role_id AND system_key = 'superadmin'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Роль superadmin принадлежит только встроенной системной учётной записи');
+END;
+
+CREATE TRIGGER enterprises_revoke_director_access
+AFTER UPDATE OF general_director_employee_id ON enterprises
+WHEN OLD.general_director_employee_id IS NOT NULL
+  AND OLD.general_director_employee_id IS NOT NEW.general_director_employee_id
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id = (
+    SELECT id FROM users WHERE employee_id = OLD.general_director_employee_id
+  )
+    AND role_id = (
+      SELECT id FROM roles WHERE system_key = 'enterprise_director'
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM enterprises
+      WHERE general_director_employee_id = OLD.general_director_employee_id
+    );
+END;
+
+CREATE TRIGGER departments_revoke_head_access
+AFTER UPDATE OF director_employee_id ON departments
+WHEN OLD.director_employee_id IS NOT NULL
+  AND OLD.director_employee_id IS NOT NEW.director_employee_id
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id = (
+    SELECT id FROM users WHERE employee_id = OLD.director_employee_id
+  )
+    AND role_id = (
+      SELECT id FROM roles WHERE system_key = 'department_head'
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM departments
+      WHERE director_employee_id = OLD.director_employee_id
+    );
+END;
+
+CREATE TRIGGER enterprises_revoke_director_access_after_delete
+AFTER DELETE ON enterprises
+WHEN OLD.general_director_employee_id IS NOT NULL
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id = (
+    SELECT id FROM users WHERE employee_id = OLD.general_director_employee_id
+  )
+    AND role_id = (
+      SELECT id FROM roles WHERE system_key = 'enterprise_director'
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM enterprises
+      WHERE general_director_employee_id = OLD.general_director_employee_id
+    );
+END;
+
+CREATE TRIGGER departments_revoke_head_access_after_delete
+AFTER DELETE ON departments
+WHEN OLD.director_employee_id IS NOT NULL
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id = (
+    SELECT id FROM users WHERE employee_id = OLD.director_employee_id
+  )
+    AND role_id = (
+      SELECT id FROM roles WHERE system_key = 'department_head'
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM departments
+      WHERE director_employee_id = OLD.director_employee_id
+    );
+END;
+
+CREATE TRIGGER enterprises_grant_director_access
+AFTER UPDATE OF general_director_employee_id ON enterprises
+WHEN NEW.general_director_employee_id IS NOT NULL
+  AND OLD.general_director_employee_id IS NOT NEW.general_director_employee_id
+BEGIN
+  INSERT OR IGNORE INTO user_roles (user_id, role_id)
+  SELECT user.id, role.id
+  FROM users AS user
+  JOIN roles AS role ON role.system_key = 'enterprise_director'
+  WHERE user.employee_id = NEW.general_director_employee_id;
+END;
+
+CREATE TRIGGER departments_grant_head_access
+AFTER UPDATE OF director_employee_id ON departments
+WHEN NEW.director_employee_id IS NOT NULL
+  AND OLD.director_employee_id IS NOT NEW.director_employee_id
+BEGIN
+  INSERT OR IGNORE INTO user_roles (user_id, role_id)
+  SELECT user.id, role.id
+  FROM users AS user
+  JOIN roles AS role ON role.system_key = 'department_head'
+  WHERE user.employee_id = NEW.director_employee_id;
 END;
