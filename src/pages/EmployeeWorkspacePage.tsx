@@ -2,27 +2,22 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   FiBriefcase,
-  FiCalendar,
   FiLayers,
   FiMail,
   FiMapPin,
   FiSearch,
   FiShield,
-  FiUser,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useAuth } from "../features/auth/AuthContext";
-import { hrApiClient } from "../shared/lib/hrApiClient";
 import { formatDate } from "../shared/lib/format";
+import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
   EmployeeWorkspaceData,
   EmployeeWorkspacePerson,
 } from "../shared/types/employeeWorkspace";
 import {
-  Button,
   EmptyState,
   Input,
   LoadingState,
@@ -30,9 +25,13 @@ import {
   type SelectOption,
 } from "../shared/ui";
 
-export function EmployeeWorkspacePage(): JSX.Element {
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+type EmployeeWorkspaceSection = "enterprise" | "department" | "colleagues";
+
+export function EmployeeWorkspacePage({
+  section,
+}: {
+  section: EmployeeWorkspaceSection;
+}): JSX.Element {
   const [workspace, setWorkspace] = useState<EmployeeWorkspaceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -51,7 +50,7 @@ export function EmployeeWorkspacePage(): JSX.Element {
           toast.error(
             error instanceof Error
               ? error.message
-              : "Не удалось загрузить рабочее пространство",
+              : "Не удалось загрузить данные о вашей организации",
           );
         }
       } finally {
@@ -102,155 +101,236 @@ export function EmployeeWorkspacePage(): JSX.Element {
         person.departmentName,
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLocaleLowerCase("ru-RU").includes(query));
+        .some((value) =>
+          String(value).toLocaleLowerCase("ru-RU").includes(query),
+        );
     });
   }, [departmentFilter, search, workspace]);
 
-  if (isLoading) return <LoadingState label="Загрузка вашей команды..." />;
+  if (isLoading) {
+    const labels: Record<EmployeeWorkspaceSection, string> = {
+      enterprise: "Загрузка предприятия...",
+      department: "Загрузка отдела...",
+      colleagues: "Загрузка коллег...",
+    };
+    return <LoadingState label={labels[section]} />;
+  }
 
   if (!workspace) {
     return (
       <EmptyState
-        title="Рабочее пространство недоступно"
-        description="Не удалось получить данные о вашей организации. Обратитесь к администратору."
+        title="Данные недоступны"
+        description="Не удалось получить информацию о вашей организации. Обратитесь к администратору."
       />
     );
   }
 
   const ownDepartmentColleagues = workspace.colleagues.filter(
     (person) =>
-      workspace.self.departmentId &&
+      workspace.self.departmentId !== null &&
       person.departmentId === workspace.self.departmentId,
-  ).length;
+  );
+  const enterpriseDepartmentIds = new Set<number>();
+  if (workspace.department) enterpriseDepartmentIds.add(workspace.department.id);
+  workspace.colleagues.forEach((person) => {
+    if (person.departmentId) enterpriseDepartmentIds.add(person.departmentId);
+  });
+
+  if (section === "enterprise") {
+    return (
+      <WorkspaceLayout>
+        <WorkspaceHero
+          eyebrow="Моё предприятие"
+          icon={<FiLayers />}
+          title={workspace.enterprise?.name ?? "Предприятие не назначено"}
+          description={
+            workspace.enterprise?.legalName ??
+            "Организационная привязка сотрудника к предприятию пока не настроена."
+          }
+        />
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            icon={<FiUsers />}
+            label="Коллег в предприятии"
+            value={workspace.colleagues.length}
+          />
+          <MetricCard
+            icon={<FiBriefcase />}
+            label="Отделов"
+            value={enterpriseDepartmentIds.size}
+          />
+          <MetricCard
+            icon={<FiBriefcase />}
+            label="Мой отдел"
+            value={workspace.department?.name ?? "Не назначен"}
+          />
+          <MetricCard
+            icon={<FiUserCheck />}
+            label="Руководитель"
+            value={workspace.enterpriseLeader?.fullName ?? "Не назначен"}
+          />
+        </section>
+
+        <section className="grid items-start gap-5 xl:grid-cols-2">
+          <InfoPanel icon={<FiLayers />} title="Информация о предприятии">
+            <InfoRow label="Название" value={workspace.enterprise?.name} />
+            <InfoRow
+              label="Юридическое название"
+              value={workspace.enterprise?.legalName}
+            />
+            <InfoRow label="Электронная почта" value={workspace.enterprise?.email} />
+            <InfoRow label="Телефон" value={workspace.enterprise?.phone} />
+            <InfoRow
+              label="Адрес"
+              value={workspace.enterprise?.address}
+              wide
+            />
+          </InfoPanel>
+
+          <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+            <SectionHeader
+              description="Контактные данные руководителя доступны для внутренней коммуникации."
+              icon={<FiUserCheck />}
+              title="Руководитель предприятия"
+            />
+            <div className="p-5">
+              <LeaderCard person={workspace.enterpriseLeader} />
+            </div>
+          </section>
+        </section>
+
+        <InfoPanel icon={<FiBriefcase />} title="Моё место в предприятии">
+          <InfoRow label="Отдел" value={workspace.department?.name} />
+          <InfoRow label="Должность" value={workspace.self.positionName} />
+          <InfoRow label="Рабочее место" value={workspace.self.workplace} />
+          <InfoRow
+            label="Тип занятости"
+            value={employmentTypeLabel(workspace.self.employmentType)}
+          />
+          <InfoRow
+            label="Дата начала работы"
+            value={
+              workspace.self.hireDate ? formatDate(workspace.self.hireDate) : null
+            }
+          />
+        </InfoPanel>
+      </WorkspaceLayout>
+    );
+  }
+
+  if (section === "department") {
+    return (
+      <WorkspaceLayout>
+        <WorkspaceHero
+          eyebrow="Мой отдел"
+          icon={<FiBriefcase />}
+          title={workspace.department?.name ?? "Отдел не назначен"}
+          description={
+            workspace.self.positionName
+              ? `Ваша должность: ${workspace.self.positionName}`
+              : "Должность сотрудника пока не указана."
+          }
+        />
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            icon={<FiUsers />}
+            label="Коллег в отделе"
+            value={ownDepartmentColleagues.length}
+          />
+          <MetricCard
+            icon={<FiUserCheck />}
+            label="Начальник отдела"
+            value={workspace.departmentLeader?.fullName ?? "Не назначен"}
+          />
+          <MetricCard
+            icon={<FiBriefcase />}
+            label="Моя должность"
+            value={workspace.self.positionName ?? "Не указана"}
+          />
+          <MetricCard
+            icon={<FiMapPin />}
+            label="Рабочее место"
+            value={workspace.self.workplace ?? "Не указано"}
+          />
+        </section>
+
+        <section className="grid items-start gap-5 xl:grid-cols-2">
+          <InfoPanel icon={<FiMapPin />} title="Информация об отделе">
+            <InfoRow label="Название" value={workspace.department?.name} />
+            <InfoRow label="Предприятие" value={workspace.enterprise?.name} />
+            <InfoRow label="Электронная почта" value={workspace.department?.email} />
+            <InfoRow label="Телефон" value={workspace.department?.phone} />
+            <InfoRow
+              label="Расположение"
+              value={workspace.department?.location}
+              wide
+            />
+          </InfoPanel>
+
+          <section className="app-surface app-border overflow-hidden rounded-[28px] border">
+            <SectionHeader
+              description="Ваш непосредственный руководитель в организационной структуре."
+              icon={<FiUserCheck />}
+              title="Начальник отдела"
+            />
+            <div className="p-5">
+              <LeaderCard person={workspace.departmentLeader} />
+            </div>
+          </section>
+        </section>
+
+        <InfoPanel icon={<FiBriefcase />} title="Моя работа в отделе">
+          <InfoRow label="Должность" value={workspace.self.positionName} />
+          <InfoRow label="Рабочее место" value={workspace.self.workplace} />
+          <InfoRow
+            label="Тип занятости"
+            value={employmentTypeLabel(workspace.self.employmentType)}
+          />
+          <InfoRow
+            label="Дата начала работы"
+            value={
+              workspace.self.hireDate ? formatDate(workspace.self.hireDate) : null
+            }
+          />
+        </InfoPanel>
+      </WorkspaceLayout>
+    );
+  }
 
   return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-      initial={{ opacity: 0, y: 14 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
-      <section className="app-accent-gradient-panel overflow-hidden rounded-[30px] border border-white/10 p-6 text-white shadow-2xl sm:p-8">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg font-black backdrop-blur">
-              {initials(workspace.self.fullName)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-white/70">
-                Моё рабочее пространство
-              </p>
-              <h1 className="mt-1 text-2xl font-black sm:text-3xl">
-                {workspace.self.fullName}
-              </h1>
-              <p className="mt-2 text-sm font-semibold text-white/75">
-                {[
-                  workspace.self.positionName,
-                  workspace.self.departmentName,
-                  workspace.self.enterpriseName,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "Организационная привязка пока не настроена"}
-              </p>
-            </div>
-          </div>
+    <WorkspaceLayout>
+      <WorkspaceHero
+        eyebrow="Внутренний справочник"
+        icon={<FiUsers />}
+        title="Коллеги"
+        description={`Активные сотрудники ${workspace.enterprise?.name ?? "вашего предприятия"}. По коллегам доступны только данные, необходимые для рабочей коммуникации.`}
+      />
 
-          <div className="flex flex-wrap gap-3">
-            {hasPermission("profile.view") && (
-              <Button
-                className="border-white/20 bg-white/10 text-white hover:bg-white/15"
-                leftIcon={<FiUser className="h-4 w-4" />}
-                onClick={() => navigate("/profile")}
-                variant="ghost"
-              >
-                Мой профиль
-              </Button>
-            )}
-            {hasPermission("vacations.view") && (
-              <Button
-                className="border-white/20"
-                leftIcon={<FiCalendar className="h-4 w-4" />}
-                onClick={() => navigate("/vacations")}
-                style={{ background: "#ffffff", color: "#0f172a" }}
-                variant="ghost"
-              >
-                Мои отпуска
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-3">
         <MetricCard
-          icon={<FiLayers />}
-          label="Предприятие"
-          value={workspace.enterprise?.name ?? "Не назначено"}
+          icon={<FiUsers />}
+          label="Всего коллег"
+          value={workspace.colleagues.length}
         />
         <MetricCard
           icon={<FiBriefcase />}
-          label="Отдел"
-          value={workspace.department?.name ?? "Не назначен"}
+          label="В моём отделе"
+          value={ownDepartmentColleagues.length}
         />
         <MetricCard
-          icon={<FiUsers />}
-          label="Коллег в моём отделе"
-          value={ownDepartmentColleagues}
+          icon={<FiLayers />}
+          label="Отделов в справочнике"
+          value={enterpriseDepartmentIds.size}
         />
-        <MetricCard
-          icon={<FiUsers />}
-          label="Коллег в предприятии"
-          value={workspace.colleagues.length}
-        />
-      </section>
-
-      <section className="grid items-start gap-5 xl:grid-cols-2">
-        <InfoPanel icon={<FiLayers />} title="Моё место в структуре">
-          <InfoRow label="Предприятие" value={workspace.enterprise?.name} />
-          <InfoRow label="Юридическое название" value={workspace.enterprise?.legalName} />
-          <InfoRow label="Отдел" value={workspace.department?.name} />
-          <InfoRow label="Должность" value={workspace.self.positionName} />
-          <InfoRow
-            label="Дата начала работы"
-            value={workspace.self.hireDate ? formatDate(workspace.self.hireDate) : null}
-          />
-          <InfoRow label="Тип занятости" value={employmentTypeLabel(workspace.self.employmentType)} />
-          <InfoRow label="Рабочее место" value={workspace.self.workplace} />
-        </InfoPanel>
-
-        <InfoPanel icon={<FiMapPin />} title="Контакты организации">
-          <InfoRow label="Адрес предприятия" value={workspace.enterprise?.address} wide />
-          <InfoRow label="Почта предприятия" value={workspace.enterprise?.email} />
-          <InfoRow label="Телефон предприятия" value={workspace.enterprise?.phone} />
-          <InfoRow label="Расположение отдела" value={workspace.department?.location} wide />
-          <InfoRow label="Почта отдела" value={workspace.department?.email} />
-          <InfoRow label="Телефон отдела" value={workspace.department?.phone} />
-        </InfoPanel>
       </section>
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <SectionHeader
-          description="Люди, которые отвечают за ваш отдел и предприятие. Доступны только рабочие контактные данные."
-          icon={<FiUserCheck />}
-          title="Руководители"
-        />
-        <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-2">
-          <LeaderCard
-            label="Начальник отдела"
-            person={workspace.departmentLeader}
-          />
-          <LeaderCard
-            label="Руководитель предприятия"
-            person={workspace.enterpriseLeader}
-          />
-        </div>
-      </section>
-
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <SectionHeader
-          description="Справочник активных сотрудников вашего предприятия. Зарплата, телефоны, адреса, документы и кадровые данные коллег здесь не раскрываются."
+          description="Поиск по ФИО, рабочей почте, должности или отделу."
           icon={<FiUsers />}
-          title="Коллеги"
+          title="Справочник коллег"
         />
 
         <div className="app-border-soft flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
@@ -277,9 +357,13 @@ export function EmployeeWorkspacePage(): JSX.Element {
             <FiShield />
           </span>
           <div>
-            <p className="app-text text-sm font-black">Безопасный внутренний справочник</p>
+            <p className="app-text text-sm font-black">
+              Безопасный внутренний справочник
+            </p>
             <p className="app-muted mt-1 text-xs font-semibold leading-5">
-              По коллегам показываются только ФИО, рабочая почта, должность и отдел — данные, необходимые для внутренней коммуникации.
+              Показываются только ФИО, рабочая почта, должность и отдел. Телефоны,
+              зарплаты, адреса, документы и другие кадровые данные коллег не
+              раскрываются.
             </p>
           </div>
         </div>
@@ -288,7 +372,9 @@ export function EmployeeWorkspacePage(): JSX.Element {
           <div className="grid gap-3 p-4 sm:p-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleColleagues.map((person) => (
               <ColleagueCard
-                isOwnDepartment={person.departmentId === workspace.self.departmentId}
+                isOwnDepartment={
+                  person.departmentId === workspace.self.departmentId
+                }
                 key={person.id}
                 person={person}
               />
@@ -300,11 +386,65 @@ export function EmployeeWorkspacePage(): JSX.Element {
           </div>
         )}
       </section>
+    </WorkspaceLayout>
+  );
+}
+
+function WorkspaceLayout({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+      initial={{ opacity: 0, y: 14 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      {children}
     </motion.div>
   );
 }
 
-function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }): JSX.Element {
+function WorkspaceHero({
+  description,
+  eyebrow,
+  icon,
+  title,
+}: {
+  description: string;
+  eyebrow: string;
+  icon: ReactNode;
+  title: string;
+}): JSX.Element {
+  return (
+    <section className="app-accent-gradient-panel overflow-hidden rounded-[30px] border border-white/10 p-6 text-white shadow-2xl sm:p-8">
+      <div className="flex items-center gap-4">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl backdrop-blur">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-white/70">
+            {eyebrow}
+          </p>
+          <h1 className="mt-1 break-words text-2xl font-black sm:text-3xl">
+            {title}
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/75">
+            {description}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+}): JSX.Element {
   return (
     <article className="app-surface app-border rounded-[24px] border p-5 shadow-sm">
       <div className="flex items-start gap-3">
@@ -312,7 +452,9 @@ function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; va
           {icon}
         </span>
         <div className="min-w-0">
-          <p className="app-muted text-[10px] font-black uppercase tracking-wide">{label}</p>
+          <p className="app-muted text-[10px] font-black uppercase tracking-wide">
+            {label}
+          </p>
           <p className="app-text mt-1 break-words text-lg font-black">{value}</p>
         </div>
       </div>
@@ -320,7 +462,15 @@ function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; va
   );
 }
 
-function InfoPanel({ children, icon, title }: { children: ReactNode; icon: ReactNode; title: string }): JSX.Element {
+function InfoPanel({
+  children,
+  icon,
+  title,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  title: string;
+}): JSX.Element {
   return (
     <section className="app-surface app-border overflow-hidden rounded-[28px] border">
       <SectionHeader description="" icon={icon} title={title} />
@@ -329,28 +479,58 @@ function InfoPanel({ children, icon, title }: { children: ReactNode; icon: React
   );
 }
 
-function InfoRow({ label, value, wide = false }: { label: string; value?: ReactNode | null; wide?: boolean }): JSX.Element {
+function InfoRow({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value?: ReactNode | null;
+  wide?: boolean;
+}): JSX.Element {
   return (
     <div className={wide ? "sm:col-span-2" : ""}>
-      <p className="app-muted text-[10px] font-black uppercase tracking-wide">{label}</p>
-      <p className="app-text-soft mt-1.5 break-words text-sm font-bold leading-6">{value || "—"}</p>
+      <p className="app-muted text-[10px] font-black uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="app-text-soft mt-1.5 break-words text-sm font-bold leading-6">
+        {value || "—"}
+      </p>
     </div>
   );
 }
 
-function SectionHeader({ description, icon, title }: { description: string; icon: ReactNode; title: string }): JSX.Element {
+function SectionHeader({
+  description,
+  icon,
+  title,
+}: {
+  description: string;
+  icon: ReactNode;
+  title: string;
+}): JSX.Element {
   return (
     <div className="app-surface-muted app-border flex items-center gap-3 border-b px-5 py-4">
-      <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">{icon}</span>
+      <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+        {icon}
+      </span>
       <div>
         <h2 className="app-text text-lg font-black">{title}</h2>
-        {description && <p className="app-muted mt-0.5 text-xs font-semibold leading-5">{description}</p>}
+        {description && (
+          <p className="app-muted mt-0.5 text-xs font-semibold leading-5">
+            {description}
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-function LeaderCard({ label, person }: { label: string; person: EmployeeWorkspacePerson | null }): JSX.Element {
+function LeaderCard({
+  person,
+}: {
+  person: EmployeeWorkspacePerson | null;
+}): JSX.Element {
   return (
     <article className="app-surface-muted app-border rounded-2xl border p-4">
       <div className="flex items-start gap-3">
@@ -358,13 +538,18 @@ function LeaderCard({ label, person }: { label: string; person: EmployeeWorkspac
           {person ? initials(person.fullName) : <FiUserCheck />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="app-muted text-[10px] font-black uppercase tracking-wide">{label}</p>
-          <p className="app-text mt-1 text-sm font-black">{person?.fullName ?? "Не назначен"}</p>
+          <p className="app-text text-sm font-black">
+            {person?.fullName ?? "Руководитель не назначен"}
+          </p>
           {person?.positionName && (
-            <p className="app-text-soft mt-1 text-xs font-bold">{person.positionName}</p>
+            <p className="app-text-soft mt-1 text-xs font-bold">
+              {person.positionName}
+            </p>
           )}
           {person?.departmentName && (
-            <p className="app-muted mt-1 text-xs font-semibold">{person.departmentName}</p>
+            <p className="app-muted mt-1 text-xs font-semibold">
+              {person.departmentName}
+            </p>
           )}
           {person?.email && (
             <p className="app-accent-text mt-3 flex items-center gap-2 break-all text-xs font-bold">
@@ -394,11 +579,17 @@ function ColleagueCard({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <p className="app-text min-w-0 font-black">{person.fullName}</p>
             {isOwnDepartment && (
-              <span className="app-accent-soft rounded-full border px-2.5 py-1 text-[10px] font-black">Мой отдел</span>
+              <span className="app-accent-soft rounded-full border px-2.5 py-1 text-[10px] font-black">
+                Мой отдел
+              </span>
             )}
           </div>
-          <p className="app-text-soft mt-2 text-xs font-bold">{person.positionName ?? "Должность не указана"}</p>
-          <p className="app-muted mt-1 text-xs font-semibold">{person.departmentName ?? "Отдел не указан"}</p>
+          <p className="app-text-soft mt-2 text-xs font-bold">
+            {person.positionName ?? "Должность не указана"}
+          </p>
+          <p className="app-muted mt-1 text-xs font-semibold">
+            {person.departmentName ?? "Отдел не указан"}
+          </p>
           {person.email && (
             <p className="app-accent-text mt-3 flex items-center gap-2 break-all text-xs font-bold">
               <FiMail className="h-4 w-4 shrink-0" /> {person.email}
