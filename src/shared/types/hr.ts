@@ -84,12 +84,14 @@ export interface HrDeleteParams {
 
 export interface HrEmploymentChangeParams {
   employeeId: number;
+  enterpriseId: number;
   departmentId: number;
-  positionId: number;
+  positionId: number | null;
   salaryMode: "keep" | "custom";
   salary?: number;
   effectiveAt: string;
   reason: string;
+  assignAsDepartmentLeader?: boolean;
 }
 
 export interface HrTerminationParams {
