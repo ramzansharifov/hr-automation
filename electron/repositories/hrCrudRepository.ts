@@ -163,28 +163,15 @@ export class HrCrudRepository {
         }
       }
 
-      if (params.assignAsDepartmentLeader) {
-        const enterpriseLeadership = this.database
-          .prepare(
-            "SELECT id FROM enterprises WHERE general_director_employee_id = ? LIMIT 1",
-          )
-          .get(params.employeeId);
-        if (enterpriseLeadership) {
-          throw new Error(
-            "Сотрудник уже является руководителем предприятия. Сначала снимите текущее назначение",
-          );
-        }
-        const otherDepartmentLeadership = this.database
-          .prepare(
-            `SELECT id FROM departments
-             WHERE director_employee_id = ? AND id <> ? LIMIT 1`,
-          )
-          .get(params.employeeId, params.departmentId);
-        if (otherDepartmentLeadership) {
-          throw new Error(
-            "Сотрудник уже руководит другим отделом. Сначала снимите текущее назначение",
-          );
-        }
+      const leadership = params.leadershipAssignment;
+      if (leadership) {
+        this.assertLeadershipAssignmentAvailable(
+          params.employeeId,
+          leadership.type,
+          leadership.targetId,
+          params.enterpriseId,
+          params.departmentId,
+        );
       }
 
       this.assertLifecycleDate(params.employeeId, params.effectiveAt, employee);
@@ -203,9 +190,16 @@ export class HrCrudRepository {
         currentDepartmentId !== params.departmentId ||
         currentPositionId !== params.positionId ||
         Number(employee.salary ?? 0) !== nextSalary;
-      if (!hasEmploymentChanges && !params.assignAsDepartmentLeader) {
+      if (!hasEmploymentChanges && !leadership) {
         throw new Error("Новые условия не отличаются от текущих");
       }
+
+      const leadershipChangeType =
+        leadership?.type === "enterprise_director"
+          ? "enterprise_director"
+          : leadership?.type === "department_head"
+            ? "department_leader"
+            : null;
 
       let historyId: number | null = null;
       if (hasEmploymentChanges) {
@@ -235,7 +229,7 @@ export class HrCrudRepository {
           throw new Error("Не удалось создать запись кадрового журнала");
         }
         historyId = generatedHistory.id;
-      } else {
+      } else if (leadershipChangeType) {
         const insertedHistory = this.database
           .prepare(
             `INSERT INTO employment_history (
@@ -245,7 +239,7 @@ export class HrCrudRepository {
                previous_salary, new_salary,
                effective_at, reason
              ) VALUES (
-               @employeeId, 'department_leader',
+               @employeeId, @changeType,
                @departmentId, @departmentId,
                @positionId, @positionId,
                @salary, @salary,
@@ -253,6 +247,7 @@ export class HrCrudRepository {
              )`,
           )
           .run({
+            changeType: leadershipChangeType,
             departmentId: params.departmentId,
             effectiveAt: params.effectiveAt,
             employeeId: params.employeeId,
@@ -269,28 +264,35 @@ export class HrCrudRepository {
             `UPDATE employment_history
              SET effective_at = @effectiveAt,
                  reason = @reason,
-                 change_type = CASE
-                   WHEN @assignLeader = 1 THEN 'department_leader'
-                   ELSE change_type
-                 END
+                 change_type = COALESCE(@leadershipChangeType, change_type)
              WHERE id = @id`,
           )
           .run({
-            assignLeader: params.assignAsDepartmentLeader ? 1 : 0,
             effectiveAt: params.effectiveAt,
             id: historyId,
+            leadershipChangeType,
             reason: params.reason.trim(),
           });
       }
 
-      if (params.assignAsDepartmentLeader) {
+      if (leadership?.type === "enterprise_director") {
+        this.database
+          .prepare(
+            `UPDATE enterprises
+             SET general_director_employee_id = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+          )
+          .run(params.employeeId, leadership.targetId);
+      }
+
+      if (leadership?.type === "department_head") {
         this.database
           .prepare(
             `UPDATE departments
              SET director_employee_id = ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
           )
-          .run(params.employeeId, params.departmentId);
+          .run(params.employeeId, leadership.targetId);
       }
 
       return this.getEmployee(params.employeeId);
@@ -426,6 +428,59 @@ export class HrCrudRepository {
       .get(employeeId) as HrRecord | undefined;
     if (!employee) throw new Error("Сотрудник не найден");
     return employee;
+  }
+
+  private assertLeadershipAssignmentAvailable(
+    employeeId: number,
+    type: "enterprise_director" | "department_head",
+    targetId: number,
+    enterpriseId: number,
+    departmentId: number,
+  ): void {
+    if (type === "enterprise_director" && targetId !== enterpriseId) {
+      throw new Error("Предприятие назначения не совпадает с кадровым переводом");
+    }
+    if (type === "department_head" && targetId !== departmentId) {
+      throw new Error("Отдел назначения не совпадает с кадровым переводом");
+    }
+
+    const enterpriseLeadership = this.database
+      .prepare(
+        "SELECT id FROM enterprises WHERE general_director_employee_id = ? LIMIT 1",
+      )
+      .get(employeeId) as { id: number } | undefined;
+    const departmentLeadership = this.database
+      .prepare(
+        "SELECT id FROM departments WHERE director_employee_id = ? LIMIT 1",
+      )
+      .get(employeeId) as { id: number } | undefined;
+
+    if (
+      enterpriseLeadership &&
+      (type !== "enterprise_director" || enterpriseLeadership.id !== targetId)
+    ) {
+      throw new Error(
+        "Сотрудник уже является руководителем другого предприятия. Сначала снимите текущее назначение",
+      );
+    }
+    if (
+      departmentLeadership &&
+      (type !== "department_head" || departmentLeadership.id !== targetId)
+    ) {
+      throw new Error(
+        "Сотрудник уже является руководителем другого отдела. Сначала снимите текущее назначение",
+      );
+    }
+    if (type === "enterprise_director" && departmentLeadership) {
+      throw new Error(
+        "Сотрудник уже является руководителем отдела. Сначала снимите текущее назначение",
+      );
+    }
+    if (type === "department_head" && enterpriseLeadership) {
+      throw new Error(
+        "Сотрудник уже является руководителем предприятия. Сначала снимите текущее назначение",
+      );
+    }
   }
 
   private assertLifecycleDate(
