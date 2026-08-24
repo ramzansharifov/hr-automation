@@ -144,6 +144,18 @@ export class HrCrudService {
     if (params.positionId === null && !params.leadershipAssignment) {
       throw new Error("Для обычного кадрового изменения выберите должность");
     }
+    if (params.leadershipAssignment) {
+      if (params.positionId !== null) {
+        throw new Error(
+          "При назначении руководителем прежняя должность прекращается автоматически",
+        );
+      }
+      if (params.salaryMode !== "keep") {
+        throw new Error(
+          "Назначение руководителем не изменяет оклад. Измените оклад отдельным кадровым действием",
+        );
+      }
+    }
     return this.repository.changeEmployment(params);
   }
 

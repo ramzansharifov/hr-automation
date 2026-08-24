@@ -161,16 +161,46 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
     {
       defaultOrderBy: "last_name",
       listColumns: {
-        department_name: `(SELECT department.name
-          FROM departments AS department
-          WHERE department.id = employees.department_id)`,
-        position_name: `(SELECT position.name
-          FROM positions AS position
-          WHERE position.id = employees.position_id)`,
-        enterprise_name: `(SELECT enterprise.name
-          FROM departments AS department
-          JOIN enterprises AS enterprise ON enterprise.id = department.enterprise_id
-          WHERE department.id = employees.department_id)`,
+        department_name: `CASE
+          WHEN EXISTS (
+            SELECT 1 FROM enterprises AS leadership_enterprise
+            WHERE leadership_enterprise.general_director_employee_id = employees.id
+          ) THEN NULL
+          ELSE (
+            SELECT department.name
+            FROM departments AS department
+            WHERE department.id = employees.department_id
+          )
+        END`,
+        position_name: `CASE
+          WHEN EXISTS (
+            SELECT 1 FROM enterprises AS leadership_enterprise
+            WHERE leadership_enterprise.general_director_employee_id = employees.id
+          ) THEN 'Директор предприятия'
+          WHEN EXISTS (
+            SELECT 1 FROM departments AS leadership_department
+            WHERE leadership_department.director_employee_id = employees.id
+          ) THEN 'Руководитель отдела'
+          ELSE (
+            SELECT position.name
+            FROM positions AS position
+            WHERE position.id = employees.position_id
+          )
+        END`,
+        enterprise_name: `COALESCE(
+          (
+            SELECT leadership_enterprise.name
+            FROM enterprises AS leadership_enterprise
+            WHERE leadership_enterprise.general_director_employee_id = employees.id
+            LIMIT 1
+          ),
+          (
+            SELECT enterprise.name
+            FROM departments AS department
+            JOIN enterprises AS enterprise ON enterprise.id = department.enterprise_id
+            WHERE department.id = employees.department_id
+          )
+        )`,
       },
     },
   ),
