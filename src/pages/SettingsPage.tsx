@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   FiArchive,
   FiCheck,
-  FiDatabase,
   FiDownload,
   FiFolder,
   FiGlobe,
@@ -214,13 +213,6 @@ export function SettingsPage(): JSX.Element {
             })}
           </div>
         </SettingsCard>
-
-        <SettingsCard icon={<FiDatabase className="h-5 w-5" />} title="О приложении">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoItem label="Хранение данных" value="Локальная SQLite база" />
-            <InfoItem label="Режим" value="HR — без бухгалтерских начислений" />
-          </div>
-        </SettingsCard>
       </section>
 
       {hasSystemTools && (
@@ -355,15 +347,6 @@ function SettingsCard({
       </header>
       {children}
     </section>
-  );
-}
-
-function InfoItem({ label, value }: { label: string; value: string }): JSX.Element {
-  return (
-    <div className="app-surface-muted app-border rounded-2xl border p-4">
-      <p className="app-muted text-xs font-bold uppercase tracking-wide">{label}</p>
-      <p className="app-text mt-1 text-sm font-black">{value}</p>
-    </div>
   );
 }
 
