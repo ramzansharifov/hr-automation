@@ -12,9 +12,7 @@ import { getDatabase } from "../database/connection";
 import { AccessControlRepository } from "../repositories/accessControlRepository";
 import { AccessControlService } from "../services/accessControlService";
 import { AuditService } from "../services/auditService";
-import {
-  getActiveAuthenticationService,
-} from "../services/authenticationService";
+import { getActiveAuthenticationService } from "../services/authenticationService";
 import { AuthorizationService } from "../services/authorizationService";
 import { ipcValidation } from "./ipcValidation";
 
@@ -119,11 +117,19 @@ export function registerAccessIpcHandlers(): void {
       params.id ? "users.edit" : "users.create",
     );
     const roles = accessService.listRoles();
-    assertCanAssignRequestedRoles(session, params.roleIds, roles);
-
     const before = params.id
       ? accessService.listUsers().find((user) => user.id === params.id)
       : null;
+
+    if (before && !isSuperadminSession(session)) {
+      assertCanModifyExistingUserRoles(
+        session,
+        before.roles.map((role) => role.id),
+        roles,
+      );
+    }
+    assertCanAssignRequestedRoles(session, params.roleIds, roles);
+
     const saved = accessService.saveUser(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -199,20 +205,50 @@ function assertCanAssignRequestedRoles(
   }
 
   for (const role of requestedRoles as AccessRoleSummary[]) {
-    if (role.systemKey === "superadmin") {
-      throw new Error("Роль Superadmin нельзя назначать пользователям");
-    }
+    assertRoleCanBeAssigned(session, role);
+  }
+}
+
+function assertCanModifyExistingUserRoles(
+  session: AuthSession,
+  existingRoleIds: number[],
+  roles: AccessRoleSummary[],
+): void {
+  const roleMap = new Map(roles.map((role) => [role.id, role]));
+  for (const roleId of existingRoleIds) {
+    const role = roleMap.get(roleId);
+    if (!role) continue;
     if (
+      role.systemKey === "employee" ||
       role.systemKey === "enterprise_director" ||
       role.systemKey === "department_head"
     ) {
-      throw new Error(
-        "Руководящие системные роли назначаются автоматически из оргструктуры",
-      );
+      continue;
     }
-    if (role.systemKey === "employee") continue;
+    if (role.systemKey === "superadmin") {
+      throw new Error("Нельзя изменять пользователя с ролью Superadmin");
+    }
     assertCanDelegatePermissionCodes(session, role.permissionCodes);
   }
+}
+
+function assertRoleCanBeAssigned(
+  session: AuthSession,
+  role: AccessRoleSummary,
+): void {
+  if (role.systemKey === "superadmin") {
+    throw new Error("Роль Superadmin нельзя назначать пользователям");
+  }
+  if (
+    role.systemKey === "enterprise_director" ||
+    role.systemKey === "department_head"
+  ) {
+    throw new Error(
+      "Руководящие системные роли назначаются автоматически из оргструктуры",
+    );
+  }
+  if (role.systemKey === "employee") return;
+  assertCanDelegatePermissionCodes(session, role.permissionCodes);
 }
 
 function isSuperadminSession(session: AuthSession): boolean {
