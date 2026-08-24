@@ -147,6 +147,7 @@ export function AppLayout(): JSX.Element {
   const { hasPermission, logout, session } = useAuth();
 
   function isNavigationItemVisible(item: AppNavigationItem): boolean {
+    if (item.employeeAccountOnly && session.employeeId <= 0) return false;
     if (item.permissionCode && !hasPermission(item.permissionCode)) return false;
     if (
       item.requiredGlobalScope &&
