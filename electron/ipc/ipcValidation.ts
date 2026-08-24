@@ -53,6 +53,11 @@ const listSchema = z.object({
   orderDirection: z.enum(["asc", "desc"]).optional(),
 });
 
+const leadershipAssignmentSchema = z.object({
+  type: z.enum(["enterprise_director", "department_head"]),
+  targetId: positiveId,
+});
+
 const vacancySkillSchema = z.object({
   id: positiveId.optional(),
   type: z.enum(["hard", "soft"]),
@@ -107,7 +112,7 @@ export const ipcValidation = {
         salary: z.number().nonnegative().optional(),
         effectiveAt: dateSchema,
         reason: z.string().min(1).max(2000),
-        assignAsDepartmentLeader: z.boolean().optional(),
+        leadershipAssignment: leadershipAssignmentSchema.optional(),
       })
       .parse(value);
   },
