@@ -35,7 +35,7 @@ function getDefaultPath(permissionCodes: string[], employeeId: number): string {
   if (permissionCodes.includes("dashboard.view")) return "/dashboard";
   if (permissionCodes.includes("employees.view")) return "/employees";
   if (permissionCodes.includes("organization.view")) return "/enterprises";
-  if (permissionCodes.includes("directory.view")) return "/team";
+  if (permissionCodes.includes("directory.view")) return "/my-enterprise";
   if (permissionCodes.includes("vacations.view")) return "/vacations";
   if (permissionCodes.includes("vacancies.view")) return "/vacancies";
   if (permissionCodes.includes("candidates.view")) return "/candidates";
