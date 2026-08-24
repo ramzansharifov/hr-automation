@@ -8,7 +8,7 @@ INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT role.id, permission.id
 FROM roles AS role
 JOIN permissions AS permission ON permission.code = 'directory.view'
-WHERE role.system_key IN ('employee', 'enterprise_director', 'department_head', 'superadmin');
+WHERE role.system_key IN ('employee', 'enterprise_director', 'department_head');
 
 CREATE TRIGGER role_permissions_system_insert_guard
 BEFORE INSERT ON role_permissions
