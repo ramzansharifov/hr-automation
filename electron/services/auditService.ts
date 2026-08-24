@@ -30,7 +30,7 @@ export class AuditService {
     entityId?: number | null,
     before?: HrRecord | null,
     after?: HrRecord | null,
-    metadata?: HrRecord | null,
+    metadata?: Record<string, unknown> | null,
   ): void {
     const actorAccountType = session
       ? session.employeeId === 0
@@ -92,7 +92,9 @@ export class AuditService {
   }
 }
 
-function stringify(value: HrRecord | null | undefined): string | null {
+function stringify(
+  value: Record<string, unknown> | null | undefined,
+): string | null {
   return value ? JSON.stringify(value) : null;
 }
 
