@@ -197,14 +197,12 @@ export const administrationNavigationItems: AppNavigationItem[] = [
     path: "/users",
     icon: FiUserCheck,
     permissionCode: "users.view",
-    requiredGlobalScope: true,
   },
   {
     titleKey: "Роли",
     path: "/roles",
     icon: FiShield,
     permissionCode: "roles.view",
-    requiredGlobalScope: true,
   },
   {
     titleKey: "Журнал действий",
