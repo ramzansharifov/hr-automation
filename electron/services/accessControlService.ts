@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { normalizePermissionDependencies } from "../../src/shared/access/permissionRules";
 import type {
+  AccessControlOverview,
   AccessPermission,
   AccessRoleSummary,
   AccessUserSummary,
@@ -32,6 +33,15 @@ export class AccessControlService {
 
   getSystemAdmin(): SystemAdminSummary {
     return this.repository.getSystemAdmin();
+  }
+
+  getOverview(): AccessControlOverview {
+    return {
+      permissions: this.listPermissions(),
+      roles: this.listRoles(),
+      users: this.listUsers(),
+      systemAdmin: this.getSystemAdmin(),
+    };
   }
 
   saveRole(params: SaveAccessRoleParams): AccessRoleSummary {
