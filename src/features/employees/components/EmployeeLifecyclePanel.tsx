@@ -17,10 +17,16 @@ import {
   Button,
   Dialog,
   Input,
+  SearchableSelect,
   Select,
   Textarea,
   type SelectOption,
 } from "../../../shared/ui";
+import {
+  loadEmployeeRelationOptions,
+  type DepartmentOption,
+  type PositionOption,
+} from "../lib/employeeRelations";
 
 interface EmployeeLifecyclePanelProps {
   canChangeEmployment: boolean;
@@ -40,16 +46,16 @@ export function EmployeeLifecyclePanel({
   onEmployeeUpdated,
 }: EmployeeLifecyclePanelProps): JSX.Element {
   const [history, setHistory] = useState<HrRecord[]>([]);
-  const [departments, setDepartments] = useState<SelectOption[]>([]);
-  const [positions, setPositions] = useState<
-    Array<SelectOption & { departmentId: string }>
-  >([]);
+  const [enterprises, setEnterprises] = useState<SelectOption[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [positions, setPositions] = useState<PositionOption[]>([]);
   const [careerOpen, setCareerOpen] = useState(false);
   const [terminationOpen, setTerminationOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const [career, setCareer] = useState({
+    enterpriseId: "",
     departmentId: String(employee.department_id ?? ""),
     positionId: String(employee.position_id ?? ""),
     salaryMode: "keep",
@@ -78,38 +84,16 @@ export function EmployeeLifecyclePanel({
     setHistory(historyResult.items);
 
     if (!canChangeEmployment) {
+      setEnterprises([]);
       setDepartments([]);
       setPositions([]);
       return;
     }
 
-    const [departmentResult, positionResult] = await Promise.all([
-      hrApiClient.list({
-        entity: "departments",
-        page: 1,
-        pageSize: 100,
-        orderBy: "name",
-      }),
-      hrApiClient.list({
-        entity: "positions",
-        page: 1,
-        pageSize: 100,
-        orderBy: "name",
-      }),
-    ]);
-    setDepartments(
-      departmentResult.items.map((item) => ({
-        value: String(item.id),
-        label: String(item.name),
-      })),
-    );
-    setPositions(
-      positionResult.items.map((item) => ({
-        value: String(item.id),
-        label: String(item.name),
-        departmentId: String(item.department_id ?? ""),
-      })),
-    );
+    const relationOptions = await loadEmployeeRelationOptions();
+    setEnterprises(relationOptions.enterprises);
+    setDepartments(relationOptions.departments);
+    setPositions(relationOptions.positions);
   }, [canChangeEmployment, employeeId]);
 
   useEffect(() => {
@@ -117,9 +101,14 @@ export function EmployeeLifecyclePanel({
   }, [loadData]);
 
   useEffect(() => {
+    const departmentId = String(employee.department_id ?? "");
+    const enterpriseId =
+      departments.find((department) => department.value === departmentId)
+        ?.enterpriseId ?? "";
     setCareer((current) => ({
       ...current,
-      departmentId: String(employee.department_id ?? ""),
+      enterpriseId,
+      departmentId,
       positionId: String(employee.position_id ?? ""),
       salary: String(employee.salary ?? 0),
     }));
@@ -127,7 +116,18 @@ export function EmployeeLifecyclePanel({
       ...current,
       hireDate: String(employee.hire_date ?? ""),
     }));
-  }, [employee]);
+  }, [departments, employee]);
+
+  const availableDepartments = career.enterpriseId
+    ? departments.filter(
+        (department) => department.enterpriseId === career.enterpriseId,
+      )
+    : [];
+  const availablePositions = career.departmentId
+    ? positions.filter(
+        (position) => position.departmentId === career.departmentId,
+      )
+    : [];
 
   const currentAssignmentStartedAt = String(
     history.find(
@@ -145,14 +145,15 @@ export function EmployeeLifecyclePanel({
   async function saveCareerChange(event: React.FormEvent): Promise<void> {
     event.preventDefault();
     if (!canChangeEmployment) return;
-    if (!career.positionId || !career.departmentId) {
-      toast.error("Выберите отдел и должность");
+    if (!career.enterpriseId || !career.departmentId || !career.positionId) {
+      toast.error("Выберите предприятие, отдел и должность");
       return;
     }
     setSaving(true);
     try {
       const updated = await hrApiClient.changeEmployment({
         employeeId,
+        enterpriseId: Number(career.enterpriseId),
         departmentId: Number(career.departmentId),
         positionId: Number(career.positionId),
         salaryMode: career.salaryMode as "keep" | "custom",
@@ -230,7 +231,9 @@ export function EmployeeLifecyclePanel({
           label="На текущей должности"
           value={
             isActive
-              ? durationBetween(currentAssignmentStartedAt)
+              ? employee.position_id
+                ? durationBetween(currentAssignmentStartedAt)
+                : "Не назначена"
               : "Работа завершена"
           }
         />
@@ -297,30 +300,55 @@ export function EmployeeLifecyclePanel({
             open={careerOpen}
             onOpenChange={setCareerOpen}
             title="Кадровое изменение"
-            description="Перевод, повышение, понижение или изменение оклада с обязательной датой и основанием."
+            description="Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
           >
             <form className="grid gap-4" onSubmit={saveCareerChange}>
+              <Field label="Предприятие">
+                <SearchableSelect
+                  options={enterprises}
+                  value={career.enterpriseId}
+                  onValueChange={(enterpriseId) =>
+                    setCareer((value) => ({
+                      ...value,
+                      enterpriseId,
+                      departmentId: "",
+                      positionId: "",
+                    }))
+                  }
+                  placeholder="Выберите предприятие"
+                  searchPlaceholder="Поиск предприятия"
+                />
+              </Field>
               <Field label="Отдел">
-                <Select
-                  options={departments}
+                <SearchableSelect
+                  disabled={!career.enterpriseId}
+                  options={availableDepartments}
                   value={career.departmentId}
                   onValueChange={(departmentId) =>
                     setCareer((value) => ({ ...value, departmentId, positionId: "" }))
                   }
-                  placeholder="Выберите отдел"
+                  placeholder={
+                    career.enterpriseId
+                      ? "Выберите отдел"
+                      : "Сначала выберите предприятие"
+                  }
+                  searchPlaceholder="Поиск отдела"
                 />
               </Field>
               <Field label="Новая должность">
-                <Select
-                  options={positions.filter(
-                    (item) =>
-                      !career.departmentId || item.departmentId === career.departmentId,
-                  )}
+                <SearchableSelect
+                  disabled={!career.departmentId}
+                  options={availablePositions}
                   value={career.positionId}
                   onValueChange={(positionId) =>
                     setCareer((value) => ({ ...value, positionId }))
                   }
-                  placeholder="Выберите должность"
+                  placeholder={
+                    career.departmentId
+                      ? "Выберите должность"
+                      : "Сначала выберите отдел"
+                  }
+                  searchPlaceholder="Поиск должности"
                 />
               </Field>
               <Field label="Оклад">
@@ -360,7 +388,7 @@ export function EmployeeLifecyclePanel({
               <Field label="Основание изменения">
                 <Textarea
                   required
-                  placeholder="Например: приказ №12 от 13.07.2026"
+                  placeholder="Например: перевод в другое предприятие по приказу №12"
                   rows={3}
                   value={career.reason}
                   onChange={(event) =>
@@ -519,7 +547,9 @@ function HistoryItem({
     ? "Увольнение"
     : changeType === "hired"
       ? "Приём на работу"
-      : String(item.new_position_name ?? "Кадровое изменение");
+      : changeType === "department_leader"
+        ? "Назначение руководителем отдела"
+        : String(item.new_position_name ?? "Кадровое изменение");
   const department = terminated
     ? String(item.previous_department_name ?? "")
     : String(item.new_department_name ?? "");
