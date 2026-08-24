@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
+import { getUserFacingErrorMessage } from '../../../shared/lib/userFacingErrors'
 import { ConfirmDialog } from '../../../shared/ui'
 
 interface HrEntityDeleteDialogProps {
@@ -25,8 +26,7 @@ export function HrEntityDeleteDialog({
       toast.success(t('forms.toasts.deleted'))
       onOpenChange(false)
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('forms.toasts.deleteError')
-      toast.error(message)
+      toast.error(getUserFacingErrorMessage(error, t('forms.toasts.deleteError')))
     } finally {
       setIsLoading(false)
     }

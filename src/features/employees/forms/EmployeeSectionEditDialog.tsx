@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import type { HrRecord } from "../../../shared/types/hr";
 import { Button, Dialog } from "../../../shared/ui";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
+import { getUserFacingErrorMessage } from "../../../shared/lib/userFacingErrors";
 import {
   normalizeEmail,
   normalizePersonName,
@@ -108,7 +109,12 @@ export function EmployeeSectionEditDialog({
       toast.success(t("forms.toasts.updated"));
       onOpenChange(false);
     } catch (error) {
-      toast.error(getErrorMessage(error, t("forms.toasts.updateError")));
+      toast.error(
+        getUserFacingErrorMessage(
+          error,
+          "Не удалось сохранить изменения. Проверьте заполненные данные",
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -192,10 +198,4 @@ function getSectionDialogTitle(
     company: "employeesDetails.edit.company",
   };
   return t(titleKeys[section]);
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) return fallback;
-  const parts = error.message.split("Error: ");
-  return parts[parts.length - 1] || fallback;
 }

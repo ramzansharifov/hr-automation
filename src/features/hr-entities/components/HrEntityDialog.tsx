@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import type { HrEntityKey, HrRecord } from '../../../shared/types/hr'
 import { Button, Dialog } from '../../../shared/ui'
+import { getUserFacingErrorMessage } from '../../../shared/lib/userFacingErrors'
 import { getHrEntityFormConfig } from '../config/hrEntityFormConfig'
 import {
   getHrEntityDefaultValues,
@@ -47,11 +48,12 @@ export function HrEntityDialog({
       toast.success(t(mode === 'create' ? 'forms.toasts.created' : 'forms.toasts.updated'))
       onOpenChange(false)
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t(mode === 'create' ? 'forms.toasts.createError' : 'forms.toasts.updateError')
-      toast.error(message)
+      toast.error(
+        getUserFacingErrorMessage(
+          error,
+          t(mode === 'create' ? 'forms.toasts.createError' : 'forms.toasts.updateError'),
+        ),
+      )
     } finally {
       setIsSubmitting(false)
     }
