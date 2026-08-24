@@ -8,7 +8,6 @@ import {
 import type {
   AccessRoleSummary,
   AccessScopeType,
-  AccessUserRole,
   AccessUserSummary,
   AuthSession,
 } from "../../src/shared/types/access";
