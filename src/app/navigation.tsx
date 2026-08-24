@@ -28,14 +28,35 @@ export interface AppNavigationItem {
 
 export const mainNavigationItems: AppNavigationItem[] = [
   {
+    titleKey: "navigation.profile",
+    path: "/profile",
+    icon: FiUser,
+    permissionCode: "profile.view",
+    employeeAccountOnly: true,
+  },
+  {
     titleKey: "navigation.dashboard",
     path: "/dashboard",
     icon: FiHome,
     permissionCode: "dashboard.view",
   },
   {
-    titleKey: "Моя команда",
-    path: "/team",
+    titleKey: "Предприятие",
+    path: "/my-enterprise",
+    icon: FiLayers,
+    permissionCode: "directory.view",
+    employeeAccountOnly: true,
+  },
+  {
+    titleKey: "Отдел",
+    path: "/my-department",
+    icon: FiBriefcase,
+    permissionCode: "directory.view",
+    employeeAccountOnly: true,
+  },
+  {
+    titleKey: "Коллеги",
+    path: "/colleagues",
     icon: FiUsers,
     permissionCode: "directory.view",
     employeeAccountOnly: true,
@@ -114,12 +135,6 @@ export const administrationNavigationItems: AppNavigationItem[] = [
 ];
 
 export const bottomNavigationItems: AppNavigationItem[] = [
-  {
-    titleKey: "navigation.profile",
-    path: "/profile",
-    icon: FiUser,
-    permissionCode: "profile.view",
-  },
   {
     titleKey: "navigation.settings",
     path: "/settings",

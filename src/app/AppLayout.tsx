@@ -57,11 +57,15 @@ function SidebarItem({
   const Icon = item.icon;
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  const { session } = useAuth();
   const title = t(item.titleKey);
+  const isOwnProfileActive =
+    item.path === "/profile" && pathname === `/employees/${session.employeeId}`;
   const isActive =
-    item.path === "/"
+    isOwnProfileActive ||
+    (item.path === "/"
       ? pathname === "/"
-      : pathname === item.path || pathname.startsWith(`${item.path}/`);
+      : pathname === item.path || pathname.startsWith(`${item.path}/`));
 
   const link = (
     <NavLink
@@ -147,6 +151,7 @@ export function AppLayout(): JSX.Element {
   const { hasPermission, logout, session } = useAuth();
 
   function isNavigationItemVisible(item: AppNavigationItem): boolean {
+    if (item.employeeAccountOnly && session.employeeId <= 0) return false;
     if (item.permissionCode && !hasPermission(item.permissionCode)) return false;
     if (
       item.requiredGlobalScope &&

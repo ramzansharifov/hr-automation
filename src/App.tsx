@@ -45,7 +45,10 @@ function App(): JSX.Element {
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<AuthorizedHome />} />
           <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><DashboardPage /></RequirePermission>} />
-          <Route path="team" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage /></RequirePermission>} />
+          <Route path="team" element={<RequirePermission anyOf={["directory.view"]}><Navigate to="/my-enterprise" replace /></RequirePermission>} />
+          <Route path="my-enterprise" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="enterprise" /></RequirePermission>} />
+          <Route path="my-department" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="department" /></RequirePermission>} />
+          <Route path="colleagues" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="colleagues" /></RequirePermission>} />
           <Route path="employees" element={<RequirePermission anyOf={["employees.view"]}><EmployeesPage /></RequirePermission>} />
           <Route path="employees/new" element={<RequirePermission anyOf={["employees.create"]}><EmployeeCreatePage /></RequirePermission>} />
           <Route path="employees/:id" element={<RequirePermission anyOf={["employees.view", "profile.view"]}><EmployeeDetailsPage /></RequirePermission>} />
