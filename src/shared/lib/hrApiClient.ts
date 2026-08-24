@@ -78,7 +78,10 @@ export const hrApiClient = {
     notifyAuthSessionChanged(getHrApi().hireCandidate(params)),
   deleteCandidate: (id: number) =>
     notifyAuthSessionChanged(getHrApi().deleteCandidate(id)),
-  getAccessOverview: () => getHrApi().getAccessOverview(),
+  listAccessPermissions: () => getHrApi().listAccessPermissions(),
+  listAccessRoles: () => getHrApi().listAccessRoles(),
+  listAccessUsers: () => getHrApi().listAccessUsers(),
+  getAccessSystemAdmin: () => getHrApi().getAccessSystemAdmin(),
   saveAccessRole: (params: SaveAccessRoleParams) =>
     notifyAuthSessionChanged(getHrApi().saveAccessRole(params)),
   deleteAccessRole: (id: number) =>
