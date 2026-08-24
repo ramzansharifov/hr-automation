@@ -21,14 +21,23 @@ import type {
   SaveAccessRoleParams,
   SaveAccessUserParams,
 } from "../types/access";
+import type { EmployeeWorkspaceData } from "../types/employeeWorkspace";
 
 export const AUTH_SESSION_SYNC_EVENT = "hr:auth-session-sync";
+
+type EmployeeWorkspaceBridge = {
+  getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
+};
 
 function getHrApi() {
   if (window.hrApi) return window.hrApi;
   throw new Error(
     "HR API недоступен. Приложение необходимо открыть в защищённом Electron-окне.",
   );
+}
+
+function getEmployeeWorkspaceBridge(): EmployeeWorkspaceBridge {
+  return getHrApi() as typeof window.hrApi & EmployeeWorkspaceBridge;
 }
 
 function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
@@ -62,6 +71,7 @@ export const hrApiClient = {
   delete: (params: HrDeleteParams) =>
     notifyAuthSessionChanged(getHrApi().delete(params)),
   dashboard: () => getHrApi().dashboard(),
+  getEmployeeWorkspace: () => getEmployeeWorkspaceBridge().getEmployeeWorkspace(),
   listVacancies: (params: RecruitmentListParams) =>
     getHrApi().listVacancies(params),
   getVacancy: (id: number) => getHrApi().getVacancy(id),
