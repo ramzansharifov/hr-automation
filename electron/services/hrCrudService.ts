@@ -54,6 +54,9 @@ export class HrCrudService {
       data.status = "active";
       data.terminated_at = null;
       data.termination_reason = null;
+      if (!String(data.hire_date ?? "").trim()) {
+        data.hire_date = new Date().toISOString().slice(0, 10);
+      }
     }
     if (params.entity === "vacations") {
       data.status = "planned";
@@ -127,6 +130,9 @@ export class HrCrudService {
     assertReasonAndDate(params.reason, params.effectiveAt);
     if (params.salaryMode !== "keep" && params.salaryMode !== "custom") {
       throw new Error("Выберите корректный способ изменения оклада");
+    }
+    if (params.positionId === null && !params.assignAsDepartmentLeader) {
+      throw new Error("Для обычного кадрового изменения выберите должность");
     }
     return this.repository.changeEmployment(params);
   }
@@ -212,7 +218,7 @@ export class HrCrudService {
 
     const employeeId = normalizeOptionalId(data[field]);
     if (employeeId === null) return;
-    const employee = this.getLeaderCandidate(employeeId);
+    const employee = this.getDirectLeaderCandidate(employeeId);
     const departmentId = normalizeOptionalId(employee.department_id);
     if (departmentId === null) {
       throw new Error("Выбранный сотрудник не относится к этому предприятию");
@@ -243,15 +249,15 @@ export class HrCrudService {
 
     const employeeId = normalizeOptionalId(data[field]);
     if (employeeId === null) return;
-    const employee = this.getLeaderCandidate(employeeId);
+    const employee = this.getDirectLeaderCandidate(employeeId);
     if (Number(employee.department_id) !== departmentId) {
       throw new Error(
-        "Руководителем отдела можно назначить только сотрудника этого отдела",
+        "Сотрудник ещё не относится к этому отделу. Используйте назначение через кадровое изменение",
       );
     }
   }
 
-  private getLeaderCandidate(employeeId: number): HrRecord {
+  private getDirectLeaderCandidate(employeeId: number): HrRecord {
     const employee = this.repository.getById(
       getHrCrudEntityConfig("employees"),
       employeeId,
@@ -265,7 +271,9 @@ export class HrCrudService {
       employee.position_id !== undefined &&
       employee.position_id !== ""
     ) {
-      throw new Error("У выбранного сотрудника уже назначена должность");
+      throw new Error(
+        "У сотрудника уже есть должность. Назначение руководителем оформите через кадровое изменение",
+      );
     }
     return employee;
   }
