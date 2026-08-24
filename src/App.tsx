@@ -9,6 +9,7 @@ import {
 } from "./features/auth/PermissionRoute";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { EmployeeWorkspacePage } from "./pages/EmployeeWorkspacePage";
 import { FiltersPage } from "./pages/FiltersPage";
 import { OrganizationDetailsPage } from "./pages/OrganizationDetailsPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
@@ -44,6 +45,7 @@ function App(): JSX.Element {
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<AuthorizedHome />} />
           <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><DashboardPage /></RequirePermission>} />
+          <Route path="team" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage /></RequirePermission>} />
           <Route path="employees" element={<RequirePermission anyOf={["employees.view"]}><EmployeesPage /></RequirePermission>} />
           <Route path="employees/new" element={<RequirePermission anyOf={["employees.create"]}><EmployeeCreatePage /></RequirePermission>} />
           <Route path="employees/:id" element={<RequirePermission anyOf={["employees.view", "profile.view"]}><EmployeeDetailsPage /></RequirePermission>} />

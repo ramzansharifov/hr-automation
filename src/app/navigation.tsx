@@ -22,6 +22,7 @@ export interface AppNavigationItem {
   icon: IconType;
   permissionCode?: string;
   requiredGlobalScope?: boolean;
+  employeeAccountOnly?: boolean;
   entity?: HrEntityKey;
 }
 
@@ -31,6 +32,13 @@ export const mainNavigationItems: AppNavigationItem[] = [
     path: "/dashboard",
     icon: FiHome,
     permissionCode: "dashboard.view",
+  },
+  {
+    titleKey: "Моя команда",
+    path: "/team",
+    icon: FiUsers,
+    permissionCode: "directory.view",
+    employeeAccountOnly: true,
   },
   {
     titleKey: "navigation.employees",

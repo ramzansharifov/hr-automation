@@ -23,8 +23,13 @@ import type {
   SaveAccessRoleParams,
   SaveAccessUserParams,
 } from "../src/shared/types/access";
+import type { EmployeeWorkspaceData } from "../src/shared/types/employeeWorkspace";
 
-const hrApi: HrApi = {
+type ExtendedHrApi = HrApi & {
+  getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
+};
+
+const hrApi: ExtendedHrApi = {
   getAuthState: () => ipcRenderer.invoke("auth:state"),
   listBootstrapEmployees: () => ipcRenderer.invoke("auth:bootstrapEmployees"),
   bootstrapSuperadmin: (params: BootstrapSuperadminParams) =>
@@ -45,6 +50,7 @@ const hrApi: HrApi = {
     ipcRenderer.invoke("hr:correctHireDate", params),
   delete: (params: HrDeleteParams) => ipcRenderer.invoke("hr:delete", params),
   dashboard: () => ipcRenderer.invoke("hr:dashboard"),
+  getEmployeeWorkspace: () => ipcRenderer.invoke("employee:workspace"),
   listVacancies: (params: RecruitmentListParams) =>
     ipcRenderer.invoke("recruitment:listVacancies", params),
   getVacancy: (id: number) => ipcRenderer.invoke("recruitment:getVacancy", id),

@@ -4,6 +4,8 @@ export const permissionDependencies: Record<string, string[]> = {
   "recruitment.manage": ["recruitment.view"],
   "vacations.manage": ["vacations.view"],
 
+  "directory.view": ["profile.view"],
+
   "employees.create": ["employees.view", "organization.view"],
   "employees.edit": ["employees.view", "organization.view"],
   "employees.change_employment": ["employees.view", "organization.view"],
