@@ -17,10 +17,12 @@ import { RoleAwareDashboardPage } from "./pages/RoleAwareDashboardPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { VacationTypesPage } from "./pages/VacationTypesPage";
 import { VacationsPage } from "./pages/VacationsPage";
-import { AccessRoleDetailsPage } from "./pages/access/AccessRoleDetailsPage";
-import { AccessRoleFormPage } from "./pages/access/AccessRoleFormPage";
+import {
+  AccessRoleDetailsRoutePage,
+  AccessRoleFormRoutePage,
+  AccessUsersRoutePage,
+} from "./pages/access/AccessRoutePages";
 import { AccessRolesPage } from "./pages/access/AccessRolesPage";
-import { AccessUsersPage } from "./pages/access/AccessUsersPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
@@ -60,11 +62,11 @@ function App(): JSX.Element {
           <Route path="vacancies/:id" element={<RequirePermission anyOf={["vacancies.view"]}><VacancyDetailsPage /></RequirePermission>} />
           <Route path="vacancies/:id/edit" element={<RequirePermission anyOf={["vacancies.edit"]}><VacancyFormPage /></RequirePermission>} />
           <Route path="candidates" element={<RequirePermission anyOf={["candidates.view"]}><CandidatesPage /></RequirePermission>} />
-          <Route path="users" element={<RequirePermission anyOf={["users.view"]}><AccessUsersPage /></RequirePermission>} />
+          <Route path="users" element={<RequirePermission anyOf={["users.view"]}><AccessUsersRoutePage /></RequirePermission>} />
           <Route path="roles" element={<RequirePermission anyOf={["roles.view"]}><AccessRolesPage /></RequirePermission>} />
-          <Route path="roles/new" element={<RequirePermission anyOf={["roles.create"]}><AccessRoleFormPage /></RequirePermission>} />
-          <Route path="roles/:id/edit" element={<RequirePermission anyOf={["roles.edit"]}><AccessRoleFormPage /></RequirePermission>} />
-          <Route path="roles/:id" element={<RequirePermission anyOf={["roles.view"]}><AccessRoleDetailsPage /></RequirePermission>} />
+          <Route path="roles/new" element={<RequirePermission anyOf={["roles.create"]}><AccessRoleFormRoutePage /></RequirePermission>} />
+          <Route path="roles/:id/edit" element={<RequirePermission anyOf={["roles.edit"]}><AccessRoleFormRoutePage /></RequirePermission>} />
+          <Route path="roles/:id" element={<RequirePermission anyOf={["roles.view"]}><AccessRoleDetailsRoutePage /></RequirePermission>} />
           <Route path="access" element={<Navigate to="/users" replace />} />
           <Route path="audit" element={<RequirePermission anyOf={["audit.view"]}><AuditLogPage /></RequirePermission>} />
           <Route path="enterprises" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />

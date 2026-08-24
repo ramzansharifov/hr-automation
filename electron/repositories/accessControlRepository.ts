@@ -18,6 +18,10 @@ interface RoleRow {
   scope_type: AccessScopeType;
   is_system: number;
   system_key: SystemRoleKey | null;
+  enterprise_id: number | null;
+  enterprise_name: string | null;
+  department_id: number | null;
+  department_name: string | null;
   user_count: number;
 }
 
@@ -52,6 +56,8 @@ export interface PersistAccessRoleInput {
   name: string;
   description: string;
   scopeType: AccessScopeType;
+  enterpriseId: number | null;
+  departmentId: number | null;
   permissionCodes: string[];
 }
 
@@ -116,8 +122,15 @@ export class AccessControlRepository {
            role.scope_type,
            role.is_system,
            role.system_key,
+           COALESCE(role.enterprise_id, role_department.enterprise_id) AS enterprise_id,
+           role_enterprise.name AS enterprise_name,
+           role.department_id,
+           role_department.name AS department_name,
            COUNT(DISTINCT user_role.user_id) AS user_count
          FROM roles AS role
+         LEFT JOIN departments AS role_department ON role_department.id = role.department_id
+         LEFT JOIN enterprises AS role_enterprise
+           ON role_enterprise.id = COALESCE(role.enterprise_id, role_department.enterprise_id)
          LEFT JOIN user_roles AS user_role ON user_role.role_id = role.id
          GROUP BY role.id
          ORDER BY role.is_system DESC, role.name`,
@@ -140,6 +153,10 @@ export class AccessControlRepository {
       scopeType: role.scope_type,
       isSystem: role.is_system === 1,
       systemKey: role.system_key,
+      enterpriseId: role.enterprise_id,
+      enterpriseName: role.enterprise_name ?? "",
+      departmentId: role.department_id,
+      departmentName: role.department_name ?? "",
       permissionCodes: (permissionStatement.all(role.id) as Array<{ code: string }>).map(
         (item) => item.code,
       ),
@@ -177,18 +194,41 @@ export class AccessControlRepository {
       .all() as UserRow[];
 
     const roleStatement = this.database.prepare(
-      `SELECT role.id, role.code, role.name, role.scope_type, role.is_system, role.system_key
+      `SELECT
+         role.id,
+         role.code,
+         role.name,
+         role.scope_type,
+         role.is_system,
+         role.system_key,
+         COALESCE(role.enterprise_id, role_department.enterprise_id) AS enterprise_id,
+         role_enterprise.name AS enterprise_name,
+         role.department_id,
+         role_department.name AS department_name
        FROM user_roles AS user_role
        JOIN roles AS role ON role.id = user_role.role_id
+       LEFT JOIN departments AS role_department ON role_department.id = role.department_id
+       LEFT JOIN enterprises AS role_enterprise
+         ON role_enterprise.id = COALESCE(role.enterprise_id, role_department.enterprise_id)
        WHERE user_role.user_id = ?
        ORDER BY role.is_system DESC, role.name`,
     );
     const permissionStatement = this.database.prepare(
       `SELECT DISTINCT permission.code
        FROM user_roles AS user_role
+       JOIN roles AS role ON role.id = user_role.role_id
+       JOIN users AS user ON user.id = user_role.user_id
+       JOIN employees AS employee ON employee.id = user.employee_id
+       LEFT JOIN departments AS employee_department ON employee_department.id = employee.department_id
        JOIN role_permissions AS role_permission ON role_permission.role_id = user_role.role_id
        JOIN permissions AS permission ON permission.id = role_permission.permission_id
        WHERE user_role.user_id = ?
+         AND (
+           role.is_system = 1
+           OR role.scope_type = 'global'
+           OR (role.scope_type = 'enterprise' AND role.enterprise_id = employee_department.enterprise_id)
+           OR (role.scope_type = 'department' AND role.department_id = employee.department_id)
+         )
        ORDER BY permission.code`,
     );
 
@@ -203,20 +243,17 @@ export class AccessControlRepository {
       username: user.username,
       status: user.status,
       mustChangePassword: user.must_change_password === 1,
-      roles: (roleStatement.all(user.id) as Array<{
-        id: number;
-        code: string;
-        name: string;
-        scope_type: AccessScopeType;
-        is_system: number;
-        system_key: SystemRoleKey | null;
-      }>).map<AccessUserRole>((role) => ({
+      roles: (roleStatement.all(user.id) as RoleRow[]).map<AccessUserRole>((role) => ({
         id: role.id,
         code: role.code,
         name: role.name,
         scopeType: role.scope_type,
         isSystem: role.is_system === 1,
         systemKey: role.system_key,
+        enterpriseId: role.enterprise_id,
+        enterpriseName: role.enterprise_name ?? "",
+        departmentId: role.department_id,
+        departmentName: role.department_name ?? "",
       })),
       effectivePermissionCodes: (
         permissionStatement.all(user.id) as Array<{ code: string }>
@@ -239,7 +276,9 @@ export class AccessControlRepository {
     if (roleIds.length === 0) return [];
     const placeholders = roleIds.map(() => "?").join(", ");
     const rows = this.database
-      .prepare(`SELECT system_key FROM roles WHERE id IN (${placeholders}) AND is_system = 1`)
+      .prepare(
+        `SELECT system_key FROM roles WHERE id IN (${placeholders}) AND is_system = 1`,
+      )
       .all(...roleIds) as Array<{ system_key: SystemRoleKey }>;
     return rows.map((row) => row.system_key);
   }
@@ -345,23 +384,45 @@ export class AccessControlRepository {
       if (roleId) {
         this.database
           .prepare(
-            `UPDATE roles SET name = ?, description = ?, scope_type = ? WHERE id = ? AND is_system = 0`,
+            `UPDATE roles
+             SET name = ?, description = ?, scope_type = ?, enterprise_id = ?, department_id = ?
+             WHERE id = ? AND is_system = 0`,
           )
-          .run(input.name, input.description, input.scopeType, roleId);
+          .run(
+            input.name,
+            input.description,
+            input.scopeType,
+            input.enterpriseId,
+            input.departmentId,
+            roleId,
+          );
         this.database.prepare("DELETE FROM role_permissions WHERE role_id = ?").run(roleId);
       } else {
         const result = this.database
           .prepare(
-            `INSERT INTO roles (code, name, description, scope_type, is_system, system_key) VALUES (?, ?, ?, ?, 0, NULL)`,
+            `INSERT INTO roles (
+               code, name, description, scope_type, is_system, system_key,
+               enterprise_id, department_id
+             ) VALUES (?, ?, ?, ?, 0, NULL, ?, ?)`,
           )
-          .run(input.code, input.name, input.description, input.scopeType);
+          .run(
+            input.code,
+            input.name,
+            input.description,
+            input.scopeType,
+            input.enterpriseId,
+            input.departmentId,
+          );
         roleId = Number(result.lastInsertRowid);
       }
 
       const insertPermission = this.database.prepare(
-        `INSERT INTO role_permissions (role_id, permission_id) SELECT ?, id FROM permissions WHERE code = ?`,
+        `INSERT INTO role_permissions (role_id, permission_id)
+         SELECT ?, id FROM permissions WHERE code = ?`,
       );
-      for (const code of [...new Set(input.permissionCodes)]) insertPermission.run(roleId, code);
+      for (const code of [...new Set(input.permissionCodes)]) {
+        insertPermission.run(roleId, code);
+      }
       return roleId;
     });
 
@@ -436,7 +497,9 @@ export class AccessControlRepository {
       const insertRole = this.database.prepare(
         "INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)",
       );
-      for (const roleId of [...new Set(input.roleIds)]) insertRole.run(userId, roleId);
+      for (const roleId of [...new Set(input.roleIds)]) {
+        insertRole.run(userId, roleId);
+      }
       return userId;
     });
 
@@ -454,7 +517,9 @@ export class AccessControlRepository {
   ): void {
     this.database
       .prepare(
-        `UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = ? WHERE id = ?`,
+        `UPDATE users
+         SET password_hash = ?, password_salt = ?, must_change_password = ?
+         WHERE id = ?`,
       )
       .run(passwordHash, passwordSalt, mustChangePassword ? 1 : 0, userId);
   }

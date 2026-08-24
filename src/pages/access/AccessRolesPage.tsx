@@ -26,7 +26,7 @@ import { AccessMetric, getErrorMessage } from "./AccessControlShared";
 
 export function AccessRolesPage(): JSX.Element {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
   const canCreate = hasPermission("roles.create");
   const canEdit = hasPermission("roles.edit");
   const canDelete = hasPermission("roles.delete");
@@ -117,6 +117,18 @@ export function AccessRolesPage(): JSX.Element {
       ),
     },
     {
+      key: "scope",
+      header: "Область действия",
+      render: (role) => (
+        <div className="min-w-[190px]">
+          <p className="app-text-soft text-sm font-bold">{getRoleScopeLabel(role)}</p>
+          <p className="app-muted mt-1 text-xs">
+            {role.isSystem ? "Определяется оргструктурой пользователя" : "Фиксированная привязка"}
+          </p>
+        </div>
+      ),
+    },
+    {
       key: "type",
       header: "Тип",
       render: (role) => (
@@ -156,6 +168,13 @@ export function AccessRolesPage(): JSX.Element {
 
   const systemRoles = roles.filter((role) => role.isSystem).length;
   const customRoles = roles.length - systemRoles;
+  const roleScope = session.permissionScopes["roles.view"];
+  const contextDescription =
+    roleScope === "enterprise"
+      ? `Пользовательские роли, созданные здесь, действуют только в предприятии «${session.enterpriseName}».`
+      : roleScope === "department"
+        ? `Пользовательские роли, созданные здесь, действуют только в отделе «${session.departmentName}».`
+        : "Системные и пользовательские роли с точечным набором разрешённых действий.";
 
   return (
     <div className="space-y-6">
@@ -173,13 +192,13 @@ export function AccessRolesPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        description="Системные и пользовательские роли с точечным набором разрешённых действий."
+        description={contextDescription}
         icon={<FiShield />}
         title="Роли"
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <AccessMetric icon={<FiShield />} label="Всего ролей" value={roles.length} />
+        <AccessMetric icon={<FiShield />} label="Доступно ролей" value={roles.length} />
         <AccessMetric icon={<FiUsers />} label="Системные" value={systemRoles} />
         <AccessMetric icon={<FiPlus />} label="Пользовательские" value={customRoles} />
       </section>
@@ -192,6 +211,7 @@ export function AccessRolesPage(): JSX.Element {
           meta: (role) => (
             <>
               {role.isSystem && <span className="app-accent-text font-black">Системная</span>}
+              <span className="app-text-soft">{getRoleScopeLabel(role)}</span>
               <span className="app-text-soft"><span className="app-muted">Пользователей: </span>{role.userCount}</span>
               <span className="app-text-soft"><span className="app-muted">Разрешений: </span>{role.permissionCodes.length}</span>
             </>
@@ -230,4 +250,15 @@ export function AccessRolesPage(): JSX.Element {
       />
     </div>
   );
+}
+
+function getRoleScopeLabel(role: AccessRoleSummary): string {
+  if (role.scopeType === "global") return "Вся система";
+  if (role.scopeType === "enterprise") {
+    return role.enterpriseName ? `Предприятие · ${role.enterpriseName}` : "Предприятие пользователя";
+  }
+  if (role.scopeType === "department") {
+    return role.departmentName ? `Отдел · ${role.departmentName}` : "Отдел пользователя";
+  }
+  return "Только сам сотрудник";
 }

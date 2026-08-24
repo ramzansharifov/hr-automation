@@ -16,7 +16,14 @@ export interface AccessPermission {
   description: string;
 }
 
-export interface AccessRoleSummary {
+export interface AccessRoleScopeContext {
+  enterpriseId: number | null;
+  enterpriseName: string;
+  departmentId: number | null;
+  departmentName: string;
+}
+
+export interface AccessRoleSummary extends AccessRoleScopeContext {
   id: number;
   code: string;
   name: string;
@@ -28,7 +35,7 @@ export interface AccessRoleSummary {
   userCount: number;
 }
 
-export interface AccessUserRole {
+export interface AccessUserRole extends AccessRoleScopeContext {
   id: number;
   code: string;
   name: string;

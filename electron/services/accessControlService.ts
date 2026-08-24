@@ -1,9 +1,13 @@
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
-import { normalizePermissionDependencies } from "../../src/shared/access/permissionRules";
+import {
+  canScopePermissionTo,
+  normalizePermissionDependencies,
+} from "../../src/shared/access/permissionRules";
 import type {
   AccessControlOverview,
   AccessPermission,
   AccessRoleSummary,
+  AccessScopeType,
   AccessUserSummary,
   ResetAccessPasswordParams,
   SaveAccessRoleParams,
@@ -15,6 +19,20 @@ import { AccessControlRepository } from "../repositories/accessControlRepository
 
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
+
+type CustomRoleScopeType = Exclude<AccessScopeType, "self">;
+
+export interface AccessRoleWriteScope {
+  scopeType: CustomRoleScopeType;
+  enterpriseId: number | null;
+  departmentId: number | null;
+}
+
+const globalRoleScope: AccessRoleWriteScope = {
+  scopeType: "global",
+  enterpriseId: null,
+  departmentId: null,
+};
 
 export class AccessControlService {
   constructor(private readonly repository: AccessControlRepository) {}
@@ -44,7 +62,10 @@ export class AccessControlService {
     };
   }
 
-  saveRole(params: SaveAccessRoleParams): AccessRoleSummary {
+  saveRole(
+    params: SaveAccessRoleParams,
+    writeScope: AccessRoleWriteScope = globalRoleScope,
+  ): AccessRoleSummary {
     const name = params.name.trim();
     const description = params.description?.trim() ?? "";
     const permissionCodes = normalizePermissionDependencies(params.permissionCodes);
@@ -59,6 +80,16 @@ export class AccessControlService {
     if (!this.repository.permissionCodesExist(permissionCodes)) {
       throw new Error("В роли указано неизвестное разрешение");
     }
+    validateRoleWriteScope(writeScope);
+
+    const incompatiblePermission = permissionCodes.find(
+      (code) => !canScopePermissionTo(code, writeScope.scopeType),
+    );
+    if (incompatiblePermission) {
+      throw new Error(
+        "Выбранное разрешение действует только на уровне всей системы и не может входить в локальную роль",
+      );
+    }
 
     if (params.id) {
       const existingRole = this.repository.getRoleById(params.id);
@@ -72,7 +103,9 @@ export class AccessControlService {
         code: params.id ? "" : createCustomRoleCode(),
         name,
         description,
-        scopeType: "global",
+        scopeType: writeScope.scopeType,
+        enterpriseId: writeScope.enterpriseId,
+        departmentId: writeScope.departmentId,
         permissionCodes,
       });
     } catch (error) {
@@ -253,6 +286,27 @@ export class AccessControlService {
         "Для роли «Администратор отдела» сотрудник должен быть назначен в отдел",
       );
     }
+  }
+}
+
+function validateRoleWriteScope(scope: AccessRoleWriteScope): void {
+  if (
+    scope.scopeType === "global" &&
+    (scope.enterpriseId !== null || scope.departmentId !== null)
+  ) {
+    throw new Error("Глобальная роль не должна быть привязана к оргструктуре");
+  }
+  if (
+    scope.scopeType === "enterprise" &&
+    (!scope.enterpriseId || scope.departmentId !== null)
+  ) {
+    throw new Error("Для роли предприятия не определено предприятие");
+  }
+  if (
+    scope.scopeType === "department" &&
+    (!scope.departmentId || scope.enterpriseId !== null)
+  ) {
+    throw new Error("Для роли отдела не определён отдел");
   }
 }
 

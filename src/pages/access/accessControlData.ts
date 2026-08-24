@@ -8,7 +8,9 @@ import type { HrRecord } from "../../shared/types/hr";
 import type { SelectOption } from "../../shared/ui";
 
 export interface EmployeeOption extends SelectOption {
+  departmentId: number | null;
   departmentName: string;
+  enterpriseId: number | null;
   enterpriseName: string;
   fullName: string;
 }
@@ -80,6 +82,8 @@ export async function loadEmployees(): Promise<EmployeeOption[]> {
       .join(" ");
     const enterpriseName = String(record.enterprise_name ?? "").trim();
     const departmentName = String(record.department_name ?? "").trim();
+    const enterpriseId = toOptionalId(record.enterprise_id);
+    const departmentId = toOptionalId(record.department_id);
     const structure = [enterpriseName, departmentName].filter(Boolean).join(" · ");
     const fallbackName = `Сотрудник #${String(record.id)}`;
     const displayName = fullName || fallbackName;
@@ -88,8 +92,10 @@ export async function loadEmployees(): Promise<EmployeeOption[]> {
       value: String(record.id),
       label: structure ? `${displayName} · ${structure}` : displayName,
       fullName: displayName,
-      departmentName,
+      enterpriseId,
       enterpriseName,
+      departmentId,
+      departmentName,
     };
   });
 }
@@ -101,4 +107,9 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   return index >= 0
     ? error.message.slice(index + marker.length)
     : error.message || fallback;
+}
+
+function toOptionalId(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
