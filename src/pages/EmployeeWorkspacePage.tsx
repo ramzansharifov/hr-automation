@@ -140,6 +140,7 @@ export function EmployeeWorkspacePage({
     return (
       <WorkspaceLayout>
         <WorkspaceHero
+          compact
           eyebrow="Моё предприятие"
           icon={<FiLayers />}
           title={workspace.enterprise?.name ?? "Предприятие не назначено"}
@@ -149,72 +150,38 @@ export function EmployeeWorkspacePage({
           }
         />
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            icon={<FiUsers />}
-            label="Коллег в предприятии"
-            value={workspace.colleagues.length}
-          />
-          <MetricCard
-            icon={<FiBriefcase />}
-            label="Отделов"
-            value={enterpriseDepartmentIds.size}
-          />
-          <MetricCard
-            icon={<FiBriefcase />}
-            label="Мой отдел"
-            value={workspace.department?.name ?? "Не назначен"}
-          />
-          <MetricCard
-            icon={<FiUserCheck />}
-            label="Руководитель"
-            value={workspace.enterpriseLeader?.fullName ?? "Не назначен"}
-          />
-        </section>
+        <section className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
+                  <FiLayers />
+                </span>
+                <h2 className="app-text text-base font-black">Контакты предприятия</h2>
+              </div>
 
-        <section className="grid items-start gap-5 xl:grid-cols-2">
-          <InfoPanel icon={<FiLayers />} title="Информация о предприятии">
-            <InfoRow label="Название" value={workspace.enterprise?.name} />
-            <InfoRow
-              label="Юридическое название"
-              value={workspace.enterprise?.legalName}
-            />
-            <InfoRow label="Электронная почта" value={workspace.enterprise?.email} />
-            <InfoRow label="Телефон" value={workspace.enterprise?.phone} />
-            <InfoRow
-              label="Адрес"
-              value={workspace.enterprise?.address}
-              wide
-            />
-          </InfoPanel>
-
-          <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-            <SectionHeader
-              description="Контактные данные руководителя доступны для внутренней коммуникации."
-              icon={<FiUserCheck />}
-              title="Руководитель предприятия"
-            />
-            <div className="p-5">
-              <LeaderCard person={workspace.enterpriseLeader} />
+              <div className="mt-4 grid gap-x-7 gap-y-4 sm:grid-cols-2">
+                <CompactInfo label="Электронная почта" value={workspace.enterprise?.email} />
+                <CompactInfo label="Телефон" value={workspace.enterprise?.phone} />
+                <CompactInfo label="Адрес" value={workspace.enterprise?.address} wide />
+              </div>
             </div>
-          </section>
-        </section>
 
-        <InfoPanel icon={<FiBriefcase />} title="Моё место в предприятии">
-          <InfoRow label="Отдел" value={workspace.department?.name} />
-          <InfoRow label="Должность" value={workspace.self.positionName} />
-          <InfoRow label="Рабочее место" value={workspace.self.workplace} />
-          <InfoRow
-            label="Тип занятости"
-            value={employmentTypeLabel(workspace.self.employmentType)}
-          />
-          <InfoRow
-            label="Дата начала работы"
-            value={
-              workspace.self.hireDate ? formatDate(workspace.self.hireDate) : null
-            }
-          />
-        </InfoPanel>
+            <div className="app-border-soft border-t pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+              <p className="app-muted text-[10px] font-black uppercase tracking-wide">
+                Руководитель предприятия
+              </p>
+              <LeaderSummary person={workspace.enterpriseLeader} />
+            </div>
+          </div>
+
+          <div className="app-border-soft mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-4">
+            <CompactInfo label="Мой отдел" value={workspace.department?.name} />
+            <CompactInfo label="Должность" value={workspace.self.positionName} />
+            <CompactInfo label="Коллеги" value={workspace.colleagues.length} />
+            <CompactInfo label="Отделов" value={enterpriseDepartmentIds.size} />
+          </div>
+        </section>
       </WorkspaceLayout>
     );
   }
@@ -404,35 +371,104 @@ function WorkspaceLayout({ children }: { children: ReactNode }): JSX.Element {
 }
 
 function WorkspaceHero({
+  compact = false,
   description,
   eyebrow,
   icon,
   title,
 }: {
+  compact?: boolean;
   description: string;
   eyebrow: string;
   icon: ReactNode;
   title: string;
 }): JSX.Element {
   return (
-    <section className="app-accent-gradient-panel overflow-hidden rounded-[30px] border border-white/10 p-6 text-white shadow-2xl sm:p-8">
+    <section
+      className={[
+        "app-accent-gradient-panel overflow-hidden border border-white/10 text-white",
+        compact
+          ? "rounded-[24px] p-5 shadow-lg sm:p-6"
+          : "rounded-[30px] p-6 shadow-2xl sm:p-8",
+      ].join(" ")}
+    >
       <div className="flex items-center gap-4">
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl backdrop-blur">
+        <span
+          className={[
+            "flex shrink-0 items-center justify-center border border-white/20 bg-white/10 backdrop-blur",
+            compact
+              ? "h-12 w-12 rounded-xl text-xl"
+              : "h-16 w-16 rounded-2xl text-2xl",
+          ].join(" ")}
+        >
           {icon}
         </span>
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-white/70">
             {eyebrow}
           </p>
-          <h1 className="mt-1 break-words text-2xl font-black sm:text-3xl">
+          <h1
+            className={[
+              "mt-1 break-words font-black",
+              compact ? "text-2xl" : "text-2xl sm:text-3xl",
+            ].join(" ")}
+          >
             {title}
           </h1>
-          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/75">
+          <p className="mt-1.5 max-w-3xl text-sm font-semibold leading-5 text-white/75">
             {description}
           </p>
         </div>
       </div>
     </section>
+  );
+}
+
+function CompactInfo({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value?: ReactNode | null;
+  wide?: boolean;
+}): JSX.Element {
+  return (
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <p className="app-muted text-[10px] font-black uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="app-text mt-1 break-words text-sm font-bold leading-5">
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
+
+function LeaderSummary({
+  person,
+}: {
+  person: EmployeeWorkspacePerson | null;
+}): JSX.Element {
+  return (
+    <div className="mt-3 flex items-start gap-3">
+      <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-xs font-black">
+        {person ? initials(person.fullName) : <FiUserCheck />}
+      </span>
+      <div className="min-w-0">
+        <p className="app-text text-sm font-black">
+          {person?.fullName ?? "Не назначен"}
+        </p>
+        {person?.positionName && (
+          <p className="app-text-soft mt-1 text-xs font-bold">{person.positionName}</p>
+        )}
+        {person?.email && (
+          <p className="app-accent-text mt-2 flex items-center gap-2 break-all text-xs font-bold">
+            <FiMail className="h-3.5 w-3.5 shrink-0" /> {person.email}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
