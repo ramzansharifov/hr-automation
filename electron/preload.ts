@@ -61,7 +61,10 @@ const hrApi: HrApi = {
     ipcRenderer.invoke("recruitment:hireCandidate", params),
   deleteCandidate: (id: number) =>
     ipcRenderer.invoke("recruitment:deleteCandidate", id),
-  getAccessOverview: () => ipcRenderer.invoke("access:overview"),
+  listAccessPermissions: () => ipcRenderer.invoke("access:listPermissions"),
+  listAccessRoles: () => ipcRenderer.invoke("access:listRoles"),
+  listAccessUsers: () => ipcRenderer.invoke("access:listUsers"),
+  getAccessSystemAdmin: () => ipcRenderer.invoke("access:getSystemAdmin"),
   saveAccessRole: (params: SaveAccessRoleParams) =>
     ipcRenderer.invoke("access:saveRole", params),
   deleteAccessRole: (id: number) => ipcRenderer.invoke("access:deleteRole", id),

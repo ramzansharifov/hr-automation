@@ -14,8 +14,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { legacyPermissionCodes } from "../../shared/access/permissionRules";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
-import type { AccessControlOverview, AccessRoleSummary } from "../../shared/types/access";
+import type {
+  AccessPermission,
+  AccessRoleSummary,
+  AccessUserSummary,
+  SystemAdminSummary,
+} from "../../shared/types/access";
 import {
   Button,
   ConfirmDialog,
@@ -30,21 +36,6 @@ import {
   getErrorMessage,
 } from "./AccessControlShared";
 import { groupPermissions } from "./accessControlData";
-import { legacyPermissionCodes } from "./rolePermissionSections";
-
-const emptyOverview: AccessControlOverview = {
-  permissions: [],
-  roles: [],
-  users: [],
-  systemAdmin: {
-    id: 1,
-    username: "superadmin",
-    mustChangePassword: false,
-    lastLoginAt: null,
-    createdAt: "",
-    updatedAt: "",
-  },
-};
 
 export function AccessRoleDetailsPage(): JSX.Element {
   const navigate = useNavigate();
@@ -54,7 +45,10 @@ export function AccessRoleDetailsPage(): JSX.Element {
   const canEdit = hasPermission("roles.edit");
   const canDelete = hasPermission("roles.delete");
   const canViewUsers = hasPermission("users.view");
-  const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
+  const [roles, setRoles] = useState<AccessRoleSummary[]>([]);
+  const [permissions, setPermissions] = useState<AccessPermission[]>([]);
+  const [users, setUsers] = useState<AccessUserSummary[]>([]);
+  const [systemAdmin, setSystemAdmin] = useState<SystemAdminSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [permissionSearch, setPermissionSearch] = useState("");
@@ -63,33 +57,50 @@ export function AccessRoleDetailsPage(): JSX.Element {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      setOverview(await hrApiClient.getAccessOverview());
+      const [roleData, permissionData] = await Promise.all([
+        hrApiClient.listAccessRoles(),
+        hrApiClient.listAccessPermissions(),
+      ]);
+      setRoles(roleData);
+      setPermissions(permissionData);
+
+      if (canViewUsers) {
+        const [userData, adminData] = await Promise.all([
+          hrApiClient.listAccessUsers(),
+          hrApiClient.getAccessSystemAdmin(),
+        ]);
+        setUsers(userData);
+        setSystemAdmin(adminData);
+      } else {
+        setUsers([]);
+        setSystemAdmin(null);
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось загрузить роль"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [canViewUsers]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
   const role = useMemo(
-    () => overview.roles.find((item) => item.id === roleId) ?? null,
-    [overview.roles, roleId],
+    () => roles.find((item) => item.id === roleId) ?? null,
+    [roleId, roles],
   );
 
   const rolePermissions = useMemo(() => {
     const permissionCodes = new Set(
       (role?.permissionCodes ?? []).filter((code) => !legacyPermissionCodes.has(code)),
     );
-    return overview.permissions.filter(
+    return permissions.filter(
       (permission) =>
         permissionCodes.has(permission.code) &&
         !legacyPermissionCodes.has(permission.code),
     );
-  }, [overview.permissions, role]);
+  }, [permissions, role]);
 
   const filteredPermissions = useMemo(() => {
     const search = permissionSearch.trim().toLocaleLowerCase();
@@ -109,14 +120,15 @@ export function AccessRoleDetailsPage(): JSX.Element {
 
   const assignedUsers = useMemo(
     () =>
-      overview.users.filter((user) =>
-        user.roles.some((assignedRole) => assignedRole.id === role?.id),
-      ),
-    [overview.users, role?.id],
+      canViewUsers
+        ? users.filter((user) =>
+            user.roles.some((assignedRole) => assignedRole.id === role?.id),
+          )
+        : [],
+    [canViewUsers, role?.id, users],
   );
 
   const includesSystemAdmin = role?.systemKey === "superadmin";
-  const visibleUserCount = assignedUsers.length + (includesSystemAdmin ? 1 : 0);
   const modulesCount = new Set(rolePermissions.map((permission) => permission.module)).size;
 
   async function confirmDeleteRole(): Promise<void> {
@@ -208,7 +220,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
 
       <section className="grid gap-4 md:grid-cols-3">
         <AccessMetric icon={<FiCheckCircle />} label="Разрешения" value={rolePermissions.length} />
-        <AccessMetric icon={<FiUsers />} label="Пользователи" value={visibleUserCount} />
+        <AccessMetric icon={<FiUsers />} label="Пользователи" value={role.userCount} />
         <AccessMetric icon={<FiLayers />} label="Разделы" value={modulesCount} />
       </section>
 
@@ -241,19 +253,19 @@ export function AccessRoleDetailsPage(): JSX.Element {
           <EmptyState description="Попробуйте изменить поисковый запрос." title="Ничего не найдено" />
         ) : (
           <div className="space-y-4 p-5">
-            {permissionGroups.map(([module, permissions]) => (
+            {permissionGroups.map(([module, groupedPermissions]) => (
               <section className="app-surface-muted app-border rounded-2xl border p-4 sm:p-5" key={module}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="app-text font-black">{module}</p>
-                    <p className="app-muted mt-1 text-xs">Разрешений: {permissions.length}</p>
+                    <p className="app-muted mt-1 text-xs">Разрешений: {groupedPermissions.length}</p>
                   </div>
                   <span className="app-accent-soft app-accent-text flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
                     <FiShield className="h-4 w-4" />
                   </span>
                 </div>
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                  {permissions.map((permission) => (
+                  {groupedPermissions.map((permission) => (
                     <article className="app-surface app-border flex items-start gap-3 rounded-2xl border p-4" key={permission.code}>
                       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <FiCheckCircle className="h-4 w-4" />
@@ -280,7 +292,11 @@ export function AccessRoleDetailsPage(): JSX.Element {
         <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="app-text text-lg font-black">Пользователи с этой ролью</h2>
-            <p className="app-muted mt-1 text-sm">Учётные записи, которым роль назначена напрямую или системой.</p>
+            <p className="app-muted mt-1 text-sm">
+              {canViewUsers
+                ? "Учётные записи, которым роль назначена напрямую или системой."
+                : "Список учётных записей защищён отдельным разрешением users.view."}
+            </p>
           </div>
           {canViewUsers && (
             <Button leftIcon={<FiUsers className="h-4 w-4" />} onClick={() => navigate("/users")} variant="secondary">
@@ -289,14 +305,19 @@ export function AccessRoleDetailsPage(): JSX.Element {
           )}
         </div>
 
-        {!includesSystemAdmin && assignedUsers.length === 0 ? (
+        {!canViewUsers ? (
+          <EmptyState
+            description="Количество назначений видно в сводке роли, но имена и логины пользователей доступны только с разрешением «Просмотр пользователей»."
+            title="Нет доступа к учётным записям"
+          />
+        ) : !includesSystemAdmin && assignedUsers.length === 0 ? (
           <EmptyState
             description="Эта роль пока не назначена ни одной учётной записи."
             title="Пользователей нет"
           />
         ) : (
           <div className="grid gap-3 p-5 lg:grid-cols-2">
-            {includesSystemAdmin && (
+            {includesSystemAdmin && systemAdmin && (
               <article className="app-surface-muted app-border flex items-center gap-4 rounded-2xl border p-4">
                 <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border">
                   <FiShield className="h-5 w-5" />
@@ -306,7 +327,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
                     <p className="app-text font-black">Системный администратор</p>
                     <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">Встроенная</span>
                   </div>
-                  <p className="app-muted mt-1 text-xs">@{overview.systemAdmin.username}</p>
+                  <p className="app-muted mt-1 text-xs">@{systemAdmin.username}</p>
                 </div>
               </article>
             )}

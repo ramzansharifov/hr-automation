@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
-import type { AccessControlOverview, AccessRoleSummary } from "../../shared/types/access";
+import type { AccessRoleSummary } from "../../shared/types/access";
 import {
   Button,
   ConfirmDialog,
@@ -24,27 +24,13 @@ import {
 } from "../../shared/ui";
 import { AccessMetric, getErrorMessage } from "./AccessControlShared";
 
-const emptyOverview: AccessControlOverview = {
-  permissions: [],
-  roles: [],
-  users: [],
-  systemAdmin: {
-    id: 1,
-    username: "superadmin",
-    mustChangePassword: false,
-    lastLoginAt: null,
-    createdAt: "",
-    updatedAt: "",
-  },
-};
-
 export function AccessRolesPage(): JSX.Element {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("roles.create");
   const canEdit = hasPermission("roles.edit");
   const canDelete = hasPermission("roles.delete");
-  const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
+  const [roles, setRoles] = useState<AccessRoleSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteRole, setDeleteRole] = useState<AccessRoleSummary | null>(null);
@@ -52,7 +38,7 @@ export function AccessRolesPage(): JSX.Element {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      setOverview(await hrApiClient.getAccessOverview());
+      setRoles(await hrApiClient.listAccessRoles());
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось загрузить роли"));
     } finally {
@@ -168,8 +154,8 @@ export function AccessRolesPage(): JSX.Element {
     },
   ];
 
-  const systemRoles = overview.roles.filter((role) => role.isSystem).length;
-  const customRoles = overview.roles.length - systemRoles;
+  const systemRoles = roles.filter((role) => role.isSystem).length;
+  const customRoles = roles.length - systemRoles;
 
   return (
     <div className="space-y-6">
@@ -193,7 +179,7 @@ export function AccessRolesPage(): JSX.Element {
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <AccessMetric icon={<FiShield />} label="Всего ролей" value={overview.roles.length} />
+        <AccessMetric icon={<FiShield />} label="Всего ролей" value={roles.length} />
         <AccessMetric icon={<FiUsers />} label="Системные" value={systemRoles} />
         <AccessMetric icon={<FiPlus />} label="Пользовательские" value={customRoles} />
       </section>
@@ -215,12 +201,12 @@ export function AccessRolesPage(): JSX.Element {
         columns={columns}
         emptyDescription="Создайте первую пользовательскую роль или используйте системные роли."
         emptyTitle="Ролей пока нет"
-        footer={<>Ролей: <span className="app-text font-black">{overview.roles.length}</span></>}
+        footer={<>Ролей: <span className="app-text font-black">{roles.length}</span></>}
         getRowKey={(role) => role.id}
         isLoading={isLoading}
         loadingLabel="Загрузка ролей..."
         onRowClick={(role) => navigate(`/roles/${role.id}`)}
-        rows={overview.roles}
+        rows={roles}
         toolbar={
           <Button
             leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}

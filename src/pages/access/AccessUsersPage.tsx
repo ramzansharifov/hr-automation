@@ -13,9 +13,10 @@ import {
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { legacyPermissionCodes } from "../../shared/access/permissionRules";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
-  AccessControlOverview,
+  AccessRoleSummary,
   AccessUserSummary,
   SaveAccessUserParams,
   SystemAdminSummary,
@@ -42,18 +43,13 @@ import {
   type UserDraft,
 } from "./AccessControlShared";
 
-const emptyOverview: AccessControlOverview = {
-  permissions: [],
-  roles: [],
-  users: [],
-  systemAdmin: {
-    id: 1,
-    username: "superadmin",
-    mustChangePassword: false,
-    lastLoginAt: null,
-    createdAt: "",
-    updatedAt: "",
-  },
+const emptySystemAdmin: SystemAdminSummary = {
+  id: 1,
+  username: "superadmin",
+  mustChangePassword: false,
+  lastLoginAt: null,
+  createdAt: "",
+  updatedAt: "",
 };
 
 type UserRow =
@@ -61,13 +57,18 @@ type UserRow =
   | { kind: "user"; id: string; user: AccessUserSummary };
 
 export function AccessUsersPage(): JSX.Element {
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
   const canCreate = hasPermission("users.create");
   const canEdit = hasPermission("users.edit");
   const canDelete = hasPermission("users.delete");
   const canResetPassword = hasPermission("users.reset_password");
   const hasActions = canEdit || canDelete || canResetPassword;
-  const [overview, setOverview] = useState<AccessControlOverview>(emptyOverview);
+  const isSuperadmin =
+    session.employeeId === 0 ||
+    session.roles.some((role) => role.systemKey === "superadmin");
+  const [users, setUsers] = useState<AccessUserSummary[]>([]);
+  const [roles, setRoles] = useState<AccessRoleSummary[]>([]);
+  const [systemAdmin, setSystemAdmin] = useState<SystemAdminSummary>(emptySystemAdmin);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -81,8 +82,14 @@ export function AccessUsersPage(): JSX.Element {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const accessOverview = await hrApiClient.getAccessOverview();
-      setOverview(accessOverview);
+      const [accessUsers, accessRoles, admin] = await Promise.all([
+        hrApiClient.listAccessUsers(),
+        hrApiClient.listAccessRoles(),
+        hrApiClient.getAccessSystemAdmin(),
+      ]);
+      setUsers(accessUsers);
+      setRoles(accessRoles);
+      setSystemAdmin(admin);
       if (canCreate || canEdit) {
         try {
           setEmployees(await loadEmployees());
@@ -105,26 +112,44 @@ export function AccessUsersPage(): JSX.Element {
 
   const availableEmployeeOptions = useMemo(() => {
     const currentEmployeeId = userDraft.id
-      ? overview.users.find((user) => user.id === userDraft.id)?.employeeId
+      ? users.find((user) => user.id === userDraft.id)?.employeeId
       : null;
     const occupiedEmployeeIds = new Set(
-      overview.users
+      users
         .filter((user) => user.employeeId !== currentEmployeeId)
         .map((user) => user.employeeId),
     );
     return employees.filter(
       (employee) => !occupiedEmployeeIds.has(Number(employee.value)),
     );
-  }, [employees, overview.users, userDraft.id]);
+  }, [employees, userDraft.id, users]);
 
   const assignableRoles = useMemo(
-    () => overview.roles.filter((role) => role.systemKey !== "superadmin"),
-    [overview.roles],
+    () =>
+      roles.filter((role) => {
+        if (role.systemKey === "superadmin") return false;
+        if (
+          role.systemKey === "enterprise_director" ||
+          role.systemKey === "department_head"
+        ) {
+          return false;
+        }
+        if (role.systemKey === "employee") return true;
+        if (isSuperadmin) return true;
+        return role.permissionCodes
+          .filter((code) => !legacyPermissionCodes.has(code))
+          .every((code) => session.permissionScopes[code] === "global");
+      }),
+    [isSuperadmin, roles, session.permissionScopes],
+  );
+  const assignableRoleIds = useMemo(
+    () => new Set(assignableRoles.map((role) => role.id)),
+    [assignableRoles],
   );
 
   const rows: UserRow[] = [
-    { kind: "system", id: "system-superadmin", admin: overview.systemAdmin },
-    ...overview.users.map((user) => ({
+    { kind: "system", id: "system-superadmin", admin: systemAdmin },
+    ...users.map((user) => ({
       kind: "user" as const,
       id: String(user.id),
       user,
@@ -139,12 +164,25 @@ export function AccessUsersPage(): JSX.Element {
 
   function openEditUser(user: AccessUserSummary): void {
     if (!canEdit) return;
+    const manualRoles = user.roles.filter(
+      (role) =>
+        role.systemKey !== "enterprise_director" &&
+        role.systemKey !== "department_head" &&
+        role.systemKey !== "superadmin",
+    );
+    const forbiddenRole = manualRoles.find((role) => !assignableRoleIds.has(role.id));
+    if (forbiddenRole) {
+      toast.error(
+        `Нельзя редактировать назначение: роль «${forbiddenRole.name}» содержит права выше ваших`,
+      );
+      return;
+    }
     setUserDraft({
       id: user.id,
       employeeId: String(user.employeeId),
       username: user.username,
       status: user.status,
-      roleIds: user.roles.map((role) => role.id),
+      roleIds: manualRoles.map((role) => role.id),
       password: "",
       mustChangePassword: user.mustChangePassword,
     });
@@ -383,8 +421,8 @@ export function AccessUsersPage(): JSX.Element {
       : []),
   ];
 
-  const activeUsers = overview.users.filter((user) => user.status === "active").length + 1;
-  const blockedUsers = overview.users.filter((user) => user.status === "blocked").length;
+  const activeUsers = users.filter((user) => user.status === "active").length + 1;
+  const blockedUsers = users.filter((user) => user.status === "blocked").length;
 
   return (
     <div className="space-y-6">

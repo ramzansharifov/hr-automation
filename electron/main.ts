@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { initializeDatabase } from './database'
 import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
+import { registerAccessIpcHandlers } from './ipc/accessIpc'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -69,6 +70,7 @@ app.whenReady().then(() => {
 
   initializeDatabase()
   registerHrCrudIpcHandlers()
+  registerAccessIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

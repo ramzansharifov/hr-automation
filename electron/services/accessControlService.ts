@@ -1,11 +1,14 @@
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
+import { normalizePermissionDependencies } from "../../src/shared/access/permissionRules";
 import type {
   AccessControlOverview,
+  AccessPermission,
   AccessRoleSummary,
   AccessUserSummary,
   ResetAccessPasswordParams,
   SaveAccessRoleParams,
   SaveAccessUserParams,
+  SystemAdminSummary,
   SystemRoleKey,
 } from "../../src/shared/types/access";
 import { AccessControlRepository } from "../repositories/accessControlRepository";
@@ -13,65 +16,31 @@ import { AccessControlRepository } from "../repositories/accessControlRepository
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
 
-const permissionDependencies: Record<string, string[]> = {
-  "employees.manage": ["employees.view"],
-  "organization.manage": ["organization.view"],
-  "recruitment.manage": ["recruitment.view"],
-  "vacations.manage": ["vacations.view"],
-
-  "employees.create": ["employees.view", "organization.view"],
-  "employees.edit": ["employees.view", "organization.view"],
-  "employees.change_employment": ["employees.view", "organization.view"],
-  "employees.terminate": ["employees.view"],
-  "employees.export": ["employees.view", "settings.view"],
-
-  "organization.create": ["organization.view"],
-  "organization.edit": ["organization.view"],
-  "organization.delete": ["organization.view"],
-  "organization.assign_leader": ["organization.view", "employees.view"],
-
-  "vacations.create": ["vacations.view", "employees.view", "vacation_types.view"],
-  "vacations.edit": ["vacations.view", "employees.view", "vacation_types.view"],
-  "vacations.delete": ["vacations.view"],
-  "vacations.approve": ["vacations.view", "employees.view", "vacation_types.view"],
-
-  "vacancies.create": ["vacancies.view", "organization.view"],
-  "vacancies.edit": ["vacancies.view", "organization.view"],
-  "vacancies.delete": ["vacancies.view"],
-
-  "candidates.create": ["candidates.view", "vacancies.view"],
-  "candidates.edit": ["candidates.view", "vacancies.view"],
-  "candidates.delete": ["candidates.view"],
-  "candidates.hire": ["candidates.view"],
-
-  "vacation_types.create": ["vacation_types.view"],
-  "vacation_types.edit": ["vacation_types.view"],
-  "vacation_types.delete": ["vacation_types.view"],
-
-  "users.create": ["users.view", "employees.view"],
-  "users.edit": ["users.view", "employees.view"],
-  "users.delete": ["users.view"],
-  "users.reset_password": ["users.view"],
-
-  "roles.create": ["roles.view"],
-  "roles.edit": ["roles.view"],
-  "roles.delete": ["roles.view"],
-
-  "settings.backups_view": ["settings.view"],
-  "settings.backups_create": ["settings.view"],
-  "settings.backups_restore": ["settings.view"],
-  "settings.backups_open_folder": ["settings.view"],
-};
-
 export class AccessControlService {
   constructor(private readonly repository: AccessControlRepository) {}
 
+  listPermissions(): AccessPermission[] {
+    return this.repository.listPermissions();
+  }
+
+  listRoles(): AccessRoleSummary[] {
+    return this.repository.listRoles();
+  }
+
+  listUsers(): AccessUserSummary[] {
+    return this.repository.listUsers();
+  }
+
+  getSystemAdmin(): SystemAdminSummary {
+    return this.repository.getSystemAdmin();
+  }
+
   getOverview(): AccessControlOverview {
     return {
-      permissions: this.repository.listPermissions(),
-      roles: this.repository.listRoles(),
-      users: this.repository.listUsers(),
-      systemAdmin: this.repository.getSystemAdmin(),
+      permissions: this.listPermissions(),
+      roles: this.listRoles(),
+      users: this.listUsers(),
+      systemAdmin: this.getSystemAdmin(),
     };
   }
 
@@ -209,22 +178,6 @@ export class AccessControlService {
       throw new Error("Роль «Руководитель отдела» можно назначить только фактическому руководителю отдела");
     }
   }
-}
-
-function normalizePermissionDependencies(codes: string[]): string[] {
-  const normalized = new Set(codes);
-  const queue = [...normalized];
-
-  while (queue.length > 0) {
-    const code = queue.shift()!;
-    for (const dependency of permissionDependencies[code] ?? []) {
-      if (normalized.has(dependency)) continue;
-      normalized.add(dependency);
-      queue.push(dependency);
-    }
-  }
-
-  return [...normalized];
 }
 
 function validatePassword(password: string): void {

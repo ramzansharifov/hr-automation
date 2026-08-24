@@ -147,63 +147,7 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
   },
 ];
 
-/**
- * Dependencies describe permissions that are technically required for an action
- * to work in the actual UI. The role editor applies them recursively.
- */
-export const permissionDependencies: Record<string, string[]> = {
-  "employees.create": ["employees.view", "organization.view"],
-  "employees.edit": ["employees.view", "organization.view"],
-  "employees.change_employment": ["employees.view", "organization.view"],
-  "employees.terminate": ["employees.view"],
-  "employees.export": ["employees.view", "settings.view"],
-
-  "organization.create": ["organization.view"],
-  "organization.edit": ["organization.view"],
-  "organization.delete": ["organization.view"],
-  "organization.assign_leader": ["organization.view", "employees.view"],
-
-  "vacations.create": ["vacations.view", "employees.view", "vacation_types.view"],
-  "vacations.edit": ["vacations.view", "employees.view", "vacation_types.view"],
-  "vacations.delete": ["vacations.view"],
-  "vacations.approve": ["vacations.view", "employees.view", "vacation_types.view"],
-
-  "vacancies.create": ["vacancies.view", "organization.view"],
-  "vacancies.edit": ["vacancies.view", "organization.view"],
-  "vacancies.delete": ["vacancies.view"],
-
-  "candidates.create": ["candidates.view", "vacancies.view"],
-  "candidates.edit": ["candidates.view", "vacancies.view"],
-  "candidates.delete": ["candidates.view"],
-  "candidates.hire": ["candidates.view"],
-
-  "vacation_types.create": ["vacation_types.view"],
-  "vacation_types.edit": ["vacation_types.view"],
-  "vacation_types.delete": ["vacation_types.view"],
-
-  "users.create": ["users.view", "employees.view"],
-  "users.edit": ["users.view", "employees.view"],
-  "users.delete": ["users.view"],
-  "users.reset_password": ["users.view"],
-
-  "roles.create": ["roles.view"],
-  "roles.edit": ["roles.view"],
-  "roles.delete": ["roles.view"],
-
-  "settings.backups_view": ["settings.view"],
-  "settings.backups_create": ["settings.view"],
-  "settings.backups_restore": ["settings.view"],
-  "settings.backups_open_folder": ["settings.view"],
-};
-
-export const legacyPermissionCodes = new Set([
-  "employees.manage",
-  "organization.manage",
-  "vacations.manage",
-  "recruitment.view",
-  "recruitment.manage",
-  "access.manage",
-  "settings.manage",
-  "payroll.view",
-  "payroll.manage",
-]);
+export {
+  legacyPermissionCodes,
+  permissionDependencies,
+} from "../../shared/access/permissionRules";
