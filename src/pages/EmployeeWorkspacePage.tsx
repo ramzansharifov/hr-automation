@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   FiBriefcase,
-  FiBuilding,
   FiCalendar,
+  FiLayers,
   FiMail,
   FiMapPin,
   FiSearch,
@@ -183,7 +183,7 @@ export function EmployeeWorkspacePage(): JSX.Element {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          icon={<FiBuilding />}
+          icon={<FiLayers />}
           label="Предприятие"
           value={workspace.enterprise?.name ?? "Не назначено"}
         />
@@ -205,8 +205,9 @@ export function EmployeeWorkspacePage(): JSX.Element {
       </section>
 
       <section className="grid items-start gap-5 xl:grid-cols-2">
-        <InfoPanel icon={<FiBuilding />} title="Моё место в структуре">
+        <InfoPanel icon={<FiLayers />} title="Моё место в структуре">
           <InfoRow label="Предприятие" value={workspace.enterprise?.name} />
+          <InfoRow label="Юридическое название" value={workspace.enterprise?.legalName} />
           <InfoRow label="Отдел" value={workspace.department?.name} />
           <InfoRow label="Должность" value={workspace.self.positionName} />
           <InfoRow
@@ -359,6 +360,9 @@ function LeaderCard({ label, person }: { label: string; person: EmployeeWorkspac
         <div className="min-w-0 flex-1">
           <p className="app-muted text-[10px] font-black uppercase tracking-wide">{label}</p>
           <p className="app-text mt-1 text-sm font-black">{person?.fullName ?? "Не назначен"}</p>
+          {person?.positionName && (
+            <p className="app-text-soft mt-1 text-xs font-bold">{person.positionName}</p>
+          )}
           {person?.departmentName && (
             <p className="app-muted mt-1 text-xs font-semibold">{person.departmentName}</p>
           )}
