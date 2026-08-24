@@ -11,11 +11,15 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../features/auth/AuthContext";
+import {
+  getLeadershipRole,
+  leadershipRoleLabel,
+} from "../shared/access/leadership";
 import type { AppNavigationItem } from "./navigation";
 import {
   administrationNavigationItems,
   bottomNavigationItems,
-  mainNavigationItems,
+  getMainNavigationItems,
 } from "./navigation";
 import { HRLogo } from "./brand/HRLogo";
 import { GlobalSearch } from "./GlobalSearch";
@@ -149,6 +153,7 @@ export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { t } = useTranslation();
   const { hasPermission, logout, session } = useAuth();
+  const leadershipRole = getLeadershipRole(session.roles);
 
   function isNavigationItemVisible(item: AppNavigationItem): boolean {
     if (item.employeeAccountOnly && session.employeeId <= 0) return false;
@@ -163,7 +168,7 @@ export function AppLayout(): JSX.Element {
     return true;
   }
 
-  const visibleMainNavigationItems = mainNavigationItems.filter(
+  const visibleMainNavigationItems = getMainNavigationItems(leadershipRole).filter(
     isNavigationItemVisible,
   );
   const visibleAdministrationNavigationItems = administrationNavigationItems.filter(
@@ -187,7 +192,9 @@ export function AppLayout(): JSX.Element {
     : session.employeeName || session.username;
   const primaryRole = isSystemAdmin
     ? "Системный администратор"
-    : session.roles[0]?.name ?? "Пользователь";
+    : leadershipRole
+      ? leadershipRoleLabel(leadershipRole)
+      : session.roles[0]?.name ?? "Пользователь";
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -262,7 +269,7 @@ export function AppLayout(): JSX.Element {
             <SidebarSection
               isCollapsed={isSidebarCollapsed}
               items={visibleMainNavigationItems}
-              title="Основное"
+              title={leadershipRole ? "Управление" : "Основное"}
             />
             <SidebarSection
               isCollapsed={isSidebarCollapsed}
