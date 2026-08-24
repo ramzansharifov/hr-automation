@@ -22,6 +22,10 @@ interface CurrentIdentity {
 
 let activeAuthenticationService: AuthenticationService | null = null;
 
+function setActiveAuthenticationService(service: AuthenticationService): void {
+  activeAuthenticationService = service;
+}
+
 export function getActiveAuthenticationService(): AuthenticationService {
   if (!activeAuthenticationService) {
     throw new Error("Сервис аутентификации ещё не инициализирован");
@@ -33,7 +37,7 @@ export class AuthenticationService {
   private currentIdentity: CurrentIdentity | null = null;
 
   constructor(private readonly repository: AuthenticationRepository) {
-    activeAuthenticationService = this;
+    setActiveAuthenticationService(this);
   }
 
   getState(): AuthState {
