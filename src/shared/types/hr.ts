@@ -82,6 +82,15 @@ export interface HrDeleteParams {
   id: number;
 }
 
+export type HrLeadershipAssignmentType =
+  | "enterprise_director"
+  | "department_head";
+
+export interface HrLeadershipAssignment {
+  type: HrLeadershipAssignmentType;
+  targetId: number;
+}
+
 export interface HrEmploymentChangeParams {
   employeeId: number;
   enterpriseId: number;
@@ -91,7 +100,7 @@ export interface HrEmploymentChangeParams {
   salary?: number;
   effectiveAt: string;
   reason: string;
-  assignAsDepartmentLeader?: boolean;
+  leadershipAssignment?: HrLeadershipAssignment;
 }
 
 export interface HrTerminationParams {
