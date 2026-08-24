@@ -82,10 +82,20 @@ export class HrCrudService {
       this.assertEmploymentFieldsUnchanged(existing, params.data);
     }
     if (params.entity === "enterprises") {
-      this.assertEnterpriseLeaderAssignment(params.id, existing, params.data);
+      this.assertLeadershipDirectUpdate(
+        existing,
+        params.data,
+        "general_director_employee_id",
+        "руководителя предприятия",
+      );
     }
     if (params.entity === "departments") {
-      this.assertDepartmentLeaderAssignment(params.id, existing, params.data);
+      this.assertLeadershipDirectUpdate(
+        existing,
+        params.data,
+        "director_employee_id",
+        "руководителя отдела",
+      );
     }
     if (params.entity === "vacations") {
       this.assertVacationTransition(existing, params.data);
@@ -131,7 +141,7 @@ export class HrCrudService {
     if (params.salaryMode !== "keep" && params.salaryMode !== "custom") {
       throw new Error("Выберите корректный способ изменения оклада");
     }
-    if (params.positionId === null && !params.assignAsDepartmentLeader) {
+    if (params.positionId === null && !params.leadershipAssignment) {
       throw new Error("Для обычного кадрового изменения выберите должность");
     }
     return this.repository.changeEmployment(params);
@@ -203,79 +213,27 @@ export class HrCrudService {
     }
   }
 
-  private assertEnterpriseLeaderAssignment(
-    enterpriseId: number,
-    enterprise: HrRecord,
+  private assertLeadershipDirectUpdate(
+    existing: HrRecord,
     data: HrRecord,
+    field: "general_director_employee_id" | "director_employee_id",
+    label: string,
   ): void {
-    const field = "general_director_employee_id";
     if (
       !(field in data) ||
-      normalizeComparable(data[field]) === normalizeComparable(enterprise[field])
+      normalizeComparable(data[field]) === normalizeComparable(existing[field])
     ) {
       return;
     }
 
-    const employeeId = normalizeOptionalId(data[field]);
-    if (employeeId === null) return;
-    const employee = this.getDirectLeaderCandidate(employeeId);
-    const departmentId = normalizeOptionalId(employee.department_id);
-    if (departmentId === null) {
-      throw new Error("Выбранный сотрудник не относится к этому предприятию");
-    }
-    const department = this.repository.getById(
-      getHrCrudEntityConfig("departments"),
-      departmentId,
-    );
-    if (!department || Number(department.enterprise_id) !== enterpriseId) {
-      throw new Error(
-        "Руководителем предприятия можно назначить только сотрудника этого предприятия",
-      );
-    }
-  }
-
-  private assertDepartmentLeaderAssignment(
-    departmentId: number,
-    department: HrRecord,
-    data: HrRecord,
-  ): void {
-    const field = "director_employee_id";
-    if (
-      !(field in data) ||
-      normalizeComparable(data[field]) === normalizeComparable(department[field])
-    ) {
+    const nextLeader = data[field];
+    if (nextLeader === null || nextLeader === undefined || nextLeader === "") {
       return;
     }
 
-    const employeeId = normalizeOptionalId(data[field]);
-    if (employeeId === null) return;
-    const employee = this.getDirectLeaderCandidate(employeeId);
-    if (Number(employee.department_id) !== departmentId) {
-      throw new Error(
-        "Сотрудник ещё не относится к этому отделу. Используйте назначение через кадровое изменение",
-      );
-    }
-  }
-
-  private getDirectLeaderCandidate(employeeId: number): HrRecord {
-    const employee = this.repository.getById(
-      getHrCrudEntityConfig("employees"),
-      employeeId,
+    throw new Error(
+      `Назначение ${label} оформляется только через кадровое изменение`,
     );
-    if (!employee) throw new Error("Сотрудник не найден");
-    if (String(employee.status ?? "") !== "active") {
-      throw new Error("Руководителем можно назначить только активного сотрудника");
-    }
-    if (
-      employee.position_id !== null &&
-      employee.position_id !== undefined &&
-      employee.position_id !== ""
-    ) {
-      throw new Error(
-        "У сотрудника уже есть должность. Назначение руководителем оформите через кадровое изменение",
-      );
-    }
-    return employee;
   }
 
   private assertVacationTransition(existing: HrRecord, data: HrRecord): void {
@@ -326,15 +284,6 @@ function calculateInclusiveDays(start: string, end: string): number {
     return 0;
   }
   return Math.floor((endTime - startTime) / 86_400_000) + 1;
-}
-
-function normalizeOptionalId(value: unknown): number | null {
-  if (value === null || value === undefined || value === "") return null;
-  const id = Number(value);
-  if (!Number.isInteger(id) || id < 1) {
-    throw new Error("Выбран некорректный сотрудник");
-  }
-  return id;
 }
 
 function normalizeComparable(value: unknown): string {

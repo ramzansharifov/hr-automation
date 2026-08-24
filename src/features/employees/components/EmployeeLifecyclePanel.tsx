@@ -547,9 +547,11 @@ function HistoryItem({
     ? "Увольнение"
     : changeType === "hired"
       ? "Приём на работу"
-      : changeType === "department_leader"
-        ? "Назначение руководителем отдела"
-        : String(item.new_position_name ?? "Кадровое изменение");
+      : changeType === "enterprise_director"
+        ? "Назначение руководителем предприятия"
+        : changeType === "department_leader"
+          ? "Назначение руководителем отдела"
+          : String(item.new_position_name ?? "Кадровое изменение");
   const department = terminated
     ? String(item.previous_department_name ?? "")
     : String(item.new_department_name ?? "");
