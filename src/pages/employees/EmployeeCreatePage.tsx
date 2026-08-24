@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -20,13 +20,11 @@ import {
   employeeDefaultValues,
   type EmployeeFormValues,
 } from "../../features/employees/types";
-import { useEmployeeFormOptions } from "../../features/employees/hooks/useEmployeeFormOptions";
 import { EmployeeCreateProgress } from "../../features/employees/create/EmployeeCreateProgress";
 import { EmployeeCreateReview } from "../../features/employees/create/EmployeeCreateReview";
 import { employeeCreateSteps } from "../../features/employees/create/employeeCreateSteps";
 import {
   EmployeeAddressFormSection,
-  EmployeeCompanyFormSection,
   EmployeePersonalFormSection,
 } from "../../features/employees/forms/EmployeeFormSections";
 import { employeeCreateSchema } from "../../features/employees/forms/employeeFormValidation";
@@ -37,14 +35,10 @@ export function EmployeeCreatePage(): JSX.Element {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedEnterpriseId, setSelectedEnterpriseId] = useState("");
-  const {
-    departments,
-    enterprises,
-    genderOptions,
-    isRelationsLoading,
-    positions,
-  } = useEmployeeFormOptions();
+  const genderOptions = [
+    { value: "male", label: t("common.status.male") },
+    { value: "female", label: t("common.status.female") },
+  ];
   const {
     control,
     formState: { errors },
@@ -59,68 +53,9 @@ export function EmployeeCreatePage(): JSX.Element {
     resolver: zodResolver(employeeCreateSchema) as Resolver<EmployeeFormValues>,
   });
   const watchedValues = watch();
-  const availableDepartments = selectedEnterpriseId
-    ? departments.filter(
-        (department) => department.enterpriseId === selectedEnterpriseId,
-      )
-    : [];
-  const availablePositions = watchedValues.department_id
-    ? positions.filter(
-        (position) => position.departmentId === watchedValues.department_id,
-      )
-    : [];
-
-  useEffect(() => {
-    if (!watchedValues.department_id) return;
-    const selectedDepartment = departments.find(
-      (department) => department.value === watchedValues.department_id,
-    );
-    if (
-      !selectedDepartment ||
-      selectedDepartment.enterpriseId !== selectedEnterpriseId
-    ) {
-      setValue("department_id", "");
-      setValue("position_id", "");
-    }
-  }, [
-    departments,
-    selectedEnterpriseId,
-    setValue,
-    watchedValues.department_id,
-  ]);
-
-  useEffect(() => {
-    if (!watchedValues.position_id) return;
-    const selectedPosition = positions.find(
-      (position) => position.value === watchedValues.position_id,
-    );
-    if (
-      !selectedPosition ||
-      !watchedValues.department_id ||
-      selectedPosition.departmentId !== watchedValues.department_id
-    ) {
-      setValue("position_id", "");
-    }
-  }, [
-    positions,
-    setValue,
-    watchedValues.department_id,
-    watchedValues.position_id,
-  ]);
-
-  function handleEnterpriseChange(enterpriseId: string): void {
-    if (enterpriseId === selectedEnterpriseId) return;
-    setSelectedEnterpriseId(enterpriseId);
-    setValue("department_id", "");
-    setValue("position_id", "");
-  }
 
   async function handleNext(): Promise<void> {
     if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) return;
-    if (activeStep === 2 && !selectedEnterpriseId) {
-      toast.error("Выберите предприятие");
-      return;
-    }
     const currentStep = employeeCreateSteps[activeStep];
     const isStepValid = await trigger(currentStep.fields);
     if (!isStepValid) return;
@@ -226,26 +161,8 @@ export function EmployeeCreatePage(): JSX.Element {
         )}
 
         {activeStep === 2 && (
-          <EmployeeCompanyFormSection
-            control={control}
-            departments={availableDepartments}
-            enterpriseId={selectedEnterpriseId}
-            enterprises={enterprises}
-            errors={errors}
-            isRelationsLoading={isRelationsLoading}
-            onEnterpriseChange={handleEnterpriseChange}
-            positions={availablePositions}
-            register={register}
-            selectedDepartmentId={watchedValues.department_id}
-            t={t}
-          />
-        )}
-
-        {activeStep === 3 && (
           <EmployeeCreateReview
-            departments={departments}
             locale={locale}
-            positions={positions}
             t={t}
             values={normalizedReviewValues}
           />
