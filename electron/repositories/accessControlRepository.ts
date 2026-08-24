@@ -25,7 +25,9 @@ interface UserRow {
   id: number;
   employee_id: number;
   employee_name: string;
+  department_id: number | null;
   department_name: string | null;
+  enterprise_id: number | null;
   enterprise_name: string | null;
   username: string;
   status: AccessUserStatus;
@@ -62,6 +64,11 @@ export interface PersistAccessUserInput {
   passwordHash?: string;
   passwordSalt?: string;
   mustChangePassword: boolean;
+}
+
+export interface EmployeeOrganizationScope {
+  departmentId: number | null;
+  enterpriseId: number | null;
 }
 
 export class AccessControlRepository {
@@ -151,7 +158,9 @@ export class AccessControlRepository {
              COALESCE(employee.first_name, '') || ' ' ||
              COALESCE(employee.middle_name, '')
            ) AS employee_name,
+           department.id AS department_id,
            department.name AS department_name,
+           enterprise.id AS enterprise_id,
            enterprise.name AS enterprise_name,
            user.username,
            user.status,
@@ -187,7 +196,9 @@ export class AccessControlRepository {
       id: user.id,
       employeeId: user.employee_id,
       employeeName: user.employee_name,
+      departmentId: user.department_id,
       departmentName: user.department_name ?? "",
+      enterpriseId: user.enterprise_id,
       enterpriseName: user.enterprise_name ?? "",
       username: user.username,
       status: user.status,
@@ -275,18 +286,41 @@ export class AccessControlRepository {
   }
 
   employeeExists(employeeId: number): boolean {
-    return Boolean(this.database.prepare("SELECT id FROM employees WHERE id = ? LIMIT 1").get(employeeId));
+    return Boolean(
+      this.database.prepare("SELECT id FROM employees WHERE id = ? LIMIT 1").get(employeeId),
+    );
+  }
+
+  getEmployeeOrganizationScope(employeeId: number): EmployeeOrganizationScope | null {
+    const row = this.database
+      .prepare(
+        `SELECT
+           employee.department_id AS departmentId,
+           department.enterprise_id AS enterpriseId
+         FROM employees AS employee
+         LEFT JOIN departments AS department ON department.id = employee.department_id
+         WHERE employee.id = ?
+         LIMIT 1`,
+      )
+      .get(employeeId) as EmployeeOrganizationScope | undefined;
+    return row ?? null;
   }
 
   isEnterpriseDirector(employeeId: number): boolean {
     return Boolean(
-      this.database.prepare(`SELECT id FROM enterprises WHERE general_director_employee_id = ? LIMIT 1`).get(employeeId),
+      this.database
+        .prepare(
+          `SELECT id FROM enterprises WHERE general_director_employee_id = ? LIMIT 1`,
+        )
+        .get(employeeId),
     );
   }
 
   isDepartmentHead(employeeId: number): boolean {
     return Boolean(
-      this.database.prepare(`SELECT id FROM departments WHERE director_employee_id = ? LIMIT 1`).get(employeeId),
+      this.database
+        .prepare(`SELECT id FROM departments WHERE director_employee_id = ? LIMIT 1`)
+        .get(employeeId),
     );
   }
 
@@ -310,12 +344,16 @@ export class AccessControlRepository {
       let roleId = input.id;
       if (roleId) {
         this.database
-          .prepare(`UPDATE roles SET name = ?, description = ?, scope_type = ? WHERE id = ? AND is_system = 0`)
+          .prepare(
+            `UPDATE roles SET name = ?, description = ?, scope_type = ? WHERE id = ? AND is_system = 0`,
+          )
           .run(input.name, input.description, input.scopeType, roleId);
         this.database.prepare("DELETE FROM role_permissions WHERE role_id = ?").run(roleId);
       } else {
         const result = this.database
-          .prepare(`INSERT INTO roles (code, name, description, scope_type, is_system, system_key) VALUES (?, ?, ?, ?, 0, NULL)`)
+          .prepare(
+            `INSERT INTO roles (code, name, description, scope_type, is_system, system_key) VALUES (?, ?, ?, ?, 0, NULL)`,
+          )
           .run(input.code, input.name, input.description, input.scopeType);
         roleId = Number(result.lastInsertRowid);
       }
@@ -395,7 +433,9 @@ export class AccessControlRepository {
         userId = Number(result.lastInsertRowid);
       }
 
-      const insertRole = this.database.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)");
+      const insertRole = this.database.prepare(
+        "INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)",
+      );
       for (const roleId of [...new Set(input.roleIds)]) insertRole.run(userId, roleId);
       return userId;
     });
@@ -406,9 +446,16 @@ export class AccessControlRepository {
     return user;
   }
 
-  resetPassword(userId: number, passwordHash: string, passwordSalt: string, mustChangePassword: boolean): void {
+  resetPassword(
+    userId: number,
+    passwordHash: string,
+    passwordSalt: string,
+    mustChangePassword: boolean,
+  ): void {
     this.database
-      .prepare(`UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = ? WHERE id = ?`)
+      .prepare(
+        `UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = ? WHERE id = ?`,
+      )
       .run(passwordHash, passwordSalt, mustChangePassword ? 1 : 0, userId);
   }
 
