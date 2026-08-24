@@ -15,6 +15,13 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
     permissionCodes: ["dashboard.view"],
   },
   {
+    key: "directory",
+    title: "Моя команда",
+    description: "Безопасный справочник своего предприятия: структура, руководители и рабочие контакты коллег.",
+    group: "Основное",
+    permissionCodes: ["directory.view"],
+  },
+  {
     key: "employees",
     title: "Сотрудники",
     description: "Реестр сотрудников, карточки и кадровые действия.",
