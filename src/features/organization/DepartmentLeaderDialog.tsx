@@ -157,7 +157,6 @@ export function DepartmentLeaderDialog({
 
   const leadershipLabel =
     mode === "enterprise" ? "руководителем предприятия" : "руководителем отдела";
-  const targetName = mode === "enterprise" ? enterpriseName : departmentName;
 
   function selectCandidate(value: string): void {
     setLeaderId(value);
