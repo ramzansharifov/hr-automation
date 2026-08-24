@@ -1,3 +1,5 @@
+import type { AccessScopeType } from "../types/access";
+
 export const permissionDependencies: Record<string, string[]> = {
   "employees.manage": ["employees.view"],
   "organization.manage": ["organization.view"],
@@ -61,6 +63,34 @@ export const legacyPermissionCodes = new Set([
   "payroll.view",
   "payroll.manage",
 ]);
+
+// These operations act on application-wide data or infrastructure and therefore
+// cannot be made safe merely by attaching an enterprise/department scope to a role.
+export const globalOnlyPermissionCodes = new Set([
+  "audit.view",
+  "employees.export",
+  "vacation_types.create",
+  "vacation_types.edit",
+  "vacation_types.delete",
+  "settings.backups_view",
+  "settings.backups_create",
+  "settings.backups_restore",
+  "settings.backups_open_folder",
+]);
+
+export const accessScopeRank: Record<AccessScopeType, number> = {
+  self: 0,
+  department: 1,
+  enterprise: 2,
+  global: 3,
+};
+
+export function canScopePermissionTo(
+  permissionCode: string,
+  targetScope: AccessScopeType,
+): boolean {
+  return targetScope === "global" || !globalOnlyPermissionCodes.has(permissionCode);
+}
 
 export type PermissionRiskLevel = "elevated" | "critical";
 
