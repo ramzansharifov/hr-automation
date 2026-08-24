@@ -140,15 +140,36 @@ export function registerHrCrudIpcHandlers(): void {
     const employee = service.getById({ entity: "employees", id: params.employeeId });
     if (!employee) throw new Error("Сотрудник не найден");
     authorizationService.assertCanChangeEmployment(employee, "change");
+
+    if (params.assignAsDepartmentLeader) {
+      const department = service.getById({
+        entity: "departments",
+        id: params.departmentId,
+      });
+      if (!department) throw new Error("Отдел не найден");
+      authorizationService.assertCanUpdate("departments", department, {
+        director_employee_id: params.employeeId,
+      });
+    }
+
     const updated = service.changeEmployment(params);
     auditService.record(
       authenticationService.requireSession(),
-      "employment.change",
+      params.assignAsDepartmentLeader
+        ? "employment.change_and_assign_department_leader"
+        : "employment.change",
       "employees",
       params.employeeId,
       employee,
       updated,
-      { effectiveAt: params.effectiveAt, reason: params.reason },
+      {
+        enterpriseId: params.enterpriseId,
+        departmentId: params.departmentId,
+        positionId: params.positionId,
+        assignAsDepartmentLeader: params.assignAsDepartmentLeader ?? false,
+        effectiveAt: params.effectiveAt,
+        reason: params.reason,
+      },
     );
     return updated;
   });
