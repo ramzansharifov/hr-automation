@@ -3,6 +3,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { initializeDatabase } from './database'
 import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { registerAccessIpcHandlers } from './ipc/accessIpc'
+import { registerEmployeeWorkspaceIpcHandlers } from './ipc/employeeWorkspaceIpc'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -70,6 +71,7 @@ app.whenReady().then(() => {
 
   initializeDatabase()
   registerHrCrudIpcHandlers()
+  registerEmployeeWorkspaceIpcHandlers()
   registerAccessIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
