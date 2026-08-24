@@ -14,6 +14,7 @@ export { SearchableSelect } from './SearchableSelect'
 export { Select, type SelectOption } from './Select'
 export { StatCard } from './StatCard'
 export { Textarea } from './Textarea'
+export { Toggle } from './Toggle'
 export { ViewModeToggle } from './ViewModeToggle'
 export {
   useStoredViewMode,
