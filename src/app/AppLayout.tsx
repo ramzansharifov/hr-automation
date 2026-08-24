@@ -63,13 +63,16 @@ function SidebarItem({
   const { pathname } = useLocation();
   const { session } = useAuth();
   const title = t(item.titleKey);
-  const isOwnProfileActive =
-    item.path === "/profile" && pathname === `/employees/${session.employeeId}`;
-  const isActive =
-    isOwnProfileActive ||
-    (item.path === "/"
+  const ownProfilePath =
+    session.employeeId > 0 ? `/employees/${session.employeeId}` : null;
+  const isOwnProfileRoute = Boolean(
+    ownProfilePath && pathname === ownProfilePath,
+  );
+  const isActive = isOwnProfileRoute
+    ? item.path === "/profile"
+    : item.path === "/"
       ? pathname === "/"
-      : pathname === item.path || pathname.startsWith(`${item.path}/`));
+      : pathname === item.path || pathname.startsWith(`${item.path}/`);
 
   const link = (
     <NavLink
