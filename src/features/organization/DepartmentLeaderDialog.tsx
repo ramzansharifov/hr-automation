@@ -14,17 +14,30 @@ import {
   type SelectOption,
 } from "../../shared/ui";
 
+type LeadershipMode = "enterprise" | "department";
+
 interface DepartmentLeaderDialogProps {
   canChangeEmployment: boolean;
   currentLeaderId: number | null;
-  departmentId: number;
+  departmentId: number | null;
   departmentName: string;
+  departments: HrRecord[];
   enterpriseId: number;
   enterpriseName: string;
+  mode: LeadershipMode;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   open: boolean;
   positions: HrRecord[];
+}
+
+interface CareerState {
+  departmentId: string;
+  positionId: string;
+  salaryMode: "keep" | "custom";
+  salary: string;
+  effectiveAt: string;
+  reason: string;
 }
 
 export function DepartmentLeaderDialog({
@@ -32,8 +45,10 @@ export function DepartmentLeaderDialog({
   currentLeaderId,
   departmentId,
   departmentName,
+  departments,
   enterpriseId,
   enterpriseName,
+  mode,
   onOpenChange,
   onSaved,
   open,
@@ -42,7 +57,15 @@ export function DepartmentLeaderDialog({
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
   const [leaderId, setLeaderId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [career, setCareer] = useState(() => initialCareer());
+  const [career, setCareer] = useState<CareerState>(() => initialCareer());
+
+  const targetDepartments = useMemo(
+    () =>
+      departments.filter(
+        (item) => Number(item.enterprise_id) === enterpriseId,
+      ),
+    [departments, enterpriseId],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -63,7 +86,17 @@ export function DepartmentLeaderDialog({
         const current = records.find(
           (record) => String(record.id) === currentValue,
         );
-        if (current) setCareer(careerFromCandidate(current, departmentId, positions));
+        setCareer(
+          current
+            ? careerFromCandidate(
+                current,
+                mode,
+                departmentId,
+                targetDepartments,
+                positions,
+              )
+            : initialCareerForTarget(mode, departmentId, targetDepartments),
+        );
       })
       .catch((error) => {
         if (!active) return;
@@ -77,7 +110,15 @@ export function DepartmentLeaderDialog({
     return () => {
       active = false;
     };
-  }, [currentLeaderId, departmentId, onOpenChange, open, positions]);
+  }, [
+    currentLeaderId,
+    departmentId,
+    mode,
+    onOpenChange,
+    open,
+    positions,
+    targetDepartments,
+  ]);
 
   const options = useMemo<SelectOption[]>(
     () =>
@@ -87,45 +128,86 @@ export function DepartmentLeaderDialog({
       })),
     [candidates],
   );
+
   const selectedCandidate = candidates.find(
     (candidate) => String(candidate.id) === leaderId,
   );
-  const selectedIsUnassigned = Boolean(
-    selectedCandidate &&
-      !positiveId(selectedCandidate.department_id) &&
-      !positiveId(selectedCandidate.position_id),
-  );
   const selectedAlreadyLeads =
     Boolean(currentLeaderId) && leaderId === String(currentLeaderId);
-  const needsCareerWorkflow = Boolean(
-    selectedCandidate && !selectedIsUnassigned && !selectedAlreadyLeads,
+  const departmentOptions = useMemo<SelectOption[]>(
+    () =>
+      targetDepartments.map((item) => ({
+        value: String(item.id),
+        label: String(item.name ?? "Отдел"),
+      })),
+    [targetDepartments],
   );
-  const availablePositions = positions.map((position) => ({
-    value: String(position.id),
-    label: String(position.name ?? "Должность"),
-  }));
+  const availablePositions = useMemo<SelectOption[]>(
+    () =>
+      positions
+        .filter(
+          (position) => String(position.department_id ?? "") === career.departmentId,
+        )
+        .map((position) => ({
+          value: String(position.id),
+          label: String(position.name ?? "Должность"),
+        })),
+    [career.departmentId, positions],
+  );
+
+  const leadershipLabel =
+    mode === "enterprise" ? "руководителем предприятия" : "руководителем отдела";
+  const targetName = mode === "enterprise" ? enterpriseName : departmentName;
 
   function selectCandidate(value: string): void {
     setLeaderId(value);
     const candidate = candidates.find((record) => String(record.id) === value);
     setCareer(
       candidate
-        ? careerFromCandidate(candidate, departmentId, positions)
-        : initialCareer(),
+        ? careerFromCandidate(
+            candidate,
+            mode,
+            departmentId,
+            targetDepartments,
+            positions,
+          )
+        : initialCareerForTarget(mode, departmentId, targetDepartments),
     );
+  }
+
+  function changeDepartment(nextDepartmentId: string): void {
+    setCareer((current) => ({
+      ...current,
+      departmentId: nextDepartmentId,
+      positionId: positionBelongsToDepartment(
+        current.positionId,
+        nextDepartmentId,
+        positions,
+      )
+        ? current.positionId
+        : "",
+    }));
   }
 
   async function save(): Promise<void> {
     if (loading) return;
+
     if (!leaderId) {
       setLoading(true);
       try {
         await hrApiClient.update({
-          entity: "departments",
-          id: departmentId,
-          data: { director_employee_id: null },
+          entity: mode === "enterprise" ? "enterprises" : "departments",
+          id: mode === "enterprise" ? enterpriseId : departmentId!,
+          data:
+            mode === "enterprise"
+              ? { general_director_employee_id: null }
+              : { director_employee_id: null },
         });
-        toast.success("Руководитель отдела снят с назначения");
+        toast.success(
+          mode === "enterprise"
+            ? "Руководитель предприятия снят с назначения"
+            : "Руководитель отдела снят с назначения",
+        );
         onSaved();
         onOpenChange(false);
       } catch (error) {
@@ -144,45 +226,59 @@ export function DepartmentLeaderDialog({
       onOpenChange(false);
       return;
     }
-    if (needsCareerWorkflow && !canChangeEmployment) {
+    if (!canChangeEmployment) {
       toast.error(
-        "У сотрудника уже есть организационное назначение. Для его перевода требуется право на кадровые изменения",
+        "Назначение руководителя является кадровым изменением. Требуется разрешение «Кадровые изменения»",
       );
       return;
     }
-    if (needsCareerWorkflow && !career.reason.trim()) {
+    if (!career.departmentId) {
+      toast.error("Выберите отдел сотрудника после кадрового изменения");
+      return;
+    }
+    if (!career.effectiveAt) {
+      toast.error("Укажите дату вступления кадрового изменения в силу");
+      return;
+    }
+    if (!career.reason.trim()) {
       toast.error("Укажите основание кадрового изменения");
       return;
     }
 
     setLoading(true);
     try {
-      const reason = needsCareerWorkflow
-        ? career.reason.trim()
-        : `Назначение руководителем отдела «${departmentName}»`;
       await hrApiClient.changeEmployment({
         employeeId: Number(selectedCandidate.id),
         enterpriseId,
-        departmentId,
+        departmentId: Number(career.departmentId),
         positionId: career.positionId ? Number(career.positionId) : null,
-        salaryMode: career.salaryMode as "keep" | "custom",
+        salaryMode: career.salaryMode,
         salary:
           career.salaryMode === "custom" ? Number(career.salary) : undefined,
-        effectiveAt: needsCareerWorkflow
-          ? career.effectiveAt
-          : new Date().toISOString().slice(0, 10),
-        reason,
-        assignAsDepartmentLeader: true,
+        effectiveAt: career.effectiveAt,
+        reason: career.reason.trim(),
+        leadershipAssignment: {
+          type:
+            mode === "enterprise" ? "enterprise_director" : "department_head",
+          targetId: mode === "enterprise" ? enterpriseId : departmentId!,
+        },
       });
       toast.success(
-        needsCareerWorkflow
-          ? "Кадровое изменение и назначение руководителя сохранены"
-          : "Руководитель отдела назначен",
+        mode === "enterprise"
+          ? "Кадровое изменение и назначение руководителя предприятия сохранены"
+          : "Кадровое изменение и назначение руководителя отдела сохранены",
       );
       onSaved();
       onOpenChange(false);
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось назначить руководителя отдела"));
+      toast.error(
+        errorMessage(
+          error,
+          mode === "enterprise"
+            ? "Не удалось назначить руководителя предприятия"
+            : "Не удалось назначить руководителя отдела",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -190,10 +286,14 @@ export function DepartmentLeaderDialog({
 
   return (
     <Dialog
-      description="Свободного сотрудника можно назначить сразу. Если сотрудник уже относится к отделу или занимает должность, назначение оформляется как кадровое изменение."
+      description={`Назначение ${leadershipLabel} оформляется отдельным кадровым изменением. Можно выбрать любого доступного активного сотрудника, даже если он уже работает в другом отделе или предприятии.`}
       onOpenChange={onOpenChange}
       open={open}
-      title="Назначить руководителя отдела"
+      title={
+        mode === "enterprise"
+          ? "Назначить руководителя предприятия"
+          : "Назначить руководителя отдела"
+      }
     >
       {loading && candidates.length === 0 ? (
         <LoadingState label="Загрузка сотрудников..." />
@@ -215,44 +315,75 @@ export function DepartmentLeaderDialog({
 
           {selectedCandidate && (
             <div className="app-surface-muted app-border rounded-2xl border p-4 text-sm">
-              <p className="app-text font-black">Текущее назначение</p>
+              <p className="app-text font-black">Текущее назначение сотрудника</p>
               <p className="app-muted mt-1 leading-6">
                 {assignmentLabel(selectedCandidate)}
               </p>
             </div>
           )}
 
-          {selectedCandidate && selectedIsUnassigned && !selectedAlreadyLeads && (
-            <div className="border-emerald-500/25 bg-emerald-500/10 rounded-2xl border p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-              У сотрудника ещё нет предприятия, отдела и должности. Он будет сразу привязан к отделу «{departmentName}» и назначен его руководителем.
+          {selectedAlreadyLeads && (
+            <div className="app-accent-soft app-border rounded-2xl border p-4 text-sm font-semibold">
+              Этот сотрудник уже назначен текущим руководителем. Чтобы заменить его,
+              выберите другого сотрудника; чтобы снять назначение — выберите «Не назначен».
             </div>
           )}
 
-          {needsCareerWorkflow && (
+          {selectedCandidate && !selectedAlreadyLeads && (
             <div className="grid gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
               <div>
-                <p className="app-text text-sm font-black">Кадровое изменение</p>
+                <p className="app-text text-sm font-black">
+                  Кадровое изменение: назначение {leadershipLabel}
+                </p>
                 <p className="app-muted mt-1 text-xs leading-5">
-                  Сотрудник будет переведён в {enterpriseName} → {departmentName}. Можно сохранить подходящую должность этого отдела или оставить только руководящую роль.
+                  После сохранения сотрудник будет относиться к предприятию «{enterpriseName}»
+                  {mode === "department" ? ` и отделу «${departmentName}»` : ""}. Его текущее назначение при необходимости будет изменено в рамках того же кадрового события.
                 </p>
               </div>
 
               {!canChangeEmployment && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  Для такого назначения дополнительно требуется разрешение «Кадровые изменения».
+                  Для назначения руководителя требуется разрешение «Кадровые изменения».
                 </div>
+              )}
+
+              <Field label="Предприятие после изменения">
+                <Input disabled value={enterpriseName} />
+              </Field>
+
+              {mode === "department" ? (
+                <Field label="Отдел после изменения">
+                  <Input disabled value={departmentName} />
+                </Field>
+              ) : (
+                <Field label="Отдел сотрудника после изменения">
+                  <SearchableSelect
+                    disabled={!canChangeEmployment}
+                    noOptionsLabel="В предприятии нет отделов"
+                    onValueChange={changeDepartment}
+                    options={departmentOptions}
+                    placeholder="Выберите отдел"
+                    searchPlaceholder="Поиск отдела"
+                    value={career.departmentId}
+                  />
+                </Field>
               )}
 
               <Field label="Должность после изменения">
                 <SearchableSelect
                   allowEmpty
-                  disabled={!canChangeEmployment}
+                  disabled={!canChangeEmployment || !career.departmentId}
                   emptyOptionLabel="Без отдельной должности"
+                  noOptionsLabel="В выбранном отделе нет должностей"
                   onValueChange={(positionId) =>
                     setCareer((value) => ({ ...value, positionId }))
                   }
                   options={availablePositions}
-                  placeholder="Без отдельной должности"
+                  placeholder={
+                    career.departmentId
+                      ? "Без отдельной должности"
+                      : "Сначала выберите отдел"
+                  }
                   searchPlaceholder="Поиск должности"
                   value={career.positionId}
                 />
@@ -262,7 +393,10 @@ export function DepartmentLeaderDialog({
                 <Select
                   disabled={!canChangeEmployment}
                   onValueChange={(salaryMode) =>
-                    setCareer((value) => ({ ...value, salaryMode }))
+                    setCareer((value) => ({
+                      ...value,
+                      salaryMode: salaryMode as CareerState["salaryMode"],
+                    }))
                   }
                   options={[
                     { value: "keep", label: "Оставить без изменений" },
@@ -304,13 +438,13 @@ export function DepartmentLeaderDialog({
                 />
               </Field>
 
-              <Field label="Основание">
+              <Field label="Основание кадрового изменения">
                 <Textarea
                   disabled={!canChangeEmployment}
                   onChange={(event) =>
                     setCareer((value) => ({ ...value, reason: event.target.value }))
                   }
-                  placeholder="Например: перевод и назначение руководителем по приказу №..."
+                  placeholder={`Например: назначение ${leadershipLabel} по приказу №...`}
                   required
                   rows={3}
                   value={career.reason}
@@ -330,14 +464,14 @@ export function DepartmentLeaderDialog({
             <Button
               disabled={
                 loading ||
-                (needsCareerWorkflow && !canChangeEmployment)
+                Boolean(leaderId && !selectedAlreadyLeads && !canChangeEmployment)
               }
               onClick={() => void save()}
             >
-              {needsCareerWorkflow
-                ? "Сохранить кадровое изменение"
+              {selectedAlreadyLeads
+                ? "Закрыть"
                 : leaderId
-                  ? "Назначить руководителя"
+                  ? "Сохранить кадровое изменение"
                   : "Снять руководителя"}
             </Button>
           </div>
@@ -362,14 +496,9 @@ function Field({
   );
 }
 
-function initialCareer(): {
-  positionId: string;
-  salaryMode: string;
-  salary: string;
-  effectiveAt: string;
-  reason: string;
-} {
+function initialCareer(): CareerState {
   return {
+    departmentId: "",
     positionId: "",
     salaryMode: "keep",
     salary: "0",
@@ -378,21 +507,66 @@ function initialCareer(): {
   };
 }
 
+function initialCareerForTarget(
+  mode: LeadershipMode,
+  departmentId: number | null,
+  departments: HrRecord[],
+): CareerState {
+  const initial = initialCareer();
+  if (mode === "department" && departmentId) {
+    initial.departmentId = String(departmentId);
+    return initial;
+  }
+  if (departments.length === 1) {
+    initial.departmentId = String(departments[0].id ?? "");
+  }
+  return initial;
+}
+
 function careerFromCandidate(
   candidate: HrRecord,
-  departmentId: number,
+  mode: LeadershipMode,
+  departmentId: number | null,
+  departments: HrRecord[],
   positions: HrRecord[],
-): ReturnType<typeof initialCareer> {
-  const candidatePositionId = positiveId(candidate.position_id);
-  const canKeepPosition =
-    positiveId(candidate.department_id) === departmentId &&
-    candidatePositionId !== null &&
-    positions.some((position) => positiveId(position.id) === candidatePositionId);
-  return {
-    ...initialCareer(),
-    positionId: canKeepPosition ? String(candidatePositionId) : "",
-    salary: String(candidate.salary ?? 0),
-  };
+): CareerState {
+  const result = initialCareerForTarget(mode, departmentId, departments);
+  const candidateDepartmentId = String(candidate.department_id ?? "");
+  const targetDepartmentIds = new Set(
+    departments.map((item) => String(item.id ?? "")),
+  );
+
+  if (
+    mode === "enterprise" &&
+    candidateDepartmentId &&
+    targetDepartmentIds.has(candidateDepartmentId)
+  ) {
+    result.departmentId = candidateDepartmentId;
+  }
+
+  const candidatePositionId = String(candidate.position_id ?? "");
+  result.positionId = positionBelongsToDepartment(
+    candidatePositionId,
+    result.departmentId,
+    positions,
+  )
+    ? candidatePositionId
+    : "";
+  result.salary = String(candidate.salary ?? 0);
+  return result;
+}
+
+function positionBelongsToDepartment(
+  positionId: string,
+  departmentId: string,
+  positions: HrRecord[],
+): boolean {
+  if (!positionId || !departmentId) return false;
+  return positions.some(
+    (position) =>
+      String(position.id ?? "") === positionId &&
+      String(position.department_id ?? "") === departmentId,
+  );
 }
 
 async function loadActiveEmployees(): Promise<HrRecord[]> {
@@ -444,11 +618,6 @@ function employeeName(record: HrRecord): string {
       .filter(Boolean)
       .join(" ") || "Сотрудник"
   );
-}
-
-function positiveId(value: unknown): number | null {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function errorMessage(error: unknown, fallback: string): string {
