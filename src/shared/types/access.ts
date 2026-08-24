@@ -4,7 +4,9 @@ export type SystemRoleKey =
   | "superadmin"
   | "employee"
   | "enterprise_director"
-  | "department_head";
+  | "department_head"
+  | "enterprise_admin"
+  | "department_admin";
 
 export interface AccessPermission {
   id: number;
