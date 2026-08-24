@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
+import { getLeadershipRole } from "../shared/access/leadership";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
@@ -26,7 +27,8 @@ import {
 } from "../shared/ui";
 
 export function VacationsPage(): JSX.Element {
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
+  const leadershipRole = getLeadershipRole(session.roles);
   const [searchParams] = useSearchParams();
   const employeeFilter = positiveId(searchParams.get("employee"));
   const canCreate = hasPermission("vacations.create");
@@ -152,6 +154,18 @@ export function VacationsPage(): JSX.Element {
     );
   }).length;
   const hasActions = canOpenEditor || canDelete;
+  const pageTitle =
+    leadershipRole === "enterprise_director"
+      ? "Отпуска предприятия"
+      : leadershipRole === "department_head"
+        ? "Отпуска отдела"
+        : "Отпуска";
+  const pageDescription =
+    leadershipRole === "enterprise_director"
+      ? `Отпуска сотрудников ${session.enterpriseName || "вашего предприятия"}. Данные автоматически ограничены предприятием, которым вы руководите.`
+      : leadershipRole === "department_head"
+        ? `Отпуска сотрудников ${session.departmentName || "вашего отдела"}. Данные автоматически ограничены вашим подразделением.`
+        : "Оформление, согласование и контроль отпусков сотрудников.";
 
   const columns: DataTableColumn<HrRecord>[] = [
     {
@@ -236,7 +250,7 @@ export function VacationsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Оформление, согласование и контроль отпусков сотрудников."
+        description={pageDescription}
         icon={<FiCalendar />}
         actions={
           canCreate ? (
@@ -250,7 +264,7 @@ export function VacationsPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        title="Отпуска"
+        title={pageTitle}
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
