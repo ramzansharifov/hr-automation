@@ -10,6 +10,10 @@ FROM roles AS role
 JOIN permissions AS permission ON permission.code = 'directory.view'
 WHERE role.system_key IN ('employee', 'enterprise_director', 'department_head');
 
+UPDATE roles
+SET description = 'Собственный профиль, отпуска, организация, руководители и безопасный справочник коллег.'
+WHERE system_key = 'employee';
+
 CREATE TRIGGER role_permissions_system_insert_guard
 BEFORE INSERT ON role_permissions
 WHEN EXISTS (
