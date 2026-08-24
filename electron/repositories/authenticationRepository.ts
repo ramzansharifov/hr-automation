@@ -41,6 +41,10 @@ interface RoleRow {
   scope_type: AccessScopeType;
   is_system: number;
   system_key: SystemRoleKey | null;
+  enterprise_id: number | null;
+  enterprise_name: string | null;
+  department_id: number | null;
+  department_name: string | null;
 }
 
 interface PermissionScopeRow {
@@ -216,7 +220,10 @@ export class AuthenticationRepository {
 
     const role = this.database
       .prepare(
-        `SELECT id, code, name, scope_type, is_system, system_key
+        `SELECT
+           id, code, name, scope_type, is_system, system_key,
+           NULL AS enterprise_id, NULL AS enterprise_name,
+           NULL AS department_id, NULL AS department_name
          FROM roles
          WHERE system_key = 'superadmin'
          LIMIT 1`,
@@ -297,13 +304,26 @@ export class AuthenticationRepository {
              role.name,
              role.scope_type,
              role.is_system,
-             role.system_key
+             role.system_key,
+             COALESCE(role.enterprise_id, role_department.enterprise_id) AS enterprise_id,
+             role_enterprise.name AS enterprise_name,
+             role.department_id,
+             role_department.name AS department_name
            FROM user_roles AS user_role
            JOIN roles AS role ON role.id = user_role.role_id
+           LEFT JOIN departments AS role_department ON role_department.id = role.department_id
+           LEFT JOIN enterprises AS role_enterprise
+             ON role_enterprise.id = COALESCE(role.enterprise_id, role_department.enterprise_id)
            WHERE user_role.user_id = ?
+             AND (
+               role.is_system = 1
+               OR role.scope_type = 'global'
+               OR (role.scope_type = 'enterprise' AND role.enterprise_id = ?)
+               OR (role.scope_type = 'department' AND role.department_id = ?)
+             )
            ORDER BY role.is_system DESC, role.name`,
         )
-        .all(userId) as RoleRow[]
+        .all(userId, user.enterprise_id, user.department_id) as RoleRow[]
     ).map<AccessUserRole>(mapRole);
 
     if (roles.length === 0) return null;
@@ -316,9 +336,15 @@ export class AuthenticationRepository {
          JOIN role_permissions AS role_permission ON role_permission.role_id = role.id
          JOIN permissions AS permission ON permission.id = role_permission.permission_id
          WHERE user_role.user_id = ?
+           AND (
+             role.is_system = 1
+             OR role.scope_type = 'global'
+             OR (role.scope_type = 'enterprise' AND role.enterprise_id = ?)
+             OR (role.scope_type = 'department' AND role.department_id = ?)
+           )
          ORDER BY permission.code`,
       )
-      .all(userId) as PermissionScopeRow[];
+      .all(userId, user.enterprise_id, user.department_id) as PermissionScopeRow[];
 
     const permissionScopes: Record<string, AccessScopeType> = {};
     for (const permission of permissionRows) {
@@ -366,5 +392,9 @@ function mapRole(role: RoleRow): AccessUserRole {
     scopeType: role.scope_type,
     isSystem: role.is_system === 1,
     systemKey: role.system_key,
+    enterpriseId: role.enterprise_id,
+    enterpriseName: role.enterprise_name ?? "",
+    departmentId: role.department_id,
+    departmentName: role.department_name ?? "",
   };
 }
