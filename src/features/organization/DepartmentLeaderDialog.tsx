@@ -6,8 +6,10 @@ import type { HrRecord } from "../../shared/types/hr";
 import {
   Button,
   Dialog,
+  Input,
   LoadingState,
   SearchableSelect,
+  Textarea,
   type SelectOption,
 } from "../../shared/ui";
 
@@ -28,6 +30,12 @@ interface DepartmentLeaderDialogProps {
   positions: HrRecord[];
 }
 
+interface LeadershipChangeForm {
+  effectiveAt: string;
+  reason: string;
+  salary: string;
+}
+
 export function DepartmentLeaderDialog({
   canChangeEmployment,
   currentLeaderId,
@@ -45,6 +53,9 @@ export function DepartmentLeaderDialog({
   const [leaderId, setLeaderId] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [changeForm, setChangeForm] = useState<LeadershipChangeForm>(() =>
+    createLeadershipChangeForm(),
+  );
 
   const targetDepartments = useMemo(
     () =>
@@ -59,6 +70,7 @@ export function DepartmentLeaderDialog({
       setCandidates([]);
       setLeaderId("");
       setConfirming(false);
+      setChangeForm(createLeadershipChangeForm());
       return;
     }
 
@@ -69,7 +81,12 @@ export function DepartmentLeaderDialog({
       .then((records) => {
         if (!active) return;
         setCandidates(records);
-        setLeaderId(currentLeaderId ? String(currentLeaderId) : "");
+        const currentValue = currentLeaderId ? String(currentLeaderId) : "";
+        setLeaderId(currentValue);
+        const currentLeader = records.find(
+          (record) => String(record.id) === currentValue,
+        );
+        setChangeForm(createLeadershipChangeForm(currentLeader));
       })
       .catch((error) => {
         if (!active) return;
@@ -101,10 +118,19 @@ export function DepartmentLeaderDialog({
     Boolean(currentLeaderId) && leaderId === String(currentLeaderId);
   const leadershipTitle =
     mode === "enterprise" ? "директором предприятия" : "руководителем отдела";
-  const leadershipName =
-    mode === "enterprise" ? enterpriseName : departmentName;
+  const fixedPositionLabel =
+    mode === "enterprise"
+      ? `Директор предприятия — ${enterpriseName}`
+      : `Руководитель отдела — ${departmentName}`;
   const canAssignEnterpriseLeader =
     mode !== "enterprise" || targetDepartments.length > 0;
+
+  function selectCandidate(value: string): void {
+    setLeaderId(value);
+    setConfirming(false);
+    const candidate = candidates.find((record) => String(record.id) === value);
+    setChangeForm(createLeadershipChangeForm(candidate));
+  }
 
   function requestSave(): void {
     if (loading) return;
@@ -128,6 +154,24 @@ export function DepartmentLeaderDialog({
         toast.error(
           "Для назначения директора предприятия в предприятии должен быть создан хотя бы один отдел",
         );
+        return;
+      }
+
+      const salary = Number(changeForm.salary);
+      if (
+        !changeForm.salary.trim() ||
+        !Number.isFinite(salary) ||
+        salary < 0
+      ) {
+        toast.error("Укажите корректный оклад");
+        return;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(changeForm.effectiveAt)) {
+        toast.error("Укажите дату вступления кадрового изменения в силу");
+        return;
+      }
+      if (!changeForm.reason.trim()) {
+        toast.error("Укажите основание кадрового изменения");
         return;
       }
     } else if (!currentLeaderId) {
@@ -183,21 +227,24 @@ export function DepartmentLeaderDialog({
       return;
     }
 
+    const salary = Number(changeForm.salary);
+    if (!Number.isFinite(salary) || salary < 0) {
+      toast.error("Укажите корректный оклад");
+      setConfirming(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const reason =
-        mode === "enterprise"
-          ? `Назначение директором предприятия «${enterpriseName}»`
-          : `Назначение руководителем отдела «${departmentName}»`;
-
       await hrApiClient.changeEmployment({
         employeeId: Number(selectedCandidate.id),
         enterpriseId,
         departmentId: targetDepartmentId,
         positionId: null,
-        salaryMode: "keep",
-        effectiveAt: new Date().toISOString().slice(0, 10),
-        reason,
+        salaryMode: "custom",
+        salary,
+        effectiveAt: changeForm.effectiveAt,
+        reason: changeForm.reason.trim(),
         leadershipAssignment: {
           type:
             mode === "enterprise" ? "enterprise_director" : "department_head",
@@ -230,8 +277,8 @@ export function DepartmentLeaderDialog({
     <Dialog
       description={
         confirming
-          ? "Подтвердите кадровое изменение."
-          : `Выберите активного сотрудника. Назначение ${leadershipTitle} автоматически заменит его текущее кадровое назначение.`
+          ? "Проверьте условия и подтвердите кадровое изменение."
+          : `Выберите активного сотрудника и оформите назначение ${leadershipTitle} как кадровое изменение.`
       }
       onOpenChange={onOpenChange}
       open={open}
@@ -253,11 +300,16 @@ export function DepartmentLeaderDialog({
                 </p>
                 <p className="app-muted mt-3 text-sm leading-6">
                   Сотрудник <strong className="app-text">{employeeName(selectedCandidate)}</strong>{" "}
-                  перестанет занимать текущую должность и будет назначен {leadershipTitle}{" "}
-                  «{leadershipName}».
+                  перестанет занимать текущую обычную должность и получит фиксированное назначение:
                 </p>
-                <p className="app-muted mt-2 text-sm leading-6">
-                  Предыдущее назначение: {assignmentLabel(selectedCandidate)}. Оклад останется без изменений, а кадровое событие будет записано в журнал текущей датой.
+                <p className="app-text mt-2 font-black">{fixedPositionLabel}</p>
+                <div className="app-surface app-border mt-4 grid gap-2 rounded-xl border p-3 text-sm">
+                  <SummaryRow label="Оклад" value={formatSalary(changeForm.salary)} />
+                  <SummaryRow label="Дата вступления в силу" value={changeForm.effectiveAt} />
+                  <SummaryRow label="Основание" value={changeForm.reason.trim()} />
+                </div>
+                <p className="app-muted mt-3 text-xs leading-5">
+                  Предыдущее кадровое назначение: {assignmentLabel(selectedCandidate)}.
                 </p>
               </div>
               <div className="flex justify-end gap-3">
@@ -270,7 +322,7 @@ export function DepartmentLeaderDialog({
                   Назад
                 </Button>
                 <Button disabled={loading} onClick={() => void save()} type="button">
-                  Да, назначить
+                  Подтвердить назначение
                 </Button>
               </div>
             </>
@@ -302,20 +354,19 @@ export function DepartmentLeaderDialog({
         </div>
       ) : (
         <div className="grid gap-5">
-          <label className="grid gap-2">
-            <span className="app-text text-sm font-black">Сотрудник</span>
+          <Field label="Сотрудник">
             <SearchableSelect
               allowEmpty
               ariaLabel="Сотрудник"
               emptyOptionLabel="Не назначен"
               noOptionsLabel="Активные сотрудники не найдены"
-              onValueChange={setLeaderId}
+              onValueChange={selectCandidate}
               options={options}
               placeholder="Выберите сотрудника"
               searchPlaceholder="Поиск по ФИО, предприятию, отделу или должности"
               value={leaderId}
             />
-          </label>
+          </Field>
 
           {selectedCandidate && (
             <div className="app-surface-muted app-border rounded-2xl border p-4 text-sm">
@@ -332,9 +383,69 @@ export function DepartmentLeaderDialog({
             </div>
           )}
 
-          {leaderId && !selectedAlreadyLeads && (
-            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm font-semibold leading-6 text-amber-700 dark:text-amber-300">
-              После подтверждения прежняя должность сотрудника будет прекращена автоматически. Он будет числиться именно как {leadershipTitle}. Оклад при этом не меняется.
+          {selectedCandidate && !selectedAlreadyLeads && (
+            <div className="grid gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
+              <div>
+                <p className="app-text text-sm font-black">Новое кадровое назначение</p>
+                <p className="app-muted mt-1 text-xs leading-5">
+                  Должность задаётся системой и не редактируется. Предыдущее обычное назначение сотрудника будет прекращено автоматически.
+                </p>
+              </div>
+
+              <div className="app-surface app-border rounded-xl border p-3">
+                <p className="app-muted text-xs font-bold uppercase tracking-wide">
+                  Новая должность
+                </p>
+                <p className="app-text mt-1 font-black">{fixedPositionLabel}</p>
+              </div>
+
+              <Field label="Оклад">
+                <Input
+                  disabled={!canChangeEmployment}
+                  min="0"
+                  onChange={(event) =>
+                    setChangeForm((value) => ({
+                      ...value,
+                      salary: event.target.value,
+                    }))
+                  }
+                  required
+                  step="0.01"
+                  type="number"
+                  value={changeForm.salary}
+                />
+              </Field>
+
+              <Field label="Дата вступления в силу">
+                <Input
+                  disabled={!canChangeEmployment}
+                  onChange={(event) =>
+                    setChangeForm((value) => ({
+                      ...value,
+                      effectiveAt: event.target.value,
+                    }))
+                  }
+                  required
+                  type="date"
+                  value={changeForm.effectiveAt}
+                />
+              </Field>
+
+              <Field label="Основание кадрового изменения">
+                <Textarea
+                  disabled={!canChangeEmployment}
+                  onChange={(event) =>
+                    setChangeForm((value) => ({
+                      ...value,
+                      reason: event.target.value,
+                    }))
+                  }
+                  placeholder="Например: приказ №12 от 25.08.2026"
+                  required
+                  rows={3}
+                  value={changeForm.reason}
+                />
+              </Field>
             </div>
           )}
 
@@ -383,6 +494,38 @@ export function DepartmentLeaderDialog({
       )}
     </Dialog>
   );
+}
+
+function Field({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}): JSX.Element {
+  return (
+    <label className="grid gap-2">
+      <span className="app-text text-sm font-black">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className="grid gap-1 sm:grid-cols-[160px_1fr] sm:gap-3">
+      <span className="app-muted font-semibold">{label}</span>
+      <span className="app-text font-bold">{value}</span>
+    </div>
+  );
+}
+
+function createLeadershipChangeForm(candidate?: HrRecord): LeadershipChangeForm {
+  return {
+    effectiveAt: localDateValue(),
+    reason: "",
+    salary: String(candidate?.salary ?? 0),
+  };
 }
 
 function resolveTargetDepartmentId(
@@ -453,6 +596,18 @@ function employeeName(record: HrRecord): string {
       .filter(Boolean)
       .join(" ") || "Сотрудник"
   );
+}
+
+function localDateValue(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatSalary(value: string): string {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString("ru-RU") : value;
 }
 
 function positiveId(value: unknown): number | null {
