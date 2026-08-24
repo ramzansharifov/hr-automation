@@ -51,9 +51,9 @@ BEGIN
   SELECT RAISE(ABORT, 'Разрешения системной роли нельзя изменять');
 END;
 
--- A custom role has exactly one immutable organizational meaning:
--- global, one enterprise, or one department. Self-scoped custom roles are not
--- supported because the built-in employee role already represents self access.
+-- A custom role has exactly one organizational meaning: global, one enterprise,
+-- or one department. Self-scoped custom roles are not supported because the
+-- built-in employee role already represents self access.
 CREATE TRIGGER roles_custom_scope_insert_guard
 BEFORE INSERT ON roles
 WHEN NEW.is_system = 0 AND (
@@ -76,6 +76,20 @@ WHEN NEW.is_system = 0 AND (
 )
 BEGIN
   SELECT RAISE(ABORT, 'Некорректная область пользовательской роли');
+END;
+
+-- Scope is immutable after creation. Editing a role changes its name,
+-- description and permissions, but never silently moves the role to another
+-- enterprise or department.
+CREATE TRIGGER roles_custom_scope_immutable_guard
+BEFORE UPDATE OF scope_type, enterprise_id, department_id ON roles
+WHEN OLD.is_system = 0 AND (
+  NEW.scope_type IS NOT OLD.scope_type
+  OR NEW.enterprise_id IS NOT OLD.enterprise_id
+  OR NEW.department_id IS NOT OLD.department_id
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Область действия пользовательской роли нельзя изменить');
 END;
 
 -- Defence in depth: even a direct SQL write cannot assign an enterprise/department
@@ -139,4 +153,54 @@ BEGIN
           OR (role.scope_type = 'department' AND role.department_id IS NOT NEW.department_id)
         )
     );
+END;
+
+-- Re-parenting a whole department to another enterprise changes the enterprise
+-- context of every employee without changing employees.department_id. Revoke old
+-- enterprise-bound roles explicitly in that case; department-bound roles remain
+-- valid because the department itself is still the same organizational unit.
+CREATE TRIGGER departments_revoke_out_of_scope_enterprise_roles
+AFTER UPDATE OF enterprise_id ON departments
+WHEN OLD.enterprise_id IS NOT NEW.enterprise_id
+BEGIN
+  DELETE FROM user_roles
+  WHERE user_id IN (
+    SELECT user.id
+    FROM users AS user
+    JOIN employees AS employee ON employee.id = user.employee_id
+    WHERE employee.department_id = NEW.id
+  )
+    AND role_id IN (
+      SELECT role.id
+      FROM roles AS role
+      WHERE role.is_system = 0
+        AND role.scope_type = 'enterprise'
+        AND role.enterprise_id IS NOT NEW.enterprise_id
+    );
+END;
+
+-- Give a clear domain error instead of a generic FK failure if an organizational
+-- unit still owns locally defined access roles.
+CREATE TRIGGER enterprises_prevent_bound_role_delete
+BEFORE DELETE ON enterprises
+WHEN EXISTS (
+  SELECT 1 FROM roles
+  WHERE is_system = 0
+    AND scope_type = 'enterprise'
+    AND enterprise_id = OLD.id
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Сначала удалите пользовательские роли, привязанные к предприятию');
+END;
+
+CREATE TRIGGER departments_prevent_bound_role_delete
+BEFORE DELETE ON departments
+WHEN EXISTS (
+  SELECT 1 FROM roles
+  WHERE is_system = 0
+    AND scope_type = 'department'
+    AND department_id = OLD.id
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Сначала удалите пользовательские роли, привязанные к отделу');
 END;
