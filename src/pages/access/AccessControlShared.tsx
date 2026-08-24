@@ -9,7 +9,9 @@ import {
   Button,
   Dialog,
   Input,
+  SearchableSelect,
   Select,
+  Toggle,
 } from "../../shared/ui";
 import {
   statusOptions,
@@ -25,6 +27,8 @@ export {
 export type { EmployeeOption, UserDraft } from "./accessControlData";
 
 export function UserDialog({
+  assignableRoleIds,
+  automaticRoleIds,
   draft,
   employeeOptions,
   isSaving,
@@ -34,6 +38,8 @@ export function UserDialog({
   open,
   roles,
 }: {
+  assignableRoleIds: Set<number>;
+  automaticRoleIds: Set<number>;
   draft: UserDraft;
   employeeOptions: EmployeeOption[];
   isSaving: boolean;
@@ -43,22 +49,42 @@ export function UserDialog({
   open: boolean;
   roles: AccessRoleSummary[];
 }): JSX.Element {
+  const selectedEmployee = employeeOptions.find(
+    (employee) => employee.value === draft.employeeId,
+  );
+
   return (
     <Dialog
-      description="Каждая обычная учётная запись уникально связана с активным сотрудником. Встроенный superadmin управляется отдельно."
+      description="Учётная запись связывается с актуальным сотрудником из кадровой базы. Роли загружаются из текущего конструктора ролей."
       onOpenChange={onOpenChange}
       open={open}
       title={draft.id ? "Редактировать пользователя" : "Новый пользователь"}
     >
       <div className="grid gap-4">
         <Field label="Сотрудник">
-          <Select
+          <SearchableSelect
+            ariaLabel="Выберите сотрудника"
+            noOptionsLabel="Подходящие сотрудники не найдены"
             onValueChange={(employeeId) => onChange({ ...draft, employeeId })}
             options={employeeOptions}
             placeholder="Выберите активного сотрудника"
+            searchPlaceholder="Поиск по ФИО, предприятию или отделу..."
             value={draft.employeeId}
           />
         </Field>
+        <p className="app-muted -mt-2 text-xs leading-5">
+          Показываются активные сотрудники без другой учётной записи. Список обновляется из кадрового реестра при открытии конструктора.
+        </p>
+        {selectedEmployee && (
+          <div className="app-surface-muted app-border -mt-1 rounded-2xl border px-4 py-3">
+            <p className="app-text text-sm font-black">{selectedEmployee.fullName}</p>
+            <p className="app-muted mt-1 text-xs">
+              {[selectedEmployee.enterpriseName, selectedEmployee.departmentName]
+                .filter(Boolean)
+                .join(" · ") || "Организационная структура не указана"}
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Логин">
@@ -91,65 +117,101 @@ export function UserDialog({
           />
         </Field>
 
-        <label className="app-surface-muted app-border flex cursor-pointer items-center gap-3 rounded-2xl border p-4">
-          <input
-            checked={draft.mustChangePassword}
-            className="h-4 w-4 accent-[var(--accent)]"
-            onChange={(event) =>
-              onChange({ ...draft, mustChangePassword: event.target.checked })
-            }
-            type="checkbox"
-          />
-          <span>
+        <div className="app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4">
+          <span className="min-w-0">
             <span className="app-text block text-sm font-black">
               Потребовать смену пароля
             </span>
-            <span className="app-muted mt-1 block text-xs">
+            <span className="app-muted mt-1 block text-xs leading-5">
               Рекомендуется для всех временных паролей.
             </span>
           </span>
-        </label>
+          <Toggle
+            ariaLabel="Потребовать смену пароля"
+            checked={draft.mustChangePassword}
+            onCheckedChange={(mustChangePassword) =>
+              onChange({ ...draft, mustChangePassword })
+            }
+          />
+        </div>
 
         <div>
-          <p className="app-text text-sm font-black">Роли пользователя</p>
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="app-text text-sm font-black">Роли пользователя</p>
+              <p className="app-muted mt-1 text-xs">
+                Данные берутся из актуального списка ролей приложения.
+              </p>
+            </div>
+            <span className="app-muted shrink-0 text-xs font-bold">
+              {roles.length} ролей
+            </span>
+          </div>
+
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {roles.map((role) => {
-              const checked = draft.roleIds.includes(role.id);
+              const isLeadershipRole =
+                role.systemKey === "enterprise_director" ||
+                role.systemKey === "department_head";
+              const isBuiltInSuperadmin = role.systemKey === "superadmin";
+              const canToggle = assignableRoleIds.has(role.id);
+              const checked = isLeadershipRole
+                ? automaticRoleIds.has(role.id)
+                : draft.roleIds.includes(role.id);
+              const disabled = !canToggle;
+              const description = isBuiltInSuperadmin
+                ? "Только для встроенной системной учётной записи"
+                : isLeadershipRole
+                  ? checked
+                    ? "Назначена автоматически по оргструктуре"
+                    : "Назначается автоматически по оргструктуре"
+                  : !canToggle
+                    ? "Недоступна: роль содержит права выше ваших"
+                    : `${role.permissionCodes.length} разрешений${role.isSystem ? " · системная роль" : ""}`;
+
               return (
-                <label
-                  className="app-surface-muted app-border cursor-pointer rounded-2xl border p-4"
+                <div
+                  className={[
+                    "app-surface-muted app-border flex min-h-[84px] items-center justify-between gap-4 rounded-2xl border p-4 transition",
+                    disabled ? "opacity-70" : "hover:border-[var(--accent-border)]",
+                  ].join(" ")}
                   key={role.id}
                 >
-                  <div className="flex items-start gap-3">
-                    <input
-                      checked={checked}
-                      className="mt-1 h-4 w-4 accent-[var(--accent)]"
-                      onChange={() =>
-                        onChange({
-                          ...draft,
-                          roleIds: checked
-                            ? draft.roleIds.filter((roleId) => roleId !== role.id)
-                            : [...draft.roleIds, role.id],
-                        })
-                      }
-                      type="checkbox"
-                    />
-                    <span>
-                      <span className="app-text block text-sm font-black">
-                        {role.name}
-                      </span>
-                      <span className="app-muted mt-1 block text-xs leading-5">
-                        {role.permissionCodes.length} разрешений
-                        {role.isSystem ? " · системная роль" : ""}
-                      </span>
+                  <span className="min-w-0">
+                    <span className="app-text block text-sm font-black">
+                      {role.name}
                     </span>
-                  </div>
-                </label>
+                    <span className="app-muted mt-1 block text-xs leading-5">
+                      {description}
+                    </span>
+                  </span>
+                  <Toggle
+                    ariaLabel={`Роль ${role.name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onCheckedChange={(nextChecked) => {
+                      if (!canToggle) return;
+                      onChange({
+                        ...draft,
+                        roleIds: nextChecked
+                          ? [...new Set([...draft.roleIds, role.id])]
+                          : draft.roleIds.filter((roleId) => roleId !== role.id),
+                      });
+                    }}
+                  />
+                </div>
               );
             })}
           </div>
+
+          {roles.length === 0 && (
+            <div className="app-surface-muted app-muted mt-3 rounded-2xl p-5 text-center text-sm font-semibold">
+              В приложении пока нет доступных ролей.
+            </div>
+          )}
+
           <p className="app-muted mt-3 text-xs leading-5">
-            Руководящие системные роли привязаны к фактическим назначениям в оргструктуре и синхронизируются автоматически.
+            Роли руководителя предприятия и руководителя отдела определяются фактическим назначением в оргструктуре и не переключаются вручную.
           </p>
         </div>
 

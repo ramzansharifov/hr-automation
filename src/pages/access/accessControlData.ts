@@ -10,6 +10,7 @@ import type { SelectOption } from "../../shared/ui";
 export interface EmployeeOption extends SelectOption {
   departmentName: string;
   enterpriseName: string;
+  fullName: string;
 }
 
 export interface UserDraft {
@@ -68,7 +69,7 @@ export async function loadEmployees(): Promise<EmployeeOption[]> {
       orderDirection: "asc",
     });
     records.push(...result.items);
-    totalPages = result.totalPages;
+    totalPages = Math.max(result.totalPages, 1);
     page += 1;
   } while (page <= totalPages);
 
@@ -77,12 +78,18 @@ export async function loadEmployees(): Promise<EmployeeOption[]> {
       .map((value) => String(value ?? "").trim())
       .filter(Boolean)
       .join(" ");
+    const enterpriseName = String(record.enterprise_name ?? "").trim();
+    const departmentName = String(record.department_name ?? "").trim();
+    const structure = [enterpriseName, departmentName].filter(Boolean).join(" · ");
+    const fallbackName = `Сотрудник #${String(record.id)}`;
+    const displayName = fullName || fallbackName;
 
     return {
       value: String(record.id),
-      label: fullName || `Сотрудник #${String(record.id)}`,
-      departmentName: String(record.department_name ?? ""),
-      enterpriseName: String(record.enterprise_name ?? ""),
+      label: structure ? `${displayName} · ${structure}` : displayName,
+      fullName: displayName,
+      departmentName,
+      enterpriseName,
     };
   });
 }

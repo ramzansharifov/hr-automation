@@ -17,6 +17,7 @@ import { legacyPermissionCodes } from "../../shared/access/permissionRules";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessRoleSummary,
+  AccessScopeType,
   AccessUserSummary,
   SaveAccessUserParams,
   SystemAdminSummary,
@@ -90,11 +91,18 @@ export function AccessUsersPage(): JSX.Element {
       setUsers(accessUsers);
       setRoles(accessRoles);
       setSystemAdmin(admin);
+
       if (canCreate || canEdit) {
         try {
           setEmployees(await loadEmployees());
-        } catch {
+        } catch (error) {
           setEmployees([]);
+          toast.error(
+            getErrorMessage(
+              error,
+              "Не удалось загрузить сотрудников для конструктора пользователя",
+            ),
+          );
         }
       } else {
         setEmployees([]);
@@ -109,6 +117,28 @@ export function AccessUsersPage(): JSX.Element {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const refreshConstructorData = useCallback(async (): Promise<
+    AccessRoleSummary[] | null
+  > => {
+    try {
+      const [freshRoles, freshEmployees] = await Promise.all([
+        hrApiClient.listAccessRoles(),
+        loadEmployees(),
+      ]);
+      setRoles(freshRoles);
+      setEmployees(freshEmployees);
+      return freshRoles;
+    } catch (error) {
+      toast.error(
+        getErrorMessage(
+          error,
+          "Не удалось обновить роли и сотрудников для конструктора пользователя",
+        ),
+      );
+      return null;
+    }
+  }, []);
 
   const availableEmployeeOptions = useMemo(() => {
     const currentEmployeeId = userDraft.id
@@ -126,26 +156,30 @@ export function AccessUsersPage(): JSX.Element {
 
   const assignableRoles = useMemo(
     () =>
-      roles.filter((role) => {
-        if (role.systemKey === "superadmin") return false;
-        if (
-          role.systemKey === "enterprise_director" ||
-          role.systemKey === "department_head"
-        ) {
-          return false;
-        }
-        if (role.systemKey === "employee") return true;
-        if (isSuperadmin) return true;
-        return role.permissionCodes
-          .filter((code) => !legacyPermissionCodes.has(code))
-          .every((code) => session.permissionScopes[code] === "global");
-      }),
+      getAssignableRoles(
+        roles,
+        isSuperadmin,
+        session.permissionScopes,
+      ),
     [isSuperadmin, roles, session.permissionScopes],
   );
   const assignableRoleIds = useMemo(
     () => new Set(assignableRoles.map((role) => role.id)),
     [assignableRoles],
   );
+  const automaticRoleIds = useMemo(() => {
+    if (!userDraft.id) return new Set<number>();
+    const currentUser = users.find((user) => user.id === userDraft.id);
+    return new Set(
+      (currentUser?.roles ?? [])
+        .filter(
+          (role) =>
+            role.systemKey === "enterprise_director" ||
+            role.systemKey === "department_head",
+        )
+        .map((role) => role.id),
+    );
+  }, [userDraft.id, users]);
 
   const rows: UserRow[] = [
     { kind: "system", id: "system-superadmin", admin: systemAdmin },
@@ -156,21 +190,35 @@ export function AccessUsersPage(): JSX.Element {
     })),
   ];
 
-  function openCreateUser(): void {
+  async function openCreateUser(): Promise<void> {
     if (!canCreate) return;
+    const freshRoles = await refreshConstructorData();
+    if (!freshRoles) return;
     setUserDraft(emptyUserDraft);
     setUserDialogOpen(true);
   }
 
-  function openEditUser(user: AccessUserSummary): void {
+  async function openEditUser(user: AccessUserSummary): Promise<void> {
     if (!canEdit) return;
+    const freshRoles = await refreshConstructorData();
+    if (!freshRoles) return;
+
+    const freshAssignableRoleIds = new Set(
+      getAssignableRoles(
+        freshRoles,
+        isSuperadmin,
+        session.permissionScopes,
+      ).map((role) => role.id),
+    );
     const manualRoles = user.roles.filter(
       (role) =>
         role.systemKey !== "enterprise_director" &&
         role.systemKey !== "department_head" &&
         role.systemKey !== "superadmin",
     );
-    const forbiddenRole = manualRoles.find((role) => !assignableRoleIds.has(role.id));
+    const forbiddenRole = manualRoles.find(
+      (role) => !freshAssignableRoleIds.has(role.id),
+    );
     if (forbiddenRole) {
       toast.error(
         `Нельзя редактировать назначение: роль «${forbiddenRole.name}» содержит права выше ваших`,
@@ -267,7 +315,7 @@ export function AccessUsersPage(): JSX.Element {
           <IconButton
             icon={<FiEdit2 />}
             label="Редактировать"
-            onClick={() => openEditUser(user)}
+            onClick={() => void openEditUser(user)}
             size="sm"
           />
         )}
@@ -432,7 +480,7 @@ export function AccessUsersPage(): JSX.Element {
             <Button
               className="border-white/20 shadow-xl hover:opacity-90"
               leftIcon={<FiPlus className="h-4 w-4" />}
-              onClick={openCreateUser}
+              onClick={() => void openCreateUser()}
               style={{ background: "#ffffff", color: "#0f172a" }}
               variant="ghost"
             >
@@ -519,6 +567,8 @@ export function AccessUsersPage(): JSX.Element {
 
       {(canCreate || canEdit) && (
         <UserDialog
+          assignableRoleIds={assignableRoleIds}
+          automaticRoleIds={automaticRoleIds}
           draft={userDraft}
           employeeOptions={availableEmployeeOptions}
           isSaving={isSaving}
@@ -526,7 +576,7 @@ export function AccessUsersPage(): JSX.Element {
           onOpenChange={setUserDialogOpen}
           onSave={() => void saveUser()}
           open={userDialogOpen}
-          roles={assignableRoles}
+          roles={roles}
         />
       )}
 
@@ -576,4 +626,25 @@ export function AccessUsersPage(): JSX.Element {
       )}
     </div>
   );
+}
+
+function getAssignableRoles(
+  roles: AccessRoleSummary[],
+  isSuperadmin: boolean,
+  permissionScopes: Record<string, AccessScopeType>,
+): AccessRoleSummary[] {
+  return roles.filter((role) => {
+    if (role.systemKey === "superadmin") return false;
+    if (
+      role.systemKey === "enterprise_director" ||
+      role.systemKey === "department_head"
+    ) {
+      return false;
+    }
+    if (role.systemKey === "employee") return true;
+    if (isSuperadmin) return true;
+    return role.permissionCodes
+      .filter((code) => !legacyPermissionCodes.has(code))
+      .every((code) => permissionScopes[code] === "global");
+  });
 }
