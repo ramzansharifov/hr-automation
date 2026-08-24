@@ -144,8 +144,22 @@ export function registerAccessIpcHandlers(): void {
 
   ipcMain.handle("access:resetPassword", (event, raw: unknown) => {
     assertTrustedSender(event);
-    authorizationService.requireGlobalPermission("users.reset_password");
+    const session = authorizationService.requireGlobalPermission(
+      "users.reset_password",
+    );
     const params = ipcValidation.resetPassword(raw);
+    const targetUser = accessService
+      .listUsers()
+      .find((user) => user.id === params.userId);
+    if (!targetUser) throw new Error("Пользователь не найден");
+    if (!isSuperadminSession(session)) {
+      assertCanControlTargetCredentials(
+        session,
+        targetUser.roles.map((role) => role.id),
+        accessService.listRoles(),
+      );
+    }
+
     const result = accessService.resetPassword(params);
     auditService.record(
       authenticationService.requireSession(),
@@ -229,6 +243,28 @@ function assertCanModifyExistingUserRoles(
       throw new Error("Нельзя изменять пользователя с ролью Superadmin");
     }
     assertCanDelegatePermissionCodes(session, role.permissionCodes);
+  }
+}
+
+function assertCanControlTargetCredentials(
+  session: AuthSession,
+  targetRoleIds: number[],
+  roles: AccessRoleSummary[],
+): void {
+  const roleMap = new Map(roles.map((role) => [role.id, role]));
+  for (const roleId of targetRoleIds) {
+    const role = roleMap.get(roleId);
+    if (!role || role.systemKey === "employee") continue;
+    if (role.systemKey === "superadmin") {
+      throw new Error("Нельзя изменять пароль учётной записи Superadmin");
+    }
+    try {
+      assertCanDelegatePermissionCodes(session, role.permissionCodes);
+    } catch {
+      throw new Error(
+        "Нельзя сбросить пароль более привилегированной учётной записи",
+      );
+    }
   }
 }
 
