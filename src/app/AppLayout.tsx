@@ -57,11 +57,15 @@ function SidebarItem({
   const Icon = item.icon;
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  const { session } = useAuth();
   const title = t(item.titleKey);
+  const isOwnProfileActive =
+    item.path === "/profile" && pathname === `/employees/${session.employeeId}`;
   const isActive =
-    item.path === "/"
+    isOwnProfileActive ||
+    (item.path === "/"
       ? pathname === "/"
-      : pathname === item.path || pathname.startsWith(`${item.path}/`);
+      : pathname === item.path || pathname.startsWith(`${item.path}/`));
 
   const link = (
     <NavLink
