@@ -141,10 +141,21 @@ export function registerHrCrudIpcHandlers(): void {
     if (!employee) throw new Error("Сотрудник не найден");
     authorizationService.assertCanChangeEmployment(employee, "change");
 
-    if (params.assignAsDepartmentLeader) {
+    const leadership = params.leadershipAssignment;
+    if (leadership?.type === "enterprise_director") {
+      const enterprise = service.getById({
+        entity: "enterprises",
+        id: leadership.targetId,
+      });
+      if (!enterprise) throw new Error("Предприятие не найдено");
+      authorizationService.assertCanUpdate("enterprises", enterprise, {
+        general_director_employee_id: params.employeeId,
+      });
+    }
+    if (leadership?.type === "department_head") {
       const department = service.getById({
         entity: "departments",
-        id: params.departmentId,
+        id: leadership.targetId,
       });
       if (!department) throw new Error("Отдел не найден");
       authorizationService.assertCanUpdate("departments", department, {
@@ -153,11 +164,15 @@ export function registerHrCrudIpcHandlers(): void {
     }
 
     const updated = service.changeEmployment(params);
+    const auditAction =
+      leadership?.type === "enterprise_director"
+        ? "employment.assign_enterprise_director"
+        : leadership?.type === "department_head"
+          ? "employment.assign_department_head"
+          : "employment.change";
     auditService.record(
       authenticationService.requireSession(),
-      params.assignAsDepartmentLeader
-        ? "employment.change_and_assign_department_leader"
-        : "employment.change",
+      auditAction,
       "employees",
       params.employeeId,
       employee,
@@ -166,7 +181,7 @@ export function registerHrCrudIpcHandlers(): void {
         enterpriseId: params.enterpriseId,
         departmentId: params.departmentId,
         positionId: params.positionId,
-        assignAsDepartmentLeader: params.assignAsDepartmentLeader ?? false,
+        leadershipAssignment: leadership ?? null,
         effectiveAt: params.effectiveAt,
         reason: params.reason,
       },
