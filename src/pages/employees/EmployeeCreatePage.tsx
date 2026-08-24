@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { Button } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
+import { getUserFacingErrorMessage } from "../../shared/lib/userFacingErrors";
 import {
   mapEmployeeFormValuesToRecord,
   normalizeEmail,
@@ -165,7 +166,12 @@ export function EmployeeCreatePage(): JSX.Element {
       toast.success(t("employeesCreate.toasts.created"));
       navigate(Number.isFinite(id) ? `/employees/${id}` : "/employees");
     } catch (error) {
-      toast.error(getErrorMessage(error, t("employeesCreate.toasts.createError")));
+      toast.error(
+        getUserFacingErrorMessage(
+          error,
+          "Не удалось создать сотрудника. Проверьте заполненные данные",
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -270,10 +276,4 @@ export function EmployeeCreatePage(): JSX.Element {
       </footer>
     </div>
   );
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) return fallback;
-  const parts = error.message.split("Error: ");
-  return parts[parts.length - 1] || fallback;
 }
