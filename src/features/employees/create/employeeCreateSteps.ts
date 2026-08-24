@@ -27,23 +27,6 @@ export const employeeCreateSteps = [
     ],
   },
   {
-    key: "company",
-    titleKey: "employeesCreate.steps.company",
-    fields: [
-      "employee_number",
-      "department_id",
-      "position_id",
-      "hire_date",
-      "salary",
-      "employment_type",
-      "contract_number",
-      "contract_date",
-      "contract_end_date",
-      "probation_end_date",
-      "workplace",
-    ],
-  },
-  {
     key: "review",
     titleKey: "employeesCreate.steps.review",
     fields: [],
