@@ -53,6 +53,31 @@ export function UserDialog({
     (employee) => employee.value === draft.employeeId,
   );
 
+  function changeEmployee(employeeId: string): void {
+    const employee = employeeOptions.find(
+      (option) => option.value === employeeId,
+    );
+    const incompatibleRoleIds = new Set(
+      roles
+        .filter(
+          (role) =>
+            (role.systemKey === "enterprise_admin" &&
+              !employee?.enterpriseName) ||
+            (role.systemKey === "department_admin" &&
+              !employee?.departmentName),
+        )
+        .map((role) => role.id),
+    );
+
+    onChange({
+      ...draft,
+      employeeId,
+      roleIds: draft.roleIds.filter(
+        (roleId) => !incompatibleRoleIds.has(roleId),
+      ),
+    });
+  }
+
   return (
     <Dialog
       description="Учётная запись связывается с актуальным сотрудником из кадровой базы. Роли загружаются из текущего конструктора ролей."
@@ -65,7 +90,7 @@ export function UserDialog({
           <SearchableSelect
             ariaLabel="Выберите сотрудника"
             noOptionsLabel="Подходящие сотрудники не найдены"
-            onValueChange={(employeeId) => onChange({ ...draft, employeeId })}
+            onValueChange={changeEmployee}
             options={employeeOptions}
             placeholder="Выберите активного сотрудника"
             searchPlaceholder="Поиск по ФИО, предприятию или отделу..."
@@ -90,7 +115,9 @@ export function UserDialog({
           <Field label="Логин">
             <Input
               autoComplete="off"
-              onChange={(event) => onChange({ ...draft, username: event.target.value })}
+              onChange={(event) =>
+                onChange({ ...draft, username: event.target.value })
+              }
               placeholder="farid.karimov"
               value={draft.username}
             />
@@ -107,10 +134,16 @@ export function UserDialog({
           </Field>
         </div>
 
-        <Field label={draft.id ? "Новый пароль — необязательно" : "Временный пароль"}>
+        <Field
+          label={
+            draft.id ? "Новый пароль — необязательно" : "Временный пароль"
+          }
+        >
           <Input
             autoComplete="new-password"
-            onChange={(event) => onChange({ ...draft, password: event.target.value })}
+            onChange={(event) =>
+              onChange({ ...draft, password: event.target.value })
+            }
             placeholder="Минимум 8 символов, буква и цифра"
             type="password"
             value={draft.password}
@@ -153,27 +186,55 @@ export function UserDialog({
               const isLeadershipRole =
                 role.systemKey === "enterprise_director" ||
                 role.systemKey === "department_head";
+              const isEnterpriseAdmin =
+                role.systemKey === "enterprise_admin";
+              const isDepartmentAdmin =
+                role.systemKey === "department_admin";
               const isBuiltInSuperadmin = role.systemKey === "superadmin";
-              const canToggle = assignableRoleIds.has(role.id);
+              const hasRequiredOrganizationScope = isEnterpriseAdmin
+                ? Boolean(selectedEmployee?.enterpriseName)
+                : isDepartmentAdmin
+                  ? Boolean(selectedEmployee?.departmentName)
+                  : true;
+              const canToggle =
+                assignableRoleIds.has(role.id) && hasRequiredOrganizationScope;
               const checked = isLeadershipRole
                 ? automaticRoleIds.has(role.id)
                 : draft.roleIds.includes(role.id);
               const disabled = !canToggle;
-              const description = isBuiltInSuperadmin
-                ? "Только для встроенной системной учётной записи"
-                : isLeadershipRole
-                  ? checked
-                    ? "Назначена автоматически по оргструктуре"
-                    : "Назначается автоматически по оргструктуре"
-                  : !canToggle
-                    ? "Недоступна: роль содержит права выше ваших"
-                    : `${role.permissionCodes.length} разрешений${role.isSystem ? " · системная роль" : ""}`;
+
+              let description: string;
+              if (isBuiltInSuperadmin) {
+                description = "Только для встроенной системной учётной записи";
+              } else if (isLeadershipRole) {
+                description = checked
+                  ? "Назначена автоматически по оргструктуре"
+                  : "Назначается автоматически по оргструктуре";
+              } else if (isEnterpriseAdmin) {
+                description = !selectedEmployee?.enterpriseName
+                  ? "Доступна сотруднику, который уже относится к предприятию"
+                  : canToggle
+                    ? `Полное управление в пределах «${selectedEmployee.enterpriseName}»`
+                    : "Недоступна: роль содержит права выше ваших";
+              } else if (isDepartmentAdmin) {
+                description = !selectedEmployee?.departmentName
+                  ? "Доступна сотруднику, который уже относится к отделу"
+                  : canToggle
+                    ? `Полное управление в пределах «${selectedEmployee.departmentName}»`
+                    : "Недоступна: роль содержит права выше ваших";
+              } else if (!canToggle) {
+                description = "Недоступна: роль содержит права выше ваших";
+              } else {
+                description = `${role.permissionCodes.length} разрешений${role.isSystem ? " · системная роль" : ""}`;
+              }
 
               return (
                 <div
                   className={[
                     "app-surface-muted app-border flex min-h-[84px] items-center justify-between gap-4 rounded-2xl border p-4 transition",
-                    disabled ? "opacity-70" : "hover:border-[var(--accent-border)]",
+                    disabled
+                      ? "opacity-70"
+                      : "hover:border-[var(--accent-border)]",
                   ].join(" ")}
                   key={role.id}
                 >
@@ -195,7 +256,9 @@ export function UserDialog({
                         ...draft,
                         roleIds: nextChecked
                           ? [...new Set([...draft.roleIds, role.id])]
-                          : draft.roleIds.filter((roleId) => roleId !== role.id),
+                          : draft.roleIds.filter(
+                              (roleId) => roleId !== role.id,
+                            ),
                       });
                     }}
                   />
@@ -211,7 +274,7 @@ export function UserDialog({
           )}
 
           <p className="app-muted mt-3 text-xs leading-5">
-            Роли руководителя предприятия и руководителя отдела определяются фактическим назначением в оргструктуре и не переключаются вручную.
+            Руководящие роли определяются фактическим назначением в оргструктуре. Роли администратора предприятия и администратора отдела назначаются вручную, а их область доступа автоматически следует за текущим предприятием или отделом сотрудника.
           </p>
         </div>
 
@@ -243,14 +306,20 @@ export function AccessMetric({
         {icon}
       </span>
       <div>
-        <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">{label}</p>
+        <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">
+          {label}
+        </p>
         <p className="app-text mt-1 text-2xl font-black">{value}</p>
       </div>
     </div>
   );
 }
 
-export function StatusBadge({ status }: { status: AccessUserStatus }): JSX.Element {
+export function StatusBadge({
+  status,
+}: {
+  status: AccessUserStatus;
+}): JSX.Element {
   return (
     <span
       className={[
