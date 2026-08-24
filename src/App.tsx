@@ -8,11 +8,12 @@ import {
   RequirePermission,
 } from "./features/auth/PermissionRoute";
 import { AuditLogPage } from "./pages/AuditLogPage";
-import { DashboardPage } from "./pages/DashboardPage";
 import { EmployeeWorkspacePage } from "./pages/EmployeeWorkspacePage";
 import { FiltersPage } from "./pages/FiltersPage";
+import { LeadershipDepartmentsPage } from "./pages/LeadershipDepartmentsPage";
 import { OrganizationDetailsPage } from "./pages/OrganizationDetailsPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
+import { RoleAwareDashboardPage } from "./pages/RoleAwareDashboardPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { VacationTypesPage } from "./pages/VacationTypesPage";
 import { VacationsPage } from "./pages/VacationsPage";
@@ -44,11 +45,12 @@ function App(): JSX.Element {
       <Routes>
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<AuthorizedHome />} />
-          <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><DashboardPage /></RequirePermission>} />
+          <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><RoleAwareDashboardPage /></RequirePermission>} />
           <Route path="team" element={<RequirePermission anyOf={["directory.view"]}><Navigate to="/my-enterprise" replace /></RequirePermission>} />
           <Route path="my-enterprise" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="enterprise" /></RequirePermission>} />
           <Route path="my-department" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="department" /></RequirePermission>} />
           <Route path="colleagues" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="colleagues" /></RequirePermission>} />
+          <Route path="management/departments" element={<RequirePermission anyOf={["organization.view"]}><LeadershipDepartmentsPage /></RequirePermission>} />
           <Route path="employees" element={<RequirePermission anyOf={["employees.view"]}><EmployeesPage /></RequirePermission>} />
           <Route path="employees/new" element={<RequirePermission anyOf={["employees.create"]}><EmployeeCreatePage /></RequirePermission>} />
           <Route path="employees/:id" element={<RequirePermission anyOf={["employees.view", "profile.view"]}><EmployeeDetailsPage /></RequirePermission>} />
