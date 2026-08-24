@@ -47,9 +47,9 @@ export function normalizeEmployeeFormValues(values: EmployeeFormValues): Employe
 export function mapEmployeeFormValuesToRecord(values: EmployeeFormValues): HrRecord {
   return {
     employee_number: nullableString(values.employee_number),
-    last_name: values.last_name,
-    first_name: values.first_name,
-    middle_name: nullableString(values.middle_name),
+    last_name: normalizePersonName(values.last_name),
+    first_name: normalizePersonName(values.first_name),
+    middle_name: nullableString(normalizePersonName(values.middle_name)),
     birth_date: nullableString(values.birth_date),
     gender: nullableString(values.gender),
     phone: nullableString(values.phone),
