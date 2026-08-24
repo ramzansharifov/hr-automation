@@ -1,3 +1,4 @@
+DROP TRIGGER IF EXISTS roles_system_update_guard;
 DROP TRIGGER IF EXISTS role_permissions_system_insert_guard;
 DROP TRIGGER IF EXISTS role_permissions_system_delete_guard;
 
@@ -13,6 +14,13 @@ WHERE role.system_key IN ('employee', 'enterprise_director', 'department_head');
 UPDATE roles
 SET description = 'Собственный профиль, отпуска, организация, руководители и безопасный справочник коллег.'
 WHERE system_key = 'employee';
+
+CREATE TRIGGER roles_system_update_guard
+BEFORE UPDATE ON roles
+WHEN OLD.is_system = 1
+BEGIN
+  SELECT RAISE(ABORT, 'Системную роль нельзя изменять');
+END;
 
 CREATE TRIGGER role_permissions_system_insert_guard
 BEFORE INSERT ON role_permissions
