@@ -6,6 +6,7 @@ import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
 import { Button, PageHeader, useStoredViewMode } from "../../shared/ui";
 import { useAuth } from "../../features/auth/AuthContext";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
+import { getLeadershipRole } from "../../shared/access/leadership";
 import {
   EMPLOYEE_FILTERS_EVENT,
   getStoredEmployeeHrFilters,
@@ -13,8 +14,9 @@ import {
 
 export function EmployeesPage(): JSX.Element {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
   const canCreateEmployees = hasPermission("employees.create");
+  const leadershipRole = getLeadershipRole(session.roles);
   const [appliedFilters, setAppliedFilters] = useState<
     Record<string, HrFilterCondition> | undefined
   >(getStoredEmployeeHrFilters);
@@ -46,10 +48,23 @@ export function EmployeesPage(): JSX.Element {
     if (Number.isFinite(id)) navigate(`/employees/${id}`);
   }
 
+  const title =
+    leadershipRole === "enterprise_director"
+      ? "Сотрудники предприятия"
+      : leadershipRole === "department_head"
+        ? "Сотрудники отдела"
+        : "Сотрудники";
+  const description =
+    leadershipRole === "enterprise_director"
+      ? `Сотрудники ${session.enterpriseName || "вашего предприятия"}. Реестр автоматически ограничен предприятием, которым вы руководите.`
+      : leadershipRole === "department_head"
+        ? `Сотрудники ${session.departmentName || "вашего отдела"}. Реестр автоматически ограничен вашим подразделением.`
+        : "Единый реестр сотрудников, их должностей, подразделений и кадрового статуса.";
+
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Единый реестр сотрудников, их должностей, подразделений и кадрового статуса."
+        description={description}
         icon={<FiUsers />}
         actions={
           canCreateEmployees ? (
@@ -64,7 +79,7 @@ export function EmployeesPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        title="Сотрудники"
+        title={title}
       />
 
       <HrEntityTable
