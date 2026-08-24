@@ -58,9 +58,9 @@ export const employeeCompanySchema = z.object({
 })
 
 export const employeeAssignmentSchema = z.object({
-  department_id: requiredNumberString(),
-  position_id: requiredNumberString(),
-  hire_date: requiredString(),
+  department_id: optionalString(),
+  position_id: optionalString(),
+  hire_date: optionalString(),
   status: requiredString(),
   salary: requiredNumberString(),
 })

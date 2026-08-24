@@ -1,26 +1,17 @@
 import type { TFunction } from "i18next";
 
-import type { SelectOption } from "../../../shared/ui";
-import {
-  formatCurrency,
-  formatDate,
-  humanizeStatus,
-} from "../../../shared/lib/format";
+import { formatDate, humanizeStatus } from "../../../shared/lib/format";
 import { EmployeeInfoSection } from "../components/EmployeeInfoSection";
 import type { EmployeeFormValues } from "../types";
 
 interface EmployeeCreateReviewProps {
-  departments: SelectOption[];
   locale: string;
-  positions: SelectOption[];
   t: TFunction;
   values: EmployeeFormValues;
 }
 
 export function EmployeeCreateReview({
-  departments,
   locale,
-  positions,
   t,
   values,
 }: EmployeeCreateReviewProps): JSX.Element {
@@ -88,43 +79,13 @@ export function EmployeeCreateReview({
           },
         ]}
       />
-      <EmployeeInfoSection
-        title={t("employeesDetails.sections.company")}
-        items={[
-          {
-            label: t("forms.fields.departmentId"),
-            value: optionLabel(departments, values.department_id, t),
-          },
-          {
-            label: t("forms.fields.positionId"),
-            value: optionLabel(positions, values.position_id, t),
-          },
-          {
-            label: t("forms.fields.hireDate"),
-            value: formatDate(values.hire_date, locale),
-          },
-          {
-            label: t("forms.fields.status"),
-            value: humanizeStatus(values.status, t),
-          },
-          {
-            label: t("forms.fields.salary"),
-            value: formatCurrency(values.salary, locale),
-          },
-        ]}
-      />
+      <div className="app-accent-soft app-border rounded-2xl border p-4 text-sm font-semibold leading-6">
+        <p className="app-text font-black">Организационное назначение оформляется отдельно</p>
+        <p className="app-muted mt-1">
+          После создания сотрудника можно назначить в предприятие, отдел и на должность через кадровое изменение или сразу выбрать его руководителем отдела, если у него ещё нет назначения.
+        </p>
+      </div>
     </div>
-  );
-}
-
-function optionLabel(
-  options: SelectOption[],
-  value: string,
-  t: TFunction,
-): string {
-  return (
-    options.find((option) => option.value === value)?.label ??
-    valueOrEmpty(value, t)
   );
 }
 

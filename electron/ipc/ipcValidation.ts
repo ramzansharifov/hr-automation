@@ -100,12 +100,14 @@ export const ipcValidation = {
     return z
       .object({
         employeeId: positiveId,
+        enterpriseId: positiveId,
         departmentId: positiveId,
-        positionId: positiveId,
+        positionId: positiveId.nullable(),
         salaryMode: z.enum(["keep", "custom"]),
         salary: z.number().nonnegative().optional(),
         effectiveAt: dateSchema,
         reason: z.string().min(1).max(2000),
+        assignAsDepartmentLeader: z.boolean().optional(),
       })
       .parse(value);
   },

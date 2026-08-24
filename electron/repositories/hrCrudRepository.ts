@@ -136,12 +136,55 @@ export class HrCrudRepository {
         throw new Error("Кадровые изменения доступны только активным сотрудникам");
       }
 
-      const position = this.database
-        .prepare("SELECT * FROM positions WHERE id = ? LIMIT 1")
-        .get(params.positionId) as HrRecord | undefined;
-      if (!position) throw new Error("Должность не найдена");
-      if (Number(position.department_id) !== params.departmentId) {
-        throw new Error("Выбранная должность не принадлежит указанному отделу");
+      const enterprise = this.database
+        .prepare("SELECT id FROM enterprises WHERE id = ? LIMIT 1")
+        .get(params.enterpriseId) as { id: number } | undefined;
+      if (!enterprise) throw new Error("Предприятие не найдено");
+
+      const department = this.database
+        .prepare("SELECT id, enterprise_id FROM departments WHERE id = ? LIMIT 1")
+        .get(params.departmentId) as
+        | { id: number; enterprise_id: number | null }
+        | undefined;
+      if (!department) throw new Error("Отдел не найден");
+      if (Number(department.enterprise_id) !== params.enterpriseId) {
+        throw new Error("Выбранный отдел не принадлежит указанному предприятию");
+      }
+
+      if (params.positionId !== null) {
+        const position = this.database
+          .prepare("SELECT id, department_id FROM positions WHERE id = ? LIMIT 1")
+          .get(params.positionId) as
+          | { id: number; department_id: number | null }
+          | undefined;
+        if (!position) throw new Error("Должность не найдена");
+        if (Number(position.department_id) !== params.departmentId) {
+          throw new Error("Выбранная должность не принадлежит указанному отделу");
+        }
+      }
+
+      if (params.assignAsDepartmentLeader) {
+        const enterpriseLeadership = this.database
+          .prepare(
+            "SELECT id FROM enterprises WHERE general_director_employee_id = ? LIMIT 1",
+          )
+          .get(params.employeeId);
+        if (enterpriseLeadership) {
+          throw new Error(
+            "Сотрудник уже является руководителем предприятия. Сначала снимите текущее назначение",
+          );
+        }
+        const otherDepartmentLeadership = this.database
+          .prepare(
+            `SELECT id FROM departments
+             WHERE director_employee_id = ? AND id <> ? LIMIT 1`,
+          )
+          .get(params.employeeId, params.departmentId);
+        if (otherDepartmentLeadership) {
+          throw new Error(
+            "Сотрудник уже руководит другим отделом. Сначала снимите текущее назначение",
+          );
+        }
       }
 
       this.assertLifecycleDate(params.employeeId, params.effectiveAt, employee);
@@ -154,49 +197,101 @@ export class HrCrudRepository {
         throw new Error("Оклад указан неверно");
       }
 
-      const hasChanges =
-        Number(employee.department_id) !== params.departmentId ||
-        Number(employee.position_id) !== params.positionId ||
+      const currentDepartmentId = nullablePositiveNumber(employee.department_id);
+      const currentPositionId = nullablePositiveNumber(employee.position_id);
+      const hasEmploymentChanges =
+        currentDepartmentId !== params.departmentId ||
+        currentPositionId !== params.positionId ||
         Number(employee.salary ?? 0) !== nextSalary;
-      if (!hasChanges) throw new Error("Новые условия не отличаются от текущих");
-
-      this.database
-        .prepare(
-          `UPDATE employees
-           SET department_id = @departmentId,
-               position_id = @positionId,
-               salary = @salary,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = @employeeId`,
-        )
-        .run({
-          departmentId: params.departmentId,
-          employeeId: params.employeeId,
-          positionId: params.positionId,
-          salary: nextSalary,
-        });
-
-      const generatedHistory = this.database
-        .prepare(
-          `SELECT id FROM employment_history
-           WHERE employee_id = ? ORDER BY id DESC LIMIT 1`,
-        )
-        .get(params.employeeId) as { id: number } | undefined;
-      if (!generatedHistory) {
-        throw new Error("Не удалось создать запись кадрового журнала");
+      if (!hasEmploymentChanges && !params.assignAsDepartmentLeader) {
+        throw new Error("Новые условия не отличаются от текущих");
       }
 
-      this.database
-        .prepare(
-          `UPDATE employment_history
-           SET effective_at = @effectiveAt, reason = @reason
-           WHERE id = @id`,
-        )
-        .run({
-          effectiveAt: params.effectiveAt,
-          id: generatedHistory.id,
-          reason: params.reason.trim(),
-        });
+      let historyId: number | null = null;
+      if (hasEmploymentChanges) {
+        this.database
+          .prepare(
+            `UPDATE employees
+             SET department_id = @departmentId,
+                 position_id = @positionId,
+                 salary = @salary,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = @employeeId`,
+          )
+          .run({
+            departmentId: params.departmentId,
+            employeeId: params.employeeId,
+            positionId: params.positionId,
+            salary: nextSalary,
+          });
+
+        const generatedHistory = this.database
+          .prepare(
+            `SELECT id FROM employment_history
+             WHERE employee_id = ? ORDER BY id DESC LIMIT 1`,
+          )
+          .get(params.employeeId) as { id: number } | undefined;
+        if (!generatedHistory) {
+          throw new Error("Не удалось создать запись кадрового журнала");
+        }
+        historyId = generatedHistory.id;
+      } else {
+        const insertedHistory = this.database
+          .prepare(
+            `INSERT INTO employment_history (
+               employee_id, change_type,
+               previous_department_id, new_department_id,
+               previous_position_id, new_position_id,
+               previous_salary, new_salary,
+               effective_at, reason
+             ) VALUES (
+               @employeeId, 'department_leader',
+               @departmentId, @departmentId,
+               @positionId, @positionId,
+               @salary, @salary,
+               @effectiveAt, @reason
+             )`,
+          )
+          .run({
+            departmentId: params.departmentId,
+            effectiveAt: params.effectiveAt,
+            employeeId: params.employeeId,
+            positionId: params.positionId,
+            reason: params.reason.trim(),
+            salary: nextSalary,
+          });
+        historyId = Number(insertedHistory.lastInsertRowid);
+      }
+
+      if (historyId && hasEmploymentChanges) {
+        this.database
+          .prepare(
+            `UPDATE employment_history
+             SET effective_at = @effectiveAt,
+                 reason = @reason,
+                 change_type = CASE
+                   WHEN @assignLeader = 1 THEN 'department_leader'
+                   ELSE change_type
+                 END
+             WHERE id = @id`,
+          )
+          .run({
+            assignLeader: params.assignAsDepartmentLeader ? 1 : 0,
+            effectiveAt: params.effectiveAt,
+            id: historyId,
+            reason: params.reason.trim(),
+          });
+      }
+
+      if (params.assignAsDepartmentLeader) {
+        this.database
+          .prepare(
+            `UPDATE departments
+             SET director_employee_id = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+          )
+          .run(params.employeeId, params.departmentId);
+      }
 
       return this.getEmployee(params.employeeId);
     });
@@ -496,4 +591,10 @@ function normalizePage(page?: number): number {
 function normalizePageSize(pageSize?: number): number {
   if (!pageSize || pageSize < 1) return 20;
   return Math.min(Math.floor(pageSize), maxHrPageSize);
+}
+
+function nullablePositiveNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = Number(value);
+  return Number.isInteger(numberValue) && numberValue > 0 ? numberValue : null;
 }

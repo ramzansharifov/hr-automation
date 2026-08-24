@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
+import { DepartmentLeaderDialog } from "../features/organization/DepartmentLeaderDialog";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
@@ -50,6 +51,7 @@ export function OrganizationDetailsPage(): JSX.Element {
   const departmentId = positiveId(params.departmentId);
   const mode: OrganizationDetailsMode = departmentId ? "department" : "enterprise";
   const canViewEmployees = hasPermission("employees.view");
+  const canChangeEmployment = hasPermission("employees.change_employment");
   const canAssignLeader = hasPermission("organization.assign_leader");
   const canCreatePosition = hasPermission("organization.create");
   const canEditPosition = hasPermission("organization.edit");
@@ -185,14 +187,14 @@ export function OrganizationDetailsPage(): JSX.Element {
   async function openLeaderDialog(): Promise<void> {
     if (!canAssignLeader || !enterpriseId) return;
 
-    const targetDepartmentIds =
-      mode === "department"
-        ? departmentId
-          ? [departmentId]
-          : []
-        : departments
-            .map((item) => positiveId(item.id))
-            .filter((id): id is number => Boolean(id));
+    if (mode === "department") {
+      setIsLeaderDialogOpen(true);
+      return;
+    }
+
+    const targetDepartmentIds = departments
+      .map((item) => positiveId(item.id))
+      .filter((id): id is number => Boolean(id));
 
     setIsLeaderDialogOpen(true);
     setLeaderLoading(true);
@@ -219,10 +221,7 @@ export function OrganizationDetailsPage(): JSX.Element {
         value: String(employee.id),
         label: employeeName(employee),
       }));
-      const currentLeaderId =
-        mode === "enterprise"
-          ? positiveId(enterprise?.general_director_employee_id)
-          : positiveId(department?.director_employee_id);
+      const currentLeaderId = positiveId(enterprise?.general_director_employee_id);
       const currentValue = currentLeaderId ? String(currentLeaderId) : "";
 
       setLeaderOptions(options);
@@ -239,29 +238,18 @@ export function OrganizationDetailsPage(): JSX.Element {
     }
   }
 
-  async function saveLeader(): Promise<void> {
-    if (!canAssignLeader || !enterpriseId) return;
-    if (mode === "department" && !departmentId) return;
+  async function saveEnterpriseLeader(): Promise<void> {
+    if (!canAssignLeader || !enterpriseId || mode !== "enterprise") return;
 
     setLeaderLoading(true);
     try {
-      if (mode === "enterprise") {
-        await hrApiClient.update({
-          entity: "enterprises",
-          id: enterpriseId,
-          data: {
-            general_director_employee_id: leaderId ? Number(leaderId) : null,
-          },
-        });
-      } else {
-        await hrApiClient.update({
-          entity: "departments",
-          id: departmentId!,
-          data: {
-            director_employee_id: leaderId ? Number(leaderId) : null,
-          },
-        });
-      }
+      await hrApiClient.update({
+        entity: "enterprises",
+        id: enterpriseId,
+        data: {
+          general_director_employee_id: leaderId ? Number(leaderId) : null,
+        },
+      });
 
       toast.success(
         leaderId ? "Руководитель назначен" : "Руководитель снят с назначения",
@@ -772,59 +760,69 @@ export function OrganizationDetailsPage(): JSX.Element {
         )}
       </section>
 
-      <Dialog
-        description={
-          mode === "enterprise"
-            ? "Выберите активного сотрудника этого предприятия без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
-            : "Выберите активного сотрудника этого отдела без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя отдела."
-        }
-        onOpenChange={(open) => {
-          setIsLeaderDialogOpen(open);
-          if (!open) {
-            setLeaderId("");
-            setLeaderOptions([]);
-          }
-        }}
-        open={isLeaderDialogOpen}
-        title={
-          mode === "enterprise"
-            ? "Назначить руководителя предприятия"
-            : "Назначить руководителя отдела"
-        }
-      >
-        {leaderLoading && leaderOptions.length === 0 ? (
-          <LoadingState label="Загрузка сотрудников..." />
-        ) : (
-          <div className="grid gap-5">
-            <div className="grid gap-2">
-              <span className="app-text text-sm font-black">Сотрудник</span>
-              <SearchableSelect
-                allowEmpty
-                ariaLabel="Сотрудник"
-                emptyOptionLabel="Не назначен"
-                noOptionsLabel="Свободные сотрудники не найдены"
-                onValueChange={setLeaderId}
-                options={leaderOptions}
-                placeholder="Выберите сотрудника"
-                searchPlaceholder="Поиск по фамилии или имени"
-                value={leaderId}
-              />
+      {mode === "department" && enterpriseId && departmentId ? (
+        <DepartmentLeaderDialog
+          canChangeEmployment={canChangeEmployment}
+          currentLeaderId={leaderEmployeeId}
+          departmentId={departmentId}
+          departmentName={recordName(department!)}
+          enterpriseId={enterpriseId}
+          enterpriseName={recordName(enterprise)}
+          onOpenChange={setIsLeaderDialogOpen}
+          onSaved={() => setRefreshIndex((value) => value + 1)}
+          open={isLeaderDialogOpen}
+          positions={positions}
+        />
+      ) : (
+        <Dialog
+          description="Выберите активного сотрудника этого предприятия без назначенной должности. При наличии учётной записи ему автоматически будет выдана системная роль руководителя предприятия."
+          onOpenChange={(open) => {
+            setIsLeaderDialogOpen(open);
+            if (!open) {
+              setLeaderId("");
+              setLeaderOptions([]);
+            }
+          }}
+          open={isLeaderDialogOpen}
+          title="Назначить руководителя предприятия"
+        >
+          {leaderLoading && leaderOptions.length === 0 ? (
+            <LoadingState label="Загрузка сотрудников..." />
+          ) : (
+            <div className="grid gap-5">
+              <div className="grid gap-2">
+                <span className="app-text text-sm font-black">Сотрудник</span>
+                <SearchableSelect
+                  allowEmpty
+                  ariaLabel="Сотрудник"
+                  emptyOptionLabel="Не назначен"
+                  noOptionsLabel="Свободные сотрудники не найдены"
+                  onValueChange={setLeaderId}
+                  options={leaderOptions}
+                  placeholder="Выберите сотрудника"
+                  searchPlaceholder="Поиск по фамилии или имени"
+                  value={leaderId}
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  onClick={() => setIsLeaderDialogOpen(false)}
+                  type="button"
+                  variant="secondary"
+                >
+                  Отмена
+                </Button>
+                <Button
+                  disabled={leaderLoading}
+                  onClick={() => void saveEnterpriseLeader()}
+                >
+                  Сохранить назначение
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                onClick={() => setIsLeaderDialogOpen(false)}
-                type="button"
-                variant="secondary"
-              >
-                Отмена
-              </Button>
-              <Button disabled={leaderLoading} onClick={() => void saveLeader()}>
-                Сохранить назначение
-              </Button>
-            </div>
-          </div>
-        )}
-      </Dialog>
+          )}
+        </Dialog>
+      )}
 
       {mode === "enterprise" && enterpriseId && (canCreateDepartment || canEditDepartment) && (
         <HrEntityDialog
@@ -1044,8 +1042,7 @@ function LeaderCard({
       </div>
       {canManage && (
         <p className="app-muted mt-4 text-xs font-semibold leading-5">
-          Руководитель назначается здесь, в карточке организации. В списке доступны
-          только активные сотрудники без текущей должности.
+          Свободного сотрудника можно назначить сразу. Если у сотрудника уже есть кадровое назначение, перевод и назначение руководителем оформляются единым кадровым изменением.
         </p>
       )}
     </article>
