@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "build:check": "tsc && vite build",
     "test": "npm run test:integration",
-    "test:integration": "node --test tests/*.integration.test.mjs",
+    "test:integration": "python3 tests/hr_core_integration.py",
     "test:e2e": "node tests/electron-smoke.mjs",
     "postinstall": "electron-builder install-app-deps"
   },
