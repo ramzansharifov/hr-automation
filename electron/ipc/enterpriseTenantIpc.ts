@@ -134,9 +134,33 @@ export function registerEnterpriseTenantIpcHandlers(): void {
     return result;
   });
 
-  // hrCrudIpc registers global handlers first. Replace the journal and employee
-  // export after common HR handlers so scoped administrators use the same APIs
-  // with mandatory tenant filtering on the backend.
+  // hrCrudIpc registers generic handlers first. Re-register create so employee
+  // tenant ownership follows the scope of employees.create specifically instead
+  // of the broadest unrelated permission the account may also have.
+  ipcMain.removeHandler("hr:create");
+  ipcMain.handle("hr:create", (event, raw: unknown) => {
+    assertTrustedSender(event);
+    const params = ipcValidation.create(raw);
+    const session = authenticationService.requireSession();
+    const data =
+      params.entity === "employees"
+        ? scopeNewEmployeeData(params.data, session)
+        : params.data;
+    authorizationService.assertCanCreate(params.entity, data);
+    const created = hrService.create({ ...params, data });
+    auditService.record(
+      session,
+      "create",
+      params.entity,
+      Number(created.id) || null,
+      null,
+      created,
+    );
+    return created;
+  });
+
+  // Replace the journal and employee export after common HR handlers so scoped
+  // administrators use the same APIs with mandatory tenant filtering on backend.
   ipcMain.removeHandler("audit:list");
   ipcMain.handle("audit:list", (event, raw: unknown) => {
     assertTrustedSender(event);
@@ -180,6 +204,34 @@ export function registerEnterpriseTenantIpcHandlers(): void {
     }
     return result;
   });
+}
+
+function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
+  const createScope = session.permissionScopes["employees.create"];
+  if (createScope === "global") return data;
+  if (createScope === "enterprise") {
+    if (!session.enterpriseId) {
+      throw new Error("Для текущей учётной записи не определено предприятие");
+    }
+    return {
+      ...data,
+      enterprise_id: session.enterpriseId,
+      department_id: null,
+      position_id: null,
+    };
+  }
+  if (createScope === "department") {
+    if (!session.enterpriseId || !session.departmentId) {
+      throw new Error("Для текущей учётной записи не определён отдел");
+    }
+    return {
+      ...data,
+      enterprise_id: session.enterpriseId,
+      department_id: session.departmentId,
+      position_id: null,
+    };
+  }
+  throw new Error("Создание сотрудников недоступно в личной области данных");
 }
 
 function assertVacationTypeEntity(entity: string): void {
