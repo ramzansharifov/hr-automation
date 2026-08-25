@@ -12,7 +12,6 @@ import {
   BusinessContextRoute,
 } from "./features/business-context/BusinessContext";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
-import { AttentionPage } from "./pages/AttentionPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { DataExchangePage } from "./pages/DataExchangePage";
 import { DepartmentWorkspaceRoutePage } from "./pages/DepartmentWorkspaceRoutePage";
@@ -63,7 +62,7 @@ function App(): JSX.Element {
 
           <Route element={<BusinessContextRoute />}>
             <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><RoleAwareDashboardPage /></RequirePermission>} />
-            <Route path="attention" element={<RequirePermission anyOf={["attention.view"]}><AttentionPage /></RequirePermission>} />
+            <Route path="attention" element={<Navigate to="/dashboard" replace />} />
             <Route path="analytics" element={<RequirePermission anyOf={["analytics.view"]}><AnalyticsPage /></RequirePermission>} />
             <Route path="documents" element={<RequirePermission anyOf={["documents.view"]}><DocumentsPage /></RequirePermission>} />
             <Route path="leave-management" element={<RequirePermission anyOf={["leave.view"]}><LeaveManagementPage /></RequirePermission>} />
