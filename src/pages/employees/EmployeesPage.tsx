@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiPlus, FiUsers } from "react-icons/fi";
+import { FiDownload, FiPlus, FiUsers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -19,6 +19,7 @@ export function EmployeesPage(): JSX.Element {
   const navigate = useNavigate();
   const { hasPermission, session } = useAuth();
   const canCreateEmployees = hasPermission("employees.create");
+  const canExportEmployees = hasPermission("employees.export");
   const leadershipRole = getLeadershipRole(session.roles);
   const scopedAdminRole = getScopedAdminRole(session.roles);
   const isLeadershipDirectory =
@@ -100,6 +101,26 @@ export function EmployeesPage(): JSX.Element {
     navigate(id === session.employeeId ? "/profile" : `/employees/${id}`);
   }
 
+  async function exportEmployees(): Promise<void> {
+    if (!canExportEmployees) return;
+    try {
+      const result = await hrApiClient.exportEmployeesCsv();
+      if (!result.canceled) {
+        toast.success(
+          scopedAdminRole === "enterprise_admin"
+            ? "Реестр сотрудников предприятия экспортирован"
+            : scopedAdminRole === "department_admin"
+              ? "Реестр сотрудников отдела экспортирован"
+              : "Реестр сотрудников экспортирован",
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось экспортировать сотрудников",
+      );
+    }
+  }
+
   const title =
     leadershipRole === "enterprise_director" || scopedAdminRole === "enterprise_admin"
       ? "Сотрудники предприятия"
@@ -123,16 +144,30 @@ export function EmployeesPage(): JSX.Element {
         description={description}
         icon={<FiUsers />}
         actions={
-          canCreateEmployees ? (
-            <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
-              leftIcon={<FiPlus className="h-4 w-4" />}
-              onClick={() => navigate("/employees/new")}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
-            >
-              Добавить сотрудника
-            </Button>
+          canCreateEmployees || canExportEmployees ? (
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {canExportEmployees && (
+                <Button
+                  className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+                  leftIcon={<FiDownload className="h-4 w-4" />}
+                  onClick={() => void exportEmployees()}
+                  variant="ghost"
+                >
+                  Экспорт CSV
+                </Button>
+              )}
+              {canCreateEmployees && (
+                <Button
+                  className="border-white/20 shadow-xl hover:opacity-90"
+                  leftIcon={<FiPlus className="h-4 w-4" />}
+                  onClick={() => navigate("/employees/new")}
+                  style={{ background: "#ffffff", color: "#0f172a" }}
+                  variant="ghost"
+                >
+                  Добавить сотрудника
+                </Button>
+              )}
+            </div>
           ) : undefined
         }
         title={title}
