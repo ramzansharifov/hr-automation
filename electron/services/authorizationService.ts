@@ -137,6 +137,9 @@ export class AuthorizationService {
     if (entity === "enterprises" && session.scopeType !== "global") {
       throw new Error("Создавать предприятия можно только в глобальной области данных");
     }
+    if (entity === "departments" && session.scopeType === "department") {
+      throw new Error("Создавать отделы можно только на уровне предприятия");
+    }
     this.assertRecordInScope(entity, data, session);
   }
 
@@ -144,6 +147,14 @@ export class AuthorizationService {
     const changedKeys = Object.keys(data).filter(
       (key) => normalizeComparable(data[key]) !== normalizeComparable(existing[key]),
     );
+
+    if (entity === "departments" && changedKeys.includes("enterprise_id")) {
+      const session = this.requirePermission("organization.edit");
+      if (session.scopeType !== "global") {
+        throw new Error("Переносить отдел между предприятиями может только глобальный администратор");
+      }
+    }
+
     const permissionCodes = new Set<string>();
 
     if (entity === "vacations" && changedKeys.includes("status")) {
@@ -181,6 +192,9 @@ export class AuthorizationService {
     const session = this.requirePermission(entityPermissions[entity].delete);
     if (entity === "enterprises" && session.scopeType !== "global") {
       throw new Error("Удалять предприятия можно только в глобальной области данных");
+    }
+    if (entity === "departments" && session.scopeType === "department") {
+      throw new Error("Удалять отдел может только администратор предприятия или глобальный администратор");
     }
     this.assertRecordInScope(entity, existing, session);
   }
