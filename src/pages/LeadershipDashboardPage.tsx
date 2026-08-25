@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
-  FiAlertCircle,
   FiBriefcase,
   FiCalendar,
   FiChevronRight,
@@ -14,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { AttentionQueueSection } from "../features/attention/AttentionQueueSection";
 import { useAuth } from "../features/auth/AuthContext";
 import type { LeadershipRoleKey } from "../shared/access/leadership";
 import { formatDate } from "../shared/lib/format";
@@ -61,6 +61,7 @@ export function LeadershipDashboardPage({
   const canViewVacations = hasPermission("vacations.view");
   const canViewVacancies = hasPermission("vacancies.view");
   const canViewCandidates = hasPermission("candidates.view");
+  const canViewAttention = hasPermission("attention.view");
   const isEnterpriseDirector = role === "enterprise_director";
 
   const loadDashboard = useCallback(async (): Promise<void> => {
@@ -214,6 +215,8 @@ export function LeadershipDashboardPage({
         title={title}
       />
 
+      {canViewAttention ? <AttentionQueueSection /> : null}
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricCard icon={<FiUsers />} label="Сотрудники" value={stats.employeesTotal} />
         {isEnterpriseDirector ? (
@@ -242,20 +245,6 @@ export function LeadershipDashboardPage({
           value={stats.candidatesOnOffer}
         />
       </section>
-
-      {stats.employeesMissingAssignment > 0 && (
-        <div className="app-surface app-border flex items-center gap-3 rounded-2xl border px-4 py-3.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
-            <FiAlertCircle />
-          </span>
-          <div className="min-w-0">
-            <p className="app-text text-sm font-black">Неполные кадровые назначения</p>
-            <p className="app-muted mt-0.5 text-xs font-semibold">
-              В вашей области {stats.employeesMissingAssignment} сотрудник(а) без отдела или должности.
-            </p>
-          </div>
-        </div>
-      )}
 
       <section className="app-surface app-border rounded-[26px] border p-5">
         <div className="mb-4">
