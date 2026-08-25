@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -14,17 +12,11 @@ import { useAuth } from "../auth/AuthContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { BusinessContextState } from "../../shared/types/access";
 import { EmptyState, LoadingState, Select } from "../../shared/ui";
-
-interface BusinessContextValue {
-  state: BusinessContextState | null;
-  isLoading: boolean;
-  error: string;
-  selectEnterprise: (enterpriseId: number | null) => Promise<void>;
-  selectDepartment: (departmentId: number | null) => Promise<void>;
-  refresh: () => Promise<void>;
-}
-
-const BusinessContext = createContext<BusinessContextValue | null>(null);
+import {
+  BusinessContext,
+  useBusinessContext,
+  type BusinessContextValue,
+} from "./useBusinessContext";
 
 export function BusinessContextProvider({
   children,
@@ -102,14 +94,6 @@ export function BusinessContextProvider({
   return (
     <BusinessContext.Provider value={value}>{children}</BusinessContext.Provider>
   );
-}
-
-export function useBusinessContext(): BusinessContextValue {
-  const value = useContext(BusinessContext);
-  if (!value) {
-    throw new Error("BusinessContext используется вне BusinessContextProvider");
-  }
-  return value;
 }
 
 export function BusinessContextRoute(): JSX.Element {
