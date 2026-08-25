@@ -1,5 +1,8 @@
 import type { AuthSession, BusinessContextSelection, BusinessContextState } from "../../src/shared/types/access";
-import { businessContextPermissionCodes } from "../../src/shared/access/permissionRules";
+import {
+  businessContextPermissionCodes,
+  enterpriseLevelPermissionCodes,
+} from "../../src/shared/access/permissionRules";
 import { getDatabase } from "../database/connection";
 
 let selectedEnterpriseId: number | null = null;
@@ -157,9 +160,10 @@ export function applyBusinessContextToSession(session: AuthSession): AuthSession
       delete permissionScopes[permissionCode];
       continue;
     }
-    permissionScopes[permissionCode] = context.departmentId
-      ? "department"
-      : "enterprise";
+    permissionScopes[permissionCode] =
+      context.departmentId && !enterpriseLevelPermissionCodes.has(permissionCode)
+        ? "department"
+        : "enterprise";
   }
 
   return {
