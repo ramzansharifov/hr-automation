@@ -2,7 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { useBusinessContext } from '../../business-context/useBusinessContext'
 import type {
   HrEntityKey,
   HrFilterCondition,
@@ -30,6 +32,11 @@ interface HrEntityFormProps {
 interface RelationSelectState {
   isLoading: boolean
   options: SelectOption[]
+}
+
+interface RelationWorkspaceScope {
+  enterpriseId: number | null
+  departmentId: number | null
 }
 
 function getInputType(field: HrEntityFormField): string {
@@ -68,6 +75,16 @@ export function HrEntityForm({
   onSubmit,
 }: HrEntityFormProps): JSX.Element {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
+  const { state: businessContext } = useBusinessContext()
+  const useWorkspaceScope = isOperationalWorkspacePath(pathname)
+  const relationWorkspaceScope = useMemo<RelationWorkspaceScope>(
+    () => ({
+      enterpriseId: useWorkspaceScope ? businessContext?.enterpriseId ?? null : null,
+      departmentId: useWorkspaceScope ? businessContext?.departmentId ?? null : null,
+    }),
+    [businessContext?.departmentId, businessContext?.enterpriseId, useWorkspaceScope],
+  )
   const config = useMemo(() => getHrEntityFormConfig(entity), [entity])
   const visibleFields = useMemo(
     () =>
@@ -117,7 +134,7 @@ export function HrEntityForm({
         },
       }))
 
-      loadRelationRecords(relation.entity, relation.orderBy)
+      loadRelationRecords(relation.entity, relation.orderBy, relationWorkspaceScope)
         .then((records) => {
           if (!isActive) {
             return
@@ -157,7 +174,7 @@ export function HrEntityForm({
     return () => {
       isActive = false
     }
-  }, [relationFields, t])
+  }, [relationFields, relationWorkspaceScope, t])
 
   return (
     <form id={formId} className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
@@ -257,6 +274,7 @@ export function HrEntityForm({
 async function loadRelationRecords(
   entity: HrEntityKey,
   orderBy: string,
+  workspaceScope: RelationWorkspaceScope,
 ): Promise<HrRecord[]> {
   const records: HrRecord[] = []
   let page = 1
@@ -267,6 +285,17 @@ async function loadRelationRecords(
     filters = { is_active: { operator: 'equals', value: 1 } }
   } else if (entity === 'employees') {
     filters = { status: { operator: 'equals', value: 'active' } }
+    if (workspaceScope.departmentId) {
+      filters.department_id = {
+        operator: 'equals',
+        value: workspaceScope.departmentId,
+      }
+    } else if (workspaceScope.enterpriseId) {
+      filters.enterprise_id = {
+        operator: 'equals',
+        value: workspaceScope.enterpriseId,
+      }
+    }
   }
 
   do {
@@ -285,4 +314,20 @@ async function loadRelationRecords(
   } while (page <= totalPages)
 
   return records
+}
+
+function isOperationalWorkspacePath(pathname: string): boolean {
+  return [
+    '/dashboard',
+    '/attention',
+    '/analytics',
+    '/documents',
+    '/leave-management',
+    '/data-exchange',
+    '/management/departments',
+    '/vacancies',
+    '/candidates',
+    '/vacations',
+    '/vacation-types',
+  ].some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }

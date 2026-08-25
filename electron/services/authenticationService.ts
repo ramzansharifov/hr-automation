@@ -11,6 +11,10 @@ import {
   AuthenticationRepository,
   type AuthenticationAccountType,
 } from "../repositories/authenticationRepository";
+import {
+  applyBusinessContextToSession,
+  resetBusinessContext,
+} from "./businessContextService";
 
 const usernamePattern = /^[a-zA-Z0-9._-]{3,64}$/;
 const minimumPasswordLength = 8;
@@ -93,6 +97,7 @@ export class AuthenticationService {
       );
     }
 
+    resetBusinessContext();
     this.currentIdentity = {
       accountId: credentials.accountId,
       accountType: credentials.accountType,
@@ -101,11 +106,12 @@ export class AuthenticationService {
       credentials.accountType,
       credentials.accountId,
     );
-    return session;
+    return applyBusinessContextToSession(session);
   }
 
   logout(): { success: true } {
     this.currentIdentity = null;
+    resetBusinessContext();
     return { success: true };
   }
 
@@ -146,7 +152,7 @@ export class AuthenticationService {
       identity.accountId,
     );
     if (!updatedSession) throw new Error("Не удалось обновить сессию");
-    return updatedSession;
+    return applyBusinessContextToSession(updatedSession);
   }
 
   getCurrentSession(): AuthSession | null {
@@ -155,8 +161,12 @@ export class AuthenticationService {
       this.currentIdentity.accountType,
       this.currentIdentity.accountId,
     );
-    if (!session) this.currentIdentity = null;
-    return session;
+    if (!session) {
+      this.currentIdentity = null;
+      resetBusinessContext();
+      return null;
+    }
+    return applyBusinessContextToSession(session);
   }
 
   requireSession(): AuthSession {

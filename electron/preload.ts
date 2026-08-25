@@ -26,6 +26,8 @@ import type {
 } from "../src/shared/types/hr";
 import type {
   BootstrapSuperadminParams,
+  BusinessContextSelection,
+  BusinessContextState,
   ChangeOwnPasswordParams,
   LoginParams,
   ResetAccessPasswordParams,
@@ -36,6 +38,8 @@ import type { EmployeeWorkspaceData } from "../src/shared/types/employeeWorkspac
 
 type ExtendedHrApi = HrApi & {
   getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
+  getBusinessContext(): Promise<BusinessContextState>;
+  setBusinessContext(params: BusinessContextSelection): Promise<BusinessContextState>;
 };
 
 function hrChannel(entity: string, action: "list" | "getById" | "create" | "update" | "delete"): string {
@@ -47,6 +51,9 @@ function hrChannel(entity: string, action: "list" | "getById" | "create" | "upda
 
 const hrApi: ExtendedHrApi = {
   getAuthState: () => ipcRenderer.invoke("auth:state"),
+  getBusinessContext: () => ipcRenderer.invoke("auth:businessContext"),
+  setBusinessContext: (params: BusinessContextSelection) =>
+    ipcRenderer.invoke("auth:setBusinessContext", params),
   listBootstrapEmployees: () => ipcRenderer.invoke("auth:bootstrapEmployees"),
   bootstrapSuperadmin: (params: BootstrapSuperadminParams) =>
     ipcRenderer.invoke("auth:bootstrap", params),

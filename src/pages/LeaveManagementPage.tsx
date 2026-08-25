@@ -3,8 +3,14 @@ import { FiAlertTriangle, FiCalendar, FiSave } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { useBusinessContext } from "../features/business-context/useBusinessContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
-import type { HrRecord, LeaveOverview } from "../shared/types/hr";
+import type {
+  HrFilterCondition,
+  HrFilterValue,
+  HrRecord,
+  LeaveOverview,
+} from "../shared/types/hr";
 import {
   Button,
   EmptyState,
@@ -18,7 +24,8 @@ import {
 } from "../shared/ui";
 
 export function LeaveManagementPage(): JSX.Element {
-  const { hasPermission, session } = useAuth();
+  const { hasPermission } = useAuth();
+  const { state: businessContext } = useBusinessContext();
   const [employees, setEmployees] = useState<HrRecord[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -58,11 +65,19 @@ export function LeaveManagementPage(): JSX.Element {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    void loadEmployees()
+    void loadEmployees(
+      businessContext?.enterpriseId ?? null,
+      businessContext?.departmentId ?? null,
+    )
       .then((records) => {
         if (!active) return;
         setEmployees(records);
-        setEmployeeId((current) => current || String(records[0]?.id ?? ""));
+        setEmployeeId((current) => {
+          if (current && records.some((record) => String(record.id) === current)) {
+            return current;
+          }
+          return String(records[0]?.id ?? "");
+        });
       })
       .catch((error) => {
         if (active) toast.error(errorMessage(error, "Не удалось загрузить сотрудников"));
@@ -73,7 +88,7 @@ export function LeaveManagementPage(): JSX.Element {
     return () => {
       active = false;
     };
-  }, []);
+  }, [businessContext?.departmentId, businessContext?.enterpriseId]);
 
   useEffect(() => {
     void loadOverview();
@@ -109,7 +124,8 @@ export function LeaveManagementPage(): JSX.Element {
   }
 
   async function saveCalendarDay(): Promise<void> {
-    const enterpriseId = resolveEnterpriseId(session.enterpriseId, employees, employeeId);
+    const enterpriseId =
+      businessContext?.enterpriseId ?? resolveEnterpriseId(employees, employeeId);
     if (!enterpriseId) {
       toast.error("Для настройки календаря не определено предприятие");
       return;
@@ -166,7 +182,7 @@ export function LeaveManagementPage(): JSX.Element {
         <LoadingState label="Рассчитываем отпускной баланс..." />
       ) : !employeeId || !overview ? (
         <EmptyState
-          description="Выберите сотрудника, чтобы увидеть остаток дней, отпуска и предупреждения."
+          description="В выбранном предприятии или отделе нет доступного сотрудника для расчёта отпуска."
           title="Сотрудник не выбран"
         />
       ) : (
@@ -306,14 +322,26 @@ function Field({ children, label }: { children: React.ReactNode; label: string }
   );
 }
 
-async function loadEmployees(): Promise<HrRecord[]> {
+async function loadEmployees(
+  enterpriseId: number | null,
+  departmentId: number | null,
+): Promise<HrRecord[]> {
   const records: HrRecord[] = [];
   let page = 1;
   let totalPages = 1;
+  const filters: Record<string, HrFilterValue | HrFilterCondition> = {
+    lifecycle_status: ["active", "pending_assignment"],
+  };
+  if (departmentId) {
+    filters.department_id = { operator: "equals", value: departmentId };
+  } else if (enterpriseId) {
+    filters.enterprise_id = { operator: "equals", value: enterpriseId };
+  }
+
   do {
     const result = await hrApiClient.list({
       entity: "employees",
-      filters: { lifecycle_status: ["active", "pending_assignment"] },
+      filters,
       orderBy: "last_name",
       orderDirection: "asc",
       page,
@@ -327,11 +355,9 @@ async function loadEmployees(): Promise<HrRecord[]> {
 }
 
 function resolveEnterpriseId(
-  sessionEnterpriseId: number | null,
   employees: HrRecord[],
   employeeId: string,
 ): number | null {
-  if (sessionEnterpriseId) return sessionEnterpriseId;
   const employee = employees.find((item) => String(item.id) === employeeId);
   const value = Number(employee?.enterprise_id);
   return Number.isInteger(value) && value > 0 ? value : null;

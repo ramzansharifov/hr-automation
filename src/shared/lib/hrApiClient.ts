@@ -24,6 +24,8 @@ import type {
 } from "../types/hr";
 import type {
   BootstrapSuperadminParams,
+  BusinessContextSelection,
+  BusinessContextState,
   ChangeOwnPasswordParams,
   LoginParams,
   ResetAccessPasswordParams,
@@ -34,8 +36,15 @@ import type { EmployeeWorkspaceData } from "../types/employeeWorkspace";
 
 export const AUTH_SESSION_SYNC_EVENT = "hr:auth-session-sync";
 
+let cachedBusinessContext: BusinessContextState | null = null;
+
 type EmployeeWorkspaceBridge = {
   getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
+};
+
+type BusinessContextBridge = {
+  getBusinessContext(): Promise<BusinessContextState>;
+  setBusinessContext(params: BusinessContextSelection): Promise<BusinessContextState>;
 };
 
 function getHrApi() {
@@ -49,6 +58,10 @@ function getEmployeeWorkspaceBridge(): EmployeeWorkspaceBridge {
   return getHrApi() as typeof window.hrApi & EmployeeWorkspaceBridge;
 }
 
+function getBusinessContextBridge(): BusinessContextBridge {
+  return getHrApi() as typeof window.hrApi & BusinessContextBridge;
+}
+
 function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
   return request.then((result) => {
     window.dispatchEvent(new Event(AUTH_SESSION_SYNC_EVENT));
@@ -56,16 +69,88 @@ function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
   });
 }
 
+function rememberBusinessContext(
+  request: Promise<BusinessContextState>,
+): Promise<BusinessContextState> {
+  return request.then((state) => {
+    cachedBusinessContext = state;
+    return state;
+  });
+}
+
+function listWithWorkspaceContext(params: HrListParams) {
+  return getHrApi().list(applyOperationalLookupContext(params));
+}
+
+function applyOperationalLookupContext(params: HrListParams): HrListParams {
+  const context = cachedBusinessContext;
+  if (!context?.enterpriseId || !isOperationalWorkspacePath(window.location.pathname)) {
+    return params;
+  }
+
+  const filters = { ...(params.filters ?? {}) };
+
+  if (params.entity === "enterprises") {
+    filters.id = { operator: "equals", value: context.enterpriseId };
+  } else if (params.entity === "departments") {
+    if (context.departmentId) {
+      filters.id = { operator: "equals", value: context.departmentId };
+    } else {
+      filters.enterprise_id = { operator: "equals", value: context.enterpriseId };
+    }
+  } else if (params.entity === "positions") {
+    if (context.departmentId) {
+      filters.department_id = { operator: "equals", value: context.departmentId };
+    } else {
+      const departmentIds = context.departments.map((department) => department.id);
+      filters.department_id = { operator: "in", value: departmentIds };
+    }
+  } else if (params.entity === "employees") {
+    if (context.departmentId) {
+      filters.department_id = { operator: "equals", value: context.departmentId };
+    } else {
+      filters.enterprise_id = { operator: "equals", value: context.enterpriseId };
+    }
+  }
+
+  return { ...params, filters };
+}
+
+function isOperationalWorkspacePath(pathname: string): boolean {
+  return [
+    "/dashboard",
+    "/attention",
+    "/analytics",
+    "/documents",
+    "/leave-management",
+    "/data-exchange",
+    "/management/departments",
+    "/vacancies",
+    "/candidates",
+    "/vacations",
+    "/vacation-types",
+  ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 export const hrApiClient = {
   getAuthState: () => getHrApi().getAuthState(),
+  getBusinessContext: () =>
+    rememberBusinessContext(getBusinessContextBridge().getBusinessContext()),
+  setBusinessContext: (params: BusinessContextSelection) =>
+    notifyAuthSessionChanged(
+      rememberBusinessContext(getBusinessContextBridge().setBusinessContext(params)),
+    ),
   listBootstrapEmployees: () => getHrApi().listBootstrapEmployees(),
   bootstrapSuperadmin: (params: BootstrapSuperadminParams) =>
     getHrApi().bootstrapSuperadmin(params),
   login: (params: LoginParams) => getHrApi().login(params),
-  logout: () => getHrApi().logout(),
+  logout: () => {
+    cachedBusinessContext = null;
+    return getHrApi().logout();
+  },
   changeOwnPassword: (params: ChangeOwnPasswordParams) =>
     getHrApi().changeOwnPassword(params),
-  list: (params: HrListParams) => getHrApi().list(params),
+  list: (params: HrListParams) => listWithWorkspaceContext(params),
   getById: (params: HrGetByIdParams) => getHrApi().getById(params),
   create: (params: HrCreateParams) =>
     notifyAuthSessionChanged(getHrApi().create(params)),

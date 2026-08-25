@@ -3,6 +3,7 @@ import { FiExternalLink, FiFileText, FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { useBusinessContext } from "../features/business-context/useBusinessContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { EmployeeDocumentSummary, HrRecord } from "../shared/types/hr";
 import {
@@ -27,6 +28,7 @@ const documentTypeOptions: SelectOption[] = [
 
 export function DocumentsPage(): JSX.Element {
   const { hasPermission } = useAuth();
+  const { state: businessContext } = useBusinessContext();
   const [employees, setEmployees] = useState<HrRecord[]>([]);
   const [documents, setDocuments] = useState<EmployeeDocumentSummary[]>([]);
   const [employeeId, setEmployeeId] = useState("");
@@ -40,10 +42,19 @@ export function DocumentsPage(): JSX.Element {
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const [employeeRecords, documentRecords] = await Promise.all([
-        loadEmployees(),
-        hrApiClient.listEmployeeDocuments(employeeId ? Number(employeeId) : undefined),
-      ]);
+      const employeeRecords = await loadEmployees(
+        businessContext?.enterpriseId ?? null,
+        businessContext?.departmentId ?? null,
+      );
+      const selectedEmployeeId =
+        employeeId && employeeRecords.some((record) => String(record.id) === employeeId)
+          ? employeeId
+          : "";
+      if (selectedEmployeeId !== employeeId) setEmployeeId(selectedEmployeeId);
+
+      const documentRecords = await hrApiClient.listEmployeeDocuments(
+        selectedEmployeeId ? Number(selectedEmployeeId) : undefined,
+      );
       setEmployees(employeeRecords);
       setDocuments(documentRecords);
     } catch (error) {
@@ -51,7 +62,7 @@ export function DocumentsPage(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [employeeId]);
+  }, [businessContext?.departmentId, businessContext?.enterpriseId, employeeId]);
 
   useEffect(() => {
     void load();
@@ -172,7 +183,7 @@ export function DocumentsPage(): JSX.Element {
         <LoadingState label="Загрузка документов..." />
       ) : documents.length === 0 ? (
         <EmptyState
-          description={employeeId ? "У выбранного сотрудника пока нет активных документов." : "В доступной области пока нет документов сотрудников."}
+          description={employeeId ? "У выбранного сотрудника пока нет активных документов." : "В выбранном рабочем контексте пока нет документов сотрудников."}
           title="Документы не найдены"
         />
       ) : (
@@ -232,12 +243,30 @@ function Field({ children, label }: { children: React.ReactNode; label: string }
   );
 }
 
-async function loadEmployees(): Promise<HrRecord[]> {
+async function loadEmployees(
+  enterpriseId: number | null,
+  departmentId: number | null,
+): Promise<HrRecord[]> {
   const records: HrRecord[] = [];
   let page = 1;
   let totalPages = 1;
+  const filters: Record<string, number | { operator: "equals"; value: number | string }> = {
+    status: { operator: "equals", value: "active" },
+  };
+  if (departmentId) {
+    filters.department_id = { operator: "equals", value: departmentId };
+  } else if (enterpriseId) {
+    filters.enterprise_id = { operator: "equals", value: enterpriseId };
+  }
+
   do {
-    const result = await hrApiClient.list({ entity: "employees", page, pageSize: 100, orderBy: "last_name" });
+    const result = await hrApiClient.list({
+      entity: "employees",
+      page,
+      pageSize: 100,
+      filters,
+      orderBy: "last_name",
+    });
     records.push(...result.items);
     totalPages = Math.max(result.totalPages, 1);
     page += 1;
