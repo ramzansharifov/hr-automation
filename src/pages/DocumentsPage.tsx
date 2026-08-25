@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiExternalLink, FiFileText, FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
@@ -37,7 +37,7 @@ export function DocumentsPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  async function load(): Promise<void> {
+  const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       const [employeeRecords, documentRecords] = await Promise.all([
@@ -51,11 +51,11 @@ export function DocumentsPage(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }
+  }, [employeeId]);
 
   useEffect(() => {
     void load();
-  }, [employeeId]);
+  }, [load]);
 
   const employeeOptions = useMemo<SelectOption[]>(
     () =>
