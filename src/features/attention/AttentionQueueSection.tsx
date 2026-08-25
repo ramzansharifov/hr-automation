@@ -3,12 +3,14 @@ import { FiAlertCircle, FiArrowRight, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import { useBusinessContext } from "../business-context/useBusinessContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AttentionItem } from "../../shared/types/hr";
 import { Button, EmptyState, LoadingState } from "../../shared/ui";
 
 export function AttentionQueueSection(): JSX.Element {
   const navigate = useNavigate();
+  const { state: businessContext } = useBusinessContext();
   const [items, setItems] = useState<AttentionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export function AttentionQueueSection(): JSX.Element {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, businessContext?.enterpriseId, businessContext?.departmentId]);
 
   const critical = items.filter((item) => item.severity === "critical").length;
   const warnings = items.filter((item) => item.severity === "warning").length;
