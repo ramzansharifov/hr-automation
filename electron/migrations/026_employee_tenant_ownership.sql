@@ -18,7 +18,9 @@ CREATE INDEX idx_employees_enterprise_id ON employees(enterprise_id);
 
 -- A concrete department must always belong to the employee's enterprise. Inserts
 -- without enterprise_id remain valid for legacy/import code and are normalized by
--- the AFTER INSERT trigger below.
+-- the AFTER INSERT trigger below. During an HR transfer the repository changes the
+-- department first; the AFTER UPDATE trigger then synchronizes enterprise_id to the
+-- department's enterprise in the same SQLite statement lifecycle.
 CREATE TRIGGER employees_enterprise_department_insert_guard
 BEFORE INSERT ON employees
 WHEN NEW.department_id IS NOT NULL
@@ -35,7 +37,8 @@ END;
 
 CREATE TRIGGER employees_enterprise_department_update_guard
 BEFORE UPDATE OF enterprise_id, department_id ON employees
-WHEN NEW.department_id IS NOT NULL
+WHEN NEW.enterprise_id IS NOT OLD.enterprise_id
+  AND NEW.department_id IS NOT NULL
   AND NEW.enterprise_id IS NOT NULL
   AND NOT EXISTS (
     SELECT 1
@@ -60,9 +63,10 @@ BEGIN
   WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER employees_fill_enterprise_after_department_assignment
+CREATE TRIGGER employees_sync_enterprise_after_department_assignment
 AFTER UPDATE OF department_id ON employees
-WHEN NEW.enterprise_id IS NULL AND NEW.department_id IS NOT NULL
+WHEN OLD.department_id IS NOT NEW.department_id
+  AND NEW.department_id IS NOT NULL
 BEGIN
   UPDATE employees
   SET enterprise_id = (
