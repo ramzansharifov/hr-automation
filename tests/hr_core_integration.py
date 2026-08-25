@@ -171,8 +171,8 @@ class HrCoreIntegrationTests(unittest.TestCase):
         used_vacancy_id = self.connection.execute(
             """
             INSERT INTO vacancies (
-              position_id, status, employment_type, openings_count
-            ) VALUES (?, 'open', 'full_time', 1)
+              position_id, title, status, employment_type, openings_count
+            ) VALUES (?, 'Frontend Developer', 'open', 'full_time', 1)
             """,
             (organization[2],),
         ).lastrowid
@@ -207,8 +207,8 @@ class HrCoreIntegrationTests(unittest.TestCase):
         unused_vacancy_id = self.connection.execute(
             """
             INSERT INTO vacancies (
-              position_id, status, employment_type, openings_count
-            ) VALUES (?, 'draft', 'full_time', 1)
+              position_id, title, status, employment_type, openings_count
+            ) VALUES (?, 'Unused Frontend Developer', 'draft', 'full_time', 1)
             """,
             (organization[2],),
         ).lastrowid
