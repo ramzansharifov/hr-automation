@@ -4,6 +4,7 @@ import { initializeDatabase } from './database'
 import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { registerAccessIpcHandlers } from './ipc/accessIpc'
 import { registerEmployeeWorkspaceIpcHandlers } from './ipc/employeeWorkspaceIpc'
+import { registerEnterpriseTenantIpcHandlers } from './ipc/enterpriseTenantIpc'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -73,6 +74,7 @@ app.whenReady().then(() => {
   registerHrCrudIpcHandlers()
   registerEmployeeWorkspaceIpcHandlers()
   registerAccessIpcHandlers()
+  registerEnterpriseTenantIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
