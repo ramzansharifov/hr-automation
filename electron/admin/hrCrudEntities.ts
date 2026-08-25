@@ -119,6 +119,7 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
   employees: entity(
     "employees",
     [
+      "enterprise_id",
       "department_id",
       "position_id",
       "employee_number",
@@ -193,6 +194,11 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
             FROM enterprises AS leadership_enterprise
             WHERE leadership_enterprise.general_director_employee_id = employees.id
             LIMIT 1
+          ),
+          (
+            SELECT enterprise.name
+            FROM enterprises AS enterprise
+            WHERE enterprise.id = employees.enterprise_id
           ),
           (
             SELECT enterprise.name
