@@ -84,6 +84,7 @@ function createWindow(): void {
 
           let businessContext = await window.hrApi.getBusinessContext()
           let contextRequired = false
+          let scopeModelReady = false
           if (businessContext?.requiresEnterpriseSelection && !businessContext.enterpriseId) {
             try {
               await window.hrApi.dashboard()
@@ -103,10 +104,31 @@ function createWindow(): void {
                 address: 'E2E'
               }
             })
+            const enterpriseId = Number(enterprise.id)
             businessContext = await window.hrApi.setBusinessContext({
-              enterpriseId: Number(enterprise.id),
+              enterpriseId,
               departmentId: null
             })
+
+            const department = await window.hrApi.create({
+              entity: 'departments',
+              data: {
+                enterprise_id: enterpriseId,
+                name: 'E2E Department'
+              }
+            })
+            businessContext = await window.hrApi.setBusinessContext({
+              enterpriseId,
+              departmentId: Number(department.id)
+            })
+
+            const scopedAuthState = await window.hrApi.getAuthState()
+            const scopes = scopedAuthState?.session?.permissionScopes ?? {}
+            scopeModelReady =
+              scopes['employees.view'] === 'global' &&
+              scopes['analytics.view'] === 'department' &&
+              scopes['leave.calendar_manage'] === 'enterprise' &&
+              scopes['vacation_types.create'] === 'enterprise'
           }
 
           const dashboard = await window.hrApi.dashboard()
@@ -119,7 +141,8 @@ function createWindow(): void {
             authenticated:
               session?.username === 'superadmin' && session?.mustChangePassword === false,
             contextRequired,
-            contextReady: Boolean(businessContext?.enterpriseId),
+            contextReady: Boolean(businessContext?.enterpriseId && businessContext?.departmentId),
+            scopeModelReady,
             dashboardReady: typeof dashboard?.employeesTotal === 'number',
             attentionReady: Array.isArray(attention),
             analyticsReady: Boolean(analytics && typeof analytics === 'object')
@@ -132,6 +155,7 @@ function createWindow(): void {
           !result?.authenticated ||
           !result?.contextRequired ||
           !result?.contextReady ||
+          !result?.scopeModelReady ||
           !result?.dashboardReady ||
           !result?.attentionReady ||
           !result?.analyticsReady
