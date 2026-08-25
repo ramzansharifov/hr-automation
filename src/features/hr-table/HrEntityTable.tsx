@@ -48,6 +48,7 @@ interface HrEntityTableProps {
   entity: HrEntityKey
   externalFilters?: Record<string, HrFilterValue | HrFilterCondition>
   hiddenColumnKeys?: string[]
+  hiddenFormFieldNames?: string[]
   hideCreateButton?: boolean
   hideToolbar?: boolean
   hideToolbarSearch?: boolean
@@ -181,6 +182,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
       entity,
       externalFilters,
       hiddenColumnKeys = [],
+      hiddenFormFieldNames = [],
       hideCreateButton = false,
       hideToolbar = false,
       hideToolbarSearch = false,
@@ -192,7 +194,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     ref,
   ): JSX.Element {
     const { i18n, t } = useTranslation()
-    const { hasPermission, session } = useAuth()
+    const { hasPermission } = useAuth()
     const locale = getAppLocale(i18n.language)
     const config = useMemo(() => getEntityConfig(entity, t, locale), [entity, locale, t])
     const visibleColumns = useMemo(
@@ -201,9 +203,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     )
     const actionPermissions = actionPermissionByEntity[entity]
     const canUseAction = (permissionCode: string): boolean =>
-      entity !== 'employment_history' &&
-      hasPermission(permissionCode) &&
-      (entity !== 'vacation_types' || session.permissionScopes[permissionCode] === 'global')
+      entity !== 'employment_history' && hasPermission(permissionCode)
     const canCreateEntity = canUseAction(actionPermissions.create)
     const canEditEntity = canUseAction(actionPermissions.edit)
     const canDeleteEntity = canUseAction(actionPermissions.delete)
@@ -658,6 +658,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
             {(canCreateEntity || canEditEntity) && (
               <HrEntityDialog
                 entity={entity}
+                hiddenFieldNames={hiddenFormFieldNames}
                 initialRecord={dialogMode === 'create' ? createInitialRecord : editingRecord}
                 mode={dialogMode}
                 onOpenChange={setIsFormOpen}
