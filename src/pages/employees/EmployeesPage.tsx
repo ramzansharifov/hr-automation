@@ -9,6 +9,7 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import { getLeadershipRole } from "../../shared/access/leadership";
+import { getScopedAdminRole } from "../../shared/access/scopedAdmin";
 import {
   EMPLOYEE_FILTERS_EVENT,
   getStoredEmployeeHrFilters,
@@ -19,6 +20,7 @@ export function EmployeesPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
   const canCreateEmployees = hasPermission("employees.create");
   const leadershipRole = getLeadershipRole(session.roles);
+  const scopedAdminRole = getScopedAdminRole(session.roles);
   const isLeadershipDirectory =
     leadershipRole === "enterprise_director" || leadershipRole === "department_head";
   const [appliedFilters, setAppliedFilters] = useState<
@@ -99,9 +101,9 @@ export function EmployeesPage(): JSX.Element {
   }
 
   const title =
-    leadershipRole === "enterprise_director"
+    leadershipRole === "enterprise_director" || scopedAdminRole === "enterprise_admin"
       ? "Сотрудники предприятия"
-      : leadershipRole === "department_head"
+      : leadershipRole === "department_head" || scopedAdminRole === "department_admin"
         ? "Сотрудники отдела"
         : "Сотрудники";
   const description =
@@ -109,7 +111,11 @@ export function EmployeesPage(): JSX.Element {
       ? `Сотрудники ${session.enterpriseName || "вашего предприятия"}. Реестр автоматически ограничен предприятием, которым вы руководите, и не включает вашу собственную карточку.`
       : leadershipRole === "department_head"
         ? `Сотрудники ${session.departmentName || "вашего отдела"}. Реестр автоматически ограничен вашим подразделением и не включает вашу собственную карточку.`
-        : "Единый реестр сотрудников, их должностей, подразделений и кадрового статуса.";
+        : scopedAdminRole === "enterprise_admin"
+          ? `Полный кадровый реестр ${session.enterpriseName || "вашего предприятия"}, включая сотрудников, которым отдел или должность ещё не назначены. Все действия автоматически ограничены этим предприятием.`
+          : scopedAdminRole === "department_admin"
+            ? `Кадровый реестр ${session.departmentName || "вашего отдела"}. Все действия автоматически ограничены этим подразделением.`
+            : "Единый реестр сотрудников, их должностей, подразделений и кадрового статуса.";
 
   return (
     <div className="space-y-6">
