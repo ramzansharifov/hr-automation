@@ -3,7 +3,7 @@ import { FiExternalLink, FiFileText, FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
-import { useBusinessContext } from "../features/business-context/BusinessContext";
+import { useBusinessContext } from "../features/business-context/useBusinessContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { EmployeeDocumentSummary, HrRecord } from "../shared/types/hr";
 import {
