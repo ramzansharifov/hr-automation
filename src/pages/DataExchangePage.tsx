@@ -16,15 +16,15 @@ import { Button, EmptyState, PageHeader, Select, type SelectOption } from "../sh
 const importFields = [
   { key: "last_name", label: "Фамилия", required: true, aliases: ["фамилия", "last name", "lastname", "last_name"] },
   { key: "first_name", label: "Имя", required: true, aliases: ["имя", "first name", "firstname", "first_name"] },
-  { key: "middle_name", label: "Отчество", aliases: ["отчество", "middle name", "middle_name"] },
-  { key: "email", label: "Email", aliases: ["email", "e-mail", "почта"] },
-  { key: "phone", label: "Телефон", aliases: ["телефон", "phone", "mobile"] },
-  { key: "employee_number", label: "Табельный номер", aliases: ["табельный номер", "employee number", "employee_number"] },
-  { key: "enterprise", label: "Предприятие", aliases: ["предприятие", "enterprise", "company"] },
-  { key: "department", label: "Отдел", aliases: ["отдел", "department"] },
-  { key: "position", label: "Должность", aliases: ["должность", "position", "job title"] },
-  { key: "hire_date", label: "Дата приёма", aliases: ["дата приема", "дата приёма", "hire date", "hire_date"] },
-  { key: "salary", label: "Оклад", aliases: ["оклад", "salary"] },
+  { key: "middle_name", label: "Отчество", required: false, aliases: ["отчество", "middle name", "middle_name"] },
+  { key: "email", label: "Email", required: false, aliases: ["email", "e-mail", "почта"] },
+  { key: "phone", label: "Телефон", required: false, aliases: ["телефон", "phone", "mobile"] },
+  { key: "employee_number", label: "Табельный номер", required: false, aliases: ["табельный номер", "employee number", "employee_number"] },
+  { key: "enterprise", label: "Предприятие", required: false, aliases: ["предприятие", "enterprise", "company"] },
+  { key: "department", label: "Отдел", required: false, aliases: ["отдел", "department"] },
+  { key: "position", label: "Должность", required: false, aliases: ["должность", "position", "job title"] },
+  { key: "hire_date", label: "Дата приёма", required: false, aliases: ["дата приема", "дата приёма", "hire date", "hire_date"] },
+  { key: "salary", label: "Оклад", required: false, aliases: ["оклад", "salary"] },
 ] as const;
 
 type ImportFieldKey = (typeof importFields)[number]["key"];
