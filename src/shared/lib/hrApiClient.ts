@@ -24,6 +24,8 @@ import type {
 } from "../types/hr";
 import type {
   BootstrapSuperadminParams,
+  BusinessContextSelection,
+  BusinessContextState,
   ChangeOwnPasswordParams,
   LoginParams,
   ResetAccessPasswordParams,
@@ -38,6 +40,11 @@ type EmployeeWorkspaceBridge = {
   getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
 };
 
+type BusinessContextBridge = {
+  getBusinessContext(): Promise<BusinessContextState>;
+  setBusinessContext(params: BusinessContextSelection): Promise<BusinessContextState>;
+};
+
 function getHrApi() {
   if (window.hrApi) return window.hrApi;
   throw new Error(
@@ -49,6 +56,10 @@ function getEmployeeWorkspaceBridge(): EmployeeWorkspaceBridge {
   return getHrApi() as typeof window.hrApi & EmployeeWorkspaceBridge;
 }
 
+function getBusinessContextBridge(): BusinessContextBridge {
+  return getHrApi() as typeof window.hrApi & BusinessContextBridge;
+}
+
 function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
   return request.then((result) => {
     window.dispatchEvent(new Event(AUTH_SESSION_SYNC_EVENT));
@@ -58,6 +69,9 @@ function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
 
 export const hrApiClient = {
   getAuthState: () => getHrApi().getAuthState(),
+  getBusinessContext: () => getBusinessContextBridge().getBusinessContext(),
+  setBusinessContext: (params: BusinessContextSelection) =>
+    notifyAuthSessionChanged(getBusinessContextBridge().setBusinessContext(params)),
   listBootstrapEmployees: () => getHrApi().listBootstrapEmployees(),
   bootstrapSuperadmin: (params: BootstrapSuperadminParams) =>
     getHrApi().bootstrapSuperadmin(params),
