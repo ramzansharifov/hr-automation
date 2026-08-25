@@ -79,7 +79,8 @@ export class EmployeeWorkspaceService {
          FROM employees AS employee
          LEFT JOIN positions AS position ON position.id = employee.position_id
          LEFT JOIN departments AS department ON department.id = employee.department_id
-         LEFT JOIN enterprises AS enterprise ON enterprise.id = department.enterprise_id
+         LEFT JOIN enterprises AS enterprise
+           ON enterprise.id = COALESCE(employee.enterprise_id, department.enterprise_id)
          WHERE employee.id = ?
          LIMIT 1`,
       )
@@ -134,9 +135,9 @@ export class EmployeeWorkspaceService {
            department.id AS department_id,
            department.name AS department_name
          FROM employees AS employee
-         JOIN departments AS department ON department.id = employee.department_id
+         LEFT JOIN departments AS department ON department.id = employee.department_id
          LEFT JOIN positions AS position ON position.id = employee.position_id
-         WHERE department.enterprise_id = @enterpriseId
+         WHERE COALESCE(employee.enterprise_id, department.enterprise_id) = @enterpriseId
            AND employee.status = 'active'
            AND employee.id <> @employeeId
          ORDER BY
