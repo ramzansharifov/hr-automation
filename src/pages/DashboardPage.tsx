@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 
 import { AttentionQueueSection } from "../features/attention/AttentionQueueSection";
 import { useAuth } from "../features/auth/AuthContext";
+import { useBusinessContext } from "../features/business-context/useBusinessContext";
 import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import { getAppLocale } from "../shared/i18n";
 import { formatDate, humanizeStatus } from "../shared/lib/format";
@@ -45,6 +46,7 @@ const emptyList: HrListResult = {
 export function DashboardPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const { session } = useAuth();
+  const { state: businessContext } = useBusinessContext();
   const locale = getAppLocale(i18n.language);
   const permissions = new Set(session.permissionCodes);
   const scopedAdminRole = getScopedAdminRole(session.roles);
@@ -116,7 +118,11 @@ export function DashboardPage(): JSX.Element {
 
   useEffect(() => {
     void loadDashboard();
-  }, [loadDashboard]);
+  }, [
+    loadDashboard,
+    businessContext?.enterpriseId,
+    businessContext?.departmentId,
+  ]);
 
   const pageTitle =
     scopedAdminRole === "enterprise_admin"
