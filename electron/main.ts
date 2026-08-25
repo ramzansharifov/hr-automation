@@ -57,12 +57,40 @@ function createWindow(): void {
   if (process.env.HR_E2E === '1') {
     win.webContents.once('did-finish-load', async () => {
       try {
-        const result = await win?.webContents.executeJavaScript(`({
-          hasRoot: Boolean(document.querySelector('#root')),
-          hasApi: Boolean(window.hrApi),
-          bodyText: document.body.innerText.slice(0, 1000)
-        })`)
-        if (!result?.hasRoot || !result?.hasApi) throw new Error('Renderer smoke check failed')
+        const result = await win?.webContents.executeJavaScript(`(async () => {
+          const hasRoot = Boolean(document.querySelector('#root'))
+          const hasApi = Boolean(window.hrApi)
+          if (!hasRoot || !hasApi) return { hasRoot, hasApi }
+
+          const session = await window.hrApi.login({
+            username: 'superadmin',
+            password: 'superadmin'
+          })
+          const dashboard = await window.hrApi.dashboard()
+          const attention = await window.hrApi.listAttentionItems()
+          const analytics = await window.hrApi.getAnalytics()
+
+          return {
+            hasRoot,
+            hasApi,
+            authenticated: session?.username === 'superadmin',
+            dashboardReady: typeof dashboard?.employeesTotal === 'number',
+            attentionReady: Array.isArray(attention),
+            analyticsReady: Boolean(analytics && typeof analytics === 'object')
+          }
+        })()`)
+
+        if (
+          !result?.hasRoot ||
+          !result?.hasApi ||
+          !result?.authenticated ||
+          !result?.dashboardReady ||
+          !result?.attentionReady ||
+          !result?.analyticsReady
+        ) {
+          throw new Error(`Renderer HR core smoke check failed: ${JSON.stringify(result)}`)
+        }
+
         console.log('HR_E2E_RENDERER_OK')
         app.exit(0)
       } catch (error) {
