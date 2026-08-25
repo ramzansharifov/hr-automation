@@ -17,7 +17,7 @@ export const permissionDependencies: Record<string, string[]> = {
   "organization.create": ["organization.view"],
   "organization.edit": ["organization.view"],
   "organization.delete": ["organization.view"],
-  "organization.assign_leader": ["organization.view", "employees.view"],
+  "organization.assign_leader": ["organization.view", "employees.view", "employees.change_employment"],
 
   "vacations.create": ["vacations.view", "employees.view", "vacation_types.view"],
   "vacations.edit": ["vacations.view", "employees.view", "vacation_types.view"],
@@ -36,6 +36,17 @@ export const permissionDependencies: Record<string, string[]> = {
   "vacation_types.create": ["vacation_types.view"],
   "vacation_types.edit": ["vacation_types.view"],
   "vacation_types.delete": ["vacation_types.view"],
+
+  "documents.view": ["employees.view"],
+  "documents.add": ["documents.view", "employees.view"],
+  "documents.delete": ["documents.view", "employees.view"],
+
+  "leave.view": ["vacations.view", "employees.view"],
+  "leave.manage": ["leave.view", "vacations.view", "employees.view"],
+  "leave.calendar_manage": ["leave.view", "organization.view"],
+
+  "data_exchange.import": ["employees.view", "organization.view"],
+  "data_exchange.export": ["employees.view"],
 
   "users.create": ["users.view", "employees.view"],
   "users.edit": ["users.view", "employees.view"],
@@ -80,6 +91,7 @@ export const enterpriseLevelPermissionCodes = new Set([
   "vacation_types.create",
   "vacation_types.edit",
   "vacation_types.delete",
+  "leave.calendar_manage",
 ]);
 
 export const accessScopeRank: Record<AccessScopeType, number> = {
@@ -109,6 +121,7 @@ export type PermissionRiskLevel = "elevated" | "critical";
 const criticalPermissionCodes = new Set([
   "employees.terminate",
   "organization.delete",
+  "documents.delete",
   "users.delete",
   "roles.delete",
   "settings.backups_restore",
@@ -121,6 +134,9 @@ const elevatedPermissionCodes = new Set([
   "candidates.delete",
   "candidates.hire",
   "vacation_types.delete",
+  "leave.manage",
+  "leave.calendar_manage",
+  "data_exchange.import",
   "users.reset_password",
   "settings.backups_create",
   "settings.backups_open_folder",

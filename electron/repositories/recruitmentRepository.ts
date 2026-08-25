@@ -53,15 +53,18 @@ export class RecruitmentRepository {
          LEFT JOIN enterprises ON enterprises.id = departments.enterprise_id
          LEFT JOIN vacancy_skills ON vacancy_skills.vacancy_id = vacancies.id
          LEFT JOIN candidates ON candidates.vacancy_id = vacancies.id
-         WHERE @search = ''
-           OR positions.name LIKE @pattern
-           OR departments.name LIKE @pattern
-           OR enterprises.name LIKE @pattern
-           OR EXISTS (
-             SELECT 1
-             FROM vacancy_skills AS searched_skill
-             WHERE searched_skill.vacancy_id = vacancies.id
-               AND searched_skill.name LIKE @pattern
+         WHERE vacancies.is_archived = 0
+           AND (
+             @search = ''
+             OR positions.name LIKE @pattern
+             OR departments.name LIKE @pattern
+             OR enterprises.name LIKE @pattern
+             OR EXISTS (
+               SELECT 1
+               FROM vacancy_skills AS searched_skill
+               WHERE searched_skill.vacancy_id = vacancies.id
+                 AND searched_skill.name LIKE @pattern
+             )
            )
          GROUP BY vacancies.id
          ORDER BY
@@ -86,6 +89,9 @@ export class RecruitmentRepository {
            vacancies.status,
            vacancies.employment_type,
            vacancies.openings_count,
+           vacancies.is_archived,
+           vacancies.archived_at,
+           vacancies.archive_reason,
            vacancies.created_at,
            vacancies.updated_at,
            positions.name AS position_name,
@@ -135,15 +141,9 @@ export class RecruitmentRepository {
   }
 
   deleteVacancy(id: number): void {
-    const candidatesCount = this.database
-      .prepare("SELECT COUNT(*) FROM candidates WHERE vacancy_id = ?")
-      .pluck()
-      .get(id) as number;
-    if (candidatesCount > 0) {
-      throw new Error(
-        "Нельзя удалить вакансию с кандидатами. Закройте вакансию или перенесите кандидатов",
-      );
-    }
+    // The database owns the historical deletion invariant: migration 029 turns
+    // DELETE into archival when candidates already reference the vacancy, while
+    // an unused erroneous vacancy is removed physically.
     this.database.prepare("DELETE FROM vacancies WHERE id = ?").run(id);
   }
 
@@ -289,6 +289,7 @@ export class RecruitmentRepository {
                   vacancy.position_id,
                   vacancy.employment_type,
                   vacancy.openings_count,
+                  vacancy.is_archived,
                   position.department_id
            FROM candidates AS candidate
            JOIN vacancies AS vacancy ON vacancy.id = candidate.vacancy_id
@@ -297,6 +298,9 @@ export class RecruitmentRepository {
         )
         .get(params.candidateId) as HrRecord | undefined;
       if (!candidate) throw new Error("Кандидат не найден");
+      if (Number(candidate.is_archived) === 1) {
+        throw new Error("Нельзя принять кандидата из архивной вакансии");
+      }
       if (candidate.employee_id) {
         throw new Error("Для этого кандидата сотрудник уже создан");
       }

@@ -5,6 +5,7 @@ import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { registerAccessIpcHandlers } from './ipc/accessIpc'
 import { registerEmployeeWorkspaceIpcHandlers } from './ipc/employeeWorkspaceIpc'
 import { registerEnterpriseTenantIpcHandlers } from './ipc/enterpriseTenantIpc'
+import { registerHrCoreExpansionIpcHandlers } from './ipc/hrCoreExpansionIpc'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -26,7 +27,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 1000,
     minHeight: 700,
-    show: false,
+    show: process.env.HR_E2E !== '1',
     autoHideMenuBar: true,
     icon: path.join(process.env.VITE_PUBLIC, 'hr-logo.svg'),
     webPreferences: {
@@ -38,7 +39,7 @@ function createWindow(): void {
   })
 
   win.once('ready-to-show', () => {
-    win?.show()
+    if (process.env.HR_E2E !== '1') win?.show()
   })
 
   win.webContents.setWindowOpenHandler((details) => {
@@ -52,6 +53,68 @@ function createWindow(): void {
     }
     return { action: 'deny' }
   })
+
+  if (process.env.HR_E2E === '1') {
+    win.webContents.once('did-finish-load', async () => {
+      try {
+        const result = await win?.webContents.executeJavaScript(`(async () => {
+          const hasRoot = Boolean(document.querySelector('#root'))
+          const hasApi = Boolean(window.hrApi)
+          if (!hasRoot || !hasApi) return { hasRoot, hasApi }
+
+          const initialPassword = 'superadmin'
+          const e2ePassword = 'E2E-Superadmin-2026!'
+          let session = await window.hrApi.login({
+            username: 'superadmin',
+            password: initialPassword
+          })
+
+          if (session?.mustChangePassword) {
+            await window.hrApi.changeOwnPassword({
+              currentPassword: initialPassword,
+              newPassword: e2ePassword
+            })
+            await window.hrApi.logout()
+            session = await window.hrApi.login({
+              username: 'superadmin',
+              password: e2ePassword
+            })
+          }
+
+          const dashboard = await window.hrApi.dashboard()
+          const attention = await window.hrApi.listAttentionItems()
+          const analytics = await window.hrApi.getAnalytics()
+
+          return {
+            hasRoot,
+            hasApi,
+            authenticated:
+              session?.username === 'superadmin' && session?.mustChangePassword === false,
+            dashboardReady: typeof dashboard?.employeesTotal === 'number',
+            attentionReady: Array.isArray(attention),
+            analyticsReady: Boolean(analytics && typeof analytics === 'object')
+          }
+        })()`)
+
+        if (
+          !result?.hasRoot ||
+          !result?.hasApi ||
+          !result?.authenticated ||
+          !result?.dashboardReady ||
+          !result?.attentionReady ||
+          !result?.analyticsReady
+        ) {
+          throw new Error(`Renderer HR core smoke check failed: ${JSON.stringify(result)}`)
+        }
+
+        console.log('HR_E2E_RENDERER_OK')
+        app.exit(0)
+      } catch (error) {
+        console.error('HR_E2E_RENDERER_FAILED', error)
+        app.exit(1)
+      }
+    })
+  }
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
@@ -70,11 +133,16 @@ app.on('window-all-closed', () => {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.hr.automation')
 
+  if (process.env.HR_E2E === '1') {
+    app.setPath('userData', path.join(app.getPath('temp'), `hr-automation-e2e-${process.pid}`))
+  }
+
   initializeDatabase()
   registerHrCrudIpcHandlers()
   registerEmployeeWorkspaceIpcHandlers()
   registerAccessIpcHandlers()
   registerEnterpriseTenantIpcHandlers()
+  registerHrCoreExpansionIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

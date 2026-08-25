@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
 import { hrApiClient } from "../../shared/lib/hrApiClient";
-import type { HrRecord } from "../../shared/types/hr";
+import type { HrRecord, PreviousLeaderOutcome } from "../../shared/types/hr";
 import {
   Button,
   Dialog,
@@ -36,6 +36,13 @@ interface LeadershipChangeForm {
   salary: string;
 }
 
+interface PreviousLeaderForm {
+  outcome: PreviousLeaderOutcome;
+  departmentId: string;
+  positionId: string;
+  salary: string;
+}
+
 export function DepartmentLeaderDialog({
   canChangeEmployment,
   currentLeaderId,
@@ -48,6 +55,7 @@ export function DepartmentLeaderDialog({
   onOpenChange,
   onSaved,
   open,
+  positions,
 }: DepartmentLeaderDialogProps): JSX.Element {
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
   const [leaderId, setLeaderId] = useState("");
@@ -56,12 +64,12 @@ export function DepartmentLeaderDialog({
   const [changeForm, setChangeForm] = useState<LeadershipChangeForm>(() =>
     createLeadershipChangeForm(),
   );
+  const [previousForm, setPreviousForm] = useState<PreviousLeaderForm>(() =>
+    createPreviousLeaderForm(),
+  );
 
   const targetDepartments = useMemo(
-    () =>
-      departments.filter(
-        (item) => Number(item.enterprise_id) === enterpriseId,
-      ),
+    () => departments.filter((item) => Number(item.enterprise_id) === enterpriseId),
     [departments, enterpriseId],
   );
 
@@ -71,6 +79,7 @@ export function DepartmentLeaderDialog({
       setLeaderId("");
       setConfirming(false);
       setChangeForm(createLeadershipChangeForm());
+      setPreviousForm(createPreviousLeaderForm());
       return;
     }
 
@@ -83,10 +92,9 @@ export function DepartmentLeaderDialog({
         setCandidates(records);
         const currentValue = currentLeaderId ? String(currentLeaderId) : "";
         setLeaderId(currentValue);
-        const currentLeader = records.find(
-          (record) => String(record.id) === currentValue,
-        );
+        const currentLeader = records.find((record) => String(record.id) === currentValue);
         setChangeForm(createLeadershipChangeForm(currentLeader));
+        setPreviousForm(createPreviousLeaderForm(currentLeader));
       })
       .catch((error) => {
         if (!active) return;
@@ -111,25 +119,54 @@ export function DepartmentLeaderDialog({
     [candidates],
   );
 
+  const departmentOptions = useMemo<SelectOption[]>(
+    () =>
+      targetDepartments.map((department) => ({
+        value: String(department.id),
+        label: String(department.name ?? "Отдел"),
+      })),
+    [targetDepartments],
+  );
+
+  const previousPositionOptions = useMemo<SelectOption[]>(() => {
+    const targetDepartmentId = positiveId(previousForm.departmentId);
+    return positions
+      .filter(
+        (position) =>
+          Number(position.department_id) === targetDepartmentId &&
+          Number(position.is_archived ?? 0) !== 1,
+      )
+      .map((position) => ({
+        value: String(position.id),
+        label: String(position.name ?? "Должность"),
+      }));
+  }, [positions, previousForm.departmentId]);
+
   const selectedCandidate = candidates.find(
     (candidate) => String(candidate.id) === leaderId,
   );
+  const currentLeader = candidates.find(
+    (candidate) => Number(candidate.id) === currentLeaderId,
+  );
   const selectedAlreadyLeads =
     Boolean(currentLeaderId) && leaderId === String(currentLeaderId);
+  const isChangingLeadership = !selectedAlreadyLeads && (Boolean(currentLeaderId) || Boolean(leaderId));
   const leadershipTitle =
     mode === "enterprise" ? "директором предприятия" : "руководителем отдела";
   const fixedPositionLabel =
     mode === "enterprise"
       ? `Директор предприятия — ${enterpriseName}`
       : `Руководитель отдела — ${departmentName}`;
-  const canAssignEnterpriseLeader =
-    mode !== "enterprise" || targetDepartments.length > 0;
+  const canAssignEnterpriseLeader = mode !== "enterprise" || targetDepartments.length > 0;
 
   function selectCandidate(value: string): void {
     setLeaderId(value);
     setConfirming(false);
     const candidate = candidates.find((record) => String(record.id) === value);
-    setChangeForm(createLeadershipChangeForm(candidate));
+    setChangeForm((current) => ({
+      ...current,
+      salary: String(candidate?.salary ?? 0),
+    }));
   }
 
   function requestSave(): void {
@@ -138,16 +175,28 @@ export function DepartmentLeaderDialog({
       onOpenChange(false);
       return;
     }
+    if (!isChangingLeadership) {
+      onOpenChange(false);
+      return;
+    }
+    if (!canChangeEmployment) {
+      toast.error(
+        "Назначение, замена и снятие руководителя являются кадровыми изменениями. Требуется разрешение «Кадровые изменения»",
+      );
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(changeForm.effectiveAt)) {
+      toast.error("Укажите дату вступления кадрового изменения в силу");
+      return;
+    }
+    if (!changeForm.reason.trim()) {
+      toast.error("Укажите основание кадрового изменения");
+      return;
+    }
 
     if (leaderId) {
       if (!selectedCandidate) {
         toast.error("Выберите сотрудника");
-        return;
-      }
-      if (!canChangeEmployment) {
-        toast.error(
-          "Назначение руководителя является кадровым изменением. Требуется разрешение «Кадровые изменения»",
-        );
         return;
       }
       if (!canAssignEnterpriseLeader) {
@@ -156,70 +205,37 @@ export function DepartmentLeaderDialog({
         );
         return;
       }
-
       const salary = Number(changeForm.salary);
-      if (
-        !changeForm.salary.trim() ||
-        !Number.isFinite(salary) ||
-        salary < 0
-      ) {
-        toast.error("Укажите корректный оклад");
+      if (!changeForm.salary.trim() || !Number.isFinite(salary) || salary < 0) {
+        toast.error("Укажите корректный оклад нового руководителя");
         return;
       }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(changeForm.effectiveAt)) {
-        toast.error("Укажите дату вступления кадрового изменения в силу");
+    }
+
+    if (currentLeaderId && previousForm.outcome !== "unassigned") {
+      const previousDepartmentId = positiveId(previousForm.departmentId);
+      const previousPositionId = positiveId(previousForm.positionId);
+      const salary = Number(previousForm.salary);
+      if (!previousDepartmentId || !previousPositionId) {
+        toast.error("Выберите отдел и должность для прежнего руководителя");
         return;
       }
-      if (!changeForm.reason.trim()) {
-        toast.error("Укажите основание кадрового изменения");
+      if (!Number.isFinite(salary) || salary < 0) {
+        toast.error("Укажите корректный оклад прежнего руководителя");
         return;
       }
-    } else if (!currentLeaderId) {
-      onOpenChange(false);
-      return;
     }
 
     setConfirming(true);
   }
 
   async function save(): Promise<void> {
-    if (loading) return;
+    if (loading || selectedAlreadyLeads || !canChangeEmployment) return;
 
-    if (!leaderId) {
-      setLoading(true);
-      try {
-        await hrApiClient.update({
-          entity: mode === "enterprise" ? "enterprises" : "departments",
-          id: mode === "enterprise" ? enterpriseId : departmentId!,
-          data:
-            mode === "enterprise"
-              ? { general_director_employee_id: null }
-              : { director_employee_id: null },
-        });
-        toast.success(
-          mode === "enterprise"
-            ? "Директор предприятия снят с назначения"
-            : "Руководитель отдела снят с назначения",
-        );
-        onSaved();
-        onOpenChange(false);
-      } catch (error) {
-        toast.error(errorMessage(error, "Не удалось снять руководителя"));
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    if (!selectedCandidate || !canChangeEmployment) return;
-
-    const targetDepartmentId = resolveTargetDepartmentId(
-      selectedCandidate,
-      mode,
-      departmentId,
-      targetDepartments,
-    );
-    if (!targetDepartmentId) {
+    const targetDepartmentId = selectedCandidate
+      ? resolveTargetDepartmentId(selectedCandidate, mode, departmentId, targetDepartments)
+      : null;
+    if (selectedCandidate && !targetDepartmentId) {
       toast.error(
         "Для назначения директора предприятия в предприятии должен быть создан хотя бы один отдел",
       );
@@ -227,47 +243,53 @@ export function DepartmentLeaderDialog({
       return;
     }
 
-    const salary = Number(changeForm.salary);
-    if (!Number.isFinite(salary) || salary < 0) {
-      toast.error("Укажите корректный оклад");
-      setConfirming(false);
-      return;
-    }
+    const previousDepartmentId = positiveId(previousForm.departmentId);
+    const previousPositionId = positiveId(previousForm.positionId);
 
     setLoading(true);
     try {
-      await hrApiClient.changeEmployment({
-        employeeId: Number(selectedCandidate.id),
-        enterpriseId,
-        departmentId: targetDepartmentId,
-        positionId: null,
-        salaryMode: "custom",
-        salary,
+      await hrApiClient.changeLeadership({
+        targetType: mode,
+        targetId: mode === "enterprise" ? enterpriseId : departmentId!,
+        newLeaderEmployeeId: selectedCandidate ? Number(selectedCandidate.id) : null,
         effectiveAt: changeForm.effectiveAt,
         reason: changeForm.reason.trim(),
-        leadershipAssignment: {
-          type:
-            mode === "enterprise" ? "enterprise_director" : "department_head",
-          targetId: mode === "enterprise" ? enterpriseId : departmentId!,
-        },
+        previousLeaderOutcome: currentLeaderId ? previousForm.outcome : "unassigned",
+        previousLeaderAssignment:
+          currentLeaderId &&
+          previousForm.outcome !== "unassigned" &&
+          previousDepartmentId &&
+          previousPositionId
+            ? {
+                enterpriseId,
+                departmentId: previousDepartmentId,
+                positionId: previousPositionId,
+                salary: Number(previousForm.salary),
+              }
+            : undefined,
+        newLeaderEmployment:
+          selectedCandidate && targetDepartmentId
+            ? {
+                enterpriseId,
+                departmentId: targetDepartmentId,
+                salary: Number(changeForm.salary),
+              }
+            : undefined,
       });
 
       toast.success(
-        mode === "enterprise"
-          ? "Сотрудник назначен директором предприятия"
-          : "Сотрудник назначен руководителем отдела",
+        selectedCandidate
+          ? currentLeaderId
+            ? "Руководитель заменён, кадровая история сохранена"
+            : mode === "enterprise"
+              ? "Сотрудник назначен директором предприятия"
+              : "Сотрудник назначен руководителем отдела"
+          : "Руководитель снят, кадровая история сохранена",
       );
       onSaved();
       onOpenChange(false);
     } catch (error) {
-      toast.error(
-        errorMessage(
-          error,
-          mode === "enterprise"
-            ? "Не удалось назначить директора предприятия"
-            : "Не удалось назначить руководителя отдела",
-        ),
-      );
+      toast.error(errorMessage(error, "Не удалось выполнить кадровое изменение руководителя"));
     } finally {
       setLoading(false);
     }
@@ -277,87 +299,56 @@ export function DepartmentLeaderDialog({
     <Dialog
       description={
         confirming
-          ? "Проверьте условия и подтвердите кадровое изменение."
-          : `Выберите активного сотрудника и оформите назначение ${leadershipTitle} как кадровое изменение.`
+          ? "Проверьте условия и подтвердите единое кадровое действие."
+          : `Назначение, замена и снятие ${leadershipTitle} фиксируются в кадровой истории.`
       }
       onOpenChange={onOpenChange}
       open={open}
       title={
         mode === "enterprise"
-          ? "Назначить директора предприятия"
-          : "Назначить руководителя отдела"
+          ? "Управление директором предприятия"
+          : "Управление руководителем отдела"
       }
     >
       {loading && candidates.length === 0 ? (
         <LoadingState label="Загрузка сотрудников..." />
       ) : confirming ? (
         <div className="grid gap-5">
-          {leaderId && selectedCandidate ? (
-            <>
-              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5">
-                <p className="app-text text-base font-black">
-                  Вы уверены, что хотите произвести это кадровое изменение?
-                </p>
-                <p className="app-muted mt-3 text-sm leading-6">
-                  Сотрудник <strong className="app-text">{employeeName(selectedCandidate)}</strong>{" "}
-                  перестанет занимать текущую обычную должность и получит фиксированное назначение:
-                </p>
-                <p className="app-text mt-2 font-black">{fixedPositionLabel}</p>
-                <div className="app-surface app-border mt-4 grid gap-2 rounded-xl border p-3 text-sm">
-                  <SummaryRow label="Оклад" value={formatSalary(changeForm.salary)} />
-                  <SummaryRow label="Дата вступления в силу" value={changeForm.effectiveAt} />
-                  <SummaryRow label="Основание" value={changeForm.reason.trim()} />
-                </div>
-                <p className="app-muted mt-3 text-xs leading-5">
-                  Предыдущее кадровое назначение: {assignmentLabel(selectedCandidate)}.
-                </p>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  disabled={loading}
-                  onClick={() => setConfirming(false)}
-                  type="button"
-                  variant="secondary"
-                >
-                  Назад
-                </Button>
-                <Button disabled={loading} onClick={() => void save()} type="button">
-                  Подтвердить назначение
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5">
-                <p className="app-text text-base font-black">
-                  Вы уверены, что хотите снять текущего руководителя?
-                </p>
-                <p className="app-muted mt-2 text-sm leading-6">
-                  Назначение будет снято. Карточка сотрудника и кадровая история останутся в системе.
-                </p>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  disabled={loading}
-                  onClick={() => setConfirming(false)}
-                  type="button"
-                  variant="secondary"
-                >
-                  Назад
-                </Button>
-                <Button disabled={loading} onClick={() => void save()} type="button">
-                  Да, снять
-                </Button>
-              </div>
-            </>
-          )}
+          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5">
+            <p className="app-text text-base font-black">Подтвердите кадровое действие</p>
+            <div className="app-surface app-border mt-4 grid gap-2 rounded-xl border p-3 text-sm">
+              <SummaryRow
+                label="Новый руководитель"
+                value={selectedCandidate ? employeeName(selectedCandidate) : "Не назначен"}
+              />
+              {selectedCandidate && (
+                <SummaryRow label="Назначение" value={fixedPositionLabel} />
+              )}
+              {currentLeaderId && (
+                <SummaryRow
+                  label="Прежний руководитель"
+                  value={previousOutcomeLabel(previousForm.outcome)}
+                />
+              )}
+              <SummaryRow label="Дата" value={changeForm.effectiveAt} />
+              <SummaryRow label="Основание" value={changeForm.reason.trim()} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button disabled={loading} onClick={() => setConfirming(false)} type="button" variant="secondary">
+              Назад
+            </Button>
+            <Button disabled={loading} onClick={() => void save()} type="button">
+              Подтвердить
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-5">
-          <Field label="Сотрудник">
+          <Field label="Новый руководитель">
             <SearchableSelect
               allowEmpty
-              ariaLabel="Сотрудник"
+              ariaLabel="Новый руководитель"
               emptyOptionLabel="Не назначен"
               noOptionsLabel="Активные сотрудники не найдены"
               onValueChange={selectCandidate}
@@ -368,77 +359,114 @@ export function DepartmentLeaderDialog({
             />
           </Field>
 
-          {selectedCandidate && (
-            <div className="app-surface-muted app-border rounded-2xl border p-4 text-sm">
-              <p className="app-text font-black">Текущее кадровое назначение</p>
-              <p className="app-muted mt-1 leading-6">
-                {assignmentLabel(selectedCandidate)}
-              </p>
-            </div>
-          )}
-
-          {selectedAlreadyLeads && (
-            <div className="app-accent-soft app-border rounded-2xl border p-4 text-sm font-semibold">
-              Этот сотрудник уже является текущим руководителем. Выберите другого сотрудника для замены или «Не назначен», чтобы снять назначение.
-            </div>
-          )}
-
           {selectedCandidate && !selectedAlreadyLeads && (
             <div className="grid gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
               <div>
-                <p className="app-text text-sm font-black">Новое кадровое назначение</p>
+                <p className="app-text text-sm font-black">Новое назначение</p>
                 <p className="app-muted mt-1 text-xs leading-5">
-                  Должность задаётся системой и не редактируется. Предыдущее обычное назначение сотрудника будет прекращено автоматически.
+                  Обычная должность прекращается, руководящая роль фиксируется отдельным кадровым событием.
                 </p>
               </div>
-
               <div className="app-surface app-border rounded-xl border p-3">
-                <p className="app-muted text-xs font-bold uppercase tracking-wide">
-                  Новая должность
-                </p>
+                <p className="app-muted text-xs font-bold uppercase tracking-wide">Роль</p>
                 <p className="app-text mt-1 font-black">{fixedPositionLabel}</p>
               </div>
-
-              <Field label="Оклад">
+              <Field label="Оклад нового руководителя">
                 <Input
-                  disabled={!canChangeEmployment}
                   min="0"
                   onChange={(event) =>
-                    setChangeForm((value) => ({
-                      ...value,
-                      salary: event.target.value,
-                    }))
+                    setChangeForm((value) => ({ ...value, salary: event.target.value }))
                   }
-                  required
                   step="0.01"
                   type="number"
                   value={changeForm.salary}
                 />
               </Field>
+            </div>
+          )}
 
+          {currentLeaderId && !selectedAlreadyLeads && (
+            <div className="app-surface-muted app-border grid gap-4 rounded-2xl border p-4">
+              <div>
+                <p className="app-text text-sm font-black">Что сделать с прежним руководителем?</p>
+                <p className="app-muted mt-1 text-xs leading-5">
+                  {currentLeader ? employeeName(currentLeader) : "Текущий руководитель"} не будет потерян из кадровой истории.
+                </p>
+              </div>
+              <SearchableSelect
+                ariaLabel="Действие для прежнего руководителя"
+                onValueChange={(value) =>
+                  setPreviousForm((current) => ({
+                    ...current,
+                    outcome: value as PreviousLeaderOutcome,
+                  }))
+                }
+                options={previousOutcomeOptions}
+                value={previousForm.outcome}
+              />
+
+              {previousForm.outcome !== "unassigned" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Отдел">
+                    <SearchableSelect
+                      ariaLabel="Отдел прежнего руководителя"
+                      onValueChange={(value) =>
+                        setPreviousForm((current) => ({
+                          ...current,
+                          departmentId: value,
+                          positionId: "",
+                        }))
+                      }
+                      options={departmentOptions}
+                      placeholder="Выберите отдел"
+                      value={previousForm.departmentId}
+                    />
+                  </Field>
+                  <Field label="Должность">
+                    <SearchableSelect
+                      ariaLabel="Должность прежнего руководителя"
+                      onValueChange={(value) =>
+                        setPreviousForm((current) => ({ ...current, positionId: value }))
+                      }
+                      options={previousPositionOptions}
+                      placeholder="Выберите должность"
+                      value={previousForm.positionId}
+                    />
+                  </Field>
+                  <Field label="Оклад">
+                    <Input
+                      min="0"
+                      onChange={(event) =>
+                        setPreviousForm((current) => ({ ...current, salary: event.target.value }))
+                      }
+                      step="0.01"
+                      type="number"
+                      value={previousForm.salary}
+                    />
+                  </Field>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isChangingLeadership && (
+            <div className="grid gap-4">
               <Field label="Дата вступления в силу">
                 <Input
                   disabled={!canChangeEmployment}
                   onChange={(event) =>
-                    setChangeForm((value) => ({
-                      ...value,
-                      effectiveAt: event.target.value,
-                    }))
+                    setChangeForm((value) => ({ ...value, effectiveAt: event.target.value }))
                   }
                   required
                   type="date"
                   value={changeForm.effectiveAt}
                 />
               </Field>
-
               <Field label="Основание кадрового изменения">
                 <Textarea
                   disabled={!canChangeEmployment}
                   onChange={(event) =>
-                    setChangeForm((value) => ({
-                      ...value,
-                      reason: event.target.value,
-                    }))
+                    setChangeForm((value) => ({ ...value, reason: event.target.value }))
                   }
                   placeholder="Например: приказ №12 от 25.08.2026"
                   required
@@ -449,45 +477,42 @@ export function DepartmentLeaderDialog({
             </div>
           )}
 
-          {!canChangeEmployment && leaderId && !selectedAlreadyLeads && (
+          {selectedAlreadyLeads && (
+            <div className="app-accent-soft app-border rounded-2xl border p-4 text-sm font-semibold">
+              Этот сотрудник уже является текущим руководителем. Выберите другого сотрудника для замены или «Не назначен», чтобы снять назначение.
+            </div>
+          )}
+
+          {!canChangeEmployment && isChangingLeadership && (
             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm font-semibold text-amber-700 dark:text-amber-300">
-              Для назначения руководителя требуется разрешение «Кадровые изменения».
+              Для этого действия требуется разрешение «Кадровые изменения».
             </div>
           )}
 
           {mode === "enterprise" && targetDepartments.length === 0 && leaderId && (
             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm font-semibold text-amber-700 dark:text-amber-300">
-              В предприятии пока нет отделов. Сначала создайте хотя бы один отдел, чтобы система могла оформить кадровое назначение директора.
+              В предприятии пока нет отделов. Сначала создайте хотя бы один отдел.
             </div>
           )}
 
           <div className="flex justify-end gap-3">
-            <Button
-              onClick={() => onOpenChange(false)}
-              type="button"
-              variant="secondary"
-            >
+            <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">
               Отмена
             </Button>
             <Button
-              disabled={
-                loading ||
-                Boolean(
-                  leaderId &&
-                    !selectedAlreadyLeads &&
-                    (!canChangeEmployment || !canAssignEnterpriseLeader),
-                )
-              }
+              disabled={loading || (isChangingLeadership && !canChangeEmployment)}
               onClick={requestSave}
               type="button"
             >
               {selectedAlreadyLeads
                 ? "Закрыть"
                 : leaderId
-                  ? mode === "enterprise"
-                    ? "Назначить директором"
-                    : "Назначить руководителем"
-                  : "Снять руководителя"}
+                  ? currentLeaderId
+                    ? "Заменить руководителя"
+                    : "Назначить руководителя"
+                  : currentLeaderId
+                    ? "Снять руководителя"
+                    : "Закрыть"}
             </Button>
           </div>
         </div>
@@ -496,13 +521,13 @@ export function DepartmentLeaderDialog({
   );
 }
 
-function Field({
-  children,
-  label,
-}: {
-  children: React.ReactNode;
-  label: string;
-}): JSX.Element {
+const previousOutcomeOptions: SelectOption[] = [
+  { value: "unassigned", label: "Временно оставить без должности" },
+  { value: "assign_position", label: "Назначить на обычную должность" },
+  { value: "transfer", label: "Перевести в другой отдел / на другую должность" },
+];
+
+function Field({ children, label }: { children: React.ReactNode; label: string }): JSX.Element {
   return (
     <label className="grid gap-2">
       <span className="app-text text-sm font-black">{label}</span>
@@ -528,6 +553,15 @@ function createLeadershipChangeForm(candidate?: HrRecord): LeadershipChangeForm 
   };
 }
 
+function createPreviousLeaderForm(candidate?: HrRecord): PreviousLeaderForm {
+  return {
+    outcome: "unassigned",
+    departmentId: String(positiveId(candidate?.department_id) ?? ""),
+    positionId: String(positiveId(candidate?.position_id) ?? ""),
+    salary: String(candidate?.salary ?? 0),
+  };
+}
+
 function resolveTargetDepartmentId(
   candidate: HrRecord,
   mode: LeadershipMode,
@@ -535,7 +569,6 @@ function resolveTargetDepartmentId(
   departments: HrRecord[],
 ): number | null {
   if (mode === "department") return departmentId;
-
   const currentDepartmentId = positiveId(candidate.department_id);
   if (
     currentDepartmentId &&
@@ -543,7 +576,6 @@ function resolveTargetDepartmentId(
   ) {
     return currentDepartmentId;
   }
-
   return positiveId(departments[0]?.id);
 }
 
@@ -554,7 +586,7 @@ async function loadActiveEmployees(): Promise<HrRecord[]> {
   do {
     const result = await hrApiClient.list({
       entity: "employees",
-      filters: { status: "active" },
+      filters: { lifecycle_status: "active" },
       orderBy: "last_name",
       orderDirection: "asc",
       page,
@@ -580,15 +612,6 @@ function candidateLabel(candidate: HrRecord): string {
   return assignment ? `${name} — ${assignment}` : `${name} — без назначения`;
 }
 
-function assignmentLabel(candidate: HrRecord): string {
-  return (
-    [candidate.enterprise_name, candidate.department_name, candidate.position_name]
-      .map((value) => String(value ?? "").trim())
-      .filter(Boolean)
-      .join(" → ") || "Предприятие, отдел и должность ещё не назначены"
-  );
-}
-
 function employeeName(record: HrRecord): string {
   return (
     [record.last_name, record.first_name, record.middle_name]
@@ -605,9 +628,10 @@ function localDateValue(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatSalary(value: string): string {
-  const number = Number(value);
-  return Number.isFinite(number) ? number.toLocaleString("ru-RU") : value;
+function previousOutcomeLabel(value: PreviousLeaderOutcome): string {
+  if (value === "assign_position") return "Назначить на обычную должность";
+  if (value === "transfer") return "Перевести на другое назначение";
+  return "Временно оставить без должности";
 }
 
 function positiveId(value: unknown): number | null {

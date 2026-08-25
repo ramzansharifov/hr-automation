@@ -51,11 +51,18 @@ export class HrCrudService {
 
     const data = this.prepareData(params.entity, params.data, "create");
     if (params.entity === "employees") {
-      data.status = "active";
+      const registeredAt = new Date().toISOString();
+      data.status = "pending_assignment";
+      data.lifecycle_status = "pending_assignment";
+      data.employment_started_at = null;
+      data.registered_at = registeredAt;
       data.terminated_at = null;
       data.termination_reason = null;
+      // Legacy schema keeps hire_date NOT NULL. Until the table is rebuilt in a
+      // future compatibility migration this value is only a technical placeholder;
+      // employment_started_at and the кадровое событие are the canonical start date.
       if (!String(data.hire_date ?? "").trim()) {
-        data.hire_date = new Date().toISOString().slice(0, 10);
+        data.hire_date = registeredAt.slice(0, 10);
       }
     }
     if (params.entity === "vacations") {
@@ -64,6 +71,9 @@ export class HrCrudService {
       data.approved_by_account_type = null;
       data.approved_by_account_id = null;
       data.approved_by_name = null;
+      if (!Number(data.entitlement_year)) {
+        data.entitlement_year = Number(String(data.starts_at ?? "").slice(0, 4)) || null;
+      }
     }
 
     return this.repository.create(getHrCrudEntityConfig(params.entity), data);
@@ -126,6 +136,15 @@ export class HrCrudService {
           "Удалить можно только отпуск, который ещё находится в статусе «Запланирован»",
         );
       }
+    }
+
+    if (
+      params.entity === "enterprises" ||
+      params.entity === "departments" ||
+      params.entity === "positions"
+    ) {
+      this.repository.archiveOrDeleteOrganization(params.entity, params.id);
+      return { success: true };
     }
 
     this.repository.delete(getHrCrudEntityConfig(params.entity), params.id);
@@ -203,6 +222,9 @@ export class HrCrudService {
       "salary",
       "hire_date",
       "status",
+      "lifecycle_status",
+      "employment_started_at",
+      "registered_at",
       "terminated_at",
       "termination_reason",
     ] as const;
@@ -232,13 +254,8 @@ export class HrCrudService {
       return;
     }
 
-    const nextLeader = data[field];
-    if (nextLeader === null || nextLeader === undefined || nextLeader === "") {
-      return;
-    }
-
     throw new Error(
-      `Назначение ${label} оформляется только через кадровое изменение`,
+      `Назначение, замена и снятие ${label} оформляются только через кадровое действие`,
     );
   }
 

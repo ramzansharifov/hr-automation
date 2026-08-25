@@ -1,16 +1,25 @@
 import type {
+  AddEmployeeDocumentParams,
+  ApplyEmployeeImportParams,
   AuditListParams,
+  DeleteEmployeeDocumentParams,
+  ExportDataParams,
   HireCandidateParams,
   HrCreateParams,
   HrDeleteParams,
   HrEmploymentChangeParams,
   HrGetByIdParams,
   HrHireDateCorrectionParams,
+  HrLeadershipChangeParams,
   HrListParams,
   HrTerminationParams,
+  LeaveOverviewParams,
+  PreviewEmployeeImportParams,
   RecruitmentListParams,
   SaveCandidateParams,
+  SaveLeaveBalanceParams,
   SaveVacancyParams,
+  SaveWorkCalendarDayParams,
   HrUpdateParams,
 } from "../types/hr";
 import type {
@@ -64,6 +73,8 @@ export const hrApiClient = {
     notifyAuthSessionChanged(getHrApi().update(params)),
   changeEmployment: (params: HrEmploymentChangeParams) =>
     notifyAuthSessionChanged(getHrApi().changeEmployment(params)),
+  changeLeadership: (params: HrLeadershipChangeParams) =>
+    notifyAuthSessionChanged(getHrApi().changeLeadership(params)),
   terminateEmployee: (params: HrTerminationParams) =>
     notifyAuthSessionChanged(getHrApi().terminateEmployee(params)),
   correctHireDate: (params: HrHireDateCorrectionParams) =>
@@ -88,6 +99,27 @@ export const hrApiClient = {
     notifyAuthSessionChanged(getHrApi().hireCandidate(params)),
   deleteCandidate: (id: number) =>
     notifyAuthSessionChanged(getHrApi().deleteCandidate(id)),
+  listEmployeeDocuments: (employeeId?: number) =>
+    getHrApi().listEmployeeDocuments(employeeId),
+  addEmployeeDocument: (params: AddEmployeeDocumentParams) =>
+    getHrApi().addEmployeeDocument(params),
+  openEmployeeDocument: (id: number) => getHrApi().openEmployeeDocument(id),
+  deleteEmployeeDocument: (params: DeleteEmployeeDocumentParams) =>
+    getHrApi().deleteEmployeeDocument(params),
+  getLeaveOverview: (params: LeaveOverviewParams) =>
+    getHrApi().getLeaveOverview(params),
+  saveLeaveBalance: (params: SaveLeaveBalanceParams) =>
+    getHrApi().saveLeaveBalance(params),
+  saveWorkCalendarDay: (params: SaveWorkCalendarDayParams) =>
+    getHrApi().saveWorkCalendarDay(params),
+  listAttentionItems: () => getHrApi().listAttentionItems(),
+  getAnalytics: () => getHrApi().getAnalytics(),
+  selectEmployeeImportFile: () => getHrApi().selectEmployeeImportFile(),
+  previewEmployeeImport: (params: PreviewEmployeeImportParams) =>
+    getHrApi().previewEmployeeImport(params),
+  applyEmployeeImport: (params: ApplyEmployeeImportParams) =>
+    notifyAuthSessionChanged(getHrApi().applyEmployeeImport(params)),
+  exportData: (params: ExportDataParams) => getHrApi().exportData(params),
   listAccessPermissions: () => getHrApi().listAccessPermissions(),
   listAccessRoles: () => getHrApi().listAccessRoles(),
   listAccessUsers: () => getHrApi().listAccessUsers(),

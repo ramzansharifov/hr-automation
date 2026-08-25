@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
+  AddEmployeeDocumentParams,
+  ApplyEmployeeImportParams,
   AuditListParams,
+  DeleteEmployeeDocumentParams,
+  ExportDataParams,
   HireCandidateParams,
   HrApi,
   HrCreateParams,
@@ -8,11 +12,16 @@ import type {
   HrEmploymentChangeParams,
   HrGetByIdParams,
   HrHireDateCorrectionParams,
+  HrLeadershipChangeParams,
   HrListParams,
   HrTerminationParams,
+  LeaveOverviewParams,
+  PreviewEmployeeImportParams,
   RecruitmentListParams,
   SaveCandidateParams,
+  SaveLeaveBalanceParams,
   SaveVacancyParams,
+  SaveWorkCalendarDayParams,
   HrUpdateParams,
 } from "../src/shared/types/hr";
 import type {
@@ -54,6 +63,8 @@ const hrApi: ExtendedHrApi = {
     ipcRenderer.invoke(hrChannel(params.entity, "update"), params),
   changeEmployment: (params: HrEmploymentChangeParams) =>
     ipcRenderer.invoke("hr:changeEmployment", params),
+  changeLeadership: (params: HrLeadershipChangeParams) =>
+    ipcRenderer.invoke("hr:changeLeadership", params),
   terminateEmployee: (params: HrTerminationParams) =>
     ipcRenderer.invoke("hr:terminateEmployee", params),
   correctHireDate: (params: HrHireDateCorrectionParams) =>
@@ -78,6 +89,27 @@ const hrApi: ExtendedHrApi = {
     ipcRenderer.invoke("recruitment:hireCandidate", params),
   deleteCandidate: (id: number) =>
     ipcRenderer.invoke("recruitment:deleteCandidate", id),
+  listEmployeeDocuments: (employeeId?: number) =>
+    ipcRenderer.invoke("documents:list", employeeId),
+  addEmployeeDocument: (params: AddEmployeeDocumentParams) =>
+    ipcRenderer.invoke("documents:add", params),
+  openEmployeeDocument: (id: number) => ipcRenderer.invoke("documents:open", id),
+  deleteEmployeeDocument: (params: DeleteEmployeeDocumentParams) =>
+    ipcRenderer.invoke("documents:delete", params),
+  getLeaveOverview: (params: LeaveOverviewParams) =>
+    ipcRenderer.invoke("leave:overview", params),
+  saveLeaveBalance: (params: SaveLeaveBalanceParams) =>
+    ipcRenderer.invoke("leave:saveBalance", params),
+  saveWorkCalendarDay: (params: SaveWorkCalendarDayParams) =>
+    ipcRenderer.invoke("leave:saveCalendarDay", params),
+  listAttentionItems: () => ipcRenderer.invoke("attention:list"),
+  getAnalytics: () => ipcRenderer.invoke("analytics:get"),
+  selectEmployeeImportFile: () => ipcRenderer.invoke("dataExchange:selectEmployeeImport"),
+  previewEmployeeImport: (params: PreviewEmployeeImportParams) =>
+    ipcRenderer.invoke("dataExchange:previewEmployeeImport", params),
+  applyEmployeeImport: (params: ApplyEmployeeImportParams) =>
+    ipcRenderer.invoke("dataExchange:applyEmployeeImport", params),
+  exportData: (params: ExportDataParams) => ipcRenderer.invoke("dataExchange:export", params),
   listAccessPermissions: () => ipcRenderer.invoke("access:listPermissions"),
   listAccessRoles: () => ipcRenderer.invoke("access:listRoles"),
   listAccessUsers: () => ipcRenderer.invoke("access:listUsers"),

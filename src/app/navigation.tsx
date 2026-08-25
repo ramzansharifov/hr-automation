@@ -1,10 +1,14 @@
 import type { IconType } from "react-icons";
 import {
   FiActivity,
+  FiAlertTriangle,
+  FiBarChart2,
   FiBookOpen,
   FiBriefcase,
   FiCalendar,
   FiClipboard,
+  FiDatabase,
+  FiFileText,
   FiFilter,
   FiGrid,
   FiHome,
@@ -49,6 +53,41 @@ const dashboardNavigationItem: AppNavigationItem = {
   path: "/dashboard",
   icon: FiHome,
   permissionCode: "dashboard.view",
+};
+
+const attentionNavigationItem: AppNavigationItem = {
+  titleKey: "Требует внимания",
+  path: "/attention",
+  icon: FiAlertTriangle,
+  permissionCode: "attention.view",
+};
+
+const analyticsNavigationItem: AppNavigationItem = {
+  titleKey: "Аналитика",
+  path: "/analytics",
+  icon: FiBarChart2,
+  permissionCode: "analytics.view",
+};
+
+const documentsNavigationItem: AppNavigationItem = {
+  titleKey: "Документы",
+  path: "/documents",
+  icon: FiFileText,
+  permissionCode: "documents.view",
+};
+
+const leaveManagementNavigationItem: AppNavigationItem = {
+  titleKey: "Управление отпусками",
+  path: "/leave-management",
+  icon: FiCalendar,
+  permissionCode: "leave.view",
+};
+
+const dataExchangeNavigationItem: AppNavigationItem = {
+  titleKey: "Импорт и экспорт",
+  path: "/data-exchange",
+  icon: FiDatabase,
+  permissionCode: "data_exchange.export",
 };
 
 const myEnterpriseNavigationItem: AppNavigationItem = {
@@ -130,14 +169,18 @@ const departmentsManagementNavigationItem: AppNavigationItem = {
 export const mainNavigationItems: AppNavigationItem[] = [
   profileNavigationItem,
   dashboardNavigationItem,
+  attentionNavigationItem,
   myEnterpriseNavigationItem,
   myDepartmentNavigationItem,
   colleaguesNavigationItem,
   employeesNavigationItem,
+  documentsNavigationItem,
   enterprisesNavigationItem,
   vacationsNavigationItem,
+  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
+  analyticsNavigationItem,
   filtersNavigationItem,
 ];
 
@@ -147,6 +190,7 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор предприятия",
   },
+  attentionNavigationItem,
   myEnterpriseNavigationItem,
   departmentsManagementNavigationItem,
   {
@@ -157,8 +201,10 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
     ...vacationsNavigationItem,
     titleKey: "Отпуска предприятия",
   },
+  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
+  analyticsNavigationItem,
 ];
 
 const departmentHeadNavigationItems: AppNavigationItem[] = [
@@ -167,6 +213,7 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор отдела",
   },
+  attentionNavigationItem,
   myDepartmentNavigationItem,
   myEnterpriseNavigationItem,
   {
@@ -177,8 +224,10 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
     ...vacationsNavigationItem,
     titleKey: "Отпуска отдела",
   },
+  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
+  analyticsNavigationItem,
 ];
 
 const enterpriseAdminNavigationItems: AppNavigationItem[] = [
@@ -186,18 +235,23 @@ const enterpriseAdminNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор предприятия",
   },
+  attentionNavigationItem,
   myEnterpriseNavigationItem,
   departmentsManagementNavigationItem,
   {
     ...employeesNavigationItem,
     titleKey: "Сотрудники предприятия",
   },
+  documentsNavigationItem,
   {
     ...vacationsNavigationItem,
     titleKey: "Отпуска предприятия",
   },
+  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
+  analyticsNavigationItem,
+  dataExchangeNavigationItem,
   filtersNavigationItem,
 ];
 
@@ -206,18 +260,23 @@ const departmentAdminNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор отдела",
   },
+  attentionNavigationItem,
   myDepartmentNavigationItem,
   myEnterpriseNavigationItem,
   {
     ...employeesNavigationItem,
     titleKey: "Сотрудники отдела",
   },
+  documentsNavigationItem,
   {
     ...vacationsNavigationItem,
     titleKey: "Отпуска отдела",
   },
+  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
+  analyticsNavigationItem,
+  dataExchangeNavigationItem,
   filtersNavigationItem,
 ];
 
@@ -241,6 +300,7 @@ export function getMainNavigationItems(
 }
 
 export const administrationNavigationItems: AppNavigationItem[] = [
+  dataExchangeNavigationItem,
   {
     titleKey: "Виды отпусков",
     path: "/vacation-types",

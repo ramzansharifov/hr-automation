@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -151,17 +151,27 @@ jobs:
 
           employee = connection.execute(
               """
-              SELECT employee_number, employment_type, salary, email
+              SELECT employee_number, employment_type, salary, email,
+                     lifecycle_status, employment_started_at
               FROM employees WHERE id = 1
               """
           ).fetchone()
-          if employee != (None, "full_time", 7250.0, "employee@example.test"):
+          expected_employee = (
+              None,
+              "full_time",
+              7250.0,
+              "employee@example.test",
+              "active",
+              "2024-01-15",
+          )
+          if employee != expected_employee:
               raise SystemExit(f"Employee data was not preserved: {employee}")
 
           organization = connection.execute(
               """
               SELECT enterprise.name, enterprise.legal_form,
-                     department.name, position.name, position.responsibilities
+                     department.name, position.name, position.responsibilities,
+                     enterprise.is_archived, department.is_archived, position.is_archived
               FROM enterprises AS enterprise
               JOIN departments AS department ON department.enterprise_id = enterprise.id
               JOIN positions AS position ON position.department_id = department.id
@@ -174,20 +184,24 @@ jobs:
               "Существующий отдел",
               "Существующая должность",
               "Проверка сохранности обязанностей",
+              0,
+              0,
+              0,
           )
           if organization != expected_organization:
               raise SystemExit(f"Organization data was not preserved: {organization}")
 
           vacation = connection.execute(
               """
-              SELECT vacation_type.name, vacations.days_count, vacations.reason
+              SELECT vacation_type.name, vacations.days_count, vacations.reason,
+                     vacations.working_days_count
               FROM vacations
               JOIN vacation_types AS vacation_type
                 ON vacation_type.id = vacations.vacation_type_id
               WHERE vacations.id = 1
               """
           ).fetchone()
-          if vacation != ("Ежегодный отпуск", 5, "Существующая отпускная запись"):
+          if vacation != ("Ежегодный отпуск", 5, "Существующая отпускная запись", 0):
               raise SystemExit(f"Vacation data was not preserved: {vacation}")
 
           if connection.execute(
@@ -199,8 +213,14 @@ jobs:
           if violations:
               raise SystemExit(f"Foreign key violations after data upgrade: {violations}")
 
-          print("Existing HR data survives migrations 013-016")
+          print("Existing HR data survives the complete HR core upgrade")
           PY
+
+      - name: HR core integration tests
+        id: integration
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; npm test 2>&1 | tee integration.log
 
       - name: Audit production dependencies
         id: audit
@@ -220,16 +240,31 @@ jobs:
         shell: bash
         run: set -o pipefail; npm run build:check 2>&1 | tee build.log
 
+      - name: Prepare native Electron dependencies
+        id: electron_deps
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; npm run postinstall 2>&1 | tee electron-deps.log
+
+      - name: Electron renderer smoke test
+        id: e2e
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; xvfb-run -a npm run test:e2e 2>&1 | tee e2e.log
+
       - name: Upload validation logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: validation-logs
           path: |
+            integration.log
             audit.log
             lint.log
             build.log
+            electron-deps.log
+            e2e.log
 
       - name: Fail on validation errors
-        if: steps.audit.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.build.outcome == 'failure'
+        if: steps.integration.outcome == 'failure' || steps.audit.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.build.outcome == 'failure' || steps.electron_deps.outcome == 'failure' || steps.e2e.outcome == 'failure'
         run: exit 1
