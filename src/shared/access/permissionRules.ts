@@ -67,7 +67,6 @@ export const legacyPermissionCodes = new Set([
 // Infrastructure-level operations remain global. They cannot be isolated by a
 // business tenant merely by attaching an organizational scope to the role.
 export const globalOnlyPermissionCodes = new Set([
-  "employees.export",
   "settings.backups_view",
   "settings.backups_create",
   "settings.backups_restore",
