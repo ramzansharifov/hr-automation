@@ -3,8 +3,10 @@ import {
   FiEdit2,
   FiGrid,
   FiLayers,
+  FiMail,
   FiMapPin,
   FiPhone,
+  FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -99,12 +101,21 @@ function EnterpriseAdminWorkspace(): JSX.Element {
   }
 
   const enterpriseName = String(enterprise.name ?? session.enterpriseName ?? "Предприятие");
+  const enterpriseDetailsPath = `/enterprises/${session.enterpriseId}`;
 
   return (
     <div className="space-y-6">
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
+            <Button
+              className="border-white/20 bg-white/10 text-white"
+              leftIcon={<FiUserCheck className="h-4 w-4" />}
+              onClick={() => navigate(enterpriseDetailsPath)}
+              variant="ghost"
+            >
+              Руководитель и структура
+            </Button>
             <Button
               className="border-white/20 bg-white/10 text-white"
               leftIcon={<FiGrid className="h-4 w-4" />}
@@ -151,13 +162,19 @@ function EnterpriseAdminWorkspace(): JSX.Element {
           </p>
           <div className="mt-5 space-y-4">
             <Contact icon={<FiPhone />} label="Телефон" value={enterprise.phone} />
-            <Contact icon={<FiLayers />} label="Email" value={enterprise.email} />
+            <Contact icon={<FiMail />} label="Email" value={enterprise.email} />
             <Contact icon={<FiMapPin />} label="Адрес" value={enterprise.address} />
           </div>
         </article>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <QuickAction
+          description="Назначение руководителя предприятия и полный просмотр организационной структуры."
+          icon={<FiUserCheck />}
+          label="Руководитель и структура"
+          onClick={() => navigate(enterpriseDetailsPath)}
+        />
         <QuickAction
           description="Создание отделов, изменение их данных, должностей и назначение руководителей."
           icon={<FiGrid />}
