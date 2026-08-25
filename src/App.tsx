@@ -8,6 +8,7 @@ import {
   RequirePermission,
 } from "./features/auth/PermissionRoute";
 import { AuditLogPage } from "./pages/AuditLogPage";
+import { DepartmentWorkspaceRoutePage } from "./pages/DepartmentWorkspaceRoutePage";
 import { EmployeeWorkspacePage } from "./pages/EmployeeWorkspacePage";
 import { EnterpriseWorkspaceRoutePage } from "./pages/EnterpriseWorkspaceRoutePage";
 import { FiltersPage } from "./pages/FiltersPage";
@@ -51,7 +52,7 @@ function App(): JSX.Element {
           <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><RoleAwareDashboardPage /></RequirePermission>} />
           <Route path="team" element={<RequirePermission anyOf={["directory.view"]}><Navigate to="/my-enterprise" replace /></RequirePermission>} />
           <Route path="my-enterprise" element={<RequirePermission anyOf={["directory.view"]}><EnterpriseWorkspaceRoutePage /></RequirePermission>} />
-          <Route path="my-department" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="department" /></RequirePermission>} />
+          <Route path="my-department" element={<RequirePermission anyOf={["directory.view"]}><DepartmentWorkspaceRoutePage /></RequirePermission>} />
           <Route path="colleagues" element={<RequirePermission anyOf={["directory.view"]}><EmployeeWorkspacePage section="colleagues" /></RequirePermission>} />
           <Route path="management/departments" element={<RequirePermission anyOf={["organization.view"]}><LeadershipDepartmentsPage /></RequirePermission>} />
           <Route path="employees" element={<RequirePermission anyOf={["employees.view"]}><EmployeesPage /></RequirePermission>} />
