@@ -75,8 +75,6 @@ export const legacyPermissionCodes = new Set([
   "payroll.manage",
 ]);
 
-// Infrastructure-level operations remain global. They cannot be isolated by a
-// business tenant merely by attaching an organizational scope to the role.
 export const globalOnlyPermissionCodes = new Set([
   "settings.backups_view",
   "settings.backups_create",
@@ -84,14 +82,48 @@ export const globalOnlyPermissionCodes = new Set([
   "settings.backups_open_folder",
 ]);
 
-// These permissions operate on enterprise-wide dictionaries. They may be
-// delegated to an enterprise role, but never to a department role because a
-// department must not mutate data shared by all departments of the enterprise.
 export const enterpriseLevelPermissionCodes = new Set([
   "vacation_types.create",
   "vacation_types.edit",
   "vacation_types.delete",
   "leave.calendar_manage",
+]);
+
+// Operational HR modules are tenant-bound. The platform superadmin keeps these
+// permissions in the system role, but they have no effective scope until an
+// enterprise workspace is selected. Employees intentionally remain a global
+// cross-enterprise registry; access control, settings, audit and the enterprise
+// registry also remain platform-level concerns.
+export const businessContextPermissionCodes = new Set([
+  "dashboard.view",
+  "vacations.view",
+  "vacations.create",
+  "vacations.edit",
+  "vacations.delete",
+  "vacations.approve",
+  "vacation_types.view",
+  "vacation_types.create",
+  "vacation_types.edit",
+  "vacation_types.delete",
+  "vacancies.view",
+  "vacancies.create",
+  "vacancies.edit",
+  "vacancies.delete",
+  "candidates.view",
+  "candidates.create",
+  "candidates.edit",
+  "candidates.delete",
+  "candidates.hire",
+  "documents.view",
+  "documents.add",
+  "documents.delete",
+  "leave.view",
+  "leave.manage",
+  "leave.calendar_manage",
+  "attention.view",
+  "analytics.view",
+  "data_exchange.import",
+  "data_exchange.export",
 ]);
 
 export const accessScopeRank: Record<AccessScopeType, number> = {
