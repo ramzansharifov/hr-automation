@@ -121,6 +121,7 @@ const employmentHistorySchema = z.object({
 });
 
 const vacationTypesSchema = z.object({
+  enterprise_id: requiredNumberString(),
   name: requiredString(),
   is_paid_default: requiredNumberString(),
   is_active: requiredNumberString(),
