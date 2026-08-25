@@ -2,10 +2,9 @@ import { ipcMain, type IpcMainInvokeEvent } from "electron";
 import type { AuthSession } from "../../src/shared/types/access";
 import type { AuditListParams, HrRecord } from "../../src/shared/types/hr";
 import { getDatabase } from "../database/connection";
-import { AuthenticationRepository } from "../repositories/authenticationRepository";
 import { HrCrudRepository } from "../repositories/hrCrudRepository";
 import { AuditService } from "../services/auditService";
-import { AuthenticationService } from "../services/authenticationService";
+import { getActiveAuthenticationService } from "../services/authenticationService";
 import { AuthorizationService } from "../services/authorizationService";
 import { HrCrudService } from "../services/hrCrudService";
 import { ipcValidation } from "./ipcValidation";
@@ -21,9 +20,7 @@ const vacationTypeChannels = [
 export function registerEnterpriseTenantIpcHandlers(): void {
   const database = getDatabase();
   const hrService = new HrCrudService(new HrCrudRepository(database));
-  const authenticationService = new AuthenticationService(
-    new AuthenticationRepository(database),
-  );
+  const authenticationService = getActiveAuthenticationService();
   const authorizationService = new AuthorizationService(
     database,
     authenticationService,
