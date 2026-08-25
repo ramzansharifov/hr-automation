@@ -1,6 +1,6 @@
 import { ipcMain, type IpcMainInvokeEvent } from "electron";
-import type { AccessScopeType, AuthSession } from "../../src/shared/types/access";
-import type { HrRecord } from "../../src/shared/types/hr";
+import type { AuthSession } from "../../src/shared/types/access";
+import type { AuditListParams, HrRecord } from "../../src/shared/types/hr";
 import { getDatabase } from "../database/connection";
 import { AuthenticationRepository } from "../repositories/authenticationRepository";
 import { HrCrudRepository } from "../repositories/hrCrudRepository";
@@ -144,7 +144,7 @@ export function registerEnterpriseTenantIpcHandlers(): void {
     const session = authorizationService.requirePermission("audit.view");
     const permissionScope = session.permissionScopes["audit.view"];
     if (!permissionScope) throw new Error("Недостаточно прав для просмотра журнала");
-    return auditService.list(ipcValidation.auditList(raw), {
+    return auditService.list(parseAuditListParams(raw), {
       scopeType: permissionScope,
       enterpriseId: session.enterpriseId,
       departmentId: session.departmentId,
@@ -207,6 +207,32 @@ function assertVacationTypeInScope(
   if (!enterpriseId || enterpriseId !== session.enterpriseId) {
     throw new Error("Вид отпуска принадлежит другому предприятию");
   }
+}
+
+function parseAuditListParams(raw: unknown): AuditListParams {
+  if (raw === undefined || raw === null) return {};
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("Некорректные параметры журнала действий");
+  }
+  const value = raw as Record<string, unknown>;
+  const search = value.search;
+  const limit = value.limit;
+  if (search !== undefined && typeof search !== "string") {
+    throw new Error("Некорректный поисковый запрос журнала");
+  }
+  if (typeof search === "string" && search.length > 500) {
+    throw new Error("Поисковый запрос слишком длинный");
+  }
+  if (
+    limit !== undefined &&
+    (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > 500)
+  ) {
+    throw new Error("Некорректный лимит журнала действий");
+  }
+  return {
+    search: typeof search === "string" ? search : undefined,
+    limit: typeof limit === "number" ? limit : undefined,
+  };
 }
 
 function positiveNumber(value: unknown): number | null {
