@@ -7,12 +7,17 @@ import {
   OwnProfileRedirect,
   RequirePermission,
 } from "./features/auth/PermissionRoute";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { AttentionPage } from "./pages/AttentionPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
+import { DataExchangePage } from "./pages/DataExchangePage";
 import { DepartmentWorkspaceRoutePage } from "./pages/DepartmentWorkspaceRoutePage";
+import { DocumentsPage } from "./pages/DocumentsPage";
 import { EmployeeWorkspacePage } from "./pages/EmployeeWorkspacePage";
 import { EnterpriseWorkspaceRoutePage } from "./pages/EnterpriseWorkspaceRoutePage";
 import { FiltersPage } from "./pages/FiltersPage";
 import { LeadershipDepartmentsPage } from "./pages/LeadershipDepartmentsPage";
+import { LeaveManagementPage } from "./pages/LeaveManagementPage";
 import { OrganizationDetailsPage } from "./pages/OrganizationDetailsPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { RoleAwareDashboardPage } from "./pages/RoleAwareDashboardPage";
@@ -50,6 +55,11 @@ function App(): JSX.Element {
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<AuthorizedHome />} />
           <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><RoleAwareDashboardPage /></RequirePermission>} />
+          <Route path="attention" element={<RequirePermission anyOf={["attention.view"]}><AttentionPage /></RequirePermission>} />
+          <Route path="analytics" element={<RequirePermission anyOf={["analytics.view"]}><AnalyticsPage /></RequirePermission>} />
+          <Route path="documents" element={<RequirePermission anyOf={["documents.view"]}><DocumentsPage /></RequirePermission>} />
+          <Route path="leave-management" element={<RequirePermission anyOf={["leave.view"]}><LeaveManagementPage /></RequirePermission>} />
+          <Route path="data-exchange" element={<RequirePermission anyOf={["data_exchange.import", "data_exchange.export"]}><DataExchangePage /></RequirePermission>} />
           <Route path="team" element={<RequirePermission anyOf={["directory.view"]}><Navigate to="/my-enterprise" replace /></RequirePermission>} />
           <Route path="my-enterprise" element={<RequirePermission anyOf={["directory.view"]}><EnterpriseWorkspaceRoutePage /></RequirePermission>} />
           <Route path="my-department" element={<RequirePermission anyOf={["directory.view"]}><DepartmentWorkspaceRoutePage /></RequirePermission>} />
