@@ -82,6 +82,12 @@ export interface HrDeleteParams {
   id: number;
 }
 
+export type EmployeeLifecycleStatus =
+  | "draft"
+  | "pending_assignment"
+  | "active"
+  | "terminated";
+
 export type HrLeadershipAssignmentType =
   | "enterprise_director"
   | "department_head";
@@ -113,6 +119,36 @@ export interface HrHireDateCorrectionParams {
   employeeId: number;
   hireDate: string;
   reason: string;
+}
+
+export type LeadershipTargetType = "enterprise" | "department";
+export type PreviousLeaderOutcome =
+  | "unassigned"
+  | "assign_position"
+  | "transfer";
+
+export interface LeadershipEmploymentAssignment {
+  enterpriseId: number;
+  departmentId: number;
+  positionId: number;
+  salary: number;
+}
+
+export interface LeadershipNewLeaderEmployment {
+  enterpriseId: number;
+  departmentId: number;
+  salary: number;
+}
+
+export interface HrLeadershipChangeParams {
+  targetType: LeadershipTargetType;
+  targetId: number;
+  newLeaderEmployeeId: number | null;
+  effectiveAt: string;
+  reason: string;
+  previousLeaderOutcome: PreviousLeaderOutcome;
+  previousLeaderAssignment?: LeadershipEmploymentAssignment;
+  newLeaderEmployment?: LeadershipNewLeaderEmployment;
 }
 
 export interface HrDashboardStats {
@@ -217,6 +253,172 @@ export interface BackupInfo {
   sizeBytes: number;
 }
 
+export interface EmployeeDocumentSummary {
+  id: number;
+  employeeId: number;
+  employmentHistoryId: number | null;
+  employeeName: string;
+  documentType: string;
+  title: string;
+  originalName: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  sha256: string;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  status: "active" | "deleted";
+  createdAt: string;
+}
+
+export interface AddEmployeeDocumentParams {
+  employeeId: number;
+  employmentHistoryId?: number | null;
+  documentType: string;
+  title: string;
+  issuedAt?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface DeleteEmployeeDocumentParams {
+  id: number;
+  reason: string;
+}
+
+export interface LeaveBalanceSummary {
+  employeeId: number;
+  year: number;
+  entitlementDays: number;
+  carryoverDays: number;
+  adjustmentDays: number;
+  usedDays: number;
+  plannedDays: number;
+  remainingDays: number;
+}
+
+export interface LeaveOverview {
+  balance: LeaveBalanceSummary;
+  vacations: HrRecord[];
+  calendarDays: HrRecord[];
+  warnings: string[];
+}
+
+export interface LeaveOverviewParams {
+  employeeId: number;
+  year: number;
+}
+
+export interface SaveLeaveBalanceParams {
+  employeeId: number;
+  year: number;
+  entitlementDays: number;
+  carryoverDays: number;
+  adjustmentDays: number;
+}
+
+export interface SaveWorkCalendarDayParams {
+  enterpriseId: number;
+  date: string;
+  isWorkday: boolean;
+  name?: string;
+}
+
+export type AttentionSeverity = "info" | "warning" | "critical";
+export interface AttentionItem {
+  id: string;
+  type: string;
+  severity: AttentionSeverity;
+  title: string;
+  description: string;
+  path: string;
+  dueDate: string | null;
+}
+
+export interface AnalyticsSeriesPoint {
+  label: string;
+  value: number;
+}
+
+export interface HrAnalyticsReport {
+  activeEmployees: number;
+  pendingEmployees: number;
+  terminatedEmployees: number;
+  averageAge: number | null;
+  averageTenureYears: number | null;
+  openVacancies: number;
+  averageTimeToHireDays: number | null;
+  employeesOnLeaveToday: number;
+  headcountByEnterprise: AnalyticsSeriesPoint[];
+  headcountByDepartment: AnalyticsSeriesPoint[];
+  hiresByMonth: AnalyticsSeriesPoint[];
+  terminationsByMonth: AnalyticsSeriesPoint[];
+  vacanciesByStatus: AnalyticsSeriesPoint[];
+  leaveByType: AnalyticsSeriesPoint[];
+}
+
+export type DataExportDomain =
+  | "employees"
+  | "organization"
+  | "vacations"
+  | "employment_history"
+  | "vacancies"
+  | "audit";
+export type DataExportFormat = "csv" | "xlsx";
+
+export interface EmployeeImportSelection {
+  previewId: string;
+  fileName: string;
+  headers: string[];
+  sampleRows: Array<Record<string, string>>;
+  totalRows: number;
+}
+
+export type EmployeeImportField =
+  | "last_name"
+  | "first_name"
+  | "middle_name"
+  | "email"
+  | "phone"
+  | "employee_number"
+  | "enterprise"
+  | "department"
+  | "position";
+
+export type EmployeeImportColumnMap = Partial<Record<EmployeeImportField, string>>;
+
+export interface EmployeeImportError {
+  row: number;
+  message: string;
+}
+
+export interface EmployeeImportPreview {
+  previewId: string;
+  totalRows: number;
+  validRows: number;
+  duplicateRows: number;
+  errors: EmployeeImportError[];
+}
+
+export interface PreviewEmployeeImportParams {
+  previewId: string;
+  columnMap: EmployeeImportColumnMap;
+}
+
+export interface ApplyEmployeeImportParams extends PreviewEmployeeImportParams {
+  dryRun?: boolean;
+}
+
+export interface EmployeeImportResult {
+  totalRows: number;
+  importedRows: number;
+  skippedRows: number;
+  errors: EmployeeImportError[];
+}
+
+export interface ExportDataParams {
+  domain: DataExportDomain;
+  format: DataExportFormat;
+}
+
 export interface HrApi {
   getAuthState(): Promise<AuthState>;
   listBootstrapEmployees(): Promise<AuthEmployeeOption[]>;
@@ -229,6 +431,7 @@ export interface HrApi {
   create(params: HrCreateParams): Promise<HrRecord>;
   update(params: HrUpdateParams): Promise<HrRecord>;
   changeEmployment(params: HrEmploymentChangeParams): Promise<HrRecord>;
+  changeLeadership(params: HrLeadershipChangeParams): Promise<{ success: true }>;
   terminateEmployee(params: HrTerminationParams): Promise<HrRecord>;
   correctHireDate(params: HrHireDateCorrectionParams): Promise<HrRecord>;
   delete(params: HrDeleteParams): Promise<{ success: true }>;
@@ -242,6 +445,19 @@ export interface HrApi {
   saveCandidate(params: SaveCandidateParams): Promise<CandidateProfile>;
   hireCandidate(params: HireCandidateParams): Promise<HrRecord>;
   deleteCandidate(id: number): Promise<{ success: true }>;
+  listEmployeeDocuments(employeeId?: number): Promise<EmployeeDocumentSummary[]>;
+  addEmployeeDocument(params: AddEmployeeDocumentParams): Promise<EmployeeDocumentSummary | null>;
+  openEmployeeDocument(id: number): Promise<{ success: true }>;
+  deleteEmployeeDocument(params: DeleteEmployeeDocumentParams): Promise<{ success: true }>;
+  getLeaveOverview(params: LeaveOverviewParams): Promise<LeaveOverview>;
+  saveLeaveBalance(params: SaveLeaveBalanceParams): Promise<LeaveBalanceSummary>;
+  saveWorkCalendarDay(params: SaveWorkCalendarDayParams): Promise<{ success: true }>;
+  listAttentionItems(): Promise<AttentionItem[]>;
+  getAnalytics(): Promise<HrAnalyticsReport>;
+  selectEmployeeImportFile(): Promise<EmployeeImportSelection | null>;
+  previewEmployeeImport(params: PreviewEmployeeImportParams): Promise<EmployeeImportPreview>;
+  applyEmployeeImport(params: ApplyEmployeeImportParams): Promise<EmployeeImportResult>;
+  exportData(params: ExportDataParams): Promise<{ success: true; canceled?: boolean }>;
   listAccessPermissions(): Promise<AccessPermission[]>;
   listAccessRoles(): Promise<AccessRoleSummary[]>;
   listAccessUsers(): Promise<AccessUserSummary[]>;
