@@ -130,6 +130,27 @@ export interface AuthState {
   session: AuthSession | null;
 }
 
+export interface BusinessContextOption {
+  id: number;
+  name: string;
+  enterpriseId?: number | null;
+}
+
+export interface BusinessContextSelection {
+  enterpriseId: number | null;
+  departmentId: number | null;
+}
+
+export interface BusinessContextState extends BusinessContextSelection {
+  enterpriseName: string;
+  departmentName: string;
+  canSelectEnterprise: boolean;
+  canSelectDepartment: boolean;
+  requiresEnterpriseSelection: boolean;
+  enterprises: BusinessContextOption[];
+  departments: BusinessContextOption[];
+}
+
 export interface BootstrapSuperadminParams {
   employeeId: number;
   username: string;
