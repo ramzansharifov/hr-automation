@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiAlertTriangle, FiCalendar, FiSave } from "react-icons/fi";
 import { toast } from "react-toastify";
 
@@ -32,6 +32,29 @@ export function LeaveManagementPage(): JSX.Element {
   const [calendarMode, setCalendarMode] = useState("holiday");
   const [calendarName, setCalendarName] = useState("");
 
+  const loadOverview = useCallback(async (): Promise<void> => {
+    if (!employeeId) {
+      setOverview(null);
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await hrApiClient.getLeaveOverview({
+        employeeId: Number(employeeId),
+        year: Number(year),
+      });
+      setOverview(result);
+      setEntitlement(String(result.balance.entitlementDays));
+      setCarryover(String(result.balance.carryoverDays));
+      setAdjustment(String(result.balance.adjustmentDays));
+    } catch (error) {
+      toast.error(errorMessage(error, "Не удалось рассчитать отпускной баланс"));
+      setOverview(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId, year]);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -53,12 +76,8 @@ export function LeaveManagementPage(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (!employeeId) {
-      setOverview(null);
-      return;
-    }
     void loadOverview();
-  }, [employeeId, year]);
+  }, [loadOverview]);
 
   const employeeOptions = useMemo<SelectOption[]>(
     () =>
@@ -68,25 +87,6 @@ export function LeaveManagementPage(): JSX.Element {
       })),
     [employees],
   );
-
-  async function loadOverview(): Promise<void> {
-    setLoading(true);
-    try {
-      const result = await hrApiClient.getLeaveOverview({
-        employeeId: Number(employeeId),
-        year: Number(year),
-      });
-      setOverview(result);
-      setEntitlement(String(result.balance.entitlementDays));
-      setCarryover(String(result.balance.carryoverDays));
-      setAdjustment(String(result.balance.adjustmentDays));
-    } catch (error) {
-      toast.error(errorMessage(error, "Не удалось рассчитать отпускной баланс"));
-      setOverview(null);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function saveBalance(): Promise<void> {
     if (!employeeId) return;
@@ -158,11 +158,7 @@ export function LeaveManagementPage(): JSX.Element {
           />
         </Field>
         <Field label="Расчётный год">
-          <Select
-            onValueChange={setYear}
-            options={yearOptions()}
-            value={year}
-          />
+          <Select onValueChange={setYear} options={yearOptions()} value={year} />
         </Field>
       </section>
 
