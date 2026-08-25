@@ -71,6 +71,7 @@ export const hrEntityDefaults: Record<HrEntityKey, HrEntityFormValues> = {
     reason: "",
   },
   vacation_types: {
+    enterprise_id: "",
     name: "",
     is_paid_default: "1",
     is_active: "1",
