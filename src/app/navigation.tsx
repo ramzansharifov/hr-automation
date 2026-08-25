@@ -1,7 +1,6 @@
 import type { IconType } from "react-icons";
 import {
   FiActivity,
-  FiAlertTriangle,
   FiBarChart2,
   FiBookOpen,
   FiBriefcase,
@@ -53,13 +52,6 @@ const dashboardNavigationItem: AppNavigationItem = {
   path: "/dashboard",
   icon: FiHome,
   permissionCode: "dashboard.view",
-};
-
-const attentionNavigationItem: AppNavigationItem = {
-  titleKey: "Требует внимания",
-  path: "/attention",
-  icon: FiAlertTriangle,
-  permissionCode: "attention.view",
 };
 
 const analyticsNavigationItem: AppNavigationItem = {
@@ -169,7 +161,6 @@ const departmentsManagementNavigationItem: AppNavigationItem = {
 export const mainNavigationItems: AppNavigationItem[] = [
   profileNavigationItem,
   dashboardNavigationItem,
-  attentionNavigationItem,
   myEnterpriseNavigationItem,
   myDepartmentNavigationItem,
   colleaguesNavigationItem,
@@ -190,7 +181,6 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор предприятия",
   },
-  attentionNavigationItem,
   myEnterpriseNavigationItem,
   departmentsManagementNavigationItem,
   {
@@ -213,7 +203,6 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор отдела",
   },
-  attentionNavigationItem,
   myDepartmentNavigationItem,
   myEnterpriseNavigationItem,
   {
@@ -235,7 +224,6 @@ const enterpriseAdminNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор предприятия",
   },
-  attentionNavigationItem,
   myEnterpriseNavigationItem,
   departmentsManagementNavigationItem,
   {
@@ -260,7 +248,6 @@ const departmentAdminNavigationItems: AppNavigationItem[] = [
     ...dashboardNavigationItem,
     titleKey: "Обзор отдела",
   },
-  attentionNavigationItem,
   myDepartmentNavigationItem,
   myEnterpriseNavigationItem,
   {
