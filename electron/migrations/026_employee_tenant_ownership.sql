@@ -77,6 +77,42 @@ BEGIN
   WHERE id = NEW.id;
 END;
 
+-- Vacation types are enterprise dictionaries, so an employee assigned directly
+-- to an enterprise can use that enterprise's dictionary even before a department
+-- is selected.
+DROP TRIGGER IF EXISTS trg_validate_vacation_type_scope_insert;
+DROP TRIGGER IF EXISTS trg_validate_vacation_type_scope_update;
+
+CREATE TRIGGER trg_validate_vacation_type_scope_insert
+BEFORE INSERT ON vacations
+WHEN NEW.vacation_type_id IS NOT NULL
+BEGIN
+  SELECT CASE WHEN NOT EXISTS (
+    SELECT 1
+    FROM employees AS employee
+    LEFT JOIN departments AS department ON department.id = employee.department_id
+    JOIN vacation_types AS vacation_type ON vacation_type.id = NEW.vacation_type_id
+    WHERE employee.id = NEW.employee_id
+      AND COALESCE(employee.enterprise_id, department.enterprise_id) IS NOT NULL
+      AND vacation_type.enterprise_id = COALESCE(employee.enterprise_id, department.enterprise_id)
+  ) THEN RAISE(ABORT, 'Вид отпуска не принадлежит предприятию сотрудника') END;
+END;
+
+CREATE TRIGGER trg_validate_vacation_type_scope_update
+BEFORE UPDATE OF employee_id, vacation_type_id ON vacations
+WHEN NEW.vacation_type_id IS NOT NULL
+BEGIN
+  SELECT CASE WHEN NOT EXISTS (
+    SELECT 1
+    FROM employees AS employee
+    LEFT JOIN departments AS department ON department.id = employee.department_id
+    JOIN vacation_types AS vacation_type ON vacation_type.id = NEW.vacation_type_id
+    WHERE employee.id = NEW.employee_id
+      AND COALESCE(employee.enterprise_id, department.enterprise_id) IS NOT NULL
+      AND vacation_type.enterprise_id = COALESCE(employee.enterprise_id, department.enterprise_id)
+  ) THEN RAISE(ABORT, 'Вид отпуска не принадлежит предприятию сотрудника') END;
+END;
+
 -- Custom enterprise roles must also work for employees that belong to an
 -- enterprise but have not yet been assigned to a department.
 DROP TRIGGER IF EXISTS user_roles_custom_scope_insert_guard;
@@ -154,10 +190,6 @@ SELECT role.id, permission.id
 FROM roles AS role
 JOIN permissions AS permission ON permission.code = 'employees.create'
 WHERE role.system_key IN ('enterprise_admin', 'department_admin');
-
-UPDATE roles
-SET description = 'Полное администрирование сотрудников, структуры, отпусков, подбора, пользователей и ролей только в пределах предприятия сотрудника.'
-WHERE system_key = 'enterprise_admin';
 
 CREATE TRIGGER role_permissions_system_insert_guard
 BEFORE INSERT ON role_permissions
