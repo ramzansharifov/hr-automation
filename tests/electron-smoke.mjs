@@ -7,7 +7,10 @@ const electronExecutable = path.resolve(
   process.platform === "win32" ? "electron.cmd" : "electron",
 );
 
-const child = spawn(electronExecutable, ["."], {
+const electronArgs = ["."];
+if (process.platform === "linux") electronArgs.push("--no-sandbox");
+
+const child = spawn(electronExecutable, electronArgs, {
   env: { ...process.env, HR_E2E: "1" },
   stdio: "inherit",
   shell: process.platform === "win32",
