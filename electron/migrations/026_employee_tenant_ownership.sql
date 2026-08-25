@@ -18,9 +18,7 @@ CREATE INDEX idx_employees_enterprise_id ON employees(enterprise_id);
 
 -- A concrete department must always belong to the employee's enterprise. Inserts
 -- without enterprise_id remain valid for legacy/import code and are normalized by
--- the AFTER INSERT trigger below. During an HR transfer the repository changes the
--- department first; the AFTER UPDATE trigger then synchronizes enterprise_id to the
--- department's enterprise in the same SQLite statement lifecycle.
+-- the AFTER INSERT trigger below.
 CREATE TRIGGER employees_enterprise_department_insert_guard
 BEFORE INSERT ON employees
 WHEN NEW.department_id IS NOT NULL
@@ -75,6 +73,19 @@ BEGIN
     WHERE department.id = NEW.department_id
   )
   WHERE id = NEW.id;
+END;
+
+-- Re-parenting a department changes the tenant of every employee in that
+-- department even though their department_id stays the same. Keep direct tenant
+-- ownership synchronized so sessions, scoped roles and employee lists immediately
+-- follow the new enterprise.
+CREATE TRIGGER departments_sync_employee_enterprise_after_reparent
+AFTER UPDATE OF enterprise_id ON departments
+WHEN OLD.enterprise_id IS NOT NEW.enterprise_id
+BEGIN
+  UPDATE employees
+  SET enterprise_id = NEW.enterprise_id
+  WHERE department_id = NEW.id;
 END;
 
 -- Vacation types are enterprise dictionaries, so an employee assigned directly
@@ -179,16 +190,20 @@ BEGIN
     );
 END;
 
--- Scoped administrators can create employees in their own tenant. The backend
--- stamps the tenant automatically, so the employee can remain without a position
--- (and for an enterprise admin, without a department) until the HR assignment.
+-- Scoped administrators can create and export employees in their own tenant. The
+-- backend stamps employee creation and filters CSV export by the effective
+-- permission scope, so neither operation can cross the enterprise/department
+-- boundary.
 DROP TRIGGER IF EXISTS role_permissions_system_insert_guard;
 DROP TRIGGER IF EXISTS role_permissions_system_delete_guard;
 
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT role.id, permission.id
 FROM roles AS role
-JOIN permissions AS permission ON permission.code = 'employees.create'
+JOIN permissions AS permission ON permission.code IN (
+  'employees.create',
+  'employees.export'
+)
 WHERE role.system_key IN ('enterprise_admin', 'department_admin');
 
 CREATE TRIGGER role_permissions_system_insert_guard
