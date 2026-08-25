@@ -62,10 +62,25 @@ function createWindow(): void {
           const hasApi = Boolean(window.hrApi)
           if (!hasRoot || !hasApi) return { hasRoot, hasApi }
 
-          const session = await window.hrApi.login({
+          const initialPassword = 'superadmin'
+          const e2ePassword = 'E2E-Superadmin-2026!'
+          let session = await window.hrApi.login({
             username: 'superadmin',
-            password: 'superadmin'
+            password: initialPassword
           })
+
+          if (session?.mustChangePassword) {
+            await window.hrApi.changeOwnPassword({
+              currentPassword: initialPassword,
+              newPassword: e2ePassword
+            })
+            await window.hrApi.logout()
+            session = await window.hrApi.login({
+              username: 'superadmin',
+              password: e2ePassword
+            })
+          }
+
           const dashboard = await window.hrApi.dashboard()
           const attention = await window.hrApi.listAttentionItems()
           const analytics = await window.hrApi.getAnalytics()
@@ -73,7 +88,8 @@ function createWindow(): void {
           return {
             hasRoot,
             hasApi,
-            authenticated: session?.username === 'superadmin',
+            authenticated:
+              session?.username === 'superadmin' && session?.mustChangePassword === false,
             dashboardReady: typeof dashboard?.employeesTotal === 'number',
             attentionReady: Array.isArray(attention),
             analyticsReady: Boolean(analytics && typeof analytics === 'object')
