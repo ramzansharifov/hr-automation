@@ -276,9 +276,16 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
 
   vacation_types: entity(
     "vacation_types",
-    ["name", "is_paid_default", "is_active"],
+    ["enterprise_id", "name", "is_paid_default", "is_active"],
     ["name"],
-    { defaultOrderBy: "name" },
+    {
+      defaultOrderBy: "name",
+      listColumns: {
+        enterprise_name: `(SELECT enterprise.name
+          FROM enterprises AS enterprise
+          WHERE enterprise.id = vacation_types.enterprise_id)`,
+      },
+    },
   ),
 
   vacations: entity(

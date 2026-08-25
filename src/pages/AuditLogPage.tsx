@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiActivity, FiRefreshCw, FiSearch } from "react-icons/fi";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../features/auth/AuthContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { AuditEvent } from "../shared/types/hr";
 import {
@@ -13,6 +14,7 @@ import {
 } from "../shared/ui";
 
 export function AuditLogPage(): JSX.Element {
+  const { session } = useAuth();
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +91,14 @@ export function AuditLogPage(): JSX.Element {
     },
   ];
 
+  const auditScope = session.permissionScopes["audit.view"];
+  const description =
+    auditScope === "enterprise"
+      ? `Неизменяемая история действий, относящихся к предприятию «${session.enterpriseName || "текущее предприятие"}».`
+      : auditScope === "department"
+        ? `Неизменяемая история действий, относящихся к отделу «${session.departmentName || "текущий отдел"}».`
+        : "Неизменяемая история кадровых, административных и системных операций.";
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -102,7 +112,7 @@ export function AuditLogPage(): JSX.Element {
             Обновить
           </Button>
         }
-        description="Неизменяемая история кадровых, административных и системных операций."
+        description={description}
         eyebrow="Администрирование"
         icon={<FiActivity />}
         title="Журнал действий"
@@ -216,6 +226,13 @@ const actionLabels: Record<string, string> = {
   "candidate.create": "Создание кандидата",
   "candidate.update": "Изменение кандидата",
   "candidate.delete": "Удаление кандидата",
+  "access.role.create": "Создание роли",
+  "access.role.update": "Изменение роли",
+  "access.role.delete": "Удаление роли",
+  "access.user.create": "Создание пользователя",
+  "access.user.update": "Изменение пользователя",
+  "access.user.delete": "Удаление пользователя",
+  "access.password.reset": "Сброс пароля",
   "backup.create": "Резервная копия",
   "backup.restore": "Восстановление",
   "export.employees_csv": "Экспорт сотрудников",
@@ -230,6 +247,7 @@ const entityLabels: Record<string, string> = {
   candidates: "Кандидат",
   vacancies: "Вакансия",
   vacations: "Отпуск",
+  vacation_types: "Вид отпуска",
   enterprises: "Предприятие",
   departments: "Отдел",
   positions: "Должность",

@@ -53,7 +53,7 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:listPermissions", (event) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("roles.view");
-    const managementScope = managementScopeFromSession(session);
+    const managementScope = managementScopeForPermission(session, "roles.view");
     return accessService.listPermissions().filter((permission) =>
       canDelegatePermissionCodes(session, [permission.code], managementScope),
     );
@@ -86,7 +86,7 @@ export function registerAccessIpcHandlers(): void {
     const session = authorizationService.requirePermission("users.view");
     return filterUsersForScope(
       accessService.listUsers(),
-      managementScopeFromSession(session),
+      managementScopeForPermission(session, "users.view"),
     );
   });
 
@@ -99,10 +99,9 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:saveRole", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.saveRole(raw);
-    const session = authorizationService.requirePermission(
-      params.id ? "roles.edit" : "roles.create",
-    );
-    const actorScope = managementScopeFromSession(session);
+    const permissionCode = params.id ? "roles.edit" : "roles.create";
+    const session = authorizationService.requirePermission(permissionCode);
+    const actorScope = managementScopeForPermission(session, permissionCode);
 
     if (params.permissionCodes.some((code) => legacyPermissionCodes.has(code))) {
       throw new Error("Устаревшие разрешения нельзя назначать новым ролям");
@@ -142,7 +141,7 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:deleteRole", (event, raw: unknown) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("roles.delete");
-    const actorScope = managementScopeFromSession(session);
+    const actorScope = managementScopeForPermission(session, "roles.delete");
     const id = ipcValidation.id(raw);
     const before = accessService.listRoles().find((role) => role.id === id);
     if (!before) throw new Error("Роль не найдена");
@@ -156,6 +155,11 @@ export function registerAccessIpcHandlers(): void {
       "roles",
       id,
       before as unknown as HrRecord,
+      null,
+      {
+        enterpriseId: before.enterpriseId,
+        departmentId: before.departmentId,
+      },
     );
     return result;
   });
@@ -163,10 +167,9 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:saveUser", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.saveUser(raw);
-    const session = authorizationService.requirePermission(
-      params.id ? "users.edit" : "users.create",
-    );
-    const actorScope = managementScopeFromSession(session);
+    const permissionCode = params.id ? "users.edit" : "users.create";
+    const session = authorizationService.requirePermission(permissionCode);
+    const actorScope = managementScopeForPermission(session, permissionCode);
     const allRoles = accessService.listRoles();
     const allUsers = accessService.listUsers();
     const before = params.id
@@ -229,7 +232,10 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:resetPassword", (event, raw: unknown) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("users.reset_password");
-    const actorScope = managementScopeFromSession(session);
+    const actorScope = managementScopeForPermission(
+      session,
+      "users.reset_password",
+    );
     const params = ipcValidation.resetPassword(raw);
     const allRoles = accessService.listRoles();
     const targetUser = accessService
@@ -250,6 +256,12 @@ export function registerAccessIpcHandlers(): void {
       "access.password.reset",
       "users",
       params.userId,
+      null,
+      null,
+      {
+        enterpriseId: targetUser.enterpriseId ?? null,
+        departmentId: targetUser.departmentId ?? null,
+      },
     );
     return result;
   });
@@ -257,7 +269,7 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:deleteUser", (event, raw: unknown) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("users.delete");
-    const actorScope = managementScopeFromSession(session);
+    const actorScope = managementScopeForPermission(session, "users.delete");
     const id = ipcValidation.id(raw);
     const allRoles = accessService.listRoles();
     const before = accessService.listUsers().find((user) => user.id === id);
@@ -277,9 +289,25 @@ export function registerAccessIpcHandlers(): void {
       "users",
       id,
       before as unknown as HrRecord,
+      null,
+      {
+        enterpriseId: before.enterpriseId ?? null,
+        departmentId: before.departmentId ?? null,
+      },
     );
     return result;
   });
+}
+
+function managementScopeForPermission(
+  session: AuthSession,
+  permissionCode: string,
+): AccessRoleWriteScope {
+  const scopeType = session.permissionScopes[permissionCode];
+  if (!scopeType) {
+    throw new Error("Недостаточно прав для выполнения действия");
+  }
+  return managementScopeFromSession({ ...session, scopeType });
 }
 
 function managementScopeFromSession(session: AuthSession): AccessRoleWriteScope {

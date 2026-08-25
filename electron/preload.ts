@@ -29,6 +29,13 @@ type ExtendedHrApi = HrApi & {
   getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
 };
 
+function hrChannel(entity: string, action: "list" | "getById" | "create" | "update" | "delete"): string {
+  if (entity === "vacation_types") {
+    return `tenant:vacationTypes:${action}`;
+  }
+  return `hr:${action}`;
+}
+
 const hrApi: ExtendedHrApi = {
   getAuthState: () => ipcRenderer.invoke("auth:state"),
   listBootstrapEmployees: () => ipcRenderer.invoke("auth:bootstrapEmployees"),
@@ -38,17 +45,21 @@ const hrApi: ExtendedHrApi = {
   logout: () => ipcRenderer.invoke("auth:logout"),
   changeOwnPassword: (params: ChangeOwnPasswordParams) =>
     ipcRenderer.invoke("auth:changePassword", params),
-  list: (params: HrListParams) => ipcRenderer.invoke("hr:list", params),
-  getById: (params: HrGetByIdParams) => ipcRenderer.invoke("hr:getById", params),
-  create: (params: HrCreateParams) => ipcRenderer.invoke("hr:create", params),
-  update: (params: HrUpdateParams) => ipcRenderer.invoke("hr:update", params),
+  list: (params: HrListParams) => ipcRenderer.invoke(hrChannel(params.entity, "list"), params),
+  getById: (params: HrGetByIdParams) =>
+    ipcRenderer.invoke(hrChannel(params.entity, "getById"), params),
+  create: (params: HrCreateParams) =>
+    ipcRenderer.invoke(hrChannel(params.entity, "create"), params),
+  update: (params: HrUpdateParams) =>
+    ipcRenderer.invoke(hrChannel(params.entity, "update"), params),
   changeEmployment: (params: HrEmploymentChangeParams) =>
     ipcRenderer.invoke("hr:changeEmployment", params),
   terminateEmployee: (params: HrTerminationParams) =>
     ipcRenderer.invoke("hr:terminateEmployee", params),
   correctHireDate: (params: HrHireDateCorrectionParams) =>
     ipcRenderer.invoke("hr:correctHireDate", params),
-  delete: (params: HrDeleteParams) => ipcRenderer.invoke("hr:delete", params),
+  delete: (params: HrDeleteParams) =>
+    ipcRenderer.invoke(hrChannel(params.entity, "delete"), params),
   dashboard: () => ipcRenderer.invoke("hr:dashboard"),
   getEmployeeWorkspace: () => ipcRenderer.invoke("employee:workspace"),
   listVacancies: (params: RecruitmentListParams) =>

@@ -23,6 +23,7 @@ import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
 import {
+  canScopePermissionTo,
   getDependentPermissionCodes,
   getPermissionRiskLevel,
   legacyPermissionCodes,
@@ -33,6 +34,7 @@ import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessPermission,
   AccessRoleSummary,
+  AccessScopeType,
   SaveAccessRoleParams,
 } from "../../shared/types/access";
 import {
@@ -132,6 +134,16 @@ export function AccessRoleFormPage(): JSX.Element {
   const role = isEditMode
     ? roles.find((item) => item.id === roleId) ?? null
     : null;
+  const targetScopeType: AccessScopeType =
+    role?.scopeType ??
+    session.permissionScopes[isEditMode ? "roles.edit" : "roles.create"] ??
+    session.scopeType;
+  const scopeLabel = getRoleEditorScopeLabel(
+    targetScopeType,
+    role,
+    session.enterpriseName,
+    session.departmentName,
+  );
   const permissionMap = useMemo(
     () => new Map(permissions.map((permission) => [permission.code, permission])),
     [permissions],
@@ -144,14 +156,17 @@ export function AccessRoleFormPage(): JSX.Element {
         (code) => !legacyPermissionCodes.has(code),
       );
       if (
-        isSuperadmin ||
-        requiredCodes.every((code) => session.permissionScopes[code] === "global")
+        canScopePermissionTo(permission.code, targetScopeType) &&
+        requiredCodes.every(
+          (code) =>
+            permissionMap.has(code) && canScopePermissionTo(code, targetScopeType),
+        )
       ) {
         result.add(permission.code);
       }
     }
     return result;
-  }, [isSuperadmin, permissions, session.permissionScopes]);
+  }, [permissionMap, permissions, targetScopeType]);
 
   const visibleSections = useMemo(
     () =>
@@ -165,17 +180,17 @@ export function AccessRoleFormPage(): JSX.Element {
   );
 
   const normalizedSelectedCodes = useMemo(
-    () => permissionCodes.filter((code) => permissionMap.has(code)),
-    [permissionCodes, permissionMap],
+    () => permissionCodes.filter((code) => delegableCodes.has(code)),
+    [delegableCodes, permissionCodes],
   );
   const selectedCount = normalizedSelectedCodes.length;
   const enabledSections = visibleSections.filter((section) =>
     section.permissions.some((permission) => permissionCodes.includes(permission.code)),
   ).length;
-  const nonDelegableSelected = normalizedSelectedCodes.filter(
-    (code) => !delegableCodes.has(code),
+  const inaccessibleSelected = permissionCodes.filter(
+    (code) => !permissionMap.has(code) || !delegableCodes.has(code),
   );
-  const editorLocked = isEditMode && !isSuperadmin && nonDelegableSelected.length > 0;
+  const editorLocked = inaccessibleSelected.length > 0;
   const currentSnapshot = serializeRoleDraft(name, description, normalizedSelectedCodes);
   const isDirty = baselineReady && currentSnapshot !== baselineSnapshot;
   const canSave =
@@ -347,7 +362,7 @@ export function AccessRoleFormPage(): JSX.Element {
       return;
     }
     if (editorLocked) {
-      toast.error("Эта роль содержит разрешения выше текущего уровня доступа");
+      toast.error("Эта роль содержит разрешения вне доступной области управления");
       return;
     }
 
@@ -426,7 +441,7 @@ export function AccessRoleFormPage(): JSX.Element {
             </Button>
           </div>
         }
-        description="Настройте роль по реальным разделам приложения и отдельным действиям внутри каждого раздела."
+        description={`Настройте роль по реальным разделам приложения и отдельным действиям внутри каждого раздела. Область действия: ${scopeLabel}.`}
         eyebrow="Управление доступом"
         icon={<FiShield />}
         title={isEditMode ? `Редактирование · ${role?.name ?? "Роль"}` : "Новая роль"}
@@ -439,7 +454,7 @@ export function AccessRoleFormPage(): JSX.Element {
             <div>
               <p className="font-black">Редактирование этой роли ограничено</p>
               <p className="mt-1 text-sm leading-6 opacity-85">
-                Роль содержит разрешения, которыми ваша учётная запись не обладает глобально. Чтобы администратор не мог понизить или перераспределить более высокий доступ, сохранение и переключатели заблокированы.
+                Роль содержит разрешения, которые нельзя делегировать в текущей области. Чтобы администратор не мог перераспределить более высокий или чужой доступ, сохранение и переключатели заблокированы.
               </p>
             </div>
           </div>
@@ -478,7 +493,7 @@ export function AccessRoleFormPage(): JSX.Element {
             </span>
             <div>
               <p className="app-text font-black">Доступ роли</p>
-              <p className="app-muted mt-1 text-xs">Определяется только разрешениями</p>
+              <p className="app-muted mt-1 text-xs">{scopeLabel}</p>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -486,7 +501,7 @@ export function AccessRoleFormPage(): JSX.Element {
             <SummaryValue label="Разделов" value={enabledSections} />
           </div>
           <p className="app-muted mt-4 text-xs leading-5">
-            Технически необходимые разрешения включаются автоматически. Администратор может делегировать только те разрешения, которыми сам обладает глобально.
+            Технически необходимые разрешения включаются автоматически. Администратор может делегировать только доступ, которым сам располагает в этой или более широкой области.
           </p>
           {isDirty && (
             <p className="mt-3 text-xs font-black text-amber-600 dark:text-amber-300">
@@ -618,7 +633,7 @@ export function AccessRoleFormPage(): JSX.Element {
                               title={
                                 delegable
                                   ? undefined
-                                  : "Недоступно для делегирования: у вашей учётной записи нет этого разрешения в глобальной области"
+                                  : "Недоступно для делегирования в текущей области управления"
                               }
                             >
                               <div className="min-w-0">
@@ -812,6 +827,24 @@ function serializeRoleDraft(
     description,
     permissionCodes: [...new Set(permissionCodes)].sort(),
   });
+}
+
+function getRoleEditorScopeLabel(
+  scopeType: AccessScopeType,
+  role: AccessRoleSummary | null,
+  enterpriseName: string,
+  departmentName: string,
+): string {
+  if (scopeType === "global") return "вся система";
+  if (scopeType === "enterprise") {
+    const name = role?.enterpriseName || enterpriseName;
+    return name ? `предприятие «${name}»` : "текущее предприятие";
+  }
+  if (scopeType === "department") {
+    const name = role?.departmentName || departmentName;
+    return name ? `отдел «${name}»` : "текущий отдел";
+  }
+  return "личная область";
 }
 
 function PermissionSwitch({

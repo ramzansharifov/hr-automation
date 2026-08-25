@@ -16,6 +16,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import type { LeadershipRoleKey } from "../shared/access/leadership";
+import type { ScopedAdminRoleKey } from "../shared/access/scopedAdmin";
 import type { HrEntityKey } from "../shared/types/hr";
 
 export interface AppNavigationItem {
@@ -34,6 +35,13 @@ const profileNavigationItem: AppNavigationItem = {
   icon: FiUser,
   permissionCode: "profile.view",
   employeeAccountOnly: true,
+};
+
+const settingsNavigationItem: AppNavigationItem = {
+  titleKey: "navigation.settings",
+  path: "/settings",
+  icon: FiSettings,
+  permissionCode: "settings.view",
 };
 
 const dashboardNavigationItem: AppNavigationItem = {
@@ -112,6 +120,13 @@ const filtersNavigationItem: AppNavigationItem = {
   permissionCode: "filters.use",
 };
 
+const departmentsManagementNavigationItem: AppNavigationItem = {
+  titleKey: "Отделы",
+  path: "/management/departments",
+  icon: FiGrid,
+  permissionCode: "organization.view",
+};
+
 export const mainNavigationItems: AppNavigationItem[] = [
   profileNavigationItem,
   dashboardNavigationItem,
@@ -133,12 +148,7 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
     titleKey: "Обзор предприятия",
   },
   myEnterpriseNavigationItem,
-  {
-    titleKey: "Отделы",
-    path: "/management/departments",
-    icon: FiGrid,
-    permissionCode: "organization.view",
-  },
+  departmentsManagementNavigationItem,
   {
     ...employeesNavigationItem,
     titleKey: "Сотрудники предприятия",
@@ -171,9 +181,56 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
   candidatesNavigationItem,
 ];
 
+const enterpriseAdminNavigationItems: AppNavigationItem[] = [
+  {
+    ...dashboardNavigationItem,
+    titleKey: "Обзор предприятия",
+  },
+  myEnterpriseNavigationItem,
+  departmentsManagementNavigationItem,
+  {
+    ...employeesNavigationItem,
+    titleKey: "Сотрудники предприятия",
+  },
+  {
+    ...vacationsNavigationItem,
+    titleKey: "Отпуска предприятия",
+  },
+  vacanciesNavigationItem,
+  candidatesNavigationItem,
+  filtersNavigationItem,
+];
+
+const departmentAdminNavigationItems: AppNavigationItem[] = [
+  {
+    ...dashboardNavigationItem,
+    titleKey: "Обзор отдела",
+  },
+  myDepartmentNavigationItem,
+  myEnterpriseNavigationItem,
+  {
+    ...employeesNavigationItem,
+    titleKey: "Сотрудники отдела",
+  },
+  {
+    ...vacationsNavigationItem,
+    titleKey: "Отпуска отдела",
+  },
+  vacanciesNavigationItem,
+  candidatesNavigationItem,
+  filtersNavigationItem,
+];
+
 export function getMainNavigationItems(
   leadershipRole: LeadershipRoleKey | null,
+  scopedAdminRole: ScopedAdminRoleKey | null = null,
 ): AppNavigationItem[] {
+  if (scopedAdminRole === "enterprise_admin") {
+    return enterpriseAdminNavigationItems;
+  }
+  if (scopedAdminRole === "department_admin") {
+    return departmentAdminNavigationItems;
+  }
   if (leadershipRole === "enterprise_director") {
     return enterpriseDirectorNavigationItems;
   }
@@ -189,7 +246,6 @@ export const administrationNavigationItems: AppNavigationItem[] = [
     path: "/vacation-types",
     icon: FiBookOpen,
     permissionCode: "vacation_types.view",
-    requiredGlobalScope: true,
     entity: "vacation_types",
   },
   {
@@ -209,15 +265,15 @@ export const administrationNavigationItems: AppNavigationItem[] = [
     path: "/audit",
     icon: FiActivity,
     permissionCode: "audit.view",
-    requiredGlobalScope: true,
   },
 ];
 
-export const bottomNavigationItems: AppNavigationItem[] = [
-  {
-    titleKey: "navigation.settings",
-    path: "/settings",
-    icon: FiSettings,
-    permissionCode: "settings.view",
-  },
-];
+export function getBottomNavigationItems(
+  scopedAdminRole: ScopedAdminRoleKey | null = null,
+): AppNavigationItem[] {
+  return scopedAdminRole
+    ? [profileNavigationItem, settingsNavigationItem]
+    : [settingsNavigationItem];
+}
+
+export const bottomNavigationItems: AppNavigationItem[] = [settingsNavigationItem];

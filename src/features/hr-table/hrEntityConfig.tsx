@@ -158,6 +158,7 @@ const hrEntityConfigDefinitions: Record<HrEntityKey, HrEntityPageConfigDefinitio
     createLabelKey: "Добавить вид отпуска",
     defaultOrderBy: "name",
     columns: [
+      { key: "enterprise_name", labelKey: "Предприятие" },
       { key: "name", labelKey: "Название", className: "font-bold" },
       { key: "is_paid_default", labelKey: "Оплачиваемый", format: "yesNo" },
       { key: "is_active", labelKey: "Активен", format: "yesNo" },

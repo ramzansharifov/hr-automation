@@ -11,18 +11,20 @@ import { Button, PageHeader, useStoredViewMode } from "../shared/ui";
 
 export function VacationTypesPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
-  const canViewVacationTypes =
-    hasPermission("vacation_types.view") &&
+  const canViewVacationTypes = hasPermission("vacation_types.view");
+  const canCreateVacationTypes = hasPermission("vacation_types.create");
+  const isGlobalScope =
     session.permissionScopes["vacation_types.view"] === "global";
-  const canCreateVacationTypes =
-    hasPermission("vacation_types.create") &&
-    session.permissionScopes["vacation_types.create"] === "global";
   const [viewMode, setViewMode] = useStoredViewMode("vacation-types");
   const tableRef = useRef<HrEntityTableHandle>(null);
 
   if (!canViewVacationTypes) {
     return <Navigate replace to="/vacations" />;
   }
+
+  const description = isGlobalScope
+    ? "Справочники видов отпусков по предприятиям. Каждый вид принадлежит одному юридическому лицу."
+    : `Справочник видов отпусков предприятия «${session.enterpriseName || "текущее предприятие"}». Изменения не затрагивают другие предприятия.`;
 
   return (
     <div className="space-y-6">
@@ -40,14 +42,19 @@ export function VacationTypesPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        description="Единый справочник видов отпусков, используемых при оформлении кадровых записей."
+        description={description}
         icon={<FiBookOpen />}
         title="Виды отпусков"
       />
 
       <HrEntityTable
         ref={tableRef}
+        createInitialRecord={
+          session.enterpriseId ? { enterprise_id: session.enterpriseId } : undefined
+        }
         entity="vacation_types"
+        hiddenColumnKeys={isGlobalScope ? [] : ["enterprise_name"]}
+        hiddenFormFieldNames={isGlobalScope ? [] : ["enterprise_id"]}
         hideCreateButton
         hideToolbarSearch
         onViewModeChange={setViewMode}

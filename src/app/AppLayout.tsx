@@ -15,10 +15,14 @@ import {
   getLeadershipRole,
   leadershipRoleLabel,
 } from "../shared/access/leadership";
+import {
+  getScopedAdminRole,
+  scopedAdminRoleLabel,
+} from "../shared/access/scopedAdmin";
 import type { AppNavigationItem } from "./navigation";
 import {
   administrationNavigationItems,
-  bottomNavigationItems,
+  getBottomNavigationItems,
   getMainNavigationItems,
 } from "./navigation";
 import { HRLogo } from "./brand/HRLogo";
@@ -157,6 +161,7 @@ export function AppLayout(): JSX.Element {
   const { t } = useTranslation();
   const { hasPermission, logout, session } = useAuth();
   const leadershipRole = getLeadershipRole(session.roles);
+  const scopedAdminRole = getScopedAdminRole(session.roles);
 
   function isNavigationItemVisible(item: AppNavigationItem): boolean {
     if (item.employeeAccountOnly && session.employeeId <= 0) return false;
@@ -171,13 +176,14 @@ export function AppLayout(): JSX.Element {
     return true;
   }
 
-  const visibleMainNavigationItems = getMainNavigationItems(leadershipRole).filter(
-    isNavigationItemVisible,
-  );
+  const visibleMainNavigationItems = getMainNavigationItems(
+    leadershipRole,
+    scopedAdminRole,
+  ).filter(isNavigationItemVisible);
   const visibleAdministrationNavigationItems = administrationNavigationItems.filter(
     isNavigationItemVisible,
   );
-  const visibleBottomItems = bottomNavigationItems.filter(
+  const visibleBottomItems = getBottomNavigationItems(scopedAdminRole).filter(
     isNavigationItemVisible,
   );
   const canSearch = [
@@ -195,9 +201,11 @@ export function AppLayout(): JSX.Element {
     : session.employeeName || session.username;
   const primaryRole = isSystemAdmin
     ? "Системный администратор"
-    : leadershipRole
-      ? leadershipRoleLabel(leadershipRole)
-      : session.roles[0]?.name ?? "Пользователь";
+    : scopedAdminRole
+      ? scopedAdminRoleLabel(scopedAdminRole)
+      : leadershipRole
+        ? leadershipRoleLabel(leadershipRole)
+        : session.roles[0]?.name ?? "Пользователь";
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -272,7 +280,7 @@ export function AppLayout(): JSX.Element {
             <SidebarSection
               isCollapsed={isSidebarCollapsed}
               items={visibleMainNavigationItems}
-              title={leadershipRole ? "Управление" : "Основное"}
+              title={leadershipRole || scopedAdminRole ? "Управление" : "Основное"}
             />
             <SidebarSection
               isCollapsed={isSidebarCollapsed}

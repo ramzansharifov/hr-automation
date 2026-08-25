@@ -64,18 +64,23 @@ export const legacyPermissionCodes = new Set([
   "payroll.manage",
 ]);
 
-// These operations act on application-wide data or infrastructure and therefore
-// cannot be made safe merely by attaching an enterprise/department scope to a role.
+// Infrastructure-level operations remain global. They cannot be isolated by a
+// business tenant merely by attaching an organizational scope to the role.
 export const globalOnlyPermissionCodes = new Set([
-  "audit.view",
   "employees.export",
-  "vacation_types.create",
-  "vacation_types.edit",
-  "vacation_types.delete",
   "settings.backups_view",
   "settings.backups_create",
   "settings.backups_restore",
   "settings.backups_open_folder",
+]);
+
+// These permissions operate on enterprise-wide dictionaries. They may be
+// delegated to an enterprise role, but never to a department role because a
+// department must not mutate data shared by all departments of the enterprise.
+export const enterpriseLevelPermissionCodes = new Set([
+  "vacation_types.create",
+  "vacation_types.edit",
+  "vacation_types.delete",
 ]);
 
 export const accessScopeRank: Record<AccessScopeType, number> = {
@@ -89,7 +94,15 @@ export function canScopePermissionTo(
   permissionCode: string,
   targetScope: AccessScopeType,
 ): boolean {
-  return targetScope === "global" || !globalOnlyPermissionCodes.has(permissionCode);
+  if (targetScope === "global") return true;
+  if (globalOnlyPermissionCodes.has(permissionCode)) return false;
+  if (
+    targetScope === "department" &&
+    enterpriseLevelPermissionCodes.has(permissionCode)
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export type PermissionRiskLevel = "elevated" | "critical";
