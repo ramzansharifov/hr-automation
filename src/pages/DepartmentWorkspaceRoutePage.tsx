@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   FiBriefcase,
   FiEdit2,
-  FiLayers,
+  FiMail,
   FiMapPin,
   FiPhone,
   FiUserCheck,
@@ -170,7 +170,7 @@ function DepartmentAdminWorkspace(): JSX.Element {
           </p>
           <div className="mt-5 space-y-4">
             <Contact icon={<FiPhone />} label="Телефон" value={department.phone} />
-            <Contact icon={<FiLayers />} label="Email" value={department.email} />
+            <Contact icon={<FiMail />} label="Email" value={department.email} />
             <Contact icon={<FiMapPin />} label="Локация" value={department.location} />
           </div>
         </article>
