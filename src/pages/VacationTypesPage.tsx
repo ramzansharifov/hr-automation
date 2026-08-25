@@ -54,6 +54,7 @@ export function VacationTypesPage(): JSX.Element {
         }
         entity="vacation_types"
         hiddenColumnKeys={isGlobalScope ? [] : ["enterprise_name"]}
+        hiddenFormFieldNames={isGlobalScope ? [] : ["enterprise_id"]}
         hideCreateButton
         hideToolbarSearch
         onViewModeChange={setViewMode}
