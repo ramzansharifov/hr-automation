@@ -235,6 +235,18 @@ export const hrEntityFormConfigs: Record<HrEntityKey, HrEntityFormConfig> = {
     createTitleKey: "Добавить вид отпуска",
     editTitleKey: "Редактировать вид отпуска",
     fields: [
+      {
+        name: "enterprise_id",
+        labelKey: "Предприятие",
+        required: true,
+        type: "relation",
+        relation: {
+          entity: "enterprises",
+          label: "name",
+          orderBy: "name",
+          placeholderKey: "Выберите предприятие",
+        },
+      },
       { name: "name", labelKey: "Название", required: true, type: "text" },
       {
         name: "is_paid_default",
