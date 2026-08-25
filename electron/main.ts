@@ -3,6 +3,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { initializeDatabase } from './database'
 import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { registerAccessIpcHandlers } from './ipc/accessIpc'
+import { registerBusinessContextIpcHandlers } from './ipc/businessContextIpc'
 import { registerEmployeeWorkspaceIpcHandlers } from './ipc/employeeWorkspaceIpc'
 import { registerEnterpriseTenantIpcHandlers } from './ipc/enterpriseTenantIpc'
 import { registerHrCoreExpansionIpcHandlers } from './ipc/hrCoreExpansionIpc'
@@ -81,6 +82,26 @@ function createWindow(): void {
             })
           }
 
+          let businessContext = await window.hrApi.getBusinessContext()
+          if (businessContext?.requiresEnterpriseSelection && !businessContext.enterpriseId) {
+            const enterprise = await window.hrApi.create({
+              entity: 'enterprises',
+              data: {
+                name: 'E2E Enterprise',
+                legal_form: 'ООО',
+                legal_name: 'E2E Enterprise',
+                registration_number: 'E2E-001',
+                phone: '+992000000000',
+                email: 'e2e@example.test',
+                address: 'E2E'
+              }
+            })
+            businessContext = await window.hrApi.setBusinessContext({
+              enterpriseId: Number(enterprise.id),
+              departmentId: null
+            })
+          }
+
           const dashboard = await window.hrApi.dashboard()
           const attention = await window.hrApi.listAttentionItems()
           const analytics = await window.hrApi.getAnalytics()
@@ -90,6 +111,7 @@ function createWindow(): void {
             hasApi,
             authenticated:
               session?.username === 'superadmin' && session?.mustChangePassword === false,
+            contextReady: Boolean(businessContext?.enterpriseId),
             dashboardReady: typeof dashboard?.employeesTotal === 'number',
             attentionReady: Array.isArray(attention),
             analyticsReady: Boolean(analytics && typeof analytics === 'object')
@@ -100,6 +122,7 @@ function createWindow(): void {
           !result?.hasRoot ||
           !result?.hasApi ||
           !result?.authenticated ||
+          !result?.contextReady ||
           !result?.dashboardReady ||
           !result?.attentionReady ||
           !result?.analyticsReady
@@ -139,6 +162,7 @@ app.whenReady().then(() => {
 
   initializeDatabase()
   registerHrCrudIpcHandlers()
+  registerBusinessContextIpcHandlers()
   registerEmployeeWorkspaceIpcHandlers()
   registerAccessIpcHandlers()
   registerEnterpriseTenantIpcHandlers()
