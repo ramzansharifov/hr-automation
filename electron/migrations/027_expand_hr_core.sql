@@ -7,7 +7,7 @@
 ALTER TABLE employees ADD COLUMN lifecycle_status TEXT NOT NULL DEFAULT 'active'
   CHECK (lifecycle_status IN ('draft', 'pending_assignment', 'active', 'terminated'));
 ALTER TABLE employees ADD COLUMN employment_started_at TEXT;
-ALTER TABLE employees ADD COLUMN registered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE employees ADD COLUMN registered_at TEXT;
 
 UPDATE employees
 SET lifecycle_status = CASE
@@ -18,7 +18,8 @@ END,
 employment_started_at = CASE
   WHEN status IN ('active', 'terminated') THEN hire_date
   ELSE NULL
-END;
+END,
+registered_at = COALESCE(created_at, CURRENT_TIMESTAMP);
 
 -- The legacy hire_date column remains NOT NULL for backward-compatible upgrades.
 -- New code treats employment_started_at as the canonical employment start date and
