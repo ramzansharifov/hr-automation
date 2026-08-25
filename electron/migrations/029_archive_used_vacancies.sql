@@ -33,3 +33,23 @@ WHEN OLD.is_archived = 1
 BEGIN
   SELECT RAISE(ABORT, 'Архивную вакансию нельзя изменять');
 END;
+
+CREATE TRIGGER IF NOT EXISTS candidates_archived_vacancy_insert_guard
+BEFORE INSERT ON candidates
+WHEN EXISTS (
+  SELECT 1 FROM vacancies
+  WHERE id = NEW.vacancy_id AND is_archived = 1
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Нельзя добавить кандидата в архивную вакансию');
+END;
+
+CREATE TRIGGER IF NOT EXISTS candidates_archived_vacancy_update_guard
+BEFORE UPDATE OF vacancy_id ON candidates
+WHEN EXISTS (
+  SELECT 1 FROM vacancies
+  WHERE id = NEW.vacancy_id AND is_archived = 1
+)
+BEGIN
+  SELECT RAISE(ABORT, 'Нельзя перенести кандидата в архивную вакансию');
+END;
