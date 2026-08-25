@@ -188,7 +188,8 @@ export class AccessControlRepository {
          FROM users AS user
          JOIN employees AS employee ON employee.id = user.employee_id
          LEFT JOIN departments AS department ON department.id = employee.department_id
-         LEFT JOIN enterprises AS enterprise ON enterprise.id = department.enterprise_id
+         LEFT JOIN enterprises AS enterprise
+           ON enterprise.id = COALESCE(employee.enterprise_id, department.enterprise_id)
          ORDER BY employee.last_name, employee.first_name, user.username`,
       )
       .all() as UserRow[];
@@ -226,7 +227,10 @@ export class AccessControlRepository {
          AND (
            role.is_system = 1
            OR role.scope_type = 'global'
-           OR (role.scope_type = 'enterprise' AND role.enterprise_id = employee_department.enterprise_id)
+           OR (
+             role.scope_type = 'enterprise'
+             AND role.enterprise_id = COALESCE(employee.enterprise_id, employee_department.enterprise_id)
+           )
            OR (role.scope_type = 'department' AND role.department_id = employee.department_id)
          )
        ORDER BY permission.code`,
@@ -335,7 +339,7 @@ export class AccessControlRepository {
       .prepare(
         `SELECT
            employee.department_id AS departmentId,
-           department.enterprise_id AS enterpriseId
+           COALESCE(employee.enterprise_id, department.enterprise_id) AS enterpriseId
          FROM employees AS employee
          LEFT JOIN departments AS department ON department.id = employee.department_id
          WHERE employee.id = ?
