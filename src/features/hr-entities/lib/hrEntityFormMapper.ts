@@ -5,6 +5,7 @@ import { hrEntityDefaults } from '../config/hrEntityDefaults'
 export type HrEntityFormValues = Record<string, string>
 
 const numberFieldNames = new Set([
+  'enterprise_id',
   'department_id',
   'position_id',
   'employee_id',
