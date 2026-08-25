@@ -83,7 +83,14 @@ function createWindow(): void {
           }
 
           let businessContext = await window.hrApi.getBusinessContext()
+          let contextRequired = false
           if (businessContext?.requiresEnterpriseSelection && !businessContext.enterpriseId) {
+            try {
+              await window.hrApi.dashboard()
+            } catch {
+              contextRequired = true
+            }
+
             const enterprise = await window.hrApi.create({
               entity: 'enterprises',
               data: {
@@ -111,6 +118,7 @@ function createWindow(): void {
             hasApi,
             authenticated:
               session?.username === 'superadmin' && session?.mustChangePassword === false,
+            contextRequired,
             contextReady: Boolean(businessContext?.enterpriseId),
             dashboardReady: typeof dashboard?.employeesTotal === 'number',
             attentionReady: Array.isArray(attention),
@@ -122,6 +130,7 @@ function createWindow(): void {
           !result?.hasRoot ||
           !result?.hasApi ||
           !result?.authenticated ||
+          !result?.contextRequired ||
           !result?.contextReady ||
           !result?.dashboardReady ||
           !result?.attentionReady ||
