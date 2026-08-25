@@ -13,6 +13,7 @@ import {
   getStoredEnterpriseHrFilters,
 } from "../features/filters/moduleFiltersStore";
 import { hrApiClient } from "../shared/lib/hrApiClient";
+import type { AccessScopeType } from "../shared/types/access";
 import type {
   HrEntityKey,
   HrFilterCondition,
@@ -28,14 +29,13 @@ import {
 import "./OrganizationHierarchyPage.css";
 
 type HierarchyLevel = "enterprises" | "departments" | "positions";
+type StructureAction = "create" | "edit" | "delete";
 
 export function OrganizationHierarchyPage(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
   const { hasPermission, session } = useAuth();
   const tableRef = useRef<HrEntityTableHandle>(null);
-  const canEditStructure = hasPermission("organization.edit");
-  const canDeleteStructure = hasPermission("organization.delete");
   const enterpriseId = toId(params.enterpriseId);
   const departmentId = toId(params.departmentId);
   const level: HierarchyLevel = departmentId
@@ -45,9 +45,25 @@ export function OrganizationHierarchyPage(): JSX.Element {
       : "enterprises";
   const canCreate =
     hasPermission("organization.create") &&
-    (level !== "enterprises" ||
-      session.permissionScopes["organization.create"] === "global");
-  const canModifyStructure = canCreate || canEditStructure || canDeleteStructure;
+    canUseStructureAction(
+      level,
+      "create",
+      session.permissionScopes["organization.create"],
+    );
+  const canEditStructure =
+    hasPermission("organization.edit") &&
+    canUseStructureAction(
+      level,
+      "edit",
+      session.permissionScopes["organization.edit"],
+    );
+  const canDeleteStructure =
+    hasPermission("organization.delete") &&
+    canUseStructureAction(
+      level,
+      "delete",
+      session.permissionScopes["organization.delete"],
+    );
 
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
@@ -204,6 +220,13 @@ export function OrganizationHierarchyPage(): JSX.Element {
       : level === "departments"
         ? "Подразделения выбранного предприятия."
         : "Должности выбранного отдела и их место в организационной структуре.";
+  const tableClassName = [
+    "organization-entity-table",
+    canEditStructure ? "" : "organization-entity-table--hide-edit",
+    canDeleteStructure ? "" : "organization-entity-table--hide-delete",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="space-y-6">
@@ -218,7 +241,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
       <HrEntityTable
         ref={tableRef}
-        className={`organization-entity-table${canModifyStructure ? "" : " organization-entity-table--read-only"}`}
+        className={tableClassName}
         createInitialRecord={page.createInitialRecord}
         entity={page.entity}
         externalFilters={
@@ -242,6 +265,22 @@ export function OrganizationHierarchyPage(): JSX.Element {
       />
     </div>
   );
+}
+
+function canUseStructureAction(
+  level: HierarchyLevel,
+  action: StructureAction,
+  scope: AccessScopeType | undefined,
+): boolean {
+  if (!scope || scope === "self") return false;
+  if (level === "enterprises") return scope === "global";
+  if (level === "departments") {
+    if (action === "create" || action === "delete") {
+      return scope === "global" || scope === "enterprise";
+    }
+    return true;
+  }
+  return true;
 }
 
 function getPageContent(
