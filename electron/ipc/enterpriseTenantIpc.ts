@@ -3,6 +3,7 @@ import type { AuthSession } from "../../src/shared/types/access";
 import type { AuditListParams, HrRecord } from "../../src/shared/types/hr";
 import { getDatabase } from "../database/connection";
 import { HrCrudRepository } from "../repositories/hrCrudRepository";
+import { AdminDataService } from "../services/adminDataService";
 import { AuditService } from "../services/auditService";
 import { getActiveAuthenticationService } from "../services/authenticationService";
 import { AuthorizationService } from "../services/authorizationService";
@@ -26,6 +27,7 @@ export function registerEnterpriseTenantIpcHandlers(): void {
     authenticationService,
   );
   const auditService = new AuditService(database);
+  const adminDataService = new AdminDataService(database);
 
   for (const channel of vacationTypeChannels) ipcMain.removeHandler(channel);
 
@@ -132,9 +134,9 @@ export function registerEnterpriseTenantIpcHandlers(): void {
     return result;
   });
 
-  // hrCrudIpc registers a global-only journal first. Replace only this handler
-  // after all common HR handlers are registered so scoped administrators receive
-  // the same journal UI with a tenant-filtered backend result.
+  // hrCrudIpc registers global handlers first. Replace the journal and employee
+  // export after common HR handlers so scoped administrators use the same APIs
+  // with mandatory tenant filtering on the backend.
   ipcMain.removeHandler("audit:list");
   ipcMain.handle("audit:list", (event, raw: unknown) => {
     assertTrustedSender(event);
@@ -146,6 +148,37 @@ export function registerEnterpriseTenantIpcHandlers(): void {
       enterpriseId: session.enterpriseId,
       departmentId: session.departmentId,
     });
+  });
+
+  ipcMain.removeHandler("admin:exportEmployeesCsv");
+  ipcMain.handle("admin:exportEmployeesCsv", (event) => {
+    assertTrustedSender(event);
+    const session = authorizationService.requirePermission("employees.export");
+    const permissionScope = session.permissionScopes["employees.export"];
+    if (!permissionScope || permissionScope === "self") {
+      throw new Error("Недостаточно прав для экспорта сотрудников");
+    }
+    const result = adminDataService.exportEmployeesCsv({
+      scopeType: permissionScope,
+      enterpriseId: session.enterpriseId,
+      departmentId: session.departmentId,
+    });
+    if (!result.canceled) {
+      auditService.record(
+        session,
+        "export.employees_csv",
+        "employees",
+        null,
+        null,
+        null,
+        {
+          scopeType: permissionScope,
+          enterpriseId: session.enterpriseId,
+          departmentId: session.departmentId,
+        },
+      );
+    }
+    return result;
   });
 }
 
