@@ -81,10 +81,10 @@ BEGIN
 END;
 
 CREATE TRIGGER vacation_types_require_enterprise_update
-BEFORE UPDATE OF enterprise_id ON vacation_types
+BEFORE UPDATE ON vacation_types
 WHEN NEW.enterprise_id IS NULL
 BEGIN
-  SELECT RAISE(ABORT, 'Вид отпуска должен быть привязан к предприятию');
+  SELECT RAISE(ABORT, 'Исторический вид отпуска без предприятия нельзя изменять');
 END;
 
 CREATE TRIGGER vacation_types_updated_at
@@ -103,10 +103,11 @@ BEGIN
   SELECT CASE WHEN NOT EXISTS (
     SELECT 1
     FROM employees AS employee
-    LEFT JOIN departments AS department ON department.id = employee.department_id
+    JOIN departments AS department ON department.id = employee.department_id
     JOIN vacation_types AS vacation_type ON vacation_type.id = NEW.vacation_type_id
     WHERE employee.id = NEW.employee_id
-      AND vacation_type.enterprise_id IS department.enterprise_id
+      AND department.enterprise_id IS NOT NULL
+      AND vacation_type.enterprise_id = department.enterprise_id
   ) THEN RAISE(ABORT, 'Вид отпуска не принадлежит предприятию сотрудника') END;
 END;
 
@@ -117,10 +118,11 @@ BEGIN
   SELECT CASE WHEN NOT EXISTS (
     SELECT 1
     FROM employees AS employee
-    LEFT JOIN departments AS department ON department.id = employee.department_id
+    JOIN departments AS department ON department.id = employee.department_id
     JOIN vacation_types AS vacation_type ON vacation_type.id = NEW.vacation_type_id
     WHERE employee.id = NEW.employee_id
-      AND vacation_type.enterprise_id IS department.enterprise_id
+      AND department.enterprise_id IS NOT NULL
+      AND vacation_type.enterprise_id = department.enterprise_id
   ) THEN RAISE(ABORT, 'Вид отпуска не принадлежит предприятию сотрудника') END;
 END;
 
