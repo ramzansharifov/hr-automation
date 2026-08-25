@@ -197,6 +197,7 @@ export class HrCrudService {
     data: HrRecord,
   ): void {
     const protectedFields = [
+      "enterprise_id",
       "department_id",
       "position_id",
       "salary",

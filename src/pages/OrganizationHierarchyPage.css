@@ -1,4 +1,6 @@
 .organization-entity-table--read-only .app-table-action-button--edit,
-.organization-entity-table--read-only .app-table-action-button--delete {
+.organization-entity-table--read-only .app-table-action-button--delete,
+.organization-entity-table--hide-edit .app-table-action-button--edit,
+.organization-entity-table--hide-delete .app-table-action-button--delete {
   display: none;
 }

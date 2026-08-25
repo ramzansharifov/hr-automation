@@ -1,11 +1,34 @@
 import { dialog } from "electron";
 import { writeFileSync } from "node:fs";
 import type Database from "better-sqlite3";
+import type { AccessScopeType } from "../../src/shared/types/access";
+
+export interface EmployeeExportScope {
+  scopeType: AccessScopeType;
+  enterpriseId: number | null;
+  departmentId: number | null;
+}
 
 export class AdminDataService {
   constructor(private readonly database: Database.Database) {}
 
-  exportEmployeesCsv(): { success: true; canceled?: boolean } {
+  exportEmployeesCsv(
+    scope: EmployeeExportScope = {
+      scopeType: "global",
+      enterpriseId: null,
+      departmentId: null,
+    },
+  ): { success: true; canceled?: boolean } {
+    if (scope.scopeType === "self") {
+      throw new Error("Экспорт сотрудников недоступен в личной области данных");
+    }
+    if (scope.scopeType === "enterprise" && !scope.enterpriseId) {
+      throw new Error("Для экспорта не определено предприятие");
+    }
+    if (scope.scopeType === "department" && !scope.departmentId) {
+      throw new Error("Для экспорта не определён отдел");
+    }
+
     const result = dialog.showSaveDialogSync({
       title: "Экспорт сотрудников",
       defaultPath: `employees-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -13,37 +36,51 @@ export class AdminDataService {
     });
     if (!result) return { success: true, canceled: true };
 
-    const rows = this.database
-      .prepare(
-        `SELECT
-           employee.employee_number,
-           employee.last_name,
-           employee.first_name,
-           employee.middle_name,
-           employee.email,
-           employee.phone,
-           enterprise.legal_form,
-           enterprise.name AS enterprise_name,
-           department.name AS department_name,
-           position.name AS position_name,
-           employee.hire_date,
-           employee.employment_type,
-           employee.salary,
-           employee.status,
-           employee.contract_number,
-           employee.contract_date,
-           employee.contract_end_date,
-           employee.probation_end_date,
-           employee.workplace,
-           employee.terminated_at,
-           employee.termination_reason
-         FROM employees AS employee
-         LEFT JOIN departments AS department ON department.id = employee.department_id
-         LEFT JOIN enterprises AS enterprise ON enterprise.id = department.enterprise_id
-         LEFT JOIN positions AS position ON position.id = employee.position_id
-         ORDER BY employee.last_name, employee.first_name`,
-      )
-      .all() as Array<Record<string, unknown>>;
+    const whereSql =
+      scope.scopeType === "enterprise"
+        ? "WHERE COALESCE(employee.enterprise_id, department.enterprise_id) = @enterpriseId"
+        : scope.scopeType === "department"
+          ? "WHERE employee.department_id = @departmentId"
+          : "";
+    const statement = this.database.prepare(
+      `SELECT
+         employee.employee_number,
+         employee.last_name,
+         employee.first_name,
+         employee.middle_name,
+         employee.email,
+         employee.phone,
+         enterprise.legal_form,
+         enterprise.name AS enterprise_name,
+         department.name AS department_name,
+         position.name AS position_name,
+         employee.hire_date,
+         employee.employment_type,
+         employee.salary,
+         employee.status,
+         employee.contract_number,
+         employee.contract_date,
+         employee.contract_end_date,
+         employee.probation_end_date,
+         employee.workplace,
+         employee.terminated_at,
+         employee.termination_reason
+       FROM employees AS employee
+       LEFT JOIN departments AS department ON department.id = employee.department_id
+       LEFT JOIN enterprises AS enterprise
+         ON enterprise.id = COALESCE(employee.enterprise_id, department.enterprise_id)
+       LEFT JOIN positions AS position ON position.id = employee.position_id
+       ${whereSql}
+       ORDER BY employee.last_name, employee.first_name`,
+    );
+    const rows = (
+      scope.scopeType === "global"
+        ? statement.all()
+        : statement.all({
+            enterpriseId: scope.enterpriseId,
+            departmentId: scope.departmentId,
+          })
+    ) as Array<Record<string, unknown>>;
 
     const headers = [
       "Табельный номер",

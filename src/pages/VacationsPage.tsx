@@ -14,6 +14,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
 import { getLeadershipRole } from "../shared/access/leadership";
+import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
@@ -29,6 +30,7 @@ import {
 export function VacationsPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
   const leadershipRole = getLeadershipRole(session.roles);
+  const scopedAdminRole = getScopedAdminRole(session.roles);
   const [searchParams] = useSearchParams();
   const employeeFilter = positiveId(searchParams.get("employee"));
   const canCreate = hasPermission("vacations.create");
@@ -154,18 +156,25 @@ export function VacationsPage(): JSX.Element {
     );
   }).length;
   const hasActions = canOpenEditor || canDelete;
-  const pageTitle =
-    leadershipRole === "enterprise_director"
-      ? "Отпуска предприятия"
-      : leadershipRole === "department_head"
-        ? "Отпуска отдела"
-        : "Отпуска";
+  const hasEnterpriseScope =
+    leadershipRole === "enterprise_director" || scopedAdminRole === "enterprise_admin";
+  const hasDepartmentScope =
+    leadershipRole === "department_head" || scopedAdminRole === "department_admin";
+  const pageTitle = hasEnterpriseScope
+    ? "Отпуска предприятия"
+    : hasDepartmentScope
+      ? "Отпуска отдела"
+      : "Отпуска";
   const pageDescription =
     leadershipRole === "enterprise_director"
       ? `Отпуска сотрудников ${session.enterpriseName || "вашего предприятия"}. Данные автоматически ограничены предприятием, которым вы руководите.`
       : leadershipRole === "department_head"
         ? `Отпуска сотрудников ${session.departmentName || "вашего отдела"}. Данные автоматически ограничены вашим подразделением.`
-        : "Оформление, согласование и контроль отпусков сотрудников.";
+        : scopedAdminRole === "enterprise_admin"
+          ? `Оформление, согласование и контроль отпусков ${session.enterpriseName || "вашего предприятия"}. Все операции автоматически ограничены этим предприятием.`
+          : scopedAdminRole === "department_admin"
+            ? `Оформление, согласование и контроль отпусков ${session.departmentName || "вашего отдела"}. Все операции автоматически ограничены этим подразделением.`
+            : "Оформление, согласование и контроль отпусков сотрудников.";
 
   const columns: DataTableColumn<HrRecord>[] = [
     {

@@ -285,7 +285,8 @@ export class AuthenticationRepository {
          FROM users AS user
          JOIN employees AS employee ON employee.id = user.employee_id
          LEFT JOIN departments AS department ON department.id = employee.department_id
-         LEFT JOIN enterprises AS enterprise ON enterprise.id = department.enterprise_id
+         LEFT JOIN enterprises AS enterprise
+           ON enterprise.id = COALESCE(employee.enterprise_id, department.enterprise_id)
          WHERE user.id = ?
            AND user.status = 'active'
            AND employee.status = 'active'

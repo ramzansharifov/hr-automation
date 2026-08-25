@@ -98,10 +98,15 @@ export function registerHrCrudIpcHandlers(): void {
   ipcMain.handle("hr:create", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.create(raw);
-    authorizationService.assertCanCreate(params.entity, params.data);
-    const created = service.create(params);
+    const session = authenticationService.requireSession();
+    const data =
+      params.entity === "employees"
+        ? scopeNewEmployeeData(params.data, session)
+        : params.data;
+    authorizationService.assertCanCreate(params.entity, data);
+    const created = service.create({ ...params, data });
     auditService.record(
-      authenticationService.requireSession(),
+      session,
       "create",
       params.entity,
       Number(created.id) || null,
@@ -139,7 +144,10 @@ export function registerHrCrudIpcHandlers(): void {
     const params = ipcValidation.employmentChange(raw);
     const employee = service.getById({ entity: "employees", id: params.employeeId });
     if (!employee) throw new Error("Сотрудник не найден");
-    authorizationService.assertCanChangeEmployment(employee, "change");
+    authorizationService.assertCanChangeEmployment(employee, "change", {
+      enterpriseId: params.enterpriseId,
+      departmentId: params.departmentId,
+    });
 
     const leadership = params.leadershipAssignment;
     if (leadership?.type === "enterprise_director") {
@@ -537,6 +545,33 @@ export function registerHrCrudIpcHandlers(): void {
     }
     return result;
   });
+}
+
+function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
+  if (session.scopeType === "global") return data;
+  if (session.scopeType === "enterprise") {
+    if (!session.enterpriseId) {
+      throw new Error("Для текущей учётной записи не определено предприятие");
+    }
+    return {
+      ...data,
+      enterprise_id: session.enterpriseId,
+      department_id: null,
+      position_id: null,
+    };
+  }
+  if (session.scopeType === "department") {
+    if (!session.enterpriseId || !session.departmentId) {
+      throw new Error("Для текущей учётной записи не определён отдел");
+    }
+    return {
+      ...data,
+      enterprise_id: session.enterpriseId,
+      department_id: session.departmentId,
+      position_id: null,
+    };
+  }
+  throw new Error("Создание сотрудников недоступно в личной области данных");
 }
 
 function applyVacationDecision(

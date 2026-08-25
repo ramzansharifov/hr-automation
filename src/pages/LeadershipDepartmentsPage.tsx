@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityTable } from "../features/hr-table/HrEntityTable";
 import { getLeadershipRole } from "../shared/access/leadership";
+import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import type { HrFilterCondition, HrRecord } from "../shared/types/hr";
 import { EmptyState, PageHeader, useStoredViewMode } from "../shared/ui";
 
@@ -12,12 +13,16 @@ export function LeadershipDepartmentsPage(): JSX.Element {
   const { session } = useAuth();
   const [viewMode, setViewMode] = useStoredViewMode("leadership-departments");
   const leadershipRole = getLeadershipRole(session.roles);
+  const scopedAdminRole = getScopedAdminRole(session.roles);
+  const canManageEnterprise = scopedAdminRole === "enterprise_admin";
+  const canOpenEnterpriseDepartments =
+    leadershipRole === "enterprise_director" || canManageEnterprise;
 
-  if (leadershipRole !== "enterprise_director") {
+  if (!canOpenEnterpriseDepartments) {
     return (
       <EmptyState
         title="Раздел недоступен"
-        description="Список отделов предприятия предназначен для директора предприятия."
+        description="Список отделов доступен руководителю и администратору предприятия."
       />
     );
   }
@@ -26,7 +31,7 @@ export function LeadershipDepartmentsPage(): JSX.Element {
     return (
       <EmptyState
         title="Предприятие не определено"
-        description="Для учётной записи директора не удалось определить предприятие. Проверьте назначение руководителя."
+        description="Для текущей учётной записи не удалось определить предприятие. Проверьте организационную привязку сотрудника."
       />
     );
   }
@@ -46,7 +51,11 @@ export function LeadershipDepartmentsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`Подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь отображается только структура предприятия, которым вы руководите.`}
+        description={
+          canManageEnterprise
+            ? `Все подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь можно создавать отделы и открывать их для управления должностями, руководителем и данными подразделения.`
+            : `Подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь отображается только структура предприятия, которым вы руководите.`
+        }
         eyebrow="Структура предприятия"
         icon={<FiGrid />}
         title="Отделы"
@@ -56,7 +65,6 @@ export function LeadershipDepartmentsPage(): JSX.Element {
         entity="departments"
         externalFilters={filters}
         hiddenColumnKeys={["enterprise_name"]}
-        hideCreateButton
         onRowClick={openDepartment}
         onViewModeChange={setViewMode}
         viewMode={viewMode}

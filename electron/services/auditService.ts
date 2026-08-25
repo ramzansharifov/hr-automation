@@ -165,11 +165,10 @@ export class AuditService {
 
     if (entityType === "employees") {
       departmentId ??= firstPositiveNumber(sources, ["department_id", "departmentId"]);
-      if (!departmentId && entityId) {
-        departmentId = this.lookupNumber(
-          "SELECT department_id FROM employees WHERE id = ?",
-          entityId,
-        );
+      if (entityId && (!departmentId || !enterpriseId)) {
+        const employeeContext = this.getEmployeeContext(entityId);
+        departmentId ??= employeeContext.departmentId;
+        enterpriseId ??= employeeContext.enterpriseId;
       }
     }
 
@@ -245,7 +244,7 @@ export class AuditService {
     const row = this.database
       .prepare(
         `SELECT employee.department_id AS departmentId,
-                department.enterprise_id AS enterpriseId
+                COALESCE(employee.enterprise_id, department.enterprise_id) AS enterpriseId
          FROM employees AS employee
          LEFT JOIN departments AS department ON department.id = employee.department_id
          WHERE employee.id = ?

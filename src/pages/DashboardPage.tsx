@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import { getAppLocale } from "../shared/i18n";
 import { formatDate, humanizeStatus } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
@@ -48,10 +49,17 @@ export function DashboardPage(): JSX.Element {
   const { session } = useAuth();
   const locale = getAppLocale(i18n.language);
   const permissions = new Set(session.permissionCodes);
+  const scopedAdminRole = getScopedAdminRole(session.roles);
   const canViewEmployees = permissions.has("employees.view");
   const canViewVacations = permissions.has("vacations.view");
-  const canViewRecruitment = permissions.has("recruitment.view");
-  const canManageAccess = permissions.has("access.manage");
+  const canViewRecruitment =
+    permissions.has("recruitment.view") ||
+    permissions.has("vacancies.view") ||
+    permissions.has("candidates.view");
+  const canManageAccess =
+    permissions.has("access.manage") ||
+    permissions.has("users.view") ||
+    permissions.has("roles.view");
   const canViewAudit = permissions.has("audit.view");
 
   const [stats, setStats] = useState<HrDashboardStats>(initialStats);
@@ -122,6 +130,20 @@ export function DashboardPage(): JSX.Element {
 
   const attentionTotal =
     stats.blockedUsers + stats.employeesMissingAssignment + stats.emailConflicts;
+  const pageTitle =
+    scopedAdminRole === "enterprise_admin"
+      ? "Обзор предприятия"
+      : scopedAdminRole === "department_admin"
+        ? "Обзор отдела"
+        : t("dashboard.hero.title");
+  const pageDescription =
+    scopedAdminRole === "enterprise_admin"
+      ? `Сводка кадровых процессов ${session.enterpriseName || "вашего предприятия"}. Все показатели и действия ограничены этим предприятием.`
+      : scopedAdminRole === "department_admin"
+        ? `Сводка кадровых процессов ${session.departmentName || "вашего отдела"}. Все показатели и действия ограничены этим подразделением.`
+        : "Сводка кадровых процессов и ситуаций, которые требуют внимания.";
+  const missingAssignmentLabel =
+    scopedAdminRole === "department_admin" ? "Без должности" : "Без отдела или должности";
 
   return (
     <div className="space-y-6">
@@ -136,15 +158,19 @@ export function DashboardPage(): JSX.Element {
             {t("common.actions.refresh")}
           </button>
         }
-        description="Сводка кадровых процессов и ситуаций, которые требуют внимания."
-        eyebrow="HR Control Center"
+        description={pageDescription}
+        eyebrow={scopedAdminRole ? "Локальное администрирование" : "HR Control Center"}
         icon={<FiGrid />}
-        title={t("dashboard.hero.title")}
+        title={pageTitle}
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Сотрудники" value={stats.employeesTotal} icon={FiUsers} />
-        <StatCard title="Отделы" value={stats.departmentsTotal} icon={FiGrid} />
+        {scopedAdminRole === "department_admin" ? (
+          <StatCard title="Должности" value={stats.positionsTotal} icon={FiBriefcase} />
+        ) : (
+          <StatCard title="Отделы" value={stats.departmentsTotal} icon={FiGrid} />
+        )}
         <StatCard title="Ближайшие отпуска · 30 дней" value={stats.upcomingVacations} icon={FiCalendar} />
         <StatCard title="Открытые вакансии" value={stats.openVacancies} icon={FiBriefcase} />
       </section>
@@ -160,11 +186,11 @@ export function DashboardPage(): JSX.Element {
           icon={<FiShield />}
           label="Заблокированные пользователи"
           value={stats.blockedUsers}
-          link={canManageAccess ? "/access" : undefined}
+          link={canManageAccess ? "/users" : undefined}
         />
         <AttentionCard
           icon={<FiAlertCircle />}
-          label="Без отдела или должности"
+          label={missingAssignmentLabel}
           value={stats.employeesMissingAssignment}
           link={canViewEmployees ? "/employees" : undefined}
         />

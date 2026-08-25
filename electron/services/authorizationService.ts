@@ -134,11 +134,11 @@ export class AuthorizationService {
 
   assertCanCreate(entity: HrEntityKey, data: HrRecord): void {
     const session = this.requirePermission(entityPermissions[entity].create);
-    if (
-      (entity === "enterprises" || entity === "vacation_types") &&
-      session.scopeType !== "global"
-    ) {
-      throw new Error("Это действие доступно только в глобальной области данных");
+    if (entity === "enterprises" && session.scopeType !== "global") {
+      throw new Error("Создавать предприятия можно только в глобальной области данных");
+    }
+    if (entity === "departments" && session.scopeType === "department") {
+      throw new Error("Создавать отделы можно только на уровне предприятия");
     }
     this.assertRecordInScope(entity, data, session);
   }
@@ -147,12 +147,17 @@ export class AuthorizationService {
     const changedKeys = Object.keys(data).filter(
       (key) => normalizeComparable(data[key]) !== normalizeComparable(existing[key]),
     );
+
+    if (entity === "departments" && changedKeys.includes("enterprise_id")) {
+      const session = this.requirePermission("organization.edit");
+      if (session.scopeType !== "global") {
+        throw new Error("Переносить отдел между предприятиями может только глобальный администратор");
+      }
+    }
+
     const permissionCodes = new Set<string>();
 
-    if (
-      entity === "vacations" &&
-      changedKeys.includes("status")
-    ) {
+    if (entity === "vacations" && changedKeys.includes("status")) {
       permissionCodes.add("vacations.approve");
     }
 
@@ -178,9 +183,6 @@ export class AuthorizationService {
 
     for (const permissionCode of permissionCodes) {
       const session = this.requirePermission(permissionCode);
-      if (entity === "vacation_types" && session.scopeType !== "global") {
-        throw new Error("Справочник отпусков доступен для изменения только глобально");
-      }
       this.assertRecordInScope(entity, existing, session);
       this.assertRecordInScope(entity, { ...existing, ...data }, session);
     }
@@ -188,8 +190,11 @@ export class AuthorizationService {
 
   assertCanDelete(entity: HrEntityKey, existing: HrRecord): void {
     const session = this.requirePermission(entityPermissions[entity].delete);
-    if (entity === "vacation_types" && session.scopeType !== "global") {
-      throw new Error("Справочник отпусков доступен для изменения только глобально");
+    if (entity === "enterprises" && session.scopeType !== "global") {
+      throw new Error("Удалять предприятия можно только в глобальной области данных");
+    }
+    if (entity === "departments" && session.scopeType === "department") {
+      throw new Error("Удалять отдел может только администратор предприятия или глобальный администратор");
     }
     this.assertRecordInScope(entity, existing, session);
   }
@@ -197,11 +202,26 @@ export class AuthorizationService {
   assertCanChangeEmployment(
     employee: HrRecord,
     action: "change" | "terminate" = "change",
+    target?: { enterpriseId: number; departmentId: number },
   ): void {
     const session = this.requirePermission(
       action === "terminate" ? "employees.terminate" : "employees.change_employment",
     );
     this.assertRecordInScope("employees", employee, session);
+
+    if (action !== "change" || !target || session.scopeType === "global") return;
+    if (
+      session.scopeType === "enterprise" &&
+      target.enterpriseId !== session.enterpriseId
+    ) {
+      throw new Error("Нельзя перевести сотрудника за пределы своего предприятия");
+    }
+    if (
+      session.scopeType === "department" &&
+      target.departmentId !== session.departmentId
+    ) {
+      throw new Error("Нельзя перевести сотрудника за пределы своего отдела");
+    }
   }
 
   filterVacancies(records: HrRecord[]): HrRecord[] {
@@ -339,9 +359,15 @@ export class AuthorizationService {
       if (session.scopeType === "self") {
         return { column: "id", values: [session.employeeId] };
       }
+      if (session.scopeType === "enterprise") {
+        return {
+          column: "enterprise_id",
+          values: compactIds([session.enterpriseId]),
+        };
+      }
       return {
         column: "department_id",
-        values: this.getAllowedDepartmentIds(session),
+        values: compactIds([session.departmentId]),
       };
     }
 
@@ -358,7 +384,9 @@ export class AuthorizationService {
   ): void {
     if (session.scopeType === "global") return;
     if (entity === "vacation_types") {
-      throw new Error("Справочник отпусков доступен только глобально");
+      const enterpriseId = toPositiveNumber(record.enterprise_id);
+      if (enterpriseId && enterpriseId === session.enterpriseId) return;
+      throw new Error("Вид отпуска находится вне доступной области данных");
     }
 
     const context = this.resolveRecordContext(entity, record);
@@ -388,7 +416,9 @@ export class AuthorizationService {
       return {
         employeeId,
         departmentId,
-        enterpriseId: this.getEnterpriseIdForDepartment(departmentId),
+        enterpriseId:
+          toPositiveNumber(record.enterprise_id) ??
+          this.getEnterpriseIdForDepartment(departmentId),
       };
     }
 
@@ -445,7 +475,7 @@ export class AuthorizationService {
     const row = this.database
       .prepare(
         `SELECT employee.department_id AS departmentId,
-                department.enterprise_id AS enterpriseId
+                COALESCE(employee.enterprise_id, department.enterprise_id) AS enterpriseId
          FROM employees AS employee
          LEFT JOIN departments AS department ON department.id = employee.department_id
          WHERE employee.id = ?
@@ -486,7 +516,14 @@ export class AuthorizationService {
 
   private getAllowedEmployeeIds(session: AuthSession): number[] {
     if (session.scopeType === "self") return [session.employeeId];
-    return this.idsIn("employees", "department_id", this.getAllowedDepartmentIds(session));
+    if (session.scopeType === "enterprise" && session.enterpriseId) {
+      return (
+        this.database
+          .prepare("SELECT id FROM employees WHERE enterprise_id = ?")
+          .all(session.enterpriseId) as Array<{ id: number }>
+      ).map((row) => row.id);
+    }
+    return this.idsIn("employees", "department_id", compactIds([session.departmentId]));
   }
 
   private getAllowedVacancyIds(positionIds: number[]): number[] {
