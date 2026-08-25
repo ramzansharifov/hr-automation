@@ -1,19 +1,17 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
-  FiAlertCircle,
   FiBriefcase,
   FiCalendar,
   FiGrid,
   FiRefreshCw,
-  FiShield,
-  FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
+import { AttentionQueueSection } from "../features/attention/AttentionQueueSection";
 import { useAuth } from "../features/auth/AuthContext";
 import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import { getAppLocale } from "../shared/i18n";
@@ -52,15 +50,7 @@ export function DashboardPage(): JSX.Element {
   const scopedAdminRole = getScopedAdminRole(session.roles);
   const canViewEmployees = permissions.has("employees.view");
   const canViewVacations = permissions.has("vacations.view");
-  const canViewRecruitment =
-    permissions.has("recruitment.view") ||
-    permissions.has("vacancies.view") ||
-    permissions.has("candidates.view");
-  const canManageAccess =
-    permissions.has("access.manage") ||
-    permissions.has("users.view") ||
-    permissions.has("roles.view");
-  const canViewAudit = permissions.has("audit.view");
+  const canViewAttention = permissions.has("attention.view");
 
   const [stats, setStats] = useState<HrDashboardStats>(initialStats);
   const [employees, setEmployees] = useState<HrListResult>(emptyList);
@@ -128,8 +118,6 @@ export function DashboardPage(): JSX.Element {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const attentionTotal =
-    stats.blockedUsers + stats.employeesMissingAssignment + stats.emailConflicts;
   const pageTitle =
     scopedAdminRole === "enterprise_admin"
       ? "Обзор предприятия"
@@ -142,8 +130,6 @@ export function DashboardPage(): JSX.Element {
       : scopedAdminRole === "department_admin"
         ? `Сводка кадровых процессов ${session.departmentName || "вашего отдела"}. Все показатели и действия ограничены этим подразделением.`
         : "Сводка кадровых процессов и ситуаций, которые требуют внимания.";
-  const missingAssignmentLabel =
-    scopedAdminRole === "department_admin" ? "Без должности" : "Без отдела или должности";
 
   return (
     <div className="space-y-6">
@@ -164,6 +150,8 @@ export function DashboardPage(): JSX.Element {
         title={pageTitle}
       />
 
+      {canViewAttention ? <AttentionQueueSection /> : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Сотрудники" value={stats.employeesTotal} icon={FiUsers} />
         {scopedAdminRole === "department_admin" ? (
@@ -174,39 +162,6 @@ export function DashboardPage(): JSX.Element {
         <StatCard title="Ближайшие отпуска · 30 дней" value={stats.upcomingVacations} icon={FiCalendar} />
         <StatCard title="Открытые вакансии" value={stats.openVacancies} icon={FiBriefcase} />
       </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AttentionCard
-          icon={<FiUserCheck />}
-          label="Кандидаты на оффере"
-          value={stats.candidatesOnOffer}
-          link={canViewRecruitment ? "/candidates" : undefined}
-        />
-        <AttentionCard
-          icon={<FiShield />}
-          label="Заблокированные пользователи"
-          value={stats.blockedUsers}
-          link={canManageAccess ? "/users" : undefined}
-        />
-        <AttentionCard
-          icon={<FiAlertCircle />}
-          label={missingAssignmentLabel}
-          value={stats.employeesMissingAssignment}
-          link={canViewEmployees ? "/employees" : undefined}
-        />
-        <AttentionCard
-          icon={<FiAlertCircle />}
-          label="Конфликты email"
-          value={stats.emailConflicts}
-          link={canViewAudit ? "/audit" : undefined}
-        />
-      </section>
-
-      {attentionTotal === 0 && (
-        <div className="app-surface app-border rounded-2xl border px-5 py-4 text-sm font-bold text-emerald-600">
-          Критичных кадровых несостыковок сейчас не обнаружено.
-        </div>
-      )}
 
       <section className="grid gap-5 xl:grid-cols-2">
         {canViewEmployees && (
@@ -266,29 +221,6 @@ export function DashboardPage(): JSX.Element {
       </section>
     </div>
   );
-}
-
-function AttentionCard({
-  icon,
-  label,
-  link,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  link?: string;
-  value: number;
-}): JSX.Element {
-  const content = (
-    <div className="app-surface app-border flex h-full items-center gap-4 rounded-[22px] border p-4">
-      <span className="app-accent-soft app-accent-text flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">{icon}</span>
-      <div className="min-w-0">
-        <p className="app-muted text-xs font-bold uppercase tracking-wide">{label}</p>
-        <p className="app-text mt-1 text-2xl font-black">{value}</p>
-      </div>
-    </div>
-  );
-  return link ? <Link to={link}>{content}</Link> : content;
 }
 
 function DashboardListCard({
