@@ -1,10 +1,18 @@
 import glob
+import os
 import re
 import sqlite3
 import unittest
 
 
 FK_OFF_MARKER = "-- requires_foreign_keys_off"
+LEGACY_PERMISSION_PATTERN = re.compile(
+    r"employees\.manage|"
+    r"organization\.(?:view|create|edit|delete|assign_leader|manage)|"
+    r"vacations\.manage|"
+    r"recruitment\.(?:view|manage)|"
+    r"access\.manage|settings\.manage|payroll\.(?:view|manage)"
+)
 
 
 class GranularRbacIntegrationTests(unittest.TestCase):
@@ -76,6 +84,24 @@ class GranularRbacIntegrationTests(unittest.TestCase):
             live_codes,
             "Every live permission must be configurable in the custom-role UI",
         )
+
+    def test_active_runtime_has_no_legacy_umbrella_permission_references(self):
+        offenders = []
+        for root in ("src", "electron"):
+            for path in glob.glob(f"{root}/**/*", recursive=True):
+                if not os.path.isfile(path) or not path.endswith((".ts", ".tsx")):
+                    continue
+                normalized = path.replace("\\", "/")
+                if "/migrations/" in normalized:
+                    continue
+                if normalized == "src/shared/access/permissionRules.ts":
+                    continue
+                with open(path, "r", encoding="utf-8") as source_file:
+                    source = source_file.read()
+                matches = sorted(set(LEGACY_PERMISSION_PATTERN.findall(source)))
+                if matches:
+                    offenders.append((normalized, matches))
+        self.assertEqual(offenders, [])
 
     def test_attention_access_always_includes_dashboard(self):
         broken_roles = self.db.execute(
