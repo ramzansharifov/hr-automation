@@ -104,7 +104,7 @@ const enterprisesNavigationItem: AppNavigationItem = {
   titleKey: "navigation.enterprises",
   path: "/enterprises",
   icon: FiLayers,
-  permissionCode: "organization.view",
+  permissionCode: "enterprises.view",
   entity: "enterprises",
 };
 
@@ -141,7 +141,7 @@ const departmentsManagementNavigationItem: AppNavigationItem = {
   titleKey: "Отделы",
   path: "/management/departments",
   icon: FiGrid,
-  permissionCode: "organization.view",
+  permissionCode: "departments.view",
 };
 
 export const mainNavigationItems: AppNavigationItem[] = [
