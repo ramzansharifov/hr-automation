@@ -1,5 +1,4 @@
 import { ipcMain, type IpcMainInvokeEvent } from "electron";
-import type { AuthSession } from "../../src/shared/types/access";
 import type {
   ApplyEmployeeImportParams,
   ExportDataParams,
@@ -16,13 +15,6 @@ import { HrAttentionService } from "../services/hrAttentionService";
 import { HrDataExportService } from "../services/hrDataExportService";
 import { HrLeadershipService } from "../services/hrLeadershipService";
 
-const scopeRank: Record<AuthSession["scopeType"], number> = {
-  self: 0,
-  department: 1,
-  enterprise: 2,
-  global: 3,
-};
-
 export function registerHrCoreExpansionIpcHandlers(): void {
   const database = getDatabase();
   const authenticationService = getActiveAuthenticationService();
@@ -37,13 +29,11 @@ export function registerHrCoreExpansionIpcHandlers(): void {
   ipcMain.handle("hr:changeLeadership", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = raw as HrLeadershipChangeParams;
-    const organizationSession = authorizationService.requirePermission(
-      "organization.assign_leader",
+    const session = authorizationService.requirePermission(
+      params.targetType === "enterprise"
+        ? "enterprises.assign_leader"
+        : "departments.assign_leader",
     );
-    const employmentSession = authorizationService.requirePermission(
-      "employees.change_employment",
-    );
-    const session = narrowerSession(organizationSession, employmentSession);
     const result = leadershipService.change(params, session);
     auditService.record(
       authenticationService.requireSession(),
@@ -138,10 +128,6 @@ export function registerHrCoreExpansionIpcHandlers(): void {
     }
     return result;
   });
-}
-
-function narrowerSession(first: AuthSession, second: AuthSession): AuthSession {
-  return scopeRank[first.scopeType] <= scopeRank[second.scopeType] ? first : second;
 }
 
 function assertTrustedSender(event: IpcMainInvokeEvent): void {
