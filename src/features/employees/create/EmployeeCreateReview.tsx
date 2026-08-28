@@ -136,5 +136,5 @@ function employmentTypeLabel(value: string): string {
     temporary: "Временная работа",
     internship: "Стажировка",
   };
-  return labels[value] ?? value || "—";
+  return labels[value] ?? (value || "—");
 }
