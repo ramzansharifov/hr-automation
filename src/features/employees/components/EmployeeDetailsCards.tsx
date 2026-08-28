@@ -220,7 +220,6 @@ function ProfileRow({ label, value }: { label: string; value: string }): JSX.Ele
 export function EmployeeInfoPanel({
   action,
   children,
-  eyebrow,
   icon,
   title,
 }: {
@@ -235,10 +234,7 @@ export function EmployeeInfoPanel({
       <header className="employee-section-card__header">
         <div className="employee-section-card__heading">
           <span className="employee-card-icon">{icon ?? <FiBriefcase />}</span>
-          <div className="min-w-0">
-            <h2 className="employee-card-title">{title}</h2>
-            <p className="employee-section-card__eyebrow">{eyebrow}</p>
-          </div>
+          <h2 className="employee-card-title">{title}</h2>
         </div>
         {action}
       </header>
