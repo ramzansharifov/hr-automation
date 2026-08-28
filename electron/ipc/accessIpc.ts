@@ -10,6 +10,7 @@ import type {
   AccessScopeType,
   AccessUserSummary,
   AuthSession,
+  SaveAccessRoleParams,
 } from "../../src/shared/types/access";
 import type { HrRecord } from "../../src/shared/types/hr";
 import { getDatabase } from "../database/connection";
@@ -37,6 +38,8 @@ const legacyAccessChannels = [
 
 const scopedAdminSystemKeys = new Set(["enterprise_admin", "department_admin"]);
 
+type AccessDatabase = ReturnType<typeof getDatabase>;
+
 export function registerAccessIpcHandlers(): void {
   const database = getDatabase();
   const repository = new AccessControlRepository(database);
@@ -53,9 +56,10 @@ export function registerAccessIpcHandlers(): void {
   ipcMain.handle("access:listPermissions", (event) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("roles.view");
-    const managementScope = managementScopeForPermission(session, "roles.view");
-    return accessService.listPermissions().filter((permission) =>
-      canDelegatePermissionCodes(session, [permission.code], managementScope),
+    return accessService.listPermissions().filter(
+      (permission) =>
+        !legacyPermissionCodes.has(permission.code) &&
+        (isSuperadminSession(session) || Boolean(session.permissionScopes[permission.code])),
     );
   });
 
@@ -115,10 +119,24 @@ export function registerAccessIpcHandlers(): void {
     if (before?.isSystem) throw new Error("Системные роли нельзя изменять");
     if (before) assertRoleInManagementScope(before, actorScope);
 
-    const targetScope = before ? writeScopeFromRole(before) : actorScope;
-    assertCanDelegatePermissionCodes(session, params.permissionCodes, targetScope);
+    const targetScope = before
+      ? writeScopeFromRole(before)
+      : resolveCreateRoleScope(database, session, actorScope, params);
+    if (before) assertRequestedScopeMatchesExistingRole(params, before);
+
+    assertCanDelegatePermissionCodes(
+      database,
+      session,
+      params.permissionCodes,
+      targetScope,
+    );
     if (before && !isSuperadminSession(session)) {
-      assertCanDelegatePermissionCodes(session, before.permissionCodes, targetScope);
+      assertCanDelegatePermissionCodes(
+        database,
+        session,
+        before.permissionCodes,
+        targetScope,
+      );
     }
 
     const saved = accessService.saveRole(params, targetScope);
@@ -180,7 +198,7 @@ export function registerAccessIpcHandlers(): void {
     if (before) {
       assertUserInManagementScope(before, actorScope);
       if (!isSuperadminSession(session)) {
-        assertCanControlTargetCredentials(session, before, allRoles);
+        assertCanControlTargetCredentials(database, session, before, allRoles);
       }
     }
 
@@ -196,6 +214,7 @@ export function registerAccessIpcHandlers(): void {
     }
 
     assertCanAssignRequestedRoles(
+      database,
       session,
       params.roleIds,
       allRoles,
@@ -247,7 +266,7 @@ export function registerAccessIpcHandlers(): void {
       throw new Error("Собственный пароль изменяется в настройках профиля");
     }
     if (!isSuperadminSession(session)) {
-      assertCanControlTargetCredentials(session, targetUser, allRoles);
+      assertCanControlTargetCredentials(database, session, targetUser, allRoles);
     }
 
     const result = accessService.resetPassword(params);
@@ -279,7 +298,7 @@ export function registerAccessIpcHandlers(): void {
       throw new Error("Нельзя удалить собственную учётную запись");
     }
     if (!isSuperadminSession(session)) {
-      assertCanControlTargetCredentials(session, before, allRoles);
+      assertCanControlTargetCredentials(database, session, before, allRoles);
     }
 
     const result = accessService.deleteUser(id);
@@ -335,6 +354,106 @@ function managementScopeFromSession(session: AuthSession): AccessRoleWriteScope 
     };
   }
   throw new Error("Управление доступом недоступно в личной области данных");
+}
+
+function resolveCreateRoleScope(
+  database: AccessDatabase,
+  session: AuthSession,
+  actorScope: AccessRoleWriteScope,
+  params: SaveAccessRoleParams,
+): AccessRoleWriteScope {
+  const requestedScopeType = params.scopeType ?? actorScope.scopeType;
+  if (
+    accessScopeRank[requestedScopeType] > accessScopeRank[actorScope.scopeType]
+  ) {
+    throw new Error("Нельзя создать роль шире доступной области администрирования");
+  }
+
+  if (requestedScopeType === "global") {
+    if (actorScope.scopeType !== "global") {
+      throw new Error("Глобальную роль может создавать только глобальный администратор");
+    }
+    if (params.enterpriseId || params.departmentId) {
+      throw new Error("Глобальная роль не должна быть привязана к оргструктуре");
+    }
+    return { scopeType: "global", enterpriseId: null, departmentId: null };
+  }
+
+  if (requestedScopeType === "enterprise") {
+    const enterpriseId =
+      params.enterpriseId ??
+      (actorScope.scopeType === "enterprise" ? actorScope.enterpriseId : null);
+    if (!enterpriseId) throw new Error("Выберите предприятие для роли");
+    if (params.departmentId) {
+      throw new Error("Роль предприятия не должна быть привязана к отделу");
+    }
+    const enterprise = database
+      .prepare("SELECT id, is_archived FROM enterprises WHERE id = ? LIMIT 1")
+      .get(enterpriseId) as { id: number; is_archived: number } | undefined;
+    if (!enterprise || enterprise.is_archived === 1) {
+      throw new Error("Выбранное предприятие не найдено или находится в архиве");
+    }
+    if (
+      actorScope.scopeType === "enterprise" &&
+      enterpriseId !== actorScope.enterpriseId
+    ) {
+      throw new Error("Нельзя создать роль для другого предприятия");
+    }
+    return { scopeType: "enterprise", enterpriseId, departmentId: null };
+  }
+
+  const departmentId =
+    params.departmentId ??
+    (actorScope.scopeType === "department" ? actorScope.departmentId : null);
+  if (!departmentId) throw new Error("Выберите отдел для роли");
+  const department = database
+    .prepare(
+      `SELECT id, enterprise_id AS enterpriseId, is_archived
+       FROM departments WHERE id = ? LIMIT 1`,
+    )
+    .get(departmentId) as
+    | { id: number; enterpriseId: number; is_archived: number }
+    | undefined;
+  if (!department || department.is_archived === 1) {
+    throw new Error("Выбранный отдел не найден или находится в архиве");
+  }
+  if (params.enterpriseId && params.enterpriseId !== department.enterpriseId) {
+    throw new Error("Выбранный отдел не принадлежит указанному предприятию");
+  }
+  if (
+    actorScope.scopeType === "enterprise" &&
+    department.enterpriseId !== actorScope.enterpriseId
+  ) {
+    throw new Error("Нельзя создать роль для отдела другого предприятия");
+  }
+  if (
+    actorScope.scopeType === "department" &&
+    departmentId !== actorScope.departmentId
+  ) {
+    throw new Error("Нельзя создать роль для другого отдела");
+  }
+  return { scopeType: "department", enterpriseId: null, departmentId };
+}
+
+function assertRequestedScopeMatchesExistingRole(
+  params: SaveAccessRoleParams,
+  role: AccessRoleSummary,
+): void {
+  if (params.scopeType && params.scopeType !== role.scopeType) {
+    throw new Error("Область действия существующей роли нельзя изменить");
+  }
+  if (
+    params.enterpriseId !== undefined &&
+    params.enterpriseId !== role.enterpriseId
+  ) {
+    throw new Error("Предприятие существующей роли нельзя изменить");
+  }
+  if (
+    params.departmentId !== undefined &&
+    params.departmentId !== role.departmentId
+  ) {
+    throw new Error("Отдел существующей роли нельзя изменить");
+  }
 }
 
 function requireAnyAccessManagementScope(
@@ -423,25 +542,27 @@ function assertEmployeeInManagementScope(
 }
 
 function assertCanDelegatePermissionCodes(
+  database: AccessDatabase,
   session: AuthSession,
   permissionCodes: string[],
   targetScope: AccessRoleWriteScope,
 ): void {
+  const normalized = normalizePermissionDependencies(permissionCodes).filter(
+    (code) => !legacyPermissionCodes.has(code),
+  );
+
   if (isSuperadminSession(session)) {
-    const incompatible = normalizePermissionDependencies(permissionCodes).find(
+    const incompatible = normalized.find(
       (code) => !canScopePermissionTo(code, targetScope.scopeType),
     );
     if (incompatible) {
       throw new Error(
-        "Глобальное разрешение нельзя включить в роль предприятия или отдела",
+        "Выбранное разрешение нельзя включить в роль этой области данных",
       );
     }
     return;
   }
 
-  const normalized = normalizePermissionDependencies(permissionCodes).filter(
-    (code) => !legacyPermissionCodes.has(code),
-  );
   const forbidden = normalized.filter((code) => {
     const actorPermissionScope = session.permissionScopes[code];
     if (!actorPermissionScope) return true;
@@ -449,7 +570,12 @@ function assertCanDelegatePermissionCodes(
     if (accessScopeRank[actorPermissionScope] < accessScopeRank[targetScope.scopeType]) {
       return true;
     }
-    return !permissionScopeContainsTarget(session, actorPermissionScope, targetScope);
+    return !permissionScopeContainsTarget(
+      database,
+      session,
+      actorPermissionScope,
+      targetScope,
+    );
   });
 
   if (forbidden.length > 0) {
@@ -459,20 +585,8 @@ function assertCanDelegatePermissionCodes(
   }
 }
 
-function canDelegatePermissionCodes(
-  session: AuthSession,
-  permissionCodes: string[],
-  targetScope: AccessRoleWriteScope,
-): boolean {
-  try {
-    assertCanDelegatePermissionCodes(session, permissionCodes, targetScope);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function permissionScopeContainsTarget(
+  database: AccessDatabase,
   session: AuthSession,
   actorPermissionScope: AccessScopeType,
   targetScope: AccessRoleWriteScope,
@@ -483,8 +597,11 @@ function permissionScopeContainsTarget(
     if (targetScope.scopeType === "enterprise") {
       return targetScope.enterpriseId === session.enterpriseId;
     }
-    if (targetScope.scopeType === "department") {
-      return true;
+    if (targetScope.scopeType === "department" && targetScope.departmentId) {
+      const row = database
+        .prepare("SELECT enterprise_id AS enterpriseId FROM departments WHERE id = ?")
+        .get(targetScope.departmentId) as { enterpriseId: number } | undefined;
+      return row?.enterpriseId === session.enterpriseId;
     }
     return false;
   }
@@ -498,6 +615,7 @@ function permissionScopeContainsTarget(
 }
 
 function assertCanAssignRequestedRoles(
+  database: AccessDatabase,
   session: AuthSession,
   requestedRoleIds: number[],
   roles: AccessRoleSummary[],
@@ -510,11 +628,12 @@ function assertCanAssignRequestedRoles(
   }
 
   for (const role of requestedRoles as AccessRoleSummary[]) {
-    assertRoleCanBeAssigned(session, role, employeeScope);
+    assertRoleCanBeAssigned(database, session, role, employeeScope);
   }
 }
 
 function assertCanControlTargetCredentials(
+  database: AccessDatabase,
   session: AuthSession,
   targetUser: AccessUserSummary,
   roles: AccessRoleSummary[],
@@ -534,7 +653,12 @@ function assertCanControlTargetCredentials(
     if (!role) continue;
     const targetScope = effectiveRoleScopeForEmployee(role, employeeScope);
     try {
-      assertCanDelegatePermissionCodes(session, role.permissionCodes, targetScope);
+      assertCanDelegatePermissionCodes(
+        database,
+        session,
+        role.permissionCodes,
+        targetScope,
+      );
     } catch {
       throw new Error(
         "Нельзя управлять более привилегированной учётной записью",
@@ -544,6 +668,7 @@ function assertCanControlTargetCredentials(
 }
 
 function assertRoleCanBeAssigned(
+  database: AccessDatabase,
   session: AuthSession,
   role: AccessRoleSummary,
   employeeScope: EmployeeOrganizationScope | null,
@@ -587,6 +712,7 @@ function assertRoleCanBeAssigned(
 
   assertRoleMatchesEmployeeScope(role, employeeScope);
   assertCanDelegatePermissionCodes(
+    database,
     session,
     role.permissionCodes,
     writeScopeFromRole(role),
