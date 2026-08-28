@@ -39,18 +39,34 @@ import "./EmployeeTabConsistency.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
   const params = useParams();
   const employeeId = Number(params.id);
+  const isOwnProfile =
+    session.employeeId === employeeId && hasPermission("profile.view");
   const canEditEmployee = hasPermission("employees.edit");
   const canChangeEmployment = hasPermission("employees.change_employment");
   const canTerminateEmployee = hasPermission("employees.terminate");
   const canViewDocuments = hasPermission("documents.view");
+  const canViewEducation =
+    hasPermission("employee_education.view") || isOwnProfile;
+  const canCreateEducation = hasPermission("employee_education.create");
+  const canEditEducation = hasPermission("employee_education.edit");
+  const canDeleteEducation = hasPermission("employee_education.delete");
+  const canViewExperience =
+    hasPermission("employee_experience.view") || isOwnProfile;
+  const canCreateExperience = hasPermission("employee_experience.create");
+  const canEditExperience = hasPermission("employee_experience.edit");
+  const canDeleteExperience = hasPermission("employee_experience.delete");
+  const canViewEmploymentHistory =
+    hasPermission("employment_history.view") || isOwnProfile;
+  const canViewVacations = hasPermission("vacations.view");
   const canCreateVacation = hasPermission("vacations.create");
   const canEditVacation = hasPermission("vacations.edit");
   const canDeleteVacation = hasPermission("vacations.delete");
+  const canViewEducationOrExperience = canViewEducation || canViewExperience;
 
   const [employee, setEmployee] = useState<HrRecord | null>(null);
   const [departmentName, setDepartmentName] = useState("");
@@ -168,23 +184,29 @@ export function EmployeeDetailsPage(): JSX.Element {
             <Tabs.Trigger className={detailsTabTriggerClass} value="work">
               <FiBriefcase /> Служебная информация
             </Tabs.Trigger>
-            <Tabs.Trigger
-              className={detailsTabTriggerClass}
-              value="education-experience"
-            >
-              <FiBookOpen /> Образование и опыт
-            </Tabs.Trigger>
+            {canViewEducationOrExperience && (
+              <Tabs.Trigger
+                className={detailsTabTriggerClass}
+                value="education-experience"
+              >
+                <FiBookOpen /> Образование и опыт
+              </Tabs.Trigger>
+            )}
             {canViewDocuments && (
               <Tabs.Trigger className={detailsTabTriggerClass} value="documents">
                 <FiFileText /> Документы
               </Tabs.Trigger>
             )}
-            <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
-              <FiCalendar /> Отпуска
-            </Tabs.Trigger>
-            <Tabs.Trigger className={detailsTabTriggerClass} value="history">
-              <FiClock /> История
-            </Tabs.Trigger>
+            {canViewVacations && (
+              <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
+                <FiCalendar /> Отпуска
+              </Tabs.Trigger>
+            )}
+            {canViewEmploymentHistory && (
+              <Tabs.Trigger className={detailsTabTriggerClass} value="history">
+                <FiClock /> История
+              </Tabs.Trigger>
+            )}
           </Tabs.List>
         </motion.div>
 
@@ -293,20 +315,30 @@ export function EmployeeDetailsPage(): JSX.Element {
             </div>
           </Tabs.Content>
 
-          <Tabs.Content value="education-experience" className="outline-none">
-            <div className="grid items-start gap-5 xl:grid-cols-2">
-              <EmployeeEducationPanel
-                canManage={canEditEmployee}
-                employeeId={employeeId}
-                locale={locale}
-              />
-              <EmployeeExperiencePanel
-                canManage={canEditEmployee}
-                employeeId={employeeId}
-                locale={locale}
-              />
-            </div>
-          </Tabs.Content>
+          {canViewEducationOrExperience && (
+            <Tabs.Content value="education-experience" className="outline-none">
+              <div className="grid items-start gap-5 xl:grid-cols-2">
+                {canViewEducation && (
+                  <EmployeeEducationPanel
+                    canCreate={canCreateEducation}
+                    canDelete={canDeleteEducation}
+                    canEdit={canEditEducation}
+                    employeeId={employeeId}
+                    locale={locale}
+                  />
+                )}
+                {canViewExperience && (
+                  <EmployeeExperiencePanel
+                    canCreate={canCreateExperience}
+                    canDelete={canDeleteExperience}
+                    canEdit={canEditExperience}
+                    employeeId={employeeId}
+                    locale={locale}
+                  />
+                )}
+              </div>
+            </Tabs.Content>
+          )}
 
           {canViewDocuments && (
             <Tabs.Content value="documents" className="outline-none">
@@ -314,26 +346,30 @@ export function EmployeeDetailsPage(): JSX.Element {
             </Tabs.Content>
           )}
 
-          <Tabs.Content value="vacations" className="outline-none">
-            <EmployeeVacationsPanel
-              canCreate={canCreateVacation}
-              canDelete={canDeleteVacation}
-              canEdit={canEditVacation}
-              employeeId={employeeId}
-              locale={locale}
-            />
-          </Tabs.Content>
+          {canViewVacations && (
+            <Tabs.Content value="vacations" className="outline-none">
+              <EmployeeVacationsPanel
+                canCreate={canCreateVacation}
+                canDelete={canDeleteVacation}
+                canEdit={canEditVacation}
+                employeeId={employeeId}
+                locale={locale}
+              />
+            </Tabs.Content>
+          )}
 
-          <Tabs.Content value="history" className="outline-none">
-            <EmployeeLifecyclePanel
-              canChangeEmployment={canChangeEmployment}
-              canTerminate={canTerminateEmployee}
-              employee={employee}
-              employeeId={employeeId}
-              locale={locale}
-              onEmployeeUpdated={handleEmployeeSaved}
-            />
-          </Tabs.Content>
+          {canViewEmploymentHistory && (
+            <Tabs.Content value="history" className="outline-none">
+              <EmployeeLifecyclePanel
+                canChangeEmployment={canChangeEmployment}
+                canTerminate={canTerminateEmployee}
+                employee={employee}
+                employeeId={employeeId}
+                locale={locale}
+                onEmployeeUpdated={handleEmployeeSaved}
+              />
+            </Tabs.Content>
+          )}
         </div>
       </Tabs.Root>
 
