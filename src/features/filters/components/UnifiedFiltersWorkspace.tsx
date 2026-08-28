@@ -63,13 +63,12 @@ const moduleTabs: Array<{
   id: FilterModule;
   label: string;
   icon: typeof FiUsers;
-  description: string;
 }> = [
-  { id: "employees", label: "Сотрудники", icon: FiUsers, description: "Поиск сотрудников по кадровым и контактным данным." },
-  { id: "enterprises", label: "Предприятия", icon: FiLayers, description: "Фильтрация предприятий по наименованию и контактам." },
-  { id: "vacations", label: "Отпуска", icon: FiCalendar, description: "Отбор отпусков по сотруднику, типу, статусу и датам." },
-  { id: "vacancies", label: "Вакансии", icon: FiBriefcase, description: "Отбор вакансий по структуре, статусу и формату занятости." },
-  { id: "candidates", label: "Кандидаты", icon: FiClipboard, description: "Отбор кандидатов по вакансии, этапу и соответствию." },
+  { id: "employees", label: "Сотрудники", icon: FiUsers },
+  { id: "enterprises", label: "Предприятия", icon: FiLayers },
+  { id: "vacations", label: "Отпуска", icon: FiCalendar },
+  { id: "vacancies", label: "Вакансии", icon: FiBriefcase },
+  { id: "candidates", label: "Кандидаты", icon: FiClipboard },
 ];
 
 const vacancyStatusOptions: SelectOption[] = [
@@ -215,7 +214,6 @@ export function UnifiedFiltersWorkspace(): JSX.Element {
           <div>
             <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Параметры выборки</p>
             <h2 className="app-text mt-1 text-xl font-black">{activeTab.label}</h2>
-            <p className="app-muted mt-1 text-sm">{activeTab.description}</p>
           </div>
           <div className="app-accent-soft flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-black">
             <FiFilter className="h-4 w-4" />
@@ -287,12 +285,7 @@ export function UnifiedFiltersWorkspace(): JSX.Element {
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <div className="app-border-soft border-b px-5 py-5 sm:px-7">
           <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Результаты</p>
-          <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="app-text text-xl font-black">Таблица по запросу</h2>
-              <p className="app-muted mt-1 text-sm">Данные обновляются после применения или очистки фильтров.</p>
-            </div>
-          </div>
+          <h2 className="app-text mt-1 text-xl font-black">Таблица по запросу</h2>
         </div>
         <ResultsPanel
           activeModule={activeModule}
