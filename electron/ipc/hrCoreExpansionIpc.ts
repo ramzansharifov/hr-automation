@@ -13,6 +13,7 @@ import { AuditService } from "../services/auditService";
 import { getActiveAuthenticationService } from "../services/authenticationService";
 import { AuthorizationService } from "../services/authorizationService";
 import { EmployeeImportService } from "../services/employeeImportService";
+import { HrAnalyticsService } from "../services/hrAnalyticsService";
 import { HrCoreExpansionService } from "../services/hrCoreExpansionService";
 
 const scopeRank: Record<AuthSession["scopeType"], number> = {
@@ -29,6 +30,7 @@ export function registerHrCoreExpansionIpcHandlers(): void {
   const auditService = new AuditService(database);
   const service = new HrCoreExpansionService(database);
   const employeeImportService = new EmployeeImportService(database);
+  const analyticsService = new HrAnalyticsService(database);
 
   ipcMain.handle("hr:changeLeadership", (event, raw: unknown) => {
     assertTrustedSender(event);
@@ -122,7 +124,7 @@ export function registerHrCoreExpansionIpcHandlers(): void {
   ipcMain.handle("analytics:get", (event) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("analytics.view");
-    return service.getAnalytics(session);
+    return analyticsService.getReport(session);
   });
 
   ipcMain.handle("dataExchange:selectEmployeeImport", (event) => {
