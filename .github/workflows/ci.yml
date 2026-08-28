@@ -151,12 +151,13 @@ jobs:
 
           employee = connection.execute(
               """
-              SELECT employee_number, employment_type, salary, email,
+              SELECT enterprise_id, employee_number, employment_type, salary, email,
                      lifecycle_status, employment_started_at
               FROM employees WHERE id = 1
               """
           ).fetchone()
           expected_employee = (
+              1,
               None,
               "full_time",
               7250.0,
@@ -194,20 +195,48 @@ jobs:
           vacation = connection.execute(
               """
               SELECT vacation_type.name, vacations.days_count, vacations.reason,
-                     vacations.working_days_count
+                     vacations.enterprise_id_snapshot,
+                     vacations.enterprise_name_snapshot
               FROM vacations
               JOIN vacation_types AS vacation_type
                 ON vacation_type.id = vacations.vacation_type_id
               WHERE vacations.id = 1
               """
           ).fetchone()
-          if vacation != ("Ежегодный отпуск", 5, "Существующая отпускная запись", 0):
+          expected_vacation = (
+              "Ежегодный отпуск",
+              5,
+              "Существующая отпускная запись",
+              1,
+              "Существующее предприятие",
+          )
+          if vacation != expected_vacation:
               raise SystemExit(f"Vacation data was not preserved: {vacation}")
 
-          if connection.execute(
-              "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'payroll'"
-          ).fetchone():
-              raise SystemExit("Payroll table unexpectedly exists after HR core upgrade")
+          removed_tables = {"payroll", "leave_balances", "work_calendar_days"}
+          existing_removed_tables = {
+              row[0]
+              for row in connection.execute(
+                  "SELECT name FROM sqlite_master WHERE type = 'table'"
+              ).fetchall()
+              if row[0] in removed_tables
+          }
+          if existing_removed_tables:
+              raise SystemExit(
+                  f"Removed HR tables unexpectedly exist: {existing_removed_tables}"
+              )
+
+          leave_permissions = connection.execute(
+              "SELECT COUNT(*) FROM permissions WHERE code LIKE 'leave.%'"
+          ).fetchone()[0]
+          if leave_permissions != 0:
+              raise SystemExit("Legacy leave-management permissions still exist")
+
+          vacation_columns = {
+              row[1] for row in connection.execute("PRAGMA table_info(vacations)")
+          }
+          if "working_days_count" in vacation_columns or "entitlement_year" in vacation_columns:
+              raise SystemExit("Legacy leave-management columns still exist on vacations")
 
           violations = connection.execute("PRAGMA foreign_key_check").fetchall()
           if violations:
