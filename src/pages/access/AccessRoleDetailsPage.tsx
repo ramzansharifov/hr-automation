@@ -106,7 +106,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
     const search = permissionSearch.trim().toLocaleLowerCase();
     if (!search) return rolePermissions;
     return rolePermissions.filter((permission) =>
-      [permission.name, permission.code, permission.module, permission.description]
+      [permission.name, permission.code, permission.module]
         .join(" ")
         .toLocaleLowerCase()
         .includes(search),
@@ -162,7 +162,6 @@ export function AccessRoleDetailsPage(): JSX.Element {
               К ролям
             </Button>
           }
-          description="Запрошенная роль не существует или была удалена."
           icon={<FiShield />}
           title="Роль не найдена"
         />
@@ -202,7 +201,6 @@ export function AccessRoleDetailsPage(): JSX.Element {
             )}
           </>
         }
-        description={role.description || "Описание для этой роли пока не указано."}
         eyebrow="Роль доступа"
         icon={<FiShield />}
         meta={
@@ -226,12 +224,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <div className="app-border-soft flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="app-text text-lg font-black">Разрешения роли</h2>
-            <p className="app-muted mt-1 text-sm">
-              Все доступные действия, сгруппированные по разделам приложения.
-            </p>
-          </div>
+          <h2 className="app-text text-lg font-black">Разрешения роли</h2>
           <div className="relative w-full sm:max-w-sm">
             <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
             <Input
@@ -272,10 +265,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
                       </span>
                       <div className="min-w-0">
                         <p className="app-text text-sm font-black">{permission.name}</p>
-                        <p className="app-muted mt-1 text-xs leading-5">
-                          {permission.description || "Описание разрешения не указано."}
-                        </p>
-                        <code className="app-surface-muted app-border app-text-soft mt-3 inline-flex max-w-full rounded-lg border px-2 py-1 text-[11px] font-bold">
+                        <code className="app-surface-muted app-border app-text-soft mt-2 inline-flex max-w-full rounded-lg border px-2 py-1 text-[11px] font-bold">
                           {permission.code}
                         </code>
                       </div>
@@ -290,14 +280,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <div className="app-border-soft flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="app-text text-lg font-black">Пользователи с этой ролью</h2>
-            <p className="app-muted mt-1 text-sm">
-              {canViewUsers
-                ? "Учётные записи, которым роль назначена напрямую или системой."
-                : "Список учётных записей защищён отдельным разрешением users.view."}
-            </p>
-          </div>
+          <h2 className="app-text text-lg font-black">Пользователи с этой ролью</h2>
           {canViewUsers && (
             <Button leftIcon={<FiUsers className="h-4 w-4" />} onClick={() => navigate("/users")} variant="secondary">
               Открыть пользователей
@@ -353,11 +336,8 @@ export function AccessRoleDetailsPage(): JSX.Element {
       </section>
 
       {!role.isSystem && canDelete && (
-        <section className="app-surface app-border flex flex-col gap-4 rounded-[28px] border p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="app-text font-black">Удаление роли</p>
-            <p className="app-muted mt-1 text-sm">Роль можно удалить после снятия со всех пользователей.</p>
-          </div>
+        <section className="app-surface app-border flex items-center justify-between gap-4 rounded-[28px] border p-5">
+          <p className="app-text font-black">Удаление роли</p>
           <Button leftIcon={<FiTrash2 className="h-4 w-4" />} onClick={() => setDeleteRole(role)} variant="danger">
             Удалить роль
           </Button>
