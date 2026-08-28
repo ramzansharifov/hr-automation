@@ -170,10 +170,7 @@ function createWindow(): void {
               scopes['employees.view'] === 'global' &&
               scopes['analytics.view'] === 'department' &&
               scopes['vacation_types.create'] === 'enterprise' &&
-              scopes['document_types.create'] === 'enterprise' &&
-              scopes['leave.view'] === undefined &&
-              scopes['leave.manage'] === undefined &&
-              scopes['leave.calendar_manage'] === undefined
+              scopes['document_types.create'] === 'enterprise'
           }
 
           const dashboard = await window.hrApi.dashboard()
