@@ -15,13 +15,10 @@ import type {
   HrLeadershipChangeParams,
   HrListParams,
   HrTerminationParams,
-  LeaveOverviewParams,
   PreviewEmployeeImportParams,
   RecruitmentListParams,
   SaveCandidateParams,
-  SaveLeaveBalanceParams,
   SaveVacancyParams,
-  SaveWorkCalendarDayParams,
   HrUpdateParams,
 } from "../src/shared/types/hr";
 import type {
@@ -118,12 +115,6 @@ const hrApi: ExtendedHrApi = {
     ipcRenderer.invoke("documentTypes:save", params),
   deleteDocumentType: (id: number) =>
     ipcRenderer.invoke("documentTypes:delete", id),
-  getLeaveOverview: (params: LeaveOverviewParams) =>
-    ipcRenderer.invoke("leave:overview", params),
-  saveLeaveBalance: (params: SaveLeaveBalanceParams) =>
-    ipcRenderer.invoke("leave:saveBalance", params),
-  saveWorkCalendarDay: (params: SaveWorkCalendarDayParams) =>
-    ipcRenderer.invoke("leave:saveCalendarDay", params),
   listAttentionItems: () => ipcRenderer.invoke("attention:list"),
   getAnalytics: () => ipcRenderer.invoke("analytics:get"),
   selectEmployeeImportFile: () => ipcRenderer.invoke("dataExchange:selectEmployeeImport"),
