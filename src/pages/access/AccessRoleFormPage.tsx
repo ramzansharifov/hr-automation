@@ -12,6 +12,9 @@ import {
   FiCheckCircle,
   FiChevronDown,
   FiChevronRight,
+  FiGlobe,
+  FiGrid,
+  FiLayers,
   FiLock,
   FiSave,
   FiSearch,
@@ -23,6 +26,7 @@ import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
 import {
+  accessScopeRank,
   canScopePermissionTo,
   getDependentPermissionCodes,
   getPermissionRiskLevel,
@@ -35,8 +39,10 @@ import type {
   AccessPermission,
   AccessRoleSummary,
   AccessScopeType,
+  AuthSession,
   SaveAccessRoleParams,
 } from "../../shared/types/access";
+import type { HrEntityKey, HrRecord } from "../../shared/types/hr";
 import {
   Button,
   ConfirmDialog,
@@ -44,7 +50,9 @@ import {
   Input,
   LoadingState,
   PageHeader,
+  SearchableSelect,
   Textarea,
+  type SelectOption,
 } from "../../shared/ui";
 import { getErrorMessage } from "./accessControlData";
 import {
@@ -53,15 +61,52 @@ import {
 } from "./rolePermissionSections";
 
 type PermissionFilter = "all" | "selected" | "unselected";
+type CustomRoleScopeType = Exclude<AccessScopeType, "self">;
 type PendingPermissionChange =
   | { kind: "permission"; code: string; checked: boolean }
   | { kind: "section"; sectionKey: string; checked: boolean }
   | null;
 
+interface DepartmentScopeOption extends SelectOption {
+  enterpriseId: string;
+}
+
+interface RoleScopeSelection {
+  scopeType: CustomRoleScopeType;
+  enterpriseId: string;
+  departmentId: string;
+}
+
 const permissionFilters: Array<{ value: PermissionFilter; label: string }> = [
   { value: "all", label: "Все" },
   { value: "selected", label: "Выбранные" },
   { value: "unselected", label: "Не выбранные" },
+];
+
+const roleScopeOptions: Array<{
+  value: CustomRoleScopeType;
+  label: string;
+  description: string;
+  icon: typeof FiGlobe;
+}> = [
+  {
+    value: "global",
+    label: "Вся система",
+    description: "Доступ ко всем предприятиям в пределах выбранных разрешений.",
+    icon: FiGlobe,
+  },
+  {
+    value: "enterprise",
+    label: "Предприятие",
+    description: "Разрешения действуют только внутри одного предприятия.",
+    icon: FiLayers,
+  },
+  {
+    value: "department",
+    label: "Отдел",
+    description: "Разрешения ограничены одним конкретным отделом.",
+    icon: FiGrid,
+  },
 ];
 
 export function AccessRoleFormPage(): JSX.Element {
@@ -73,6 +118,8 @@ export function AccessRoleFormPage(): JSX.Element {
   const isSuperadmin =
     session.employeeId === 0 ||
     session.roles.some((item) => item.systemKey === "superadmin");
+  const actorCreateScope = getActorRoleCreateScope(session);
+  const initialScope = getInitialCreateScopeSelection(actorCreateScope, session);
 
   const [permissions, setPermissions] = useState<AccessPermission[]>([]);
   const [roles, setRoles] = useState<AccessRoleSummary[]>([]);
@@ -81,6 +128,11 @@ export function AccessRoleFormPage(): JSX.Element {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [permissionCodes, setPermissionCodes] = useState<string[]>([]);
+  const [scopeType, setScopeType] = useState<CustomRoleScopeType>(initialScope.scopeType);
+  const [enterpriseId, setEnterpriseId] = useState(initialScope.enterpriseId);
+  const [departmentId, setDepartmentId] = useState(initialScope.departmentId);
+  const [enterpriseOptions, setEnterpriseOptions] = useState<SelectOption[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentScopeOption[]>([]);
   const [permissionSearch, setPermissionSearch] = useState("");
   const [permissionFilter, setPermissionFilter] = useState<PermissionFilter>("all");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -94,29 +146,59 @@ export function AccessRoleFormPage(): JSX.Element {
     async function load(): Promise<void> {
       setIsLoading(true);
       try {
-        const [permissionData, roleData] = await Promise.all([
+        const [permissionData, roleData, scopeRecords] = await Promise.all([
           hrApiClient.listAccessPermissions(),
           hrApiClient.listAccessRoles(),
+          isEditMode
+            ? Promise.resolve({ enterprises: [] as HrRecord[], departments: [] as HrRecord[] })
+            : loadRoleScopeRecords(),
         ]);
         if (!active) return;
 
         setPermissions(permissionData);
         setRoles(roleData);
+        setEnterpriseOptions(
+          scopeRecords.enterprises.map((record) => ({
+            value: String(record.id),
+            label: String(record.name ?? record.legal_name ?? `Предприятие #${record.id}`),
+          })),
+        );
+        setDepartmentOptions(
+          scopeRecords.departments.map((record) => ({
+            value: String(record.id),
+            label: String(record.name ?? `Отдел #${record.id}`),
+            enterpriseId: String(record.enterprise_id ?? ""),
+          })),
+        );
+
         if (isEditMode) {
           const currentRole = roleData.find((item) => item.id === roleId);
           if (currentRole) {
             const cleanCodes = currentRole.permissionCodes.filter(
               (code) => !legacyPermissionCodes.has(code),
             );
+            const currentScope = roleSummaryScopeSelection(currentRole);
             setName(currentRole.name);
             setDescription(currentRole.description);
             setPermissionCodes(cleanCodes);
+            setScopeType(currentScope.scopeType);
+            setEnterpriseId(currentScope.enterpriseId);
+            setDepartmentId(currentScope.departmentId);
             setBaselineSnapshot(
-              serializeRoleDraft(currentRole.name, currentRole.description, cleanCodes),
+              serializeRoleDraft(
+                currentRole.name,
+                currentRole.description,
+                cleanCodes,
+                currentScope,
+              ),
             );
           }
         } else {
-          setBaselineSnapshot(serializeRoleDraft("", "", []));
+          const createScope = getInitialCreateScopeSelection(actorCreateScope, session);
+          setScopeType(createScope.scopeType);
+          setEnterpriseId(createScope.enterpriseId);
+          setDepartmentId(createScope.departmentId);
+          setBaselineSnapshot(serializeRoleDraft("", "", [], createScope));
         }
         setBaselineReady(true);
       } catch (error) {
@@ -129,44 +211,91 @@ export function AccessRoleFormPage(): JSX.Element {
     return () => {
       active = false;
     };
-  }, [isEditMode, roleId]);
+  }, [actorCreateScope, isEditMode, roleId, session.departmentId, session.enterpriseId]);
 
   const role = isEditMode
     ? roles.find((item) => item.id === roleId) ?? null
     : null;
-  const targetScopeType: AccessScopeType =
-    role?.scopeType ??
-    session.permissionScopes[isEditMode ? "roles.edit" : "roles.create"] ??
-    session.scopeType;
+  const targetScopeType: CustomRoleScopeType = role
+    ? normalizeCustomRoleScope(role.scopeType)
+    : scopeType;
+  const selectedEnterprise = enterpriseOptions.find((option) => option.value === enterpriseId);
+  const selectedDepartment = departmentOptions.find((option) => option.value === departmentId);
+  const targetEnterpriseId =
+    targetScopeType === "global"
+      ? null
+      : targetScopeType === "enterprise"
+        ? positiveId(enterpriseId)
+        : positiveId(selectedDepartment?.enterpriseId ?? enterpriseId ?? role?.enterpriseId);
+  const targetDepartmentId =
+    targetScopeType === "department" ? positiveId(departmentId) : null;
+  const targetScopeReady =
+    targetScopeType === "global" ||
+    (targetScopeType === "enterprise" && Boolean(targetEnterpriseId)) ||
+    (targetScopeType === "department" &&
+      Boolean(targetEnterpriseId) &&
+      Boolean(targetDepartmentId));
+  const selectedEnterpriseName =
+    role?.enterpriseName ||
+    selectedEnterprise?.label ||
+    (targetEnterpriseId === session.enterpriseId ? session.enterpriseName : "");
+  const selectedDepartmentName =
+    role?.departmentName ||
+    selectedDepartment?.label ||
+    (targetDepartmentId === session.departmentId ? session.departmentName : "");
   const scopeLabel = getRoleEditorScopeLabel(
     targetScopeType,
-    role,
-    session.enterpriseName,
-    session.departmentName,
+    selectedEnterpriseName,
+    selectedDepartmentName,
   );
+  const availableScopeTypes = roleScopeOptions.filter(
+    (option) => accessScopeRank[option.value] <= accessScopeRank[actorCreateScope],
+  );
+  const filteredDepartmentOptions = departmentOptions.filter(
+    (option) => !enterpriseId || option.enterpriseId === enterpriseId,
+  );
+
   const permissionMap = useMemo(
     () => new Map(permissions.map((permission) => [permission.code, permission])),
     [permissions],
   );
   const delegableCodes = useMemo(() => {
     const result = new Set<string>();
+    if (!targetScopeReady) return result;
+
     for (const permission of permissions) {
       if (legacyPermissionCodes.has(permission.code)) continue;
       const requiredCodes = normalizePermissionDependencies([permission.code]).filter(
         (code) => !legacyPermissionCodes.has(code),
       );
       if (
-        canScopePermissionTo(permission.code, targetScopeType) &&
         requiredCodes.every(
           (code) =>
-            permissionMap.has(code) && canScopePermissionTo(code, targetScopeType),
+            permissionMap.has(code) &&
+            canDelegatePermissionToTarget(
+              code,
+              targetScopeType,
+              targetEnterpriseId,
+              targetDepartmentId,
+              session,
+              isSuperadmin,
+            ),
         )
       ) {
         result.add(permission.code);
       }
     }
     return result;
-  }, [permissionMap, permissions, targetScopeType]);
+  }, [
+    isSuperadmin,
+    permissionMap,
+    permissions,
+    session,
+    targetDepartmentId,
+    targetEnterpriseId,
+    targetScopeReady,
+    targetScopeType,
+  ]);
 
   const visibleSections = useMemo(
     () =>
@@ -187,14 +316,27 @@ export function AccessRoleFormPage(): JSX.Element {
   const enabledSections = visibleSections.filter((section) =>
     section.permissions.some((permission) => permissionCodes.includes(permission.code)),
   ).length;
-  const inaccessibleSelected = permissionCodes.filter(
-    (code) => !permissionMap.has(code) || !delegableCodes.has(code),
-  );
+  const inaccessibleSelected = targetScopeReady
+    ? permissionCodes.filter(
+        (code) => !permissionMap.has(code) || !delegableCodes.has(code),
+      )
+    : [];
   const editorLocked = inaccessibleSelected.length > 0;
-  const currentSnapshot = serializeRoleDraft(name, description, normalizedSelectedCodes);
+  const currentScopeSelection: RoleScopeSelection = {
+    scopeType: targetScopeType,
+    enterpriseId: targetScopeType === "global" ? "" : enterpriseId,
+    departmentId: targetScopeType === "department" ? departmentId : "",
+  };
+  const currentSnapshot = serializeRoleDraft(
+    name,
+    description,
+    permissionCodes,
+    currentScopeSelection,
+  );
   const isDirty = baselineReady && currentSnapshot !== baselineSnapshot;
   const canSave =
     !isSaving &&
+    targetScopeReady &&
     !editorLocked &&
     Boolean(name.trim()) &&
     selectedCount > 0 &&
@@ -250,6 +392,63 @@ export function AccessRoleFormPage(): JSX.Element {
     };
   }, [isDirty]);
 
+  function sanitizePermissionsForScope(nextScopeType: CustomRoleScopeType): void {
+    const nextCodes = permissionCodes.filter((code) => {
+      const required = normalizePermissionDependencies([code]).filter(
+        (dependency) => !legacyPermissionCodes.has(dependency),
+      );
+      return required.every(
+        (dependency) => permissionMap.has(dependency) && canScopePermissionTo(dependency, nextScopeType),
+      );
+    });
+    if (nextCodes.length !== permissionCodes.length) {
+      toast.info(
+        "Недоступные для выбранной области разрешения сняты автоматически",
+      );
+    }
+    setPermissionCodes(nextCodes);
+  }
+
+  function changeScopeType(nextScopeType: CustomRoleScopeType): void {
+    if (isEditMode || nextScopeType === scopeType) return;
+    if (accessScopeRank[nextScopeType] > accessScopeRank[actorCreateScope]) return;
+
+    sanitizePermissionsForScope(nextScopeType);
+    setScopeType(nextScopeType);
+    setPendingChange(null);
+
+    if (nextScopeType === "global") {
+      setEnterpriseId("");
+      setDepartmentId("");
+      return;
+    }
+
+    if (actorCreateScope === "global") {
+      setDepartmentId("");
+      return;
+    }
+
+    setEnterpriseId(String(session.enterpriseId ?? ""));
+    if (nextScopeType === "department") {
+      setDepartmentId(
+        actorCreateScope === "department" ? String(session.departmentId ?? "") : "",
+      );
+    } else {
+      setDepartmentId("");
+    }
+  }
+
+  function changeEnterprise(nextEnterpriseId: string): void {
+    if (isEditMode || actorCreateScope !== "global") return;
+    setEnterpriseId(nextEnterpriseId);
+    if (scopeType === "department") setDepartmentId("");
+  }
+
+  function changeDepartment(nextDepartmentId: string): void {
+    if (isEditMode || actorCreateScope === "department") return;
+    setDepartmentId(nextDepartmentId);
+  }
+
   function applyPermissionToggle(code: string, checked: boolean): void {
     setPermissionCodes((current) => {
       const next = new Set(current);
@@ -263,7 +462,13 @@ export function AccessRoleFormPage(): JSX.Element {
   }
 
   function requestPermissionToggle(code: string, checked: boolean): void {
-    if (editorLocked || !delegableCodes.has(code)) return;
+    if (
+      editorLocked ||
+      !targetScopeReady ||
+      !delegableCodes.has(code)
+    ) {
+      return;
+    }
     if (checked && getPermissionRiskLevel(code) === "critical") {
       setPendingChange({ kind: "permission", code, checked });
       return;
@@ -299,7 +504,7 @@ export function AccessRoleFormPage(): JSX.Element {
     section: RolePermissionSectionDefinition,
     checked: boolean,
   ): void {
-    if (editorLocked) return;
+    if (editorLocked || !targetScopeReady) return;
     const availableCodes = section.permissionCodes.filter(
       (code) => permissionMap.has(code) && delegableCodes.has(code),
     );
@@ -357,6 +562,14 @@ export function AccessRoleFormPage(): JSX.Element {
       toast.error("Укажите название роли");
       return;
     }
+    if (!targetScopeReady) {
+      toast.error(
+        targetScopeType === "enterprise"
+          ? "Выберите предприятие для роли"
+          : "Выберите предприятие и отдел для роли",
+      );
+      return;
+    }
     if (selectedCount === 0) {
       toast.error("Выберите хотя бы одно разрешение");
       return;
@@ -373,6 +586,14 @@ export function AccessRoleFormPage(): JSX.Element {
         name: name.trim(),
         description: description.trim(),
         permissionCodes: normalizedSelectedCodes,
+        ...(!isEditMode
+          ? {
+              scopeType: targetScopeType,
+              enterpriseId: targetScopeType === "global" ? null : targetEnterpriseId,
+              departmentId:
+                targetScopeType === "department" ? targetDepartmentId : null,
+            }
+          : {}),
       };
       const saved = await hrApiClient.saveAccessRole(saveParams);
       toast.success(isEditMode ? "Роль обновлена" : "Роль создана");
@@ -454,7 +675,21 @@ export function AccessRoleFormPage(): JSX.Element {
             <div>
               <p className="font-black">Редактирование этой роли ограничено</p>
               <p className="mt-1 text-sm leading-6 opacity-85">
-                Роль содержит разрешения, которые нельзя делегировать в текущей области. Чтобы администратор не мог перераспределить более высокий или чужой доступ, сохранение и переключатели заблокированы.
+                Роль содержит разрешения, которые текущий администратор не может делегировать в её области. Сохранение заблокировано, чтобы нельзя было перераспределить более высокий или чужой доступ.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {!targetScopeReady && !isEditMode && (
+        <section className="rounded-[24px] border border-sky-300/60 bg-sky-50/80 p-5 text-sky-900 dark:border-sky-700/50 dark:bg-sky-950/30 dark:text-sky-100">
+          <div className="flex items-start gap-3">
+            <FiLayers className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-black">Сначала определите область роли</p>
+              <p className="mt-1 text-sm leading-6 opacity-85">
+                После выбора предприятия или отдела система покажет, какие операции можно безопасно делегировать именно в этой области.
               </p>
             </div>
           </div>
@@ -483,6 +718,97 @@ export function AccessRoleFormPage(): JSX.Element {
                 value={description}
               />
             </label>
+
+            <div className="app-border-soft border-t pt-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="app-text text-sm font-black">Область действия</p>
+                  <p className="app-muted mt-1 text-xs leading-5">
+                    Определяет, к данным каких организационных единиц применяются выбранные ниже разрешения.
+                  </p>
+                </div>
+                {isEditMode && (
+                  <span className="app-surface-muted app-border app-muted rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide">
+                    Не изменяется
+                  </span>
+                )}
+              </div>
+
+              {isEditMode ? (
+                <div className="app-surface-muted app-border mt-4 rounded-2xl border p-4">
+                  <p className="app-text text-sm font-black">{scopeLabel}</p>
+                  <p className="app-muted mt-1 text-xs leading-5">
+                    Область фиксируется при создании роли. Это не позволяет незаметно расширить уже назначенную пользователям роль.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {availableScopeTypes.map((option) => {
+                      const Icon = option.icon;
+                      const selected = scopeType === option.value;
+                      return (
+                        <button
+                          className={[
+                            "rounded-2xl border p-4 text-left transition",
+                            selected
+                              ? "app-accent-soft app-accent-border"
+                              : "app-surface-muted app-border hover:border-[var(--accent-border)]",
+                          ].join(" ")}
+                          key={option.value}
+                          onClick={() => changeScopeType(option.value)}
+                          type="button"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="app-text text-sm font-black">{option.label}</span>
+                          </span>
+                          <span className="app-muted mt-2 block text-[11px] leading-5">
+                            {option.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {scopeType !== "global" && (
+                    <label className="grid gap-2">
+                      <span className="app-text text-xs font-black">Предприятие</span>
+                      <SearchableSelect
+                        disabled={actorCreateScope !== "global"}
+                        noOptionsLabel="Доступные предприятия не найдены"
+                        onValueChange={changeEnterprise}
+                        options={enterpriseOptions}
+                        placeholder="Выберите предприятие"
+                        searchPlaceholder="Поиск предприятия"
+                        value={enterpriseId}
+                      />
+                    </label>
+                  )}
+
+                  {scopeType === "department" && (
+                    <label className="grid gap-2">
+                      <span className="app-text text-xs font-black">Отдел</span>
+                      <SearchableSelect
+                        disabled={!enterpriseId || actorCreateScope === "department"}
+                        noOptionsLabel={
+                          enterpriseId
+                            ? "В выбранном предприятии нет доступных отделов"
+                            : "Сначала выберите предприятие"
+                        }
+                        onValueChange={changeDepartment}
+                        options={enterpriseId ? filteredDepartmentOptions : []}
+                        placeholder={
+                          enterpriseId ? "Выберите отдел" : "Сначала выберите предприятие"
+                        }
+                        searchPlaceholder="Поиск отдела"
+                        value={departmentId}
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -595,7 +921,11 @@ export function AccessRoleFormPage(): JSX.Element {
                         <p className="app-muted mt-1 text-sm leading-5">{section.description}</p>
                       </button>
                       <Button
-                        disabled={editorLocked || delegableSectionCodes.length === 0}
+                        disabled={
+                          editorLocked ||
+                          !targetScopeReady ||
+                          delegableSectionCodes.length === 0
+                        }
                         onClick={(event: ReactMouseEvent<HTMLButtonElement>) => {
                           event.stopPropagation();
                           requestSectionToggle(section, !allDelegableEnabled);
@@ -633,7 +963,9 @@ export function AccessRoleFormPage(): JSX.Element {
                               title={
                                 delegable
                                   ? undefined
-                                  : "Недоступно для делегирования в текущей области управления"
+                                  : targetScopeReady
+                                    ? "Недоступно для делегирования в выбранной области"
+                                    : "Сначала выберите область роли"
                               }
                             >
                               <div className="min-w-0">
@@ -643,9 +975,10 @@ export function AccessRoleFormPage(): JSX.Element {
                                     <FiCheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
                                   )}
                                   {risk && <RiskBadge risk={risk} />}
-                                  {!delegable && !isSuperadmin && (
+                                  {!delegable && (
                                     <span className="app-surface-muted app-border app-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black">
-                                      <FiLock className="h-3 w-3" /> Недоступно
+                                      <FiLock className="h-3 w-3" />
+                                      {targetScopeReady ? "Недоступно" : "Выберите область"}
                                     </span>
                                   )}
                                 </div>
@@ -668,7 +1001,7 @@ export function AccessRoleFormPage(): JSX.Element {
                               </div>
                               <PermissionSwitch
                                 checked={checked}
-                                disabled={editorLocked || !delegable}
+                                disabled={editorLocked || !targetScopeReady || !delegable}
                                 label={permission.name}
                                 onCheckedChange={(nextChecked) =>
                                   requestPermissionToggle(permission.code, nextChecked)
@@ -821,30 +1154,143 @@ function serializeRoleDraft(
   name: string,
   description: string,
   permissionCodes: string[],
+  scope: RoleScopeSelection,
 ): string {
   return JSON.stringify({
     name,
     description,
     permissionCodes: [...new Set(permissionCodes)].sort(),
+    scopeType: scope.scopeType,
+    enterpriseId: scope.scopeType === "global" ? "" : scope.enterpriseId,
+    departmentId: scope.scopeType === "department" ? scope.departmentId : "",
   });
 }
 
+function getActorRoleCreateScope(session: AuthSession): CustomRoleScopeType {
+  const permissionScope = session.permissionScopes["roles.create"] ?? session.scopeType;
+  return normalizeCustomRoleScope(permissionScope);
+}
+
+function normalizeCustomRoleScope(scopeType: AccessScopeType): CustomRoleScopeType {
+  if (scopeType === "global" || scopeType === "enterprise" || scopeType === "department") {
+    return scopeType;
+  }
+  return "department";
+}
+
+function getInitialCreateScopeSelection(
+  actorScope: CustomRoleScopeType,
+  session: AuthSession,
+): RoleScopeSelection {
+  if (actorScope === "global") {
+    return { scopeType: "global", enterpriseId: "", departmentId: "" };
+  }
+  if (actorScope === "enterprise") {
+    return {
+      scopeType: "enterprise",
+      enterpriseId: String(session.enterpriseId ?? ""),
+      departmentId: "",
+    };
+  }
+  return {
+    scopeType: "department",
+    enterpriseId: String(session.enterpriseId ?? ""),
+    departmentId: String(session.departmentId ?? ""),
+  };
+}
+
+function roleSummaryScopeSelection(role: AccessRoleSummary): RoleScopeSelection {
+  return {
+    scopeType: normalizeCustomRoleScope(role.scopeType),
+    enterpriseId: String(role.enterpriseId ?? ""),
+    departmentId: String(role.departmentId ?? ""),
+  };
+}
+
 function getRoleEditorScopeLabel(
-  scopeType: AccessScopeType,
-  role: AccessRoleSummary | null,
+  scopeType: CustomRoleScopeType,
   enterpriseName: string,
   departmentName: string,
 ): string {
   if (scopeType === "global") return "вся система";
   if (scopeType === "enterprise") {
-    const name = role?.enterpriseName || enterpriseName;
-    return name ? `предприятие «${name}»` : "текущее предприятие";
+    return enterpriseName ? `предприятие «${enterpriseName}»` : "предприятие не выбрано";
   }
-  if (scopeType === "department") {
-    const name = role?.departmentName || departmentName;
-    return name ? `отдел «${name}»` : "текущий отдел";
+  return departmentName ? `отдел «${departmentName}»` : "отдел не выбран";
+}
+
+function canDelegatePermissionToTarget(
+  permissionCode: string,
+  targetScopeType: CustomRoleScopeType,
+  targetEnterpriseId: number | null,
+  targetDepartmentId: number | null,
+  session: AuthSession,
+  isSuperadmin: boolean,
+): boolean {
+  if (!canScopePermissionTo(permissionCode, targetScopeType)) return false;
+  if (isSuperadmin) return true;
+
+  const actorPermissionScope = session.permissionScopes[permissionCode];
+  if (!actorPermissionScope || actorPermissionScope === "self") return false;
+  if (targetScopeType === "global") return actorPermissionScope === "global";
+  if (actorPermissionScope === "global") return true;
+
+  if (targetScopeType === "enterprise") {
+    return (
+      actorPermissionScope === "enterprise" &&
+      Boolean(targetEnterpriseId) &&
+      targetEnterpriseId === session.enterpriseId
+    );
   }
-  return "личная область";
+
+  if (actorPermissionScope === "enterprise") {
+    return Boolean(targetEnterpriseId) && targetEnterpriseId === session.enterpriseId;
+  }
+  return (
+    actorPermissionScope === "department" &&
+    Boolean(targetDepartmentId) &&
+    targetDepartmentId === session.departmentId
+  );
+}
+
+async function loadRoleScopeRecords(): Promise<{
+  enterprises: HrRecord[];
+  departments: HrRecord[];
+}> {
+  const [enterprises, departments] = await Promise.all([
+    loadAllScopeRecords("enterprises"),
+    loadAllScopeRecords("departments"),
+  ]);
+  return { enterprises, departments };
+}
+
+async function loadAllScopeRecords(
+  entity: Extract<HrEntityKey, "enterprises" | "departments">,
+): Promise<HrRecord[]> {
+  const records: HrRecord[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const result = await hrApiClient.list({
+      entity,
+      page,
+      pageSize: 100,
+      filters: { is_archived: { operator: "equals", value: 0 } },
+      orderBy: "name",
+      orderDirection: "asc",
+    });
+    records.push(...result.items);
+    totalPages = Math.max(result.totalPages, 1);
+    page += 1;
+  } while (page <= totalPages);
+
+  return records;
+}
+
+function positiveId(value: unknown): number | null {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function PermissionSwitch({
