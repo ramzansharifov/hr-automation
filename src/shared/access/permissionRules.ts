@@ -2,6 +2,7 @@ import type { AccessScopeType } from "../types/access";
 
 export const permissionDependencies: Record<string, string[]> = {
   "directory.view": ["profile.view"],
+  "attention.view": ["dashboard.view"],
 
   "employees.create": [
     "employees.view",
