@@ -25,6 +25,10 @@ import type {
   HrUpdateParams,
 } from "../src/shared/types/hr";
 import type {
+  DocumentTypeRecord,
+  SaveDocumentTypeParams,
+} from "../src/shared/types/documentTypes";
+import type {
   BootstrapSuperadminParams,
   BusinessContextSelection,
   BusinessContextState,
@@ -40,6 +44,10 @@ type ExtendedHrApi = HrApi & {
   getEmployeeWorkspace(): Promise<EmployeeWorkspaceData>;
   getBusinessContext(): Promise<BusinessContextState>;
   setBusinessContext(params: BusinessContextSelection): Promise<BusinessContextState>;
+  listDocumentTypes(): Promise<DocumentTypeRecord[]>;
+  saveDocumentType(params: SaveDocumentTypeParams): Promise<DocumentTypeRecord>;
+  deleteDocumentType(id: number): Promise<{ success: true }>;
+  listEmployeeDocumentTypes(employeeId: number): Promise<DocumentTypeRecord[]>;
 };
 
 function hrChannel(entity: string, action: "list" | "getById" | "create" | "update" | "delete"): string {
@@ -98,11 +106,18 @@ const hrApi: ExtendedHrApi = {
     ipcRenderer.invoke("recruitment:deleteCandidate", id),
   listEmployeeDocuments: (employeeId?: number) =>
     ipcRenderer.invoke("documents:list", employeeId),
+  listEmployeeDocumentTypes: (employeeId: number) =>
+    ipcRenderer.invoke("documents:listTypesForEmployee", employeeId),
   addEmployeeDocument: (params: AddEmployeeDocumentParams) =>
     ipcRenderer.invoke("documents:add", params),
   openEmployeeDocument: (id: number) => ipcRenderer.invoke("documents:open", id),
   deleteEmployeeDocument: (params: DeleteEmployeeDocumentParams) =>
     ipcRenderer.invoke("documents:delete", params),
+  listDocumentTypes: () => ipcRenderer.invoke("documentTypes:list"),
+  saveDocumentType: (params: SaveDocumentTypeParams) =>
+    ipcRenderer.invoke("documentTypes:save", params),
+  deleteDocumentType: (id: number) =>
+    ipcRenderer.invoke("documentTypes:delete", id),
   getLeaveOverview: (params: LeaveOverviewParams) =>
     ipcRenderer.invoke("leave:overview", params),
   saveLeaveBalance: (params: SaveLeaveBalanceParams) =>
