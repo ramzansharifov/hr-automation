@@ -15,7 +15,7 @@ import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { DataExchangePage } from "./pages/DataExchangePage";
 import { DepartmentWorkspaceRoutePage } from "./pages/DepartmentWorkspaceRoutePage";
-import { DocumentsPage } from "./pages/DocumentsPage";
+import { DocumentTypesPage } from "./pages/DocumentTypesPage";
 import { EmployeeWorkspacePage } from "./pages/EmployeeWorkspacePage";
 import { EnterpriseWorkspaceRoutePage } from "./pages/EnterpriseWorkspaceRoutePage";
 import { FiltersPage } from "./pages/FiltersPage";
@@ -63,7 +63,6 @@ function App(): JSX.Element {
             <Route path="dashboard" element={<RequirePermission anyOf={["dashboard.view"]}><RoleAwareDashboardPage /></RequirePermission>} />
             <Route path="attention" element={<Navigate to="/dashboard" replace />} />
             <Route path="analytics" element={<RequirePermission anyOf={["analytics.view"]}><AnalyticsPage /></RequirePermission>} />
-            <Route path="documents" element={<RequirePermission anyOf={["documents.view"]}><DocumentsPage /></RequirePermission>} />
             <Route path="leave-management" element={<Navigate to="/vacations" replace />} />
             <Route path="data-exchange" element={<RequirePermission anyOf={["data_exchange.import", "data_exchange.export"]}><DataExchangePage /></RequirePermission>} />
             <Route path="management/departments" element={<RequirePermission anyOf={["organization.view"]}><LeadershipDepartmentsPage /></RequirePermission>} />
@@ -74,6 +73,7 @@ function App(): JSX.Element {
             <Route path="candidates" element={<RequirePermission anyOf={["candidates.view"]}><CandidatesPage /></RequirePermission>} />
             <Route path="vacations" element={<RequirePermission anyOf={["vacations.view"]}><VacationsPage /></RequirePermission>} />
             <Route path="vacation-types" element={<RequirePermission anyOf={["vacation_types.view"]}><VacationTypesPage /></RequirePermission>} />
+            <Route path="document-types" element={<RequirePermission anyOf={["document_types.view"]}><DocumentTypesPage /></RequirePermission>} />
             <Route path="filters" element={<RequirePermission anyOf={["filters.use"]}><FiltersPage /></RequirePermission>} />
           </Route>
 
@@ -85,6 +85,7 @@ function App(): JSX.Element {
           <Route path="employees" element={<RequirePermission anyOf={["employees.view"]}><EmployeesPage /></RequirePermission>} />
           <Route path="employees/new" element={<RequirePermission anyOf={["employees.create"]}><EmployeeCreatePage /></RequirePermission>} />
           <Route path="employees/:id" element={<RequirePermission anyOf={["employees.view", "profile.view"]}><EmployeeDetailsPage /></RequirePermission>} />
+          <Route path="documents" element={<Navigate to="/employees" replace />} />
 
           <Route path="users" element={<RequirePermission anyOf={["users.view"]}><AccessUsersRoutePage /></RequirePermission>} />
           <Route path="roles" element={<RequirePermission anyOf={["roles.view"]}><AccessRolesPage /></RequirePermission>} />
