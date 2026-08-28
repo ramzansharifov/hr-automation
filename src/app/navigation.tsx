@@ -27,6 +27,7 @@ export interface AppNavigationItem {
   path: string;
   icon: IconType;
   permissionCode?: string;
+  permissionCodes?: string[];
   requiredGlobalScope?: boolean;
   employeeAccountOnly?: boolean;
   entity?: HrEntityKey;
@@ -65,7 +66,7 @@ const dataExchangeNavigationItem: AppNavigationItem = {
   titleKey: "Импорт и экспорт",
   path: "/data-exchange",
   icon: FiDatabase,
-  permissionCode: "data_exchange.export",
+  permissionCodes: ["data_exchange.import", "data_exchange.export"],
 };
 
 const myEnterpriseNavigationItem: AppNavigationItem = {
