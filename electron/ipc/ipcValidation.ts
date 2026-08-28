@@ -198,7 +198,10 @@ export const ipcValidation = {
         id: positiveId.optional(),
         name: z.string().max(100),
         description: z.string().max(1000).optional(),
-        permissionCodes: z.array(z.string().max(100)).max(200),
+        permissionCodes: z.array(z.string().max(100)).max(300),
+        scopeType: z.enum(["global", "enterprise", "department"]).optional(),
+        enterpriseId: positiveId.nullable().optional(),
+        departmentId: positiveId.nullable().optional(),
       })
       .parse(value);
   },
