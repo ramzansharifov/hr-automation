@@ -121,7 +121,7 @@ export function registerAccessIpcHandlers(): void {
 
     const targetScope = before
       ? writeScopeFromRole(before)
-      : resolveCreateRoleScope(database, session, actorScope, params);
+      : resolveCreateRoleScope(database, actorScope, params);
     if (before) assertRequestedScopeMatchesExistingRole(params, before);
 
     assertCanDelegatePermissionCodes(
@@ -358,7 +358,6 @@ function managementScopeFromSession(session: AuthSession): AccessRoleWriteScope 
 
 function resolveCreateRoleScope(
   database: AccessDatabase,
-  session: AuthSession,
   actorScope: AccessRoleWriteScope,
   params: SaveAccessRoleParams,
 ): AccessRoleWriteScope {
