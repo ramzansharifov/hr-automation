@@ -35,6 +35,13 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
     ],
   },
   {
+    key: "documents",
+    title: "Документы сотрудников",
+    description: "Просмотр и работа с файлами во вкладке «Документы» карточки сотрудника.",
+    group: "Основное",
+    permissionCodes: ["documents.view", "documents.add", "documents.delete"],
+  },
+  {
     key: "organization",
     title: "Предприятия",
     description: "Предприятия, отделы, должности и руководители.",
@@ -102,6 +109,18 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
       "vacation_types.create",
       "vacation_types.edit",
       "vacation_types.delete",
+    ],
+  },
+  {
+    key: "document-types",
+    title: "Типы документов",
+    description: "Администрирование справочника типов кадровых документов предприятия.",
+    group: "Администрирование",
+    permissionCodes: [
+      "document_types.view",
+      "document_types.create",
+      "document_types.edit",
+      "document_types.delete",
     ],
   },
   {
