@@ -258,8 +258,8 @@ export interface EmployeeDocumentSummary {
   employeeId: number;
   employmentHistoryId: number | null;
   employeeName: string;
-  enterpriseIdSnapshot: number | null;
-  enterpriseNameSnapshot: string | null;
+  enterpriseIdSnapshot?: number | null;
+  enterpriseNameSnapshot?: string | null;
   documentType: string;
   title: string;
   originalName: string;
