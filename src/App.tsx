@@ -20,7 +20,6 @@ import { EmployeeWorkspacePage } from "./pages/EmployeeWorkspacePage";
 import { EnterpriseWorkspaceRoutePage } from "./pages/EnterpriseWorkspaceRoutePage";
 import { FiltersPage } from "./pages/FiltersPage";
 import { LeadershipDepartmentsPage } from "./pages/LeadershipDepartmentsPage";
-import { LeaveManagementPage } from "./pages/LeaveManagementPage";
 import { OrganizationDetailsPage } from "./pages/OrganizationDetailsPage";
 import { OrganizationHierarchyPage } from "./pages/OrganizationHierarchyPage";
 import { RoleAwareDashboardPage } from "./pages/RoleAwareDashboardPage";
@@ -65,7 +64,7 @@ function App(): JSX.Element {
             <Route path="attention" element={<Navigate to="/dashboard" replace />} />
             <Route path="analytics" element={<RequirePermission anyOf={["analytics.view"]}><AnalyticsPage /></RequirePermission>} />
             <Route path="documents" element={<RequirePermission anyOf={["documents.view"]}><DocumentsPage /></RequirePermission>} />
-            <Route path="leave-management" element={<RequirePermission anyOf={["leave.view"]}><LeaveManagementPage /></RequirePermission>} />
+            <Route path="leave-management" element={<Navigate to="/vacations" replace />} />
             <Route path="data-exchange" element={<RequirePermission anyOf={["data_exchange.import", "data_exchange.export"]}><DataExchangePage /></RequirePermission>} />
             <Route path="management/departments" element={<RequirePermission anyOf={["organization.view"]}><LeadershipDepartmentsPage /></RequirePermission>} />
             <Route path="vacancies" element={<RequirePermission anyOf={["vacancies.view"]}><VacanciesPage /></RequirePermission>} />
