@@ -17,7 +17,11 @@ export const permissionDependencies: Record<string, string[]> = {
   "organization.create": ["organization.view"],
   "organization.edit": ["organization.view"],
   "organization.delete": ["organization.view"],
-  "organization.assign_leader": ["organization.view", "employees.view", "employees.change_employment"],
+  "organization.assign_leader": [
+    "organization.view",
+    "employees.view",
+    "employees.change_employment",
+  ],
 
   "vacations.create": ["vacations.view", "employees.view", "vacation_types.view"],
   "vacations.edit": ["vacations.view", "employees.view", "vacation_types.view"],
@@ -44,10 +48,6 @@ export const permissionDependencies: Record<string, string[]> = {
   "documents.view": ["employees.view"],
   "documents.add": ["documents.view", "employees.view"],
   "documents.delete": ["documents.view", "employees.view"],
-
-  "leave.view": ["vacations.view", "employees.view"],
-  "leave.manage": ["leave.view", "vacations.view", "employees.view"],
-  "leave.calendar_manage": ["leave.view", "organization.view"],
 
   "data_exchange.import": ["employees.view", "organization.view"],
   "data_exchange.export": ["employees.view"],
@@ -77,6 +77,9 @@ export const legacyPermissionCodes = new Set([
   "settings.manage",
   "payroll.view",
   "payroll.manage",
+  "leave.view",
+  "leave.manage",
+  "leave.calendar_manage",
 ]);
 
 export const globalOnlyPermissionCodes = new Set([
@@ -93,15 +96,13 @@ export const enterpriseLevelPermissionCodes = new Set([
   "document_types.create",
   "document_types.edit",
   "document_types.delete",
-  "leave.calendar_manage",
 ]);
 
-// Operational HR modules are tenant-bound. The platform superadmin keeps these
-// permissions in the system role, but they have no effective scope until an
-// enterprise workspace is selected. Employees intentionally remain a global
-// cross-enterprise registry; employee documents now live inside employee cards,
-// so document file permissions follow the opened employee rather than requiring
-// a workspace selection. Catalogs remain enterprise-scoped administrative data.
+// Operational HR modules are bound to an enterprise workspace whenever the
+// underlying permission has global scope. "global" means the whole company that
+// owns this installation; a company-wide employee or superadmin can therefore
+// choose which enterprise/department to work in without changing the role itself.
+// Employees intentionally remain a global cross-enterprise registry.
 export const businessContextPermissionCodes = new Set([
   "dashboard.view",
   "vacations.view",
@@ -126,9 +127,6 @@ export const businessContextPermissionCodes = new Set([
   "candidates.edit",
   "candidates.delete",
   "candidates.hire",
-  "leave.view",
-  "leave.manage",
-  "leave.calendar_manage",
   "attention.view",
   "analytics.view",
   "data_exchange.import",
@@ -176,8 +174,6 @@ const elevatedPermissionCodes = new Set([
   "candidates.hire",
   "vacation_types.delete",
   "document_types.delete",
-  "leave.manage",
-  "leave.calendar_manage",
   "data_exchange.import",
   "users.reset_password",
   "settings.backups_create",
