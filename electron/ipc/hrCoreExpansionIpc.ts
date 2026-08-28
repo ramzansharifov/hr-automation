@@ -6,10 +6,7 @@ import type {
   DeleteEmployeeDocumentParams,
   ExportDataParams,
   HrLeadershipChangeParams,
-  LeaveOverviewParams,
   PreviewEmployeeImportParams,
-  SaveLeaveBalanceParams,
-  SaveWorkCalendarDayParams,
 } from "../../src/shared/types/hr";
 import { getDatabase } from "../database/connection";
 import { AuditService } from "../services/auditService";
@@ -110,46 +107,6 @@ export function registerHrCoreExpansionIpcHandlers(): void {
       null,
       null,
       { reason: params.reason },
-    );
-    return result;
-  });
-
-  ipcMain.handle("leave:overview", (event, raw: unknown) => {
-    assertTrustedSender(event);
-    const session = authorizationService.requirePermission("leave.view");
-    return service.getLeaveOverview(raw as LeaveOverviewParams, session);
-  });
-
-  ipcMain.handle("leave:saveBalance", (event, raw: unknown) => {
-    assertTrustedSender(event);
-    const session = authorizationService.requirePermission("leave.manage");
-    const params = raw as SaveLeaveBalanceParams;
-    const result = service.saveLeaveBalance(params, session);
-    auditService.record(
-      authenticationService.requireSession(),
-      "leave.balance.update",
-      "employees",
-      params.employeeId,
-      null,
-      null,
-      { year: params.year },
-    );
-    return result;
-  });
-
-  ipcMain.handle("leave:saveCalendarDay", (event, raw: unknown) => {
-    assertTrustedSender(event);
-    const session = authorizationService.requirePermission("leave.calendar_manage");
-    const params = raw as SaveWorkCalendarDayParams;
-    const result = service.saveWorkCalendarDay(params, session);
-    auditService.record(
-      authenticationService.requireSession(),
-      "leave.calendar.update",
-      "enterprises",
-      params.enterpriseId,
-      null,
-      null,
-      { date: params.date, isWorkday: params.isWorkday, name: params.name ?? null },
     );
     return result;
   });
