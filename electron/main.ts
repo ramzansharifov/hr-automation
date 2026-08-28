@@ -168,12 +168,17 @@ function createWindow(): void {
                 last_name: 'Тестов',
                 first_name: 'Сотрудник',
                 hire_date: '2026-01-01',
+                lifecycle_status: 'active',
+                employment_started_at: '2026-01-01',
                 salary: 1000,
                 status: 'active'
               }
             })
             e2eEmployeeId = Number(employee.id)
-            employeeOwnershipReady = Number(employee.enterprise_id) === e2eEnterpriseId
+            employeeOwnershipReady =
+              Number(employee.enterprise_id) === e2eEnterpriseId &&
+              employee.status === 'active' &&
+              employee.lifecycle_status === 'active'
 
             businessContext = await window.hrApi.setBusinessContext({
               enterpriseId: e2eEnterpriseId,
@@ -199,6 +204,7 @@ function createWindow(): void {
             typeof window.hrApi.saveWorkCalendarDay === 'undefined'
 
           let customRoleScopeReady = false
+          let customRoleAccountReady = false
           let customRoleCrudReady = false
           let customRoleDeleteDenied = false
           let customRoleForeignScopeDenied = false
@@ -240,8 +246,12 @@ function createWindow(): void {
               customRole?.permissionCodes?.includes('employee_education.create') &&
               !customRole?.permissionCodes?.includes('employee_education.edit')
 
+            if (!customRoleScopeReady) {
+              throw new Error('Custom role scope or dependency normalization is invalid')
+            }
+
             const customPassword = 'E2E-Role-2026!'
-            await window.hrApi.saveAccessUser({
+            const customUser = await window.hrApi.saveAccessUser({
               employeeId: e2eEmployeeId,
               username: 'e2e.department.editor',
               status: 'active',
@@ -249,6 +259,36 @@ function createWindow(): void {
               password: customPassword,
               mustChangePassword: false
             })
+            const accountEmployee = await window.hrApi.getById({
+              entity: 'employees',
+              id: e2eEmployeeId
+            })
+            customRoleAccountReady =
+              customUser?.status === 'active' &&
+              Number(customUser?.employeeId) === e2eEmployeeId &&
+              customUser?.roles?.some((role) => Number(role.id) === Number(customRole.id)) &&
+              customUser?.effectivePermissionCodes?.includes('positions.create') &&
+              customUser?.effectivePermissionCodes?.includes('positions.edit') &&
+              customUser?.effectivePermissionCodes?.includes('employee_education.create') &&
+              !customUser?.effectivePermissionCodes?.includes('positions.delete') &&
+              accountEmployee?.status === 'active' &&
+              accountEmployee?.lifecycle_status === 'active' &&
+              Number(accountEmployee?.department_id) === e2eDepartmentId
+
+            if (!customRoleAccountReady) {
+              throw new Error(
+                'Custom role account pre-login state is invalid: ' +
+                JSON.stringify({
+                  userStatus: customUser?.status,
+                  employeeId: customUser?.employeeId,
+                  roles: customUser?.roles,
+                  effectivePermissionCodes: customUser?.effectivePermissionCodes,
+                  employeeStatus: accountEmployee?.status,
+                  lifecycleStatus: accountEmployee?.lifecycle_status,
+                  departmentId: accountEmployee?.department_id
+                })
+              )
+            }
 
             await window.hrApi.logout()
             const customSession = await window.hrApi.login({
@@ -388,6 +428,7 @@ function createWindow(): void {
               documentTypes.length >= 6 &&
               documentTypes.every((type) => type.enterpriseId === businessContext.enterpriseId),
             customRoleScopeReady,
+            customRoleAccountReady,
             customRoleCrudReady,
             customRoleDeleteDenied,
             customRoleForeignScopeDenied,
@@ -412,6 +453,7 @@ function createWindow(): void {
           !result?.analyticsReady ||
           !result?.documentTypesReady ||
           !result?.customRoleScopeReady ||
+          !result?.customRoleAccountReady ||
           !result?.customRoleCrudReady ||
           !result?.customRoleDeleteDenied ||
           !result?.customRoleForeignScopeDenied ||
