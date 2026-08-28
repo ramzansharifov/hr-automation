@@ -1,8 +1,9 @@
-import type { AuthSession, BusinessContextSelection, BusinessContextState } from "../../src/shared/types/access";
-import {
-  businessContextPermissionCodes,
-  enterpriseLevelPermissionCodes,
-} from "../../src/shared/access/permissionRules";
+import type {
+  AuthSession,
+  BusinessContextSelection,
+  BusinessContextState,
+} from "../../src/shared/types/access";
+import { businessContextPermissionCodes } from "../../src/shared/access/permissionRules";
 import { getDatabase } from "../database/connection";
 
 let selectedEnterpriseId: number | null = null;
@@ -24,8 +25,15 @@ export function resetBusinessContext(): void {
   selectedDepartmentId = null;
 }
 
+export function canSelectBusinessContext(session: AuthSession): boolean {
+  if (session.employeeId === 0) return true;
+  return [...businessContextPermissionCodes].some(
+    (permissionCode) => session.permissionScopes[permissionCode] === "global",
+  );
+}
+
 export function getBusinessContextState(session: AuthSession): BusinessContextState {
-  if (session.employeeId !== 0) {
+  if (!canSelectBusinessContext(session)) {
     return {
       enterpriseId: session.enterpriseId,
       enterpriseName: session.enterpriseName,
@@ -110,8 +118,10 @@ export function setBusinessContext(
   session: AuthSession,
   selection: BusinessContextSelection,
 ): BusinessContextState {
-  if (session.employeeId !== 0) {
-    throw new Error("Рабочий контекст предприятия выбирает только системный superadmin");
+  if (!canSelectBusinessContext(session)) {
+    throw new Error(
+      "Выбор предприятия доступен только роли с глобальной областью HR-данных",
+    );
   }
 
   const enterpriseId = normalizeId(selection.enterpriseId);
@@ -129,7 +139,9 @@ export function setBusinessContext(
          LIMIT 1`,
       )
       .get(enterpriseId);
-    if (!enterprise) throw new Error("Предприятие не найдено или находится в архиве");
+    if (!enterprise) {
+      throw new Error("Предприятие не найдено или находится в архиве");
+    }
   }
 
   if (departmentId) {
@@ -140,7 +152,9 @@ export function setBusinessContext(
          LIMIT 1`,
       )
       .get(departmentId, enterpriseId);
-    if (!department) throw new Error("Отдел не принадлежит выбранному предприятию");
+    if (!department) {
+      throw new Error("Отдел не принадлежит выбранному предприятию");
+    }
   }
 
   selectedEnterpriseId = enterpriseId;
@@ -148,32 +162,12 @@ export function setBusinessContext(
   return getBusinessContextState(session);
 }
 
+// Business context is resolved per permission in AuthorizationService. Keeping the
+// authentication session itself unchanged is important for employee accounts that
+// combine a company-wide role with enterprise/department-local roles: selecting a
+// workspace must never move those local grants to another enterprise.
 export function applyBusinessContextToSession(session: AuthSession): AuthSession {
-  if (session.employeeId !== 0) return session;
-
-  const context = getBusinessContextState(session);
-  const permissionScopes = { ...session.permissionScopes };
-
-  for (const permissionCode of businessContextPermissionCodes) {
-    if (!permissionScopes[permissionCode]) continue;
-    if (!context.enterpriseId) {
-      delete permissionScopes[permissionCode];
-      continue;
-    }
-    permissionScopes[permissionCode] =
-      context.departmentId && !enterpriseLevelPermissionCodes.has(permissionCode)
-        ? "department"
-        : "enterprise";
-  }
-
-  return {
-    ...session,
-    enterpriseId: context.enterpriseId,
-    enterpriseName: context.enterpriseName,
-    departmentId: context.departmentId,
-    departmentName: context.departmentName,
-    permissionScopes,
-  };
+  return session;
 }
 
 function normalizeId(value: number | null): number | null {
