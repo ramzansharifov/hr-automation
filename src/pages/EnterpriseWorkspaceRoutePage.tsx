@@ -43,7 +43,7 @@ function EnterpriseAdminWorkspace(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [refreshIndex, setRefreshIndex] = useState(0);
-  const canEdit = hasPermission("organization.edit");
+  const canEdit = hasPermission("enterprises.edit");
 
   useEffect(() => {
     let active = true;
