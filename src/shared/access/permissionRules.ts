@@ -77,9 +77,6 @@ export const legacyPermissionCodes = new Set([
   "settings.manage",
   "payroll.view",
   "payroll.manage",
-  "leave.view",
-  "leave.manage",
-  "leave.calendar_manage",
 ]);
 
 export const globalOnlyPermissionCodes = new Set([
