@@ -61,7 +61,6 @@ export function HrEntityDialog({
 
   return (
     <Dialog
-      description={t('forms.dialogDescription')}
       footer={
         <div className="flex flex-wrap justify-end gap-3">
           <Button disabled={isSubmitting} onClick={() => onOpenChange(false)} variant="secondary">
