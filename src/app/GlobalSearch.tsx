@@ -52,7 +52,9 @@ export function GlobalSearch(): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
 
   const canSearchEmployees = hasPermission("employees.view");
-  const canSearchOrganization = hasPermission("organization.view");
+  const canSearchEnterprises = hasPermission("enterprises.view");
+  const canSearchDepartments = hasPermission("departments.view");
+  const canSearchPositions = hasPermission("positions.view");
   const canSearchVacancies = hasPermission("vacancies.view");
   const canSearchCandidates = hasPermission("candidates.view");
   const trimmedQuery = query.trim();
@@ -102,7 +104,7 @@ export function GlobalSearch(): JSX.Element {
                 })
                 .catch(() => null)
             : Promise.resolve(null),
-          canSearchOrganization
+          canSearchEnterprises
             ? hrApiClient
                 .list({
                   entity: "enterprises",
@@ -113,7 +115,7 @@ export function GlobalSearch(): JSX.Element {
                 })
                 .catch(() => null)
             : Promise.resolve(null),
-          canSearchOrganization
+          canSearchDepartments
             ? hrApiClient
                 .list({
                   entity: "departments",
@@ -124,7 +126,7 @@ export function GlobalSearch(): JSX.Element {
                 })
                 .catch(() => null)
             : Promise.resolve(null),
-          canSearchOrganization
+          canSearchPositions
             ? hrApiClient
                 .list({
                   entity: "positions",
@@ -218,8 +220,10 @@ export function GlobalSearch(): JSX.Element {
     };
   }, [
     canSearchCandidates,
+    canSearchDepartments,
     canSearchEmployees,
-    canSearchOrganization,
+    canSearchEnterprises,
+    canSearchPositions,
     canSearchVacancies,
     hasQuery,
     trimmedQuery,
