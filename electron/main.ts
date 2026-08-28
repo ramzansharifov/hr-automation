@@ -4,6 +4,7 @@ import { initializeDatabase } from './database'
 import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { registerAccessIpcHandlers } from './ipc/accessIpc'
 import { registerBusinessContextIpcHandlers } from './ipc/businessContextIpc'
+import { registerDocumentTypesIpcHandlers } from './ipc/documentTypesIpc'
 import { registerEmployeeWorkspaceIpcHandlers } from './ipc/employeeWorkspaceIpc'
 import { registerEnterpriseTenantIpcHandlers } from './ipc/enterpriseTenantIpc'
 import { registerHrCoreExpansionIpcHandlers } from './ipc/hrCoreExpansionIpc'
@@ -128,7 +129,8 @@ function createWindow(): void {
               scopes['employees.view'] === 'global' &&
               scopes['analytics.view'] === 'department' &&
               scopes['leave.calendar_manage'] === 'enterprise' &&
-              scopes['vacation_types.create'] === 'enterprise'
+              scopes['vacation_types.create'] === 'enterprise' &&
+              scopes['document_types.create'] === 'enterprise'
           }
 
           const dashboard = await window.hrApi.dashboard()
@@ -200,6 +202,7 @@ app.whenReady().then(() => {
   registerAccessIpcHandlers()
   registerEnterpriseTenantIpcHandlers()
   registerHrCoreExpansionIpcHandlers()
+  registerDocumentTypesIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
