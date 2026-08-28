@@ -40,13 +40,17 @@ import {
 } from "../related-records/model";
 
 interface EmployeeRelatedRecordsProps {
-  canManage: boolean;
+  canCreate: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
   employeeId: number;
   locale: string;
 }
 
 export function EmployeeEducationPanel({
-  canManage,
+  canCreate,
+  canDelete,
+  canEdit,
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
@@ -103,7 +107,7 @@ export function EmployeeEducationPanel({
   }
 
   function openCreate(): void {
-    if (!canManage) return;
+    if (!canCreate) return;
     setEditingId(null);
     setError("");
     setFormValues(educationDefaults);
@@ -111,7 +115,7 @@ export function EmployeeEducationPanel({
   }
 
   function openEdit(record: HrRecord): void {
-    if (!canManage) return;
+    if (!canEdit) return;
     const id = getRecordId(record);
     if (!id) return;
     setEditingId(id);
@@ -136,6 +140,10 @@ export function EmployeeEducationPanel({
 
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (editingId ? !canEdit : !canCreate) {
+      toast.error("Недостаточно прав для выполнения действия");
+      return;
+    }
     const validationError = validateEducation(formValues, t);
     if (validationError) {
       setError(validationError);
@@ -161,6 +169,7 @@ export function EmployeeEducationPanel({
   }
 
   async function remove(): Promise<void> {
+    if (!canDelete) return;
     const id = getRecordId(deleteTarget);
     if (!id) return;
     setIsSubmitting(true);
@@ -182,7 +191,7 @@ export function EmployeeEducationPanel({
         actionLabel={t("employeesDetails.education.formTitle")}
         description={t("employeesDetails.education.description")}
         icon={<FiBookOpen className="h-6 w-6" />}
-        onAction={canManage ? openCreate : undefined}
+        onAction={canCreate ? openCreate : undefined}
         recordCount={records.length}
         title={t("employeesDetails.sections.education")}
       />
@@ -194,69 +203,71 @@ export function EmployeeEducationPanel({
         renderRecord={(record) => (
           <EducationRecordCard
             locale={locale}
-            onDelete={canManage ? () => setDeleteTarget(record) : undefined}
-            onEdit={canManage ? () => openEdit(record) : undefined}
+            onDelete={canDelete ? () => setDeleteTarget(record) : undefined}
+            onEdit={canEdit ? () => openEdit(record) : undefined}
             record={record}
             t={t}
           />
         )}
       />
 
-      {canManage && (
-        <>
-          <Dialog
-            description={t("employeesDetails.education.description")}
-            onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
-            open={isDialogOpen}
-            title={t(editingId ? "employeesDetails.education.editTitle" : "employeesDetails.education.formTitle")}
-          >
-            <form className="grid gap-4" onSubmit={save}>
-              <RelatedSelectField
-                label={t("forms.fields.educationDegree")}
-                onValueChange={(value) => updateField("education_level", value)}
-                options={educationLevelOptions}
-                placeholder={t("forms.placeholders.select")}
-                value={formValues.education_level}
-              />
-              <RelatedTextField
-                label={t("forms.fields.institutionName")}
-                onChange={(value) => updateField("institution_name", value)}
-                required
-                value={formValues.institution_name}
-              />
-              <RelatedTextField
-                label={t("forms.fields.speciality")}
-                onChange={(value) => updateField("speciality", value)}
-                value={formValues.speciality}
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <RelatedTextField label={t("forms.fields.startedAt")} onChange={(value) => updateField("started_at", value)} type="date" value={formValues.started_at} />
-                <RelatedTextField label={t("forms.fields.endedAt")} onChange={(value) => updateField("ended_at", value)} type="date" value={formValues.ended_at} />
-              </div>
-              <RelatedTextField
-                label={t("forms.fields.documentNumber")}
-                onChange={(value) => updateField("document_number", value)}
-                value={formValues.document_number}
-              />
-              <FieldError message={error} />
-              <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
-            </form>
-          </Dialog>
-          <DeleteDialog
-            deleteTarget={deleteTarget}
-            isSubmitting={isSubmitting}
-            onConfirm={remove}
-            onOpenChange={setDeleteTarget}
-            t={t}
-          />
-        </>
+      {(canCreate || canEdit) && (
+        <Dialog
+          description={t("employeesDetails.education.description")}
+          onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
+          open={isDialogOpen}
+          title={t(editingId ? "employeesDetails.education.editTitle" : "employeesDetails.education.formTitle")}
+        >
+          <form className="grid gap-4" onSubmit={save}>
+            <RelatedSelectField
+              label={t("forms.fields.educationDegree")}
+              onValueChange={(value) => updateField("education_level", value)}
+              options={educationLevelOptions}
+              placeholder={t("forms.placeholders.select")}
+              value={formValues.education_level}
+            />
+            <RelatedTextField
+              label={t("forms.fields.institutionName")}
+              onChange={(value) => updateField("institution_name", value)}
+              required
+              value={formValues.institution_name}
+            />
+            <RelatedTextField
+              label={t("forms.fields.speciality")}
+              onChange={(value) => updateField("speciality", value)}
+              value={formValues.speciality}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <RelatedTextField label={t("forms.fields.startedAt")} onChange={(value) => updateField("started_at", value)} type="date" value={formValues.started_at} />
+              <RelatedTextField label={t("forms.fields.endedAt")} onChange={(value) => updateField("ended_at", value)} type="date" value={formValues.ended_at} />
+            </div>
+            <RelatedTextField
+              label={t("forms.fields.documentNumber")}
+              onChange={(value) => updateField("document_number", value)}
+              value={formValues.document_number}
+            />
+            <FieldError message={error} />
+            <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
+          </form>
+        </Dialog>
+      )}
+      {canDelete && (
+        <DeleteDialog
+          deleteTarget={deleteTarget}
+          isSubmitting={isSubmitting}
+          onConfirm={remove}
+          onOpenChange={setDeleteTarget}
+          t={t}
+        />
       )}
     </div>
   );
 }
 
 export function EmployeeExperiencePanel({
-  canManage,
+  canCreate,
+  canDelete,
+  canEdit,
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
@@ -302,7 +313,7 @@ export function EmployeeExperiencePanel({
   }
 
   function openCreate(): void {
-    if (!canManage) return;
+    if (!canCreate) return;
     setEditingId(null);
     setError("");
     setFormValues(experienceDefaults);
@@ -310,7 +321,7 @@ export function EmployeeExperiencePanel({
   }
 
   function openEdit(record: HrRecord): void {
-    if (!canManage) return;
+    if (!canEdit) return;
     const id = getRecordId(record);
     if (!id) return;
     setEditingId(id);
@@ -335,6 +346,10 @@ export function EmployeeExperiencePanel({
 
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (editingId ? !canEdit : !canCreate) {
+      toast.error("Недостаточно прав для выполнения действия");
+      return;
+    }
     const validationError = validateExperience(formValues, t);
     if (validationError) {
       setError(validationError);
@@ -360,6 +375,7 @@ export function EmployeeExperiencePanel({
   }
 
   async function remove(): Promise<void> {
+    if (!canDelete) return;
     const id = getRecordId(deleteTarget);
     if (!id) return;
     setIsSubmitting(true);
@@ -381,7 +397,7 @@ export function EmployeeExperiencePanel({
         actionLabel={t("employeesDetails.experience.formTitle")}
         description={t("employeesDetails.experience.description")}
         icon={<FiBriefcase className="h-6 w-6" />}
-        onAction={canManage ? openCreate : undefined}
+        onAction={canCreate ? openCreate : undefined}
         recordCount={records.length}
         title={t("employeesDetails.sections.experience")}
       />
@@ -393,51 +409,51 @@ export function EmployeeExperiencePanel({
         renderRecord={(record) => (
           <ExperienceRecordCard
             locale={locale}
-            onDelete={canManage ? () => setDeleteTarget(record) : undefined}
-            onEdit={canManage ? () => openEdit(record) : undefined}
+            onDelete={canDelete ? () => setDeleteTarget(record) : undefined}
+            onEdit={canEdit ? () => openEdit(record) : undefined}
             record={record}
             t={t}
           />
         )}
       />
 
-      {canManage && (
-        <>
-          <Dialog
-            description={t("employeesDetails.experience.description")}
-            onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
-            open={isDialogOpen}
-            title={t(editingId ? "employeesDetails.experience.editTitle" : "employeesDetails.experience.formTitle")}
-          >
-            <form className="grid gap-4" onSubmit={save}>
-              <RelatedTextField label={t("forms.fields.companyName")} onChange={(value) => updateField("company_name", value)} required value={formValues.company_name} />
-              <RelatedTextField label={t("forms.fields.experiencePositionName")} onChange={(value) => updateField("position_name", value)} required value={formValues.position_name} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <RelatedTextField label={t("forms.fields.startedAt")} onChange={(value) => updateField("started_at", value)} type="date" value={formValues.started_at} />
-                <RelatedTextField disabled={formValues.is_current === "1"} label={t("forms.fields.endedAt")} onChange={(value) => updateField("ended_at", value)} type="date" value={formValues.ended_at} />
-              </div>
-              <RelatedToggleField
-                checked={formValues.is_current === "1"}
-                label={t("forms.fields.isCurrent")}
-                onCheckedChange={(checked) => updateField("is_current", checked ? "1" : "0")}
-              />
-              <RelatedTextareaField
-                label={t("forms.fields.responsibilities")}
-                onChange={(value) => updateField("responsibilities", value)}
-                value={formValues.responsibilities}
-              />
-              <FieldError message={error} />
-              <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
-            </form>
-          </Dialog>
-          <DeleteDialog
-            deleteTarget={deleteTarget}
-            isSubmitting={isSubmitting}
-            onConfirm={remove}
-            onOpenChange={setDeleteTarget}
-            t={t}
-          />
-        </>
+      {(canCreate || canEdit) && (
+        <Dialog
+          description={t("employeesDetails.experience.description")}
+          onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
+          open={isDialogOpen}
+          title={t(editingId ? "employeesDetails.experience.editTitle" : "employeesDetails.experience.formTitle")}
+        >
+          <form className="grid gap-4" onSubmit={save}>
+            <RelatedTextField label={t("forms.fields.companyName")} onChange={(value) => updateField("company_name", value)} required value={formValues.company_name} />
+            <RelatedTextField label={t("forms.fields.experiencePositionName")} onChange={(value) => updateField("position_name", value)} required value={formValues.position_name} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <RelatedTextField label={t("forms.fields.startedAt")} onChange={(value) => updateField("started_at", value)} type="date" value={formValues.started_at} />
+              <RelatedTextField disabled={formValues.is_current === "1"} label={t("forms.fields.endedAt")} onChange={(value) => updateField("ended_at", value)} type="date" value={formValues.ended_at} />
+            </div>
+            <RelatedToggleField
+              checked={formValues.is_current === "1"}
+              label={t("forms.fields.isCurrent")}
+              onCheckedChange={(checked) => updateField("is_current", checked ? "1" : "0")}
+            />
+            <RelatedTextareaField
+              label={t("forms.fields.responsibilities")}
+              onChange={(value) => updateField("responsibilities", value)}
+              value={formValues.responsibilities}
+            />
+            <FieldError message={error} />
+            <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
+          </form>
+        </Dialog>
+      )}
+      {canDelete && (
+        <DeleteDialog
+          deleteTarget={deleteTarget}
+          isSubmitting={isSubmitting}
+          onConfirm={remove}
+          onOpenChange={setDeleteTarget}
+          t={t}
+        />
       )}
     </div>
   );
