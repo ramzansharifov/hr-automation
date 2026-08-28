@@ -175,10 +175,23 @@ function createWindow(): void {
               }
             })
             e2eEmployeeId = Number(employee.id)
+
+            const activatedEmployee = await window.hrApi.changeEmployment({
+              employeeId: e2eEmployeeId,
+              enterpriseId: e2eEnterpriseId,
+              departmentId: e2eDepartmentId,
+              positionId: Number(position.id),
+              salaryMode: 'keep',
+              effectiveAt: '2026-01-01',
+              reason: 'E2E initial employment assignment'
+            })
             employeeOwnershipReady =
-              Number(employee.enterprise_id) === e2eEnterpriseId &&
-              employee.status === 'active' &&
-              employee.lifecycle_status === 'active'
+              Number(activatedEmployee.enterprise_id) === e2eEnterpriseId &&
+              Number(activatedEmployee.department_id) === e2eDepartmentId &&
+              Number(activatedEmployee.position_id) === Number(position.id) &&
+              activatedEmployee.status === 'active' &&
+              activatedEmployee.lifecycle_status === 'active' &&
+              activatedEmployee.employment_started_at === '2026-01-01'
 
             businessContext = await window.hrApi.setBusinessContext({
               enterpriseId: e2eEnterpriseId,
