@@ -10,9 +10,9 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
   {
     key: "dashboard",
     title: "Главная",
-    description: "Сводная панель HR-показателей и событий.",
+    description: "Сводная панель HR-показателей и встроенная очередь «Требует внимания».",
     group: "Основное",
-    permissionCodes: ["dashboard.view"],
+    permissionCodes: ["dashboard.view", "attention.view"],
   },
   {
     key: "directory",
@@ -149,11 +149,25 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
     ],
   },
   {
+    key: "analytics",
+    title: "Аналитика",
+    description: "Просмотр HR-аналитики в пределах доступной области данных.",
+    group: "Основное",
+    permissionCodes: ["analytics.view"],
+  },
+  {
     key: "filters",
     title: "Фильтры",
     description: "Расширенные фильтры реестров.",
     group: "Основное",
     permissionCodes: ["filters.use"],
+  },
+  {
+    key: "data-exchange",
+    title: "Импорт и экспорт",
+    description: "Независимые разрешения на импорт кадровых данных и экспорт доступных данных.",
+    group: "Администрирование",
+    permissionCodes: ["data_exchange.import", "data_exchange.export"],
   },
   {
     key: "vacation-types",
