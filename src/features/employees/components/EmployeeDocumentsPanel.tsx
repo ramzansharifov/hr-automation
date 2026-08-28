@@ -136,19 +136,12 @@ export function EmployeeDocumentsPanel({
     <div className="grid gap-5">
       {canAdd && (
         <section className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="app-accent-soft flex h-10 w-10 items-center justify-center rounded-xl border">
-                  <FiFileText className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="app-text text-lg font-black">Добавить документ</h2>
-                  <p className="app-muted mt-1 text-sm">
-                    Тип выбирается из справочника предприятия сотрудника.
-                  </p>
-                </div>
-              </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="app-accent-soft flex h-10 w-10 items-center justify-center rounded-xl border">
+                <FiFileText className="h-5 w-5" />
+              </span>
+              <h2 className="app-text text-lg font-black">Добавить документ</h2>
             </div>
             <Button
               leftIcon={<FiRefreshCw className="h-4 w-4" />}
@@ -214,12 +207,7 @@ export function EmployeeDocumentsPanel({
 
       <section className="app-surface app-border overflow-hidden rounded-[24px] border">
         <div className="app-surface-muted app-border-soft flex items-center justify-between gap-4 border-b px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="app-text font-black">Документы сотрудника</h2>
-            <p className="app-muted mt-1 text-sm">
-              Предприятие фиксируется в момент добавления документа и не меняется при последующих переводах сотрудника.
-            </p>
-          </div>
+          <h2 className="app-text font-black">Документы сотрудника</h2>
           <span className="app-text-soft shrink-0 text-sm font-bold">
             {documents.length}
           </span>
