@@ -147,15 +147,6 @@ INSERT OR IGNORE INTO permissions (code, name, module, description) VALUES
   ('document_types.edit', 'Редактирование типов документов', 'Типы документов', 'Изменение названия и активности типа документа.'),
   ('document_types.delete', 'Удаление типов документов', 'Типы документов', 'Удаление неиспользуемого типа кадрового документа.');
 
--- Adding a document requires access to the catalog used by the picker.
-INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
-SELECT source.role_id, target.id
-FROM role_permissions AS source
-JOIN permissions AS source_permission
-  ON source_permission.id = source.permission_id
- AND source_permission.code = 'documents.add'
-JOIN permissions AS target ON target.code = 'document_types.view';
-
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
 SELECT role.id, permission.id
 FROM roles AS role
