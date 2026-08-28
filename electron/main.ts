@@ -5,6 +5,7 @@ import { registerHrCrudIpcHandlers } from './ipc/hrCrudIpc'
 import { registerAccessIpcHandlers } from './ipc/accessIpc'
 import { registerBusinessContextIpcHandlers } from './ipc/businessContextIpc'
 import { registerDocumentTypesIpcHandlers } from './ipc/documentTypesIpc'
+import { registerEmployeeDocumentsIpcHandlers } from './ipc/employeeDocumentsIpc'
 import { registerEmployeeWorkspaceIpcHandlers } from './ipc/employeeWorkspaceIpc'
 import { registerEnterpriseTenantIpcHandlers } from './ipc/enterpriseTenantIpc'
 import { registerHrCoreExpansionIpcHandlers } from './ipc/hrCoreExpansionIpc'
@@ -203,6 +204,7 @@ app.whenReady().then(() => {
   registerEnterpriseTenantIpcHandlers()
   registerHrCoreExpansionIpcHandlers()
   registerDocumentTypesIpcHandlers()
+  registerEmployeeDocumentsIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
