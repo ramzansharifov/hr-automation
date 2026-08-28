@@ -23,6 +23,10 @@ import type {
   HrUpdateParams,
 } from "../types/hr";
 import type {
+  DocumentTypeRecord,
+  SaveDocumentTypeParams,
+} from "../types/documentTypes";
+import type {
   BootstrapSuperadminParams,
   BusinessContextSelection,
   BusinessContextState,
@@ -47,6 +51,13 @@ type BusinessContextBridge = {
   setBusinessContext(params: BusinessContextSelection): Promise<BusinessContextState>;
 };
 
+type DocumentTypesBridge = {
+  listDocumentTypes(): Promise<DocumentTypeRecord[]>;
+  saveDocumentType(params: SaveDocumentTypeParams): Promise<DocumentTypeRecord>;
+  deleteDocumentType(id: number): Promise<{ success: true }>;
+  listEmployeeDocumentTypes(employeeId: number): Promise<DocumentTypeRecord[]>;
+};
+
 function getHrApi() {
   if (window.hrApi) return window.hrApi;
   throw new Error(
@@ -60,6 +71,10 @@ function getEmployeeWorkspaceBridge(): EmployeeWorkspaceBridge {
 
 function getBusinessContextBridge(): BusinessContextBridge {
   return getHrApi() as typeof window.hrApi & BusinessContextBridge;
+}
+
+function getDocumentTypesBridge(): DocumentTypesBridge {
+  return getHrApi() as typeof window.hrApi & DocumentTypesBridge;
 }
 
 function notifyAuthSessionChanged<T>(request: Promise<T>): Promise<T> {
@@ -121,14 +136,13 @@ function isOperationalWorkspacePath(pathname: string): boolean {
     "/dashboard",
     "/attention",
     "/analytics",
-    "/documents",
-    "/leave-management",
     "/data-exchange",
     "/management/departments",
     "/vacancies",
     "/candidates",
     "/vacations",
     "/vacation-types",
+    "/document-types",
   ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
@@ -184,13 +198,19 @@ export const hrApiClient = {
     notifyAuthSessionChanged(getHrApi().hireCandidate(params)),
   deleteCandidate: (id: number) =>
     notifyAuthSessionChanged(getHrApi().deleteCandidate(id)),
-  listEmployeeDocuments: (employeeId?: number) =>
+  listEmployeeDocuments: (employeeId: number) =>
     getHrApi().listEmployeeDocuments(employeeId),
+  listEmployeeDocumentTypes: (employeeId: number) =>
+    getDocumentTypesBridge().listEmployeeDocumentTypes(employeeId),
   addEmployeeDocument: (params: AddEmployeeDocumentParams) =>
     getHrApi().addEmployeeDocument(params),
   openEmployeeDocument: (id: number) => getHrApi().openEmployeeDocument(id),
   deleteEmployeeDocument: (params: DeleteEmployeeDocumentParams) =>
     getHrApi().deleteEmployeeDocument(params),
+  listDocumentTypes: () => getDocumentTypesBridge().listDocumentTypes(),
+  saveDocumentType: (params: SaveDocumentTypeParams) =>
+    getDocumentTypesBridge().saveDocumentType(params),
+  deleteDocumentType: (id: number) => getDocumentTypesBridge().deleteDocumentType(id),
   getLeaveOverview: (params: LeaveOverviewParams) =>
     getHrApi().getLeaveOverview(params),
   saveLeaveBalance: (params: SaveLeaveBalanceParams) =>
