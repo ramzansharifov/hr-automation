@@ -68,13 +68,6 @@ const documentsNavigationItem: AppNavigationItem = {
   permissionCode: "documents.view",
 };
 
-const leaveManagementNavigationItem: AppNavigationItem = {
-  titleKey: "Управление отпусками",
-  path: "/leave-management",
-  icon: FiCalendar,
-  permissionCode: "leave.view",
-};
-
 const dataExchangeNavigationItem: AppNavigationItem = {
   titleKey: "Импорт и экспорт",
   path: "/data-exchange",
@@ -168,7 +161,6 @@ export const mainNavigationItems: AppNavigationItem[] = [
   documentsNavigationItem,
   enterprisesNavigationItem,
   vacationsNavigationItem,
-  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
@@ -191,7 +183,6 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
     ...vacationsNavigationItem,
     titleKey: "Отпуска предприятия",
   },
-  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
@@ -213,7 +204,6 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
     ...vacationsNavigationItem,
     titleKey: "Отпуска отдела",
   },
-  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
@@ -235,7 +225,6 @@ const enterpriseAdminNavigationItems: AppNavigationItem[] = [
     ...vacationsNavigationItem,
     titleKey: "Отпуска предприятия",
   },
-  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
@@ -259,7 +248,6 @@ const departmentAdminNavigationItems: AppNavigationItem[] = [
     ...vacationsNavigationItem,
     titleKey: "Отпуска отдела",
   },
-  leaveManagementNavigationItem,
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
