@@ -125,9 +125,6 @@ export const legacyPermissionCodes = new Set([
   "settings.manage",
   "payroll.view",
   "payroll.manage",
-  "leave.view",
-  "leave.manage",
-  "leave.calendar_manage",
 ]);
 
 // These operations are genuinely installation-wide. A scoped role must not be
