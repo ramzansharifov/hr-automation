@@ -1,4 +1,8 @@
-import type { AuthSession, BusinessContextSelection, BusinessContextState } from "../../src/shared/types/access";
+import type {
+  AuthSession,
+  BusinessContextSelection,
+  BusinessContextState,
+} from "../../src/shared/types/access";
 import {
   businessContextPermissionCodes,
   enterpriseLevelPermissionCodes,
@@ -24,8 +28,16 @@ export function resetBusinessContext(): void {
   selectedDepartmentId = null;
 }
 
+export function canSelectBusinessContext(session: AuthSession): boolean {
+  if (session.employeeId === 0) return true;
+  if (session.scopeType !== "global") return false;
+  return session.permissionCodes.some((code) =>
+    businessContextPermissionCodes.has(code),
+  );
+}
+
 export function getBusinessContextState(session: AuthSession): BusinessContextState {
-  if (session.employeeId !== 0) {
+  if (!canSelectBusinessContext(session)) {
     return {
       enterpriseId: session.enterpriseId,
       enterpriseName: session.enterpriseName,
@@ -110,8 +122,10 @@ export function setBusinessContext(
   session: AuthSession,
   selection: BusinessContextSelection,
 ): BusinessContextState {
-  if (session.employeeId !== 0) {
-    throw new Error("Рабочий контекст предприятия выбирает только системный superadmin");
+  if (!canSelectBusinessContext(session)) {
+    throw new Error(
+      "Выбор предприятия доступен только роли с глобальной областью HR-данных",
+    );
   }
 
   const enterpriseId = normalizeId(selection.enterpriseId);
@@ -129,7 +143,9 @@ export function setBusinessContext(
          LIMIT 1`,
       )
       .get(enterpriseId);
-    if (!enterprise) throw new Error("Предприятие не найдено или находится в архиве");
+    if (!enterprise) {
+      throw new Error("Предприятие не найдено или находится в архиве");
+    }
   }
 
   if (departmentId) {
@@ -140,7 +156,9 @@ export function setBusinessContext(
          LIMIT 1`,
       )
       .get(departmentId, enterpriseId);
-    if (!department) throw new Error("Отдел не принадлежит выбранному предприятию");
+    if (!department) {
+      throw new Error("Отдел не принадлежит выбранному предприятию");
+    }
   }
 
   selectedEnterpriseId = enterpriseId;
@@ -149,21 +167,53 @@ export function setBusinessContext(
 }
 
 export function applyBusinessContextToSession(session: AuthSession): AuthSession {
-  if (session.employeeId !== 0) return session;
+  if (!canSelectBusinessContext(session)) return session;
 
   const context = getBusinessContextState(session);
+  const homeEnterpriseId = session.enterpriseId;
+  const homeDepartmentId = session.departmentId;
   const permissionScopes = { ...session.permissionScopes };
 
-  for (const permissionCode of businessContextPermissionCodes) {
-    if (!permissionScopes[permissionCode]) continue;
-    if (!context.enterpriseId) {
+  for (const [permissionCode, originalScope] of Object.entries(
+    session.permissionScopes,
+  )) {
+    const isBusinessPermission = businessContextPermissionCodes.has(permissionCode);
+
+    if (isBusinessPermission && originalScope === "global") {
+      if (!context.enterpriseId) {
+        delete permissionScopes[permissionCode];
+        continue;
+      }
+      permissionScopes[permissionCode] =
+        context.departmentId && !enterpriseLevelPermissionCodes.has(permissionCode)
+          ? "department"
+          : "enterprise";
+      continue;
+    }
+
+    if (!context.enterpriseId) continue;
+
+    // A local grant must remain attached to the employee's home organizational
+    // unit. Selecting another enterprise for a company-wide role must never make
+    // an enterprise/department-local role "travel" with the UI context.
+    if (originalScope === "enterprise" && context.enterpriseId !== homeEnterpriseId) {
       delete permissionScopes[permissionCode];
       continue;
     }
-    permissionScopes[permissionCode] =
-      context.departmentId && !enterpriseLevelPermissionCodes.has(permissionCode)
-        ? "department"
-        : "enterprise";
+    if (
+      originalScope === "department" &&
+      (context.enterpriseId !== homeEnterpriseId ||
+        context.departmentId !== homeDepartmentId)
+    ) {
+      delete permissionScopes[permissionCode];
+    }
+  }
+
+  if (!context.enterpriseId) {
+    return {
+      ...session,
+      permissionScopes,
+    };
   }
 
   return {

@@ -135,8 +135,7 @@ export function registerEnterpriseTenantIpcHandlers(): void {
   });
 
   // hrCrudIpc registers generic handlers first. Re-register create so employee
-  // tenant ownership follows the scope of employees.create specifically instead
-  // of the broadest unrelated permission the account may also have.
+  // ownership follows employees.create rather than the broadest unrelated role.
   ipcMain.removeHandler("hr:create");
   ipcMain.handle("hr:create", (event, raw: unknown) => {
     assertTrustedSender(event);
@@ -208,7 +207,13 @@ export function registerEnterpriseTenantIpcHandlers(): void {
 
 function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
   const createScope = session.permissionScopes["employees.create"];
-  if (createScope === "global") return data;
+  if (createScope === "global") {
+    const enterpriseId = positiveNumber(data.enterprise_id);
+    if (!enterpriseId) {
+      throw new Error("Выберите предприятие сотрудника");
+    }
+    return { ...data, enterprise_id: enterpriseId };
+  }
   if (createScope === "enterprise") {
     if (!session.enterpriseId) {
       throw new Error("Для текущей учётной записи не определено предприятие");
@@ -216,8 +221,6 @@ function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
     return {
       ...data,
       enterprise_id: session.enterpriseId,
-      department_id: null,
-      position_id: null,
     };
   }
   if (createScope === "department") {
@@ -228,7 +231,6 @@ function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
       ...data,
       enterprise_id: session.enterpriseId,
       department_id: session.departmentId,
-      position_id: null,
     };
   }
   throw new Error("Создание сотрудников недоступно в личной области данных");
@@ -319,7 +321,7 @@ function parseAuditListParams(raw: unknown): AuditListParams {
 
 function positiveNumber(value: unknown): number | null {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function assertTrustedSender(event: IpcMainInvokeEvent): void {

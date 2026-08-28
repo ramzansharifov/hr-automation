@@ -258,6 +258,8 @@ export interface EmployeeDocumentSummary {
   employeeId: number;
   employmentHistoryId: number | null;
   employeeName: string;
+  enterpriseIdSnapshot?: number | null;
+  enterpriseNameSnapshot?: string | null;
   documentType: string;
   title: string;
   originalName: string;
@@ -282,44 +284,6 @@ export interface AddEmployeeDocumentParams {
 export interface DeleteEmployeeDocumentParams {
   id: number;
   reason: string;
-}
-
-export interface LeaveBalanceSummary {
-  employeeId: number;
-  year: number;
-  entitlementDays: number;
-  carryoverDays: number;
-  adjustmentDays: number;
-  usedDays: number;
-  plannedDays: number;
-  remainingDays: number;
-}
-
-export interface LeaveOverview {
-  balance: LeaveBalanceSummary;
-  vacations: HrRecord[];
-  calendarDays: HrRecord[];
-  warnings: string[];
-}
-
-export interface LeaveOverviewParams {
-  employeeId: number;
-  year: number;
-}
-
-export interface SaveLeaveBalanceParams {
-  employeeId: number;
-  year: number;
-  entitlementDays: number;
-  carryoverDays: number;
-  adjustmentDays: number;
-}
-
-export interface SaveWorkCalendarDayParams {
-  enterpriseId: number;
-  date: string;
-  isWorkday: boolean;
-  name?: string;
 }
 
 export type AttentionSeverity = "info" | "warning" | "critical";
@@ -449,9 +413,6 @@ export interface HrApi {
   addEmployeeDocument(params: AddEmployeeDocumentParams): Promise<EmployeeDocumentSummary | null>;
   openEmployeeDocument(id: number): Promise<{ success: true }>;
   deleteEmployeeDocument(params: DeleteEmployeeDocumentParams): Promise<{ success: true }>;
-  getLeaveOverview(params: LeaveOverviewParams): Promise<LeaveOverview>;
-  saveLeaveBalance(params: SaveLeaveBalanceParams): Promise<LeaveBalanceSummary>;
-  saveWorkCalendarDay(params: SaveWorkCalendarDayParams): Promise<{ success: true }>;
   listAttentionItems(): Promise<AttentionItem[]>;
   getAnalytics(): Promise<HrAnalyticsReport>;
   selectEmployeeImportFile(): Promise<EmployeeImportSelection | null>;

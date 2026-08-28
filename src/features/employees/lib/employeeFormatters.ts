@@ -26,6 +26,7 @@ export function normalizePhone(value: string): string {
 export function normalizeEmployeeFormValues(values: EmployeeFormValues): EmployeeFormValues {
   return {
     ...values,
+    enterprise_id: values.enterprise_id.trim(),
     employee_number: values.employee_number.trim(),
     last_name: normalizePersonName(values.last_name),
     first_name: normalizePersonName(values.first_name),
@@ -46,6 +47,7 @@ export function normalizeEmployeeFormValues(values: EmployeeFormValues): Employe
 
 export function mapEmployeeFormValuesToRecord(values: EmployeeFormValues): HrRecord {
   return {
+    enterprise_id: nullableNumber(values.enterprise_id),
     employee_number: nullableString(values.employee_number),
     last_name: normalizePersonName(values.last_name),
     first_name: normalizePersonName(values.first_name),

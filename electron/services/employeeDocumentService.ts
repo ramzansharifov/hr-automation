@@ -276,6 +276,10 @@ function toDocumentSummary(row: Record<string, unknown>): EmployeeDocumentSummar
     employeeId: Number(row.employee_id),
     employmentHistoryId: positiveNumber(row.employment_history_id),
     employeeName: String(row.employee_name ?? "").trim(),
+    enterpriseIdSnapshot: positiveNumber(row.enterprise_id_snapshot),
+    enterpriseNameSnapshot: row.enterprise_name_snapshot
+      ? String(row.enterprise_name_snapshot)
+      : null,
     documentType: String(row.resolved_document_type ?? row.document_type ?? ""),
     title: String(row.title ?? ""),
     originalName: String(row.original_name ?? ""),

@@ -1,4 +1,5 @@
 export interface EmployeeFormValues {
+  enterprise_id: string
   employee_number: string
   last_name: string
   first_name: string
@@ -27,6 +28,7 @@ export interface EmployeeFormValues {
 }
 
 export const employeeDefaultValues: EmployeeFormValues = {
+  enterprise_id: '',
   employee_number: '',
   last_name: '',
   first_name: '',

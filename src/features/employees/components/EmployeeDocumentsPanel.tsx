@@ -217,7 +217,7 @@ export function EmployeeDocumentsPanel({
           <div>
             <h2 className="app-text font-black">Документы сотрудника</h2>
             <p className="app-muted mt-1 text-sm">
-              Файлы хранятся в защищённом локальном хранилище с проверкой целостности SHA-256.
+              Предприятие фиксируется в момент добавления документа и не меняется при последующих переводах сотрудника.
             </p>
           </div>
           <span className="app-text-soft shrink-0 text-sm font-bold">
@@ -232,7 +232,7 @@ export function EmployeeDocumentsPanel({
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left text-sm">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="app-muted text-xs font-black uppercase tracking-wide">
                 <tr>
                   <th className="px-5 py-4">Тип</th>
@@ -251,6 +251,9 @@ export function EmployeeDocumentsPanel({
                     </td>
                     <td className="px-5 py-4">
                       <p className="app-text font-bold">{document.title}</p>
+                      <p className="app-muted mt-1 text-xs">
+                        Предприятие: {document.enterpriseNameSnapshot || "Не зафиксировано"}
+                      </p>
                       {document.issuedAt && (
                         <p className="app-muted mt-1 text-xs">
                           Выдан: {formatDate(document.issuedAt)}

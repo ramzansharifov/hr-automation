@@ -305,8 +305,6 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
       "starts_at",
       "ends_at",
       "days_count",
-      "working_days_count",
-      "entitlement_year",
       "is_paid",
       "reason",
       "status",

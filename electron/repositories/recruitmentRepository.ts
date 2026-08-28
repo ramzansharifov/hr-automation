@@ -290,10 +290,12 @@ export class RecruitmentRepository {
                   vacancy.employment_type,
                   vacancy.openings_count,
                   vacancy.is_archived,
-                  position.department_id
+                  position.department_id,
+                  department.enterprise_id
            FROM candidates AS candidate
            JOIN vacancies AS vacancy ON vacancy.id = candidate.vacancy_id
            JOIN positions AS position ON position.id = vacancy.position_id
+           JOIN departments AS department ON department.id = position.department_id
            WHERE candidate.id = ? LIMIT 1`,
         )
         .get(params.candidateId) as HrRecord | undefined;
@@ -308,24 +310,24 @@ export class RecruitmentRepository {
         throw new Error("Отклонённого кандидата сначала верните в активный этап подбора");
       }
 
-      const candidateEmail = String(candidate.email ?? "").trim() || null;
-      if (candidateEmail) {
-        this.database
-          .prepare("UPDATE candidates SET email = NULL WHERE id = ?")
-          .run(params.candidateId);
+      const enterpriseId = Number(candidate.enterprise_id);
+      if (!Number.isInteger(enterpriseId) || enterpriseId < 1) {
+        throw new Error("Для вакансии не определено предприятие");
       }
+      const candidateEmail = String(candidate.email ?? "").trim() || null;
 
       const result = this.database
         .prepare(
           `INSERT INTO employees (
-             department_id, position_id, employee_number,
+             enterprise_id, department_id, position_id, employee_number,
              last_name, first_name, middle_name,
              phone, email, hire_date, status, salary, employment_type,
              contract_number, contract_date, contract_end_date,
              probation_end_date, workplace
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
+          enterpriseId,
           candidate.department_id,
           candidate.position_id,
           params.employeeNumber?.trim() || null,
@@ -345,6 +347,9 @@ export class RecruitmentRepository {
         );
       const employeeId = Number(result.lastInsertRowid);
 
+      // Candidate contact data is historical recruitment data. It is preserved
+      // after hire instead of being cleared merely to satisfy an e-mail uniqueness
+      // workaround.
       this.database
         .prepare(
           `UPDATE candidates

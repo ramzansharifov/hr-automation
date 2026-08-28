@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -25,9 +25,11 @@ import { EmployeeCreateReview } from "../../features/employees/create/EmployeeCr
 import { employeeCreateSteps } from "../../features/employees/create/employeeCreateSteps";
 import {
   EmployeeAddressFormSection,
+  EmployeeCompanyFormSection,
   EmployeePersonalFormSection,
 } from "../../features/employees/forms/EmployeeFormSections";
 import { employeeCreateSchema } from "../../features/employees/forms/employeeFormValidation";
+import { useEmployeeFormOptions } from "../../features/employees/hooks/useEmployeeFormOptions";
 
 export function EmployeeCreatePage(): JSX.Element {
   const { i18n, t } = useTranslation();
@@ -35,10 +37,13 @@ export function EmployeeCreatePage(): JSX.Element {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const genderOptions = [
-    { value: "male", label: t("common.status.male") },
-    { value: "female", label: t("common.status.female") },
-  ];
+  const {
+    departments,
+    enterprises,
+    genderOptions,
+    isRelationsLoading,
+    positions,
+  } = useEmployeeFormOptions();
   const {
     control,
     formState: { errors },
@@ -53,6 +58,45 @@ export function EmployeeCreatePage(): JSX.Element {
     resolver: zodResolver(employeeCreateSchema) as Resolver<EmployeeFormValues>,
   });
   const watchedValues = watch();
+  const enterpriseId = watch("enterprise_id");
+  const departmentId = watch("department_id");
+
+  const availableDepartments = useMemo(
+    () => departments.filter((department) => department.enterpriseId === enterpriseId),
+    [departments, enterpriseId],
+  );
+  const availablePositions = useMemo(
+    () => positions.filter((position) => position.departmentId === departmentId),
+    [departmentId, positions],
+  );
+
+  useEffect(() => {
+    if (isRelationsLoading || getValues("enterprise_id") || enterprises.length !== 1) {
+      return;
+    }
+    setValue("enterprise_id", enterprises[0].value, { shouldValidate: true });
+  }, [enterprises, getValues, isRelationsLoading, setValue]);
+
+  useEffect(() => {
+    const currentDepartmentId = getValues("department_id");
+    if (
+      currentDepartmentId &&
+      !availableDepartments.some((department) => department.value === currentDepartmentId)
+    ) {
+      setValue("department_id", "", { shouldValidate: true });
+      setValue("position_id", "", { shouldValidate: true });
+    }
+  }, [availableDepartments, getValues, setValue]);
+
+  useEffect(() => {
+    const currentPositionId = getValues("position_id");
+    if (
+      currentPositionId &&
+      !availablePositions.some((position) => position.value === currentPositionId)
+    ) {
+      setValue("position_id", "", { shouldValidate: true });
+    }
+  }, [availablePositions, getValues, setValue]);
 
   async function handleNext(): Promise<void> {
     if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) return;
@@ -131,7 +175,19 @@ export function EmployeeCreatePage(): JSX.Element {
     }
   }
 
+  function handleEnterpriseChange(value: string): void {
+    setValue("enterprise_id", value, { shouldDirty: true, shouldValidate: true });
+    setValue("department_id", "", { shouldDirty: true, shouldValidate: true });
+    setValue("position_id", "", { shouldDirty: true, shouldValidate: true });
+  }
+
   const normalizedReviewValues = normalizeEmployeeFormValues(watchedValues);
+  const enterpriseName =
+    enterprises.find((item) => item.value === normalizedReviewValues.enterprise_id)?.label ?? "";
+  const departmentName =
+    departments.find((item) => item.value === normalizedReviewValues.department_id)?.label ?? "";
+  const positionName =
+    positions.find((item) => item.value === normalizedReviewValues.position_id)?.label ?? "";
 
   return (
     <div className="app-surface app-border mx-auto max-w-6xl overflow-hidden rounded-[28px] border">
@@ -161,8 +217,27 @@ export function EmployeeCreatePage(): JSX.Element {
         )}
 
         {activeStep === 2 && (
+          <EmployeeCompanyFormSection
+            control={control}
+            departments={availableDepartments}
+            enterpriseId={enterpriseId}
+            enterprises={enterprises}
+            errors={errors}
+            isRelationsLoading={isRelationsLoading}
+            onEnterpriseChange={handleEnterpriseChange}
+            positions={availablePositions}
+            register={register}
+            selectedDepartmentId={departmentId}
+            t={t}
+          />
+        )}
+
+        {activeStep === 3 && (
           <EmployeeCreateReview
+            departmentName={departmentName}
+            enterpriseName={enterpriseName}
             locale={locale}
+            positionName={positionName}
             t={t}
             values={normalizedReviewValues}
           />
