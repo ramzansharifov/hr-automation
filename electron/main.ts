@@ -84,9 +84,26 @@ function createWindow(): void {
             })
           }
 
+          let enterpriseRequiredOnEmployee = false
+          try {
+            await window.hrApi.create({
+              entity: 'employees',
+              data: {
+                last_name: 'Без',
+                first_name: 'Предприятия',
+                hire_date: '2026-01-01',
+                salary: 0,
+                status: 'active'
+              }
+            })
+          } catch {
+            enterpriseRequiredOnEmployee = true
+          }
+
           let businessContext = await window.hrApi.getBusinessContext()
           let contextRequired = false
           let scopeModelReady = false
+          let employeeOwnershipReady = false
           if (businessContext?.requiresEnterpriseSelection && !businessContext.enterpriseId) {
             try {
               await window.hrApi.dashboard()
@@ -119,9 +136,32 @@ function createWindow(): void {
                 name: 'E2E Department'
               }
             })
+            const departmentId = Number(department.id)
+            const position = await window.hrApi.create({
+              entity: 'positions',
+              data: {
+                department_id: departmentId,
+                name: 'E2E Position'
+              }
+            })
+            const employee = await window.hrApi.create({
+              entity: 'employees',
+              data: {
+                enterprise_id: enterpriseId,
+                department_id: departmentId,
+                position_id: Number(position.id),
+                last_name: 'Тестов',
+                first_name: 'Сотрудник',
+                hire_date: '2026-01-01',
+                salary: 1000,
+                status: 'active'
+              }
+            })
+            employeeOwnershipReady = Number(employee.enterprise_id) === enterpriseId
+
             businessContext = await window.hrApi.setBusinessContext({
               enterpriseId,
-              departmentId: Number(department.id)
+              departmentId
             })
 
             const scopedAuthState = await window.hrApi.getAuthState()
@@ -129,24 +169,33 @@ function createWindow(): void {
             scopeModelReady =
               scopes['employees.view'] === 'global' &&
               scopes['analytics.view'] === 'department' &&
-              scopes['leave.calendar_manage'] === 'enterprise' &&
               scopes['vacation_types.create'] === 'enterprise' &&
-              scopes['document_types.create'] === 'enterprise'
+              scopes['document_types.create'] === 'enterprise' &&
+              scopes['leave.view'] === undefined &&
+              scopes['leave.manage'] === undefined &&
+              scopes['leave.calendar_manage'] === undefined
           }
 
           const dashboard = await window.hrApi.dashboard()
           const attention = await window.hrApi.listAttentionItems()
           const analytics = await window.hrApi.getAnalytics()
           const documentTypes = await window.hrApi.listDocumentTypes()
+          const obsoleteLeaveApiRemoved =
+            typeof window.hrApi.getLeaveOverview === 'undefined' &&
+            typeof window.hrApi.saveLeaveBalance === 'undefined' &&
+            typeof window.hrApi.saveWorkCalendarDay === 'undefined'
 
           return {
             hasRoot,
             hasApi,
             authenticated:
               session?.username === 'superadmin' && session?.mustChangePassword === false,
+            enterpriseRequiredOnEmployee,
             contextRequired,
             contextReady: Boolean(businessContext?.enterpriseId && businessContext?.departmentId),
             scopeModelReady,
+            employeeOwnershipReady,
+            obsoleteLeaveApiRemoved,
             dashboardReady: typeof dashboard?.employeesTotal === 'number',
             attentionReady: Array.isArray(attention),
             analyticsReady: Boolean(analytics && typeof analytics === 'object'),
@@ -161,9 +210,12 @@ function createWindow(): void {
           !result?.hasRoot ||
           !result?.hasApi ||
           !result?.authenticated ||
+          !result?.enterpriseRequiredOnEmployee ||
           !result?.contextRequired ||
           !result?.contextReady ||
           !result?.scopeModelReady ||
+          !result?.employeeOwnershipReady ||
+          !result?.obsoleteLeaveApiRemoved ||
           !result?.dashboardReady ||
           !result?.attentionReady ||
           !result?.analyticsReady ||
