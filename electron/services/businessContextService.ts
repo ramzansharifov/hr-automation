@@ -3,7 +3,10 @@ import type {
   BusinessContextSelection,
   BusinessContextState,
 } from "../../src/shared/types/access";
-import { businessContextPermissionCodes } from "../../src/shared/access/permissionRules";
+import {
+  businessContextPermissionCodes,
+  enterpriseLevelPermissionCodes,
+} from "../../src/shared/access/permissionRules";
 import { getDatabase } from "../database/connection";
 
 let selectedEnterpriseId: number | null = null;
@@ -27,8 +30,9 @@ export function resetBusinessContext(): void {
 
 export function canSelectBusinessContext(session: AuthSession): boolean {
   if (session.employeeId === 0) return true;
-  return [...businessContextPermissionCodes].some(
-    (permissionCode) => session.permissionScopes[permissionCode] === "global",
+  if (session.scopeType !== "global") return false;
+  return session.permissionCodes.some((code) =>
+    businessContextPermissionCodes.has(code),
   );
 }
 
@@ -162,12 +166,64 @@ export function setBusinessContext(
   return getBusinessContextState(session);
 }
 
-// Business context is resolved per permission in AuthorizationService. Keeping the
-// authentication session itself unchanged is important for employee accounts that
-// combine a company-wide role with enterprise/department-local roles: selecting a
-// workspace must never move those local grants to another enterprise.
 export function applyBusinessContextToSession(session: AuthSession): AuthSession {
-  return session;
+  if (!canSelectBusinessContext(session)) return session;
+
+  const context = getBusinessContextState(session);
+  const homeEnterpriseId = session.enterpriseId;
+  const homeDepartmentId = session.departmentId;
+  const permissionScopes = { ...session.permissionScopes };
+
+  for (const [permissionCode, originalScope] of Object.entries(
+    session.permissionScopes,
+  )) {
+    const isBusinessPermission = businessContextPermissionCodes.has(permissionCode);
+
+    if (isBusinessPermission && originalScope === "global") {
+      if (!context.enterpriseId) {
+        delete permissionScopes[permissionCode];
+        continue;
+      }
+      permissionScopes[permissionCode] =
+        context.departmentId && !enterpriseLevelPermissionCodes.has(permissionCode)
+          ? "department"
+          : "enterprise";
+      continue;
+    }
+
+    if (!context.enterpriseId) continue;
+
+    // A local grant must remain attached to the employee's home organizational
+    // unit. Selecting another enterprise for a company-wide role must never make
+    // an enterprise/department-local role "travel" with the UI context.
+    if (originalScope === "enterprise" && context.enterpriseId !== homeEnterpriseId) {
+      delete permissionScopes[permissionCode];
+      continue;
+    }
+    if (
+      originalScope === "department" &&
+      (context.enterpriseId !== homeEnterpriseId ||
+        context.departmentId !== homeDepartmentId)
+    ) {
+      delete permissionScopes[permissionCode];
+    }
+  }
+
+  if (!context.enterpriseId) {
+    return {
+      ...session,
+      permissionScopes,
+    };
+  }
+
+  return {
+    ...session,
+    enterpriseId: context.enterpriseId,
+    enterpriseName: context.enterpriseName,
+    departmentId: context.departmentId,
+    departmentName: context.departmentName,
+    permissionScopes,
+  };
 }
 
 function normalizeId(value: number | null): number | null {
