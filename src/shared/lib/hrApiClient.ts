@@ -13,13 +13,10 @@ import type {
   HrLeadershipChangeParams,
   HrListParams,
   HrTerminationParams,
-  LeaveOverviewParams,
   PreviewEmployeeImportParams,
   RecruitmentListParams,
   SaveCandidateParams,
-  SaveLeaveBalanceParams,
   SaveVacancyParams,
-  SaveWorkCalendarDayParams,
   HrUpdateParams,
 } from "../types/hr";
 import type {
@@ -211,12 +208,6 @@ export const hrApiClient = {
   saveDocumentType: (params: SaveDocumentTypeParams) =>
     getDocumentTypesBridge().saveDocumentType(params),
   deleteDocumentType: (id: number) => getDocumentTypesBridge().deleteDocumentType(id),
-  getLeaveOverview: (params: LeaveOverviewParams) =>
-    getHrApi().getLeaveOverview(params),
-  saveLeaveBalance: (params: SaveLeaveBalanceParams) =>
-    getHrApi().saveLeaveBalance(params),
-  saveWorkCalendarDay: (params: SaveWorkCalendarDayParams) =>
-    getHrApi().saveWorkCalendarDay(params),
   listAttentionItems: () => getHrApi().listAttentionItems(),
   getAnalytics: () => getHrApi().getAnalytics(),
   selectEmployeeImportFile: () => getHrApi().selectEmployeeImportFile(),
