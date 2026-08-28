@@ -314,7 +314,7 @@ interface FormCardProps {
   title: string;
 }
 
-function FormCard({ children, description, icon, title }: FormCardProps): JSX.Element {
+function FormCard({ children, icon, title }: FormCardProps): JSX.Element {
   return (
     <section className="app-surface-muted app-border rounded-[24px] border p-5 sm:p-6">
       <header className="flex items-start gap-3.5">
@@ -323,7 +323,6 @@ function FormCard({ children, description, icon, title }: FormCardProps): JSX.El
         </span>
         <div className="min-w-0">
           <h2 className="app-text text-lg font-black tracking-tight">{title}</h2>
-          <p className="app-muted mt-1 text-sm leading-5">{description}</p>
         </div>
       </header>
       <div className="app-border-soft mt-5 grid gap-4 border-t pt-5 md:grid-cols-2">
