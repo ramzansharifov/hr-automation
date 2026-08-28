@@ -65,7 +65,7 @@ function App(): JSX.Element {
             <Route path="analytics" element={<RequirePermission anyOf={["analytics.view"]}><AnalyticsPage /></RequirePermission>} />
             <Route path="leave-management" element={<Navigate to="/vacations" replace />} />
             <Route path="data-exchange" element={<RequirePermission anyOf={["data_exchange.import", "data_exchange.export"]}><DataExchangePage /></RequirePermission>} />
-            <Route path="management/departments" element={<RequirePermission anyOf={["organization.view"]}><LeadershipDepartmentsPage /></RequirePermission>} />
+            <Route path="management/departments" element={<RequirePermission anyOf={["departments.view"]}><LeadershipDepartmentsPage /></RequirePermission>} />
             <Route path="vacancies" element={<RequirePermission anyOf={["vacancies.view"]}><VacanciesPage /></RequirePermission>} />
             <Route path="vacancies/new" element={<RequirePermission anyOf={["vacancies.create"]}><VacancyFormPage /></RequirePermission>} />
             <Route path="vacancies/:id" element={<RequirePermission anyOf={["vacancies.view"]}><VacancyDetailsPage /></RequirePermission>} />
@@ -95,11 +95,11 @@ function App(): JSX.Element {
           <Route path="access" element={<Navigate to="/users" replace />} />
           <Route path="audit" element={<RequirePermission anyOf={["audit.view"]}><AuditLogPage /></RequirePermission>} />
 
-          <Route path="enterprises" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
-          <Route path="enterprises/:enterpriseId" element={<RequirePermission anyOf={["organization.view"]}><OrganizationDetailsPage /></RequirePermission>} />
-          <Route path="enterprises/:enterpriseId/departments" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
-          <Route path="enterprises/:enterpriseId/departments/:departmentId" element={<RequirePermission anyOf={["organization.view"]}><OrganizationDetailsPage /></RequirePermission>} />
-          <Route path="enterprises/:enterpriseId/departments/:departmentId/positions" element={<RequirePermission anyOf={["organization.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
+          <Route path="enterprises" element={<RequirePermission anyOf={["enterprises.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
+          <Route path="enterprises/:enterpriseId" element={<RequirePermission anyOf={["enterprises.view"]}><OrganizationDetailsPage /></RequirePermission>} />
+          <Route path="enterprises/:enterpriseId/departments" element={<RequirePermission anyOf={["departments.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
+          <Route path="enterprises/:enterpriseId/departments/:departmentId" element={<RequirePermission anyOf={["departments.view"]}><OrganizationDetailsPage /></RequirePermission>} />
+          <Route path="enterprises/:enterpriseId/departments/:departmentId/positions" element={<RequirePermission anyOf={["positions.view"]}><OrganizationHierarchyPage /></RequirePermission>} />
           <Route path="departments" element={<Navigate to="/enterprises" replace />} />
           <Route path="positions" element={<Navigate to="/enterprises" replace />} />
 

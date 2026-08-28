@@ -77,6 +77,9 @@ export interface SaveAccessRoleParams {
   name: string;
   description?: string;
   permissionCodes: string[];
+  scopeType?: Exclude<AccessScopeType, "self">;
+  enterpriseId?: number | null;
+  departmentId?: number | null;
 }
 
 export interface SaveAccessUserParams {

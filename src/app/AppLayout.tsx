@@ -167,6 +167,13 @@ export function AppLayout(): JSX.Element {
     if (item.employeeAccountOnly && session.employeeId <= 0) return false;
     if (item.permissionCode && !hasPermission(item.permissionCode)) return false;
     if (
+      item.permissionCodes &&
+      item.permissionCodes.length > 0 &&
+      !item.permissionCodes.some((code) => hasPermission(code))
+    ) {
+      return false;
+    }
+    if (
       item.requiredGlobalScope &&
       item.permissionCode &&
       session.permissionScopes[item.permissionCode] !== "global"
@@ -188,7 +195,9 @@ export function AppLayout(): JSX.Element {
   );
   const canSearch = [
     "employees.view",
-    "organization.view",
+    "enterprises.view",
+    "departments.view",
+    "positions.view",
     "vacancies.view",
     "candidates.view",
   ].some(hasPermission);

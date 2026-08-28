@@ -19,22 +19,22 @@ type EntityPermissionSet = {
 
 const entityPermissions: Record<HrEntityKey, EntityPermissionSet> = {
   enterprises: {
-    view: "organization.view",
-    create: "organization.create",
-    edit: "organization.edit",
-    delete: "organization.delete",
+    view: "enterprises.view",
+    create: "enterprises.create",
+    edit: "enterprises.edit",
+    delete: "enterprises.delete",
   },
   departments: {
-    view: "organization.view",
-    create: "organization.create",
-    edit: "organization.edit",
-    delete: "organization.delete",
+    view: "departments.view",
+    create: "departments.create",
+    edit: "departments.edit",
+    delete: "departments.delete",
   },
   positions: {
-    view: "organization.view",
-    create: "organization.create",
-    edit: "organization.edit",
-    delete: "organization.delete",
+    view: "positions.view",
+    create: "positions.create",
+    edit: "positions.edit",
+    delete: "positions.delete",
   },
   employees: {
     view: "employees.view",
@@ -43,22 +43,22 @@ const entityPermissions: Record<HrEntityKey, EntityPermissionSet> = {
     delete: "employees.edit",
   },
   employee_education: {
-    view: "employees.view",
-    create: "employees.edit",
-    edit: "employees.edit",
-    delete: "employees.edit",
+    view: "employee_education.view",
+    create: "employee_education.create",
+    edit: "employee_education.edit",
+    delete: "employee_education.delete",
   },
   employee_experience: {
-    view: "employees.view",
-    create: "employees.edit",
-    edit: "employees.edit",
-    delete: "employees.edit",
+    view: "employee_experience.view",
+    create: "employee_experience.create",
+    edit: "employee_experience.edit",
+    delete: "employee_experience.delete",
   },
   employment_history: {
-    view: "employees.view",
-    create: "employees.edit",
-    edit: "employees.edit",
-    delete: "employees.edit",
+    view: "employment_history.view",
+    create: "employment_history.manage",
+    edit: "employment_history.manage",
+    delete: "employment_history.manage",
   },
   vacation_types: {
     view: "vacation_types.view",
@@ -149,7 +149,7 @@ export class AuthorizationService {
     );
 
     if (entity === "departments" && changedKeys.includes("enterprise_id")) {
-      const session = this.requirePermission("organization.edit");
+      const session = this.requirePermission("departments.edit");
       if (session.scopeType !== "global") {
         throw new Error("Переносить отдел между предприятиями может только глобальный администратор");
       }
@@ -168,7 +168,11 @@ export class AuthorizationService {
           ? "director_employee_id"
           : null;
     if (leaderField && changedKeys.includes(leaderField)) {
-      permissionCodes.add("organization.assign_leader");
+      permissionCodes.add(
+        entity === "enterprises"
+          ? "enterprises.assign_leader"
+          : "departments.assign_leader",
+      );
     }
 
     const specialKeys = new Set(

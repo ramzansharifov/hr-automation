@@ -34,13 +34,27 @@ export function OwnProfileRedirect(): JSX.Element {
 function getDefaultPath(permissionCodes: string[], employeeId: number): string {
   if (permissionCodes.includes("dashboard.view")) return "/dashboard";
   if (permissionCodes.includes("employees.view")) return "/employees";
-  if (permissionCodes.includes("organization.view")) return "/enterprises";
+  if (
+    permissionCodes.includes("enterprises.view") ||
+    permissionCodes.includes("departments.view") ||
+    permissionCodes.includes("positions.view")
+  ) {
+    return "/enterprises";
+  }
   if (permissionCodes.includes("directory.view")) return "/my-enterprise";
   if (permissionCodes.includes("vacations.view")) return "/vacations";
   if (permissionCodes.includes("vacancies.view")) return "/vacancies";
   if (permissionCodes.includes("candidates.view")) return "/candidates";
+  if (permissionCodes.includes("analytics.view")) return "/analytics";
   if (permissionCodes.includes("filters.use")) return "/filters";
+  if (
+    permissionCodes.includes("data_exchange.import") ||
+    permissionCodes.includes("data_exchange.export")
+  ) {
+    return "/data-exchange";
+  }
   if (permissionCodes.includes("vacation_types.view")) return "/vacation-types";
+  if (permissionCodes.includes("document_types.view")) return "/document-types";
   if (permissionCodes.includes("users.view")) return "/users";
   if (permissionCodes.includes("roles.view")) return "/roles";
   if (permissionCodes.includes("audit.view")) return "/audit";

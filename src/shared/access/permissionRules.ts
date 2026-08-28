@@ -1,35 +1,72 @@
 import type { AccessScopeType } from "../types/access";
 
 export const permissionDependencies: Record<string, string[]> = {
-  "employees.manage": ["employees.view"],
-  "organization.manage": ["organization.view"],
-  "recruitment.manage": ["recruitment.view"],
-  "vacations.manage": ["vacations.view"],
-
   "directory.view": ["profile.view"],
+  "attention.view": ["dashboard.view"],
 
-  "employees.create": ["employees.view", "organization.view"],
-  "employees.edit": ["employees.view", "organization.view"],
-  "employees.change_employment": ["employees.view", "organization.view"],
-  "employees.terminate": ["employees.view"],
+  "employees.create": [
+    "employees.view",
+    "enterprises.view",
+    "departments.view",
+    "positions.view",
+  ],
+  "employees.edit": ["employees.view"],
+  "employees.change_employment": [
+    "employees.view",
+    "employment_history.view",
+    "enterprises.view",
+    "departments.view",
+    "positions.view",
+  ],
+  "employees.terminate": ["employees.view", "employment_history.view"],
   "employees.export": ["employees.view", "settings.view"],
 
-  "organization.create": ["organization.view"],
-  "organization.edit": ["organization.view"],
-  "organization.delete": ["organization.view"],
-  "organization.assign_leader": [
-    "organization.view",
+  "employee_education.view": ["employees.view"],
+  "employee_education.create": ["employee_education.view"],
+  "employee_education.edit": ["employee_education.view"],
+  "employee_education.delete": ["employee_education.view"],
+
+  "employee_experience.view": ["employees.view"],
+  "employee_experience.create": ["employee_experience.view"],
+  "employee_experience.edit": ["employee_experience.view"],
+  "employee_experience.delete": ["employee_experience.view"],
+
+  "employment_history.view": ["employees.view"],
+
+  "enterprises.create": ["enterprises.view"],
+  "enterprises.edit": ["enterprises.view"],
+  "enterprises.delete": ["enterprises.view"],
+  "enterprises.assign_leader": [
+    "enterprises.view",
+    "departments.view",
+    "positions.view",
     "employees.view",
-    "employees.change_employment",
+    "employment_history.view",
   ],
+
+  "departments.view": ["enterprises.view"],
+  "departments.create": ["departments.view"],
+  "departments.edit": ["departments.view"],
+  "departments.delete": ["departments.view"],
+  "departments.assign_leader": [
+    "departments.view",
+    "positions.view",
+    "employees.view",
+    "employment_history.view",
+  ],
+
+  "positions.view": ["departments.view"],
+  "positions.create": ["positions.view"],
+  "positions.edit": ["positions.view"],
+  "positions.delete": ["positions.view"],
 
   "vacations.create": ["vacations.view", "employees.view", "vacation_types.view"],
   "vacations.edit": ["vacations.view", "employees.view", "vacation_types.view"],
   "vacations.delete": ["vacations.view"],
   "vacations.approve": ["vacations.view", "employees.view", "vacation_types.view"],
 
-  "vacancies.create": ["vacancies.view", "organization.view"],
-  "vacancies.edit": ["vacancies.view", "organization.view"],
+  "vacancies.create": ["vacancies.view", "positions.view"],
+  "vacancies.edit": ["vacancies.view", "positions.view"],
   "vacancies.delete": ["vacancies.view"],
 
   "candidates.create": ["candidates.view", "vacancies.view"],
@@ -49,7 +86,12 @@ export const permissionDependencies: Record<string, string[]> = {
   "documents.add": ["documents.view", "employees.view"],
   "documents.delete": ["documents.view", "employees.view"],
 
-  "data_exchange.import": ["employees.view", "organization.view"],
+  "data_exchange.import": [
+    "employees.view",
+    "enterprises.view",
+    "departments.view",
+    "positions.view",
+  ],
   "data_exchange.export": ["employees.view"],
 
   "users.create": ["users.view", "employees.view"],
@@ -57,7 +99,7 @@ export const permissionDependencies: Record<string, string[]> = {
   "users.delete": ["users.view"],
   "users.reset_password": ["users.view"],
 
-  "roles.create": ["roles.view"],
+  "roles.create": ["roles.view", "departments.view"],
   "roles.edit": ["roles.view"],
   "roles.delete": ["roles.view"],
 
@@ -67,8 +109,15 @@ export const permissionDependencies: Record<string, string[]> = {
   "settings.backups_open_folder": ["settings.view"],
 };
 
+// Kept only to reject stale payloads from older clients. Migration 034 removes
+// these codes from the live permission catalog.
 export const legacyPermissionCodes = new Set([
   "employees.manage",
+  "organization.view",
+  "organization.create",
+  "organization.edit",
+  "organization.delete",
+  "organization.assign_leader",
   "organization.manage",
   "vacations.manage",
   "recruitment.view",
@@ -79,14 +128,28 @@ export const legacyPermissionCodes = new Set([
   "payroll.manage",
 ]);
 
+// These operations are genuinely installation-wide. A scoped role must not be
+// allowed to select them because the backend deliberately has no tenant-scoped
+// implementation for them.
 export const globalOnlyPermissionCodes = new Set([
+  "enterprises.create",
+  "enterprises.delete",
+  "audit.view",
+  "employees.export",
   "settings.backups_view",
   "settings.backups_create",
   "settings.backups_restore",
   "settings.backups_open_folder",
 ]);
 
+// Enterprise-level mutations may be global or enterprise-scoped, but never
+// department-scoped. Read permissions stay available in department roles so the
+// parent hierarchy and enterprise dictionaries remain usable.
 export const enterpriseLevelPermissionCodes = new Set([
+  "enterprises.edit",
+  "enterprises.assign_leader",
+  "departments.create",
+  "departments.delete",
   "vacation_types.create",
   "vacation_types.edit",
   "vacation_types.delete",
@@ -96,10 +159,8 @@ export const enterpriseLevelPermissionCodes = new Set([
 ]);
 
 // Operational HR modules are bound to an enterprise workspace whenever the
-// underlying permission has global scope. "global" means the whole company that
-// owns this installation; a company-wide employee or superadmin can therefore
-// choose which enterprise/department to work in without changing the role itself.
-// Employees intentionally remain a global cross-enterprise registry.
+// underlying permission has global scope. Employees and the organization registry
+// intentionally remain cross-enterprise registries for a global administrator.
 export const businessContextPermissionCodes = new Set([
   "dashboard.view",
   "vacations.view",
@@ -141,6 +202,7 @@ export function canScopePermissionTo(
   permissionCode: string,
   targetScope: AccessScopeType,
 ): boolean {
+  if (targetScope === "self") return false;
   if (targetScope === "global") return true;
   if (globalOnlyPermissionCodes.has(permissionCode)) return false;
   if (
@@ -156,7 +218,10 @@ export type PermissionRiskLevel = "elevated" | "critical";
 
 const criticalPermissionCodes = new Set([
   "employees.terminate",
-  "organization.delete",
+  "enterprises.delete",
+  "departments.delete",
+  "enterprises.assign_leader",
+  "departments.assign_leader",
   "documents.delete",
   "users.delete",
   "roles.delete",
@@ -164,8 +229,11 @@ const criticalPermissionCodes = new Set([
 ]);
 
 const elevatedPermissionCodes = new Set([
-  "organization.assign_leader",
+  "positions.delete",
+  "employee_education.delete",
+  "employee_experience.delete",
   "vacations.approve",
+  "vacations.delete",
   "vacancies.delete",
   "candidates.delete",
   "candidates.hire",

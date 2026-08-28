@@ -152,7 +152,7 @@ export function LeadershipDashboardPage({
           description: "Структура подразделений предприятия",
           to: "/management/departments",
           icon: <FiGrid />,
-          visible: hasPermission("organization.view"),
+          visible: hasPermission("departments.view"),
         }
       : {
           label: "Предприятие",

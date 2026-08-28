@@ -85,19 +85,19 @@ const actionPermissionByEntity: Record<
   { create: string; edit: string; delete: string }
 > = {
   enterprises: {
-    create: 'organization.create',
-    edit: 'organization.edit',
-    delete: 'organization.delete',
+    create: 'enterprises.create',
+    edit: 'enterprises.edit',
+    delete: 'enterprises.delete',
   },
   departments: {
-    create: 'organization.create',
-    edit: 'organization.edit',
-    delete: 'organization.delete',
+    create: 'departments.create',
+    edit: 'departments.edit',
+    delete: 'departments.delete',
   },
   positions: {
-    create: 'organization.create',
-    edit: 'organization.edit',
-    delete: 'organization.delete',
+    create: 'positions.create',
+    edit: 'positions.edit',
+    delete: 'positions.delete',
   },
   employees: {
     create: 'employees.create',
@@ -105,19 +105,19 @@ const actionPermissionByEntity: Record<
     delete: 'employees.edit',
   },
   employee_education: {
-    create: 'employees.edit',
-    edit: 'employees.edit',
-    delete: 'employees.edit',
+    create: 'employee_education.create',
+    edit: 'employee_education.edit',
+    delete: 'employee_education.delete',
   },
   employee_experience: {
-    create: 'employees.edit',
-    edit: 'employees.edit',
-    delete: 'employees.edit',
+    create: 'employee_experience.create',
+    edit: 'employee_experience.edit',
+    delete: 'employee_experience.delete',
   },
   employment_history: {
-    create: 'employees.edit',
-    edit: 'employees.edit',
-    delete: 'employees.edit',
+    create: 'employment_history.manage',
+    edit: 'employment_history.manage',
+    delete: 'employment_history.manage',
   },
   vacation_types: {
     create: 'vacation_types.create',

@@ -1,17 +1,12 @@
 import * as RadixSwitch from "@radix-ui/react-switch";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FiAlertTriangle,
   FiArrowLeft,
   FiCheckCircle,
-  FiChevronDown,
-  FiChevronRight,
+  FiGlobe,
+  FiGrid,
+  FiLayers,
   FiLock,
   FiSave,
   FiSearch,
@@ -23,6 +18,7 @@ import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
 import {
+  accessScopeRank,
   canScopePermissionTo,
   getDependentPermissionCodes,
   getPermissionRiskLevel,
@@ -37,6 +33,7 @@ import type {
   AccessScopeType,
   SaveAccessRoleParams,
 } from "../../shared/types/access";
+import type { HrEntityKey, HrRecord } from "../../shared/types/hr";
 import {
   Button,
   ConfirmDialog,
@@ -44,7 +41,9 @@ import {
   Input,
   LoadingState,
   PageHeader,
+  SearchableSelect,
   Textarea,
+  type SelectOption,
 } from "../../shared/ui";
 import { getErrorMessage } from "./accessControlData";
 import {
@@ -53,15 +52,52 @@ import {
 } from "./rolePermissionSections";
 
 type PermissionFilter = "all" | "selected" | "unselected";
+type CustomRoleScopeType = Exclude<AccessScopeType, "self">;
 type PendingPermissionChange =
   | { kind: "permission"; code: string; checked: boolean }
   | { kind: "section"; sectionKey: string; checked: boolean }
   | null;
 
+interface DepartmentScopeOption extends SelectOption {
+  enterpriseId: string;
+}
+
+interface RoleScopeSelection {
+  scopeType: CustomRoleScopeType;
+  enterpriseId: string;
+  departmentId: string;
+}
+
 const permissionFilters: Array<{ value: PermissionFilter; label: string }> = [
   { value: "all", label: "Все" },
   { value: "selected", label: "Выбранные" },
   { value: "unselected", label: "Не выбранные" },
+];
+
+const scopeOptions: Array<{
+  value: CustomRoleScopeType;
+  label: string;
+  description: string;
+  icon: typeof FiGlobe;
+}> = [
+  {
+    value: "global",
+    label: "Вся система",
+    description: "Доступ ко всем предприятиям в пределах выбранных разрешений.",
+    icon: FiGlobe,
+  },
+  {
+    value: "enterprise",
+    label: "Предприятие",
+    description: "Доступ только к одному выбранному предприятию.",
+    icon: FiLayers,
+  },
+  {
+    value: "department",
+    label: "Отдел",
+    description: "Доступ только к одному выбранному отделу.",
+    icon: FiGrid,
+  },
 ];
 
 export function AccessRoleFormPage(): JSX.Element {
@@ -70,9 +106,22 @@ export function AccessRoleFormPage(): JSX.Element {
   const { session } = useAuth();
   const roleId = params.id ? Number(params.id) : null;
   const isEditMode = roleId !== null;
+  const sessionEnterpriseId = session.enterpriseId;
+  const sessionDepartmentId = session.departmentId;
+  const sessionEnterpriseName = session.enterpriseName;
+  const sessionDepartmentName = session.departmentName;
+  const actorPermissionScopes = session.permissionScopes;
   const isSuperadmin =
     session.employeeId === 0 ||
     session.roles.some((item) => item.systemKey === "superadmin");
+  const actorCreateScope = normalizeCustomRoleScope(
+    actorPermissionScopes["roles.create"] ?? session.scopeType,
+  );
+  const initialScope = initialScopeForActor(
+    actorCreateScope,
+    sessionEnterpriseId,
+    sessionDepartmentId,
+  );
 
   const [permissions, setPermissions] = useState<AccessPermission[]>([]);
   const [roles, setRoles] = useState<AccessRoleSummary[]>([]);
@@ -81,42 +130,80 @@ export function AccessRoleFormPage(): JSX.Element {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [permissionCodes, setPermissionCodes] = useState<string[]>([]);
+  const [scopeType, setScopeType] = useState<CustomRoleScopeType>(initialScope.scopeType);
+  const [enterpriseId, setEnterpriseId] = useState(initialScope.enterpriseId);
+  const [departmentId, setDepartmentId] = useState(initialScope.departmentId);
+  const [enterpriseOptions, setEnterpriseOptions] = useState<SelectOption[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentScopeOption[]>([]);
   const [permissionSearch, setPermissionSearch] = useState("");
   const [permissionFilter, setPermissionFilter] = useState<PermissionFilter>("all");
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [pendingChange, setPendingChange] = useState<PendingPermissionChange>(null);
-  const [baselineSnapshot, setBaselineSnapshot] = useState("");
+  const [baseline, setBaseline] = useState("");
   const [baselineReady, setBaselineReady] = useState(false);
-  const allowNavigationRef = useRef(false);
 
   useEffect(() => {
     let active = true;
+
     async function load(): Promise<void> {
       setIsLoading(true);
       try {
-        const [permissionData, roleData] = await Promise.all([
+        const [permissionData, roleData, scopeRecords] = await Promise.all([
           hrApiClient.listAccessPermissions(),
           hrApiClient.listAccessRoles(),
+          isEditMode
+            ? Promise.resolve({ enterprises: [] as HrRecord[], departments: [] as HrRecord[] })
+            : loadRoleScopeRecords(),
         ]);
         if (!active) return;
 
         setPermissions(permissionData);
         setRoles(roleData);
+        setEnterpriseOptions(
+          scopeRecords.enterprises.map((record) => ({
+            value: String(record.id),
+            label: String(record.name ?? record.legal_name ?? `Предприятие #${record.id}`),
+          })),
+        );
+        setDepartmentOptions(
+          scopeRecords.departments.map((record) => ({
+            value: String(record.id),
+            label: String(record.name ?? `Отдел #${record.id}`),
+            enterpriseId: String(record.enterprise_id ?? ""),
+          })),
+        );
+
         if (isEditMode) {
           const currentRole = roleData.find((item) => item.id === roleId);
           if (currentRole) {
             const cleanCodes = currentRole.permissionCodes.filter(
               (code) => !legacyPermissionCodes.has(code),
             );
+            const currentScope = scopeFromRole(currentRole);
             setName(currentRole.name);
             setDescription(currentRole.description);
             setPermissionCodes(cleanCodes);
-            setBaselineSnapshot(
-              serializeRoleDraft(currentRole.name, currentRole.description, cleanCodes),
+            setScopeType(currentScope.scopeType);
+            setEnterpriseId(currentScope.enterpriseId);
+            setDepartmentId(currentScope.departmentId);
+            setBaseline(
+              serializeRoleDraft(
+                currentRole.name,
+                currentRole.description,
+                cleanCodes,
+                currentScope,
+              ),
             );
           }
         } else {
-          setBaselineSnapshot(serializeRoleDraft("", "", []));
+          const createScope = initialScopeForActor(
+            actorCreateScope,
+            sessionEnterpriseId,
+            sessionDepartmentId,
+          );
+          setScopeType(createScope.scopeType);
+          setEnterpriseId(createScope.enterpriseId);
+          setDepartmentId(createScope.departmentId);
+          setBaseline(serializeRoleDraft("", "", [], createScope));
         }
         setBaselineReady(true);
       } catch (error) {
@@ -125,231 +212,255 @@ export function AccessRoleFormPage(): JSX.Element {
         if (active) setIsLoading(false);
       }
     }
+
     void load();
     return () => {
       active = false;
     };
-  }, [isEditMode, roleId]);
+  }, [
+    actorCreateScope,
+    isEditMode,
+    roleId,
+    sessionDepartmentId,
+    sessionEnterpriseId,
+  ]);
 
   const role = isEditMode
     ? roles.find((item) => item.id === roleId) ?? null
     : null;
-  const targetScopeType: AccessScopeType =
-    role?.scopeType ??
-    session.permissionScopes[isEditMode ? "roles.edit" : "roles.create"] ??
-    session.scopeType;
-  const scopeLabel = getRoleEditorScopeLabel(
-    targetScopeType,
-    role,
-    session.enterpriseName,
-    session.departmentName,
+  const targetScopeType = role
+    ? normalizeCustomRoleScope(role.scopeType)
+    : scopeType;
+  const selectedDepartment = departmentOptions.find(
+    (option) => option.value === departmentId,
   );
+  const targetEnterpriseId =
+    targetScopeType === "global"
+      ? null
+      : targetScopeType === "enterprise"
+        ? positiveId(enterpriseId)
+        : positiveId(selectedDepartment?.enterpriseId ?? role?.enterpriseId ?? enterpriseId);
+  const targetDepartmentId =
+    targetScopeType === "department" ? positiveId(departmentId) : null;
+  const targetScopeReady =
+    targetScopeType === "global" ||
+    (targetScopeType === "enterprise" && Boolean(targetEnterpriseId)) ||
+    (targetScopeType === "department" && Boolean(targetDepartmentId));
+
   const permissionMap = useMemo(
     () => new Map(permissions.map((permission) => [permission.code, permission])),
     [permissions],
   );
+
   const delegableCodes = useMemo(() => {
     const result = new Set<string>();
+    if (!targetScopeReady) return result;
+
     for (const permission of permissions) {
       if (legacyPermissionCodes.has(permission.code)) continue;
-      const requiredCodes = normalizePermissionDependencies([permission.code]).filter(
+      const dependencies = normalizePermissionDependencies([permission.code]).filter(
         (code) => !legacyPermissionCodes.has(code),
       );
       if (
-        canScopePermissionTo(permission.code, targetScopeType) &&
-        requiredCodes.every(
+        dependencies.every(
           (code) =>
-            permissionMap.has(code) && canScopePermissionTo(code, targetScopeType),
+            permissionMap.has(code) &&
+            canDelegateToTarget({
+              code,
+              targetScopeType,
+              targetEnterpriseId,
+              targetDepartmentId,
+              actorPermissionScopes,
+              actorEnterpriseId: sessionEnterpriseId,
+              actorDepartmentId: sessionDepartmentId,
+              isSuperadmin,
+            }),
         )
       ) {
         result.add(permission.code);
       }
     }
     return result;
-  }, [permissionMap, permissions, targetScopeType]);
+  }, [
+    actorPermissionScopes,
+    isSuperadmin,
+    permissionMap,
+    permissions,
+    sessionDepartmentId,
+    sessionEnterpriseId,
+    targetDepartmentId,
+    targetEnterpriseId,
+    targetScopeReady,
+    targetScopeType,
+  ]);
 
-  const visibleSections = useMemo(
-    () =>
-      rolePermissionSections.map((section) => ({
-        ...section,
-        permissions: section.permissionCodes
-          .map((code) => permissionMap.get(code))
-          .filter((permission): permission is AccessPermission => Boolean(permission)),
-      })),
-    [permissionMap],
-  );
-
-  const normalizedSelectedCodes = useMemo(
-    () => permissionCodes.filter((code) => delegableCodes.has(code)),
-    [delegableCodes, permissionCodes],
-  );
-  const selectedCount = normalizedSelectedCodes.length;
-  const enabledSections = visibleSections.filter((section) =>
-    section.permissions.some((permission) => permissionCodes.includes(permission.code)),
-  ).length;
-  const inaccessibleSelected = permissionCodes.filter(
-    (code) => !permissionMap.has(code) || !delegableCodes.has(code),
-  );
+  const inaccessibleSelected = targetScopeReady
+    ? permissionCodes.filter(
+        (code) => !permissionMap.has(code) || !delegableCodes.has(code),
+      )
+    : [];
   const editorLocked = inaccessibleSelected.length > 0;
-  const currentSnapshot = serializeRoleDraft(name, description, normalizedSelectedCodes);
-  const isDirty = baselineReady && currentSnapshot !== baselineSnapshot;
+  const selectedCount = permissionCodes.filter((code) => delegableCodes.has(code)).length;
+  const currentScope: RoleScopeSelection = {
+    scopeType: targetScopeType,
+    enterpriseId: targetScopeType === "global" ? "" : enterpriseId,
+    departmentId: targetScopeType === "department" ? departmentId : "",
+  };
+  const currentDraft = serializeRoleDraft(name, description, permissionCodes, currentScope);
+  const isDirty = baselineReady && currentDraft !== baseline;
   const canSave =
     !isSaving &&
     !editorLocked &&
+    targetScopeReady &&
     Boolean(name.trim()) &&
     selectedCount > 0 &&
     (!isEditMode || isDirty);
 
-  const renderedSections = useMemo(() => {
+  const selectedEnterpriseName =
+    role?.enterpriseName ||
+    enterpriseOptions.find((option) => option.value === enterpriseId)?.label ||
+    (targetEnterpriseId === sessionEnterpriseId ? sessionEnterpriseName : "");
+  const selectedDepartmentName =
+    role?.departmentName ||
+    selectedDepartment?.label ||
+    (targetDepartmentId === sessionDepartmentId ? sessionDepartmentName : "");
+  const scopeLabel = scopeLabelFor(
+    targetScopeType,
+    selectedEnterpriseName,
+    selectedDepartmentName,
+  );
+
+  const availableScopeOptions = scopeOptions.filter(
+    (option) => accessScopeRank[option.value] <= accessScopeRank[actorCreateScope],
+  );
+  const visibleDepartmentOptions = departmentOptions.filter(
+    (option) => !enterpriseId || option.enterpriseId === enterpriseId,
+  );
+
+  const visibleSections = useMemo(() => {
     const search = permissionSearch.trim().toLocaleLowerCase();
-    return visibleSections
+    return rolePermissionSections
       .map((section) => ({
         section,
-        visiblePermissions: section.permissions.filter((permission) => {
-          const selected = permissionCodes.includes(permission.code);
-          if (permissionFilter === "selected" && !selected) return false;
-          if (permissionFilter === "unselected" && selected) return false;
-          if (!search) return true;
-          return [permission.name, permission.description, permission.code, section.title]
-            .join(" ")
-            .toLocaleLowerCase()
-            .includes(search);
-        }),
+        permissions: section.permissionCodes
+          .map((code) => permissionMap.get(code))
+          .filter((item): item is AccessPermission => Boolean(item))
+          .filter((permission) => {
+            const selected = permissionCodes.includes(permission.code);
+            if (permissionFilter === "selected" && !selected) return false;
+            if (permissionFilter === "unselected" && selected) return false;
+            if (!search) return true;
+            return [
+              permission.name,
+              permission.description,
+              permission.code,
+              section.title,
+            ]
+              .join(" ")
+              .toLocaleLowerCase()
+              .includes(search);
+          }),
       }))
-      .filter((item) => item.visiblePermissions.length > 0);
-  }, [permissionCodes, permissionFilter, permissionSearch, visibleSections]);
+      .filter((item) => item.permissions.length > 0);
+  }, [permissionCodes, permissionFilter, permissionMap, permissionSearch]);
 
-  useEffect(() => {
-    if (!isDirty || allowNavigationRef.current) return;
+  function changeScope(nextScope: CustomRoleScopeType): void {
+    if (isEditMode || nextScope === scopeType) return;
+    if (accessScopeRank[nextScope] > accessScopeRank[actorCreateScope]) return;
 
-    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    const handleDocumentClick = (event: MouseEvent): void => {
-      if (allowNavigationRef.current || event.defaultPrevented) return;
-      const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!(target instanceof HTMLAnchorElement)) return;
-      if (target.target === "_blank" || target.hasAttribute("download")) return;
-      const href = target.getAttribute("href") ?? "";
-      if (!href || href.startsWith("http://") || href.startsWith("https://")) return;
-      if (!window.confirm("Есть несохранённые изменения роли. Покинуть страницу без сохранения?")) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      } else {
-        allowNavigationRef.current = true;
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("click", handleDocumentClick, true);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("click", handleDocumentClick, true);
-    };
-  }, [isDirty]);
-
-  function applyPermissionToggle(code: string, checked: boolean): void {
-    setPermissionCodes((current) => {
-      const next = new Set(current);
-      if (checked) {
-        addPermissionWithDependencies(next, code, permissionMap, delegableCodes);
-      } else {
-        removePermissionAndDependents(next, code);
-      }
-      return [...next];
-    });
-  }
-
-  function requestPermissionToggle(code: string, checked: boolean): void {
-    if (editorLocked || !delegableCodes.has(code)) return;
-    if (checked && getPermissionRiskLevel(code) === "critical") {
-      setPendingChange({ kind: "permission", code, checked });
-      return;
-    }
-    if (!checked && getDependentPermissionCodes(permissionCodes, code).length > 0) {
-      setPendingChange({ kind: "permission", code, checked });
-      return;
-    }
-    applyPermissionToggle(code, checked);
-  }
-
-  function applySectionToggle(
-    section: RolePermissionSectionDefinition,
-    checked: boolean,
-  ): void {
-    setPermissionCodes((current) => {
-      const next = new Set(current);
-      const availableCodes = section.permissionCodes.filter(
-        (code) => permissionMap.has(code) && delegableCodes.has(code),
-      );
-      if (checked) {
-        availableCodes.forEach((code) =>
-          addPermissionWithDependencies(next, code, permissionMap, delegableCodes),
-        );
-      } else {
-        availableCodes.forEach((code) => removePermissionAndDependents(next, code));
-      }
-      return [...next];
-    });
-  }
-
-  function requestSectionToggle(
-    section: RolePermissionSectionDefinition,
-    checked: boolean,
-  ): void {
-    if (editorLocked) return;
-    const availableCodes = section.permissionCodes.filter(
-      (code) => permissionMap.has(code) && delegableCodes.has(code),
+    const compatible = permissionCodes.filter((code) =>
+      normalizePermissionDependencies([code])
+        .filter((dependency) => !legacyPermissionCodes.has(dependency))
+        .every((dependency) => canScopePermissionTo(dependency, nextScope)),
     );
-    if (checked) {
-      const addsCritical = availableCodes.some(
+    if (compatible.length !== permissionCodes.length) {
+      toast.info("Недоступные для выбранной области разрешения сняты автоматически");
+    }
+    setPermissionCodes(compatible);
+    setScopeType(nextScope);
+    setPendingChange(null);
+
+    if (nextScope === "global") {
+      setEnterpriseId("");
+      setDepartmentId("");
+      return;
+    }
+    if (actorCreateScope === "global") {
+      setEnterpriseId("");
+      setDepartmentId("");
+      return;
+    }
+    setEnterpriseId(String(sessionEnterpriseId ?? ""));
+    setDepartmentId(
+      nextScope === "department" && actorCreateScope === "department"
+        ? String(sessionDepartmentId ?? "")
+        : "",
+    );
+  }
+
+  function setPermission(code: string, checked: boolean): void {
+    setPermissionCodes((current) => {
+      const next = new Set(current);
+      if (checked) addWithDependencies(next, code, permissionMap, delegableCodes);
+      else removeWithDependents(next, code);
+      return [...next];
+    });
+  }
+
+  function requestPermissionChange(code: string, checked: boolean): void {
+    if (editorLocked || !targetScopeReady || !delegableCodes.has(code)) return;
+    if (
+      (checked && getPermissionRiskLevel(code) === "critical") ||
+      (!checked && getDependentPermissionCodes(permissionCodes, code).length > 0)
+    ) {
+      setPendingChange({ kind: "permission", code, checked });
+      return;
+    }
+    setPermission(code, checked);
+  }
+
+  function setSection(section: RolePermissionSectionDefinition, checked: boolean): void {
+    setPermissionCodes((current) => {
+      const next = new Set(current);
+      for (const code of section.permissionCodes) {
+        if (!delegableCodes.has(code)) continue;
+        if (checked) addWithDependencies(next, code, permissionMap, delegableCodes);
+        else removeWithDependents(next, code);
+      }
+      return [...next];
+    });
+  }
+
+  function requestSectionChange(
+    section: RolePermissionSectionDefinition,
+    checked: boolean,
+  ): void {
+    if (editorLocked || !targetScopeReady) return;
+    const available = section.permissionCodes.filter((code) => delegableCodes.has(code));
+    if (
+      checked &&
+      available.some(
         (code) =>
           !permissionCodes.includes(code) && getPermissionRiskLevel(code) === "critical",
-      );
-      if (addsCritical) {
-        setPendingChange({ kind: "section", sectionKey: section.key, checked });
-        return;
-      }
-    } else if (availableCodes.some((code) => permissionCodes.includes(code))) {
+      )
+    ) {
       setPendingChange({ kind: "section", sectionKey: section.key, checked });
       return;
     }
-    applySectionToggle(section, checked);
+    setSection(section, checked);
   }
 
-  function confirmPendingChange(): void {
+  function confirmPending(): void {
     if (!pendingChange) return;
     if (pendingChange.kind === "permission") {
-      applyPermissionToggle(pendingChange.code, pendingChange.checked);
+      setPermission(pendingChange.code, pendingChange.checked);
     } else {
       const section = rolePermissionSections.find(
         (item) => item.key === pendingChange.sectionKey,
       );
-      if (section) applySectionToggle(section, pendingChange.checked);
+      if (section) setSection(section, pendingChange.checked);
     }
     setPendingChange(null);
-  }
-
-  function toggleSectionCollapsed(sectionKey: string): void {
-    setCollapsedSections((current) => {
-      const next = new Set(current);
-      if (next.has(sectionKey)) next.delete(sectionKey);
-      else next.add(sectionKey);
-      return next;
-    });
-  }
-
-  function navigateBack(): void {
-    if (
-      isDirty &&
-      !window.confirm("Есть несохранённые изменения роли. Покинуть страницу без сохранения?")
-    ) {
-      return;
-    }
-    allowNavigationRef.current = true;
-    navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles");
   }
 
   async function saveRole(): Promise<void> {
@@ -357,26 +468,39 @@ export function AccessRoleFormPage(): JSX.Element {
       toast.error("Укажите название роли");
       return;
     }
-    if (selectedCount === 0) {
+    if (!targetScopeReady) {
+      toast.error("Выберите организационную область роли");
+      return;
+    }
+    const cleanCodes = permissionCodes.filter((code) => delegableCodes.has(code));
+    if (cleanCodes.length === 0) {
       toast.error("Выберите хотя бы одно разрешение");
       return;
     }
     if (editorLocked) {
-      toast.error("Эта роль содержит разрешения вне доступной области управления");
+      toast.error("Роль содержит разрешения вне доступной области управления");
       return;
     }
 
     setIsSaving(true);
     try {
-      const saveParams: SaveAccessRoleParams = {
+      const payload: SaveAccessRoleParams = {
         id: roleId ?? undefined,
         name: name.trim(),
         description: description.trim(),
-        permissionCodes: normalizedSelectedCodes,
+        permissionCodes: cleanCodes,
+        ...(!isEditMode
+          ? {
+              scopeType: targetScopeType,
+              enterpriseId:
+                targetScopeType === "global" ? null : targetEnterpriseId,
+              departmentId:
+                targetScopeType === "department" ? targetDepartmentId : null,
+            }
+          : {}),
       };
-      const saved = await hrApiClient.saveAccessRole(saveParams);
+      const saved = await hrApiClient.saveAccessRole(payload);
       toast.success(isEditMode ? "Роль обновлена" : "Роль создана");
-      allowNavigationRef.current = true;
       navigate(`/roles/${saved.id}`);
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось сохранить роль"));
@@ -386,35 +510,24 @@ export function AccessRoleFormPage(): JSX.Element {
   }
 
   if (isLoading) return <LoadingState label="Загрузка разрешений..." />;
-
   if (isEditMode && (!role || !Number.isInteger(roleId) || Number(roleId) < 1)) {
     return (
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <EmptyState
-          description="Вернитесь к списку ролей и выберите существующую пользовательскую роль."
-          title="Роль не найдена"
-        />
-      </section>
+      <EmptyState
+        description="Вернитесь к списку ролей и выберите существующую роль."
+        title="Роль не найдена"
+      />
     );
   }
-
   if (role?.isSystem) {
     return (
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <EmptyState
-          description="Системные роли защищены от изменения. Их разрешения можно просмотреть на странице роли."
-          title="Системную роль нельзя редактировать"
-        />
-      </section>
+      <EmptyState
+        description="Системные роли защищены от изменения."
+        title="Системную роль нельзя редактировать"
+      />
     );
   }
 
-  const pendingInfo = getPendingChangeInfo(
-    pendingChange,
-    permissionCodes,
-    permissionMap,
-    delegableCodes,
-  );
+  const pendingInfo = describePendingChange(pendingChange, permissionMap, permissionCodes);
 
   return (
     <div className="space-y-6">
@@ -423,8 +536,8 @@ export function AccessRoleFormPage(): JSX.Element {
           <div className="flex flex-wrap gap-3">
             <Button
               className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
-              onClick={navigateBack}
+              leftIcon={<FiArrowLeft />}
+              onClick={() => navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles")}
               variant="ghost"
             >
               Назад
@@ -432,7 +545,7 @@ export function AccessRoleFormPage(): JSX.Element {
             <Button
               className="border-white/20 shadow-xl hover:opacity-90"
               disabled={!canSave}
-              leftIcon={<FiSave className="h-4 w-4" />}
+              leftIcon={<FiSave />}
               onClick={() => void saveRole()}
               style={{ background: "#ffffff", color: "#0f172a" }}
               variant="ghost"
@@ -441,24 +554,16 @@ export function AccessRoleFormPage(): JSX.Element {
             </Button>
           </div>
         }
-        description={`Настройте роль по реальным разделам приложения и отдельным действиям внутри каждого раздела. Область действия: ${scopeLabel}.`}
+        description={`Каждое действие настраивается отдельно. Область действия: ${scopeLabel}.`}
         eyebrow="Управление доступом"
         icon={<FiShield />}
         title={isEditMode ? `Редактирование · ${role?.name ?? "Роль"}` : "Новая роль"}
       />
 
       {editorLocked && (
-        <section className="rounded-[24px] border border-amber-300/60 bg-amber-50/80 p-5 text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100">
-          <div className="flex items-start gap-3">
-            <FiLock className="mt-0.5 h-5 w-5 shrink-0" />
-            <div>
-              <p className="font-black">Редактирование этой роли ограничено</p>
-              <p className="mt-1 text-sm leading-6 opacity-85">
-                Роль содержит разрешения, которые нельзя делегировать в текущей области. Чтобы администратор не мог перераспределить более высокий или чужой доступ, сохранение и переключатели заблокированы.
-              </p>
-            </div>
-          </div>
-        </section>
+        <Notice icon={<FiLock />} tone="warning" title="Редактирование роли ограничено">
+          Роль содержит разрешения, которые текущий администратор не может делегировать в её области. Сохранение заблокировано для защиты от повышения привилегий.
+        </Notice>
       )}
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -483,13 +588,105 @@ export function AccessRoleFormPage(): JSX.Element {
                 value={description}
               />
             </label>
+
+            <div className="app-border-soft border-t pt-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="app-text text-sm font-black">Область действия</p>
+                  <p className="app-muted mt-1 text-xs leading-5">
+                    Ограничивает все разрешения роли выбранной организационной областью.
+                  </p>
+                </div>
+                {isEditMode && (
+                  <span className="app-surface-muted app-border app-muted rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide">
+                    Не изменяется
+                  </span>
+                )}
+              </div>
+
+              {isEditMode ? (
+                <div className="app-surface-muted app-border mt-4 rounded-2xl border p-4">
+                  <p className="app-text text-sm font-black">{scopeLabel}</p>
+                  <p className="app-muted mt-1 text-xs">
+                    Для изменения области создайте отдельную роль — это исключает скрытое расширение уже назначенного доступа.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {availableScopeOptions.map((option) => {
+                      const Icon = option.icon;
+                      const selected = scopeType === option.value;
+                      return (
+                        <button
+                          className={[
+                            "rounded-2xl border p-4 text-left transition",
+                            selected
+                              ? "app-accent-soft app-accent-border"
+                              : "app-surface-muted app-border hover:border-[var(--accent-border)]",
+                          ].join(" ")}
+                          key={option.value}
+                          onClick={() => changeScope(option.value)}
+                          type="button"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            <span className="app-text text-sm font-black">{option.label}</span>
+                          </span>
+                          <span className="app-muted mt-2 block text-[11px] leading-5">
+                            {option.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {scopeType !== "global" && (
+                    <label className="grid gap-2">
+                      <span className="app-text text-xs font-black">Предприятие</span>
+                      <SearchableSelect
+                        disabled={actorCreateScope !== "global"}
+                        noOptionsLabel="Доступные предприятия не найдены"
+                        onValueChange={(value) => {
+                          setEnterpriseId(value);
+                          setDepartmentId("");
+                        }}
+                        options={enterpriseOptions}
+                        placeholder="Выберите предприятие"
+                        searchPlaceholder="Поиск предприятия"
+                        value={enterpriseId}
+                      />
+                    </label>
+                  )}
+
+                  {scopeType === "department" && (
+                    <label className="grid gap-2">
+                      <span className="app-text text-xs font-black">Отдел</span>
+                      <SearchableSelect
+                        disabled={!enterpriseId || actorCreateScope === "department"}
+                        noOptionsLabel={
+                          enterpriseId
+                            ? "В выбранном предприятии нет доступных отделов"
+                            : "Сначала выберите предприятие"
+                        }
+                        onValueChange={setDepartmentId}
+                        options={enterpriseId ? visibleDepartmentOptions : []}
+                        placeholder={enterpriseId ? "Выберите отдел" : "Сначала выберите предприятие"}
+                        searchPlaceholder="Поиск отдела"
+                        value={departmentId}
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         <aside className="app-surface app-border rounded-[28px] border p-6">
           <div className="flex items-center gap-3">
             <span className="app-accent-soft flex h-11 w-11 items-center justify-center rounded-2xl border">
-              <FiSliders className="h-5 w-5" />
+              <FiSliders />
             </span>
             <div>
               <p className="app-text font-black">Доступ роли</p>
@@ -498,10 +695,17 @@ export function AccessRoleFormPage(): JSX.Element {
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <SummaryValue label="Разрешений" value={selectedCount} />
-            <SummaryValue label="Разделов" value={enabledSections} />
+            <SummaryValue
+              label="Разделов"
+              value={
+                rolePermissionSections.filter((section) =>
+                  section.permissionCodes.some((code) => permissionCodes.includes(code)),
+                ).length
+              }
+            />
           </div>
           <p className="app-muted mt-4 text-xs leading-5">
-            Технически необходимые разрешения включаются автоматически. Администратор может делегировать только доступ, которым сам располагает в этой или более широкой области.
+            Зависимости включаются автоматически. Выдать можно только те действия, которые сам администратор вправе делегировать в выбранную область.
           </p>
           {isDirty && (
             <p className="mt-3 text-xs font-black text-amber-600 dark:text-amber-300">
@@ -538,112 +742,81 @@ export function AccessRoleFormPage(): JSX.Element {
         </div>
       </section>
 
-      {["Основное", "Администрирование", "Профиль и настройки"].map((group) => {
-        const sections = renderedSections.filter(
-          ({ section }) => section.group === group,
-        );
-        if (sections.length === 0) return null;
-        return (
-          <section className="space-y-4" key={group}>
-            <div className="px-1">
-              <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">
+      {!targetScopeReady && !isEditMode ? (
+        <Notice icon={<FiLayers />} tone="info" title="Сначала выберите область роли">
+          После выбора предприятия или отдела станут доступны только совместимые с этой областью разрешения.
+        </Notice>
+      ) : visibleSections.length === 0 ? (
+        <EmptyState
+          description="Измените поисковый запрос или фильтр разрешений."
+          title="Разрешения не найдены"
+        />
+      ) : (
+        ["Основное", "Администрирование", "Профиль и настройки"].map((group) => {
+          const sections = visibleSections.filter(
+            ({ section }) => section.group === group,
+          );
+          if (sections.length === 0) return null;
+          return (
+            <section className="space-y-4" key={group}>
+              <p className="app-accent-text px-1 text-xs font-black uppercase tracking-[0.16em]">
                 {group}
               </p>
-            </div>
-            <div className="grid gap-4 xl:grid-cols-2">
-              {sections.map(({ section, visiblePermissions }) => {
-                const delegableSectionCodes = section.permissionCodes.filter(
-                  (code) => permissionMap.has(code) && delegableCodes.has(code),
-                );
-                const activeCount = section.permissions.filter((permission) =>
-                  permissionCodes.includes(permission.code),
-                ).length;
-                const allDelegableEnabled =
-                  delegableSectionCodes.length > 0 &&
-                  delegableSectionCodes.every((code) => permissionCodes.includes(code));
-                const partiallyEnabled =
-                  activeCount > 0 && activeCount < section.permissions.length;
-                const collapsed = collapsedSections.has(section.key);
-
-                return (
-                  <article
-                    className="app-surface app-border overflow-hidden rounded-[28px] border"
-                    key={section.key}
-                  >
-                    <header className="app-surface-muted app-border-soft flex items-start justify-between gap-4 border-b p-5">
-                      <button
-                        className="min-w-0 flex-1 text-left"
-                        onClick={() => toggleSectionCollapsed(section.key)}
-                        type="button"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          {collapsed ? (
-                            <FiChevronRight className="app-muted h-4 w-4" />
-                          ) : (
-                            <FiChevronDown className="app-muted h-4 w-4" />
-                          )}
-                          <h2 className="app-text text-lg font-black">{section.title}</h2>
-                          <span className="app-muted text-xs font-bold">
-                            {activeCount}/{section.permissions.length}
-                          </span>
-                          {partiallyEnabled && (
-                            <span className="rounded-full border border-amber-300/60 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300">
-                              Частично
+              <div className="grid gap-4 xl:grid-cols-2">
+                {sections.map(({ section, permissions: sectionPermissions }) => {
+                  const availableCodes = section.permissionCodes.filter((code) =>
+                    delegableCodes.has(code),
+                  );
+                  const allEnabled =
+                    availableCodes.length > 0 &&
+                    availableCodes.every((code) => permissionCodes.includes(code));
+                  const enabled = section.permissionCodes.filter((code) =>
+                    permissionCodes.includes(code),
+                  ).length;
+                  return (
+                    <article
+                      className="app-surface app-border overflow-hidden rounded-[28px] border"
+                      key={section.key}
+                    >
+                      <header className="app-surface-muted app-border-soft flex items-start justify-between gap-4 border-b p-5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h2 className="app-text text-lg font-black">{section.title}</h2>
+                            <span className="app-muted text-xs font-bold">
+                              {enabled}/{section.permissionCodes.length}
                             </span>
-                          )}
+                          </div>
+                          <p className="app-muted mt-1 text-sm leading-5">
+                            {section.description}
+                          </p>
                         </div>
-                        <p className="app-muted mt-1 text-sm leading-5">{section.description}</p>
-                      </button>
-                      <Button
-                        disabled={editorLocked || delegableSectionCodes.length === 0}
-                        onClick={(event: ReactMouseEvent<HTMLButtonElement>) => {
-                          event.stopPropagation();
-                          requestSectionToggle(section, !allDelegableEnabled);
-                        }}
-                        size="sm"
-                        variant="secondary"
-                      >
-                        {allDelegableEnabled
-                          ? "Снять доступные"
-                          : delegableSectionCodes.length < section.permissions.length
-                            ? "Выбрать доступные"
-                            : "Выбрать все"}
-                      </Button>
-                    </header>
-
-                    {!collapsed && (
+                        <Button
+                          disabled={editorLocked || availableCodes.length === 0}
+                          onClick={() => requestSectionChange(section, !allEnabled)}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          {allEnabled ? "Снять доступные" : "Выбрать доступные"}
+                        </Button>
+                      </header>
                       <div className="divide-y divide-[var(--color-border-soft)]">
-                        {visiblePermissions.map((permission) => {
+                        {sectionPermissions.map((permission) => {
                           const checked = permissionCodes.includes(permission.code);
                           const delegable = delegableCodes.has(permission.code);
                           const dependencies = (permissionDependencies[permission.code] ?? [])
-                            .map((code) => permissionMap.get(code))
-                            .filter((item): item is AccessPermission => Boolean(item));
-                          const requiredBy = checked
-                            ? getDependentPermissionCodes(permissionCodes, permission.code)
-                                .map((code) => permissionMap.get(code))
-                                .filter((item): item is AccessPermission => Boolean(item))
-                            : [];
+                            .map((code) => permissionMap.get(code)?.name ?? code);
                           const risk = getPermissionRiskLevel(permission.code);
-
                           return (
                             <div
                               className="flex items-start justify-between gap-5 px-5 py-4"
                               key={permission.code}
-                              title={
-                                delegable
-                                  ? undefined
-                                  : "Недоступно для делегирования в текущей области управления"
-                              }
                             >
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <p className="app-text text-sm font-black">{permission.name}</p>
-                                  {checked && (
-                                    <FiCheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
-                                  )}
+                                  {checked && <FiCheckCircle className="h-4 w-4 text-emerald-500" />}
                                   {risk && <RiskBadge risk={risk} />}
-                                  {!delegable && !isSuperadmin && (
+                                  {!delegable && (
                                     <span className="app-surface-muted app-border app-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black">
                                       <FiLock className="h-3 w-3" /> Недоступно
                                     </span>
@@ -654,15 +827,10 @@ export function AccessRoleFormPage(): JSX.Element {
                                 </p>
                                 {dependencies.length > 0 && (
                                   <p className="mt-2 text-[11px] font-semibold text-sky-700 dark:text-sky-300">
-                                    Требует: {dependencies.map((item) => item.name).join(" · ")}
+                                    Требует: {dependencies.join(" · ")}
                                   </p>
                                 )}
-                                {requiredBy.length > 0 && (
-                                  <p className="mt-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                                    Необходимо для: {requiredBy.map((item) => item.name).join(" · ")}
-                                  </p>
-                                )}
-                                <code className="app-muted mt-2 block truncate text-[10px] font-bold">
+                                <code className="app-muted mt-2 block text-[10px] font-bold">
                                   {permission.code}
                                 </code>
                               </div>
@@ -670,37 +838,28 @@ export function AccessRoleFormPage(): JSX.Element {
                                 checked={checked}
                                 disabled={editorLocked || !delegable}
                                 label={permission.name}
-                                onCheckedChange={(nextChecked) =>
-                                  requestPermissionToggle(permission.code, nextChecked)
+                                onCheckedChange={(checkedValue) =>
+                                  requestPermissionChange(permission.code, checkedValue)
                                 }
                               />
                             </div>
                           );
                         })}
                       </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-
-      {renderedSections.length === 0 && (
-        <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-          <EmptyState
-            description="Измените поисковый запрос или фильтр разрешений."
-            title="Разрешения не найдены"
-          />
-        </section>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })
       )}
 
       <ConfirmDialog
         cancelLabel="Отмена"
         confirmLabel={pendingInfo.confirmLabel}
         description={pendingInfo.description}
-        onConfirm={confirmPendingChange}
+        onConfirm={confirmPending}
         onOpenChange={(open) => !open && setPendingChange(null)}
         open={Boolean(pendingChange)}
         title={pendingInfo.title}
@@ -709,7 +868,7 @@ export function AccessRoleFormPage(): JSX.Element {
   );
 }
 
-function addPermissionWithDependencies(
+function addWithDependencies(
   selected: Set<string>,
   code: string,
   permissionMap: Map<string, AccessPermission>,
@@ -719,18 +878,9 @@ function addPermissionWithDependencies(
   if (!permissionMap.has(code) || !delegableCodes.has(code)) return false;
   if (selected.has(code)) return true;
   if (visiting.has(code)) return false;
-
   visiting.add(code);
   for (const dependency of permissionDependencies[code] ?? []) {
-    if (
-      !addPermissionWithDependencies(
-        selected,
-        dependency,
-        permissionMap,
-        delegableCodes,
-        visiting,
-      )
-    ) {
+    if (!addWithDependencies(selected, dependency, permissionMap, delegableCodes, visiting)) {
       visiting.delete(code);
       return false;
     }
@@ -740,121 +890,193 @@ function addPermissionWithDependencies(
   return true;
 }
 
-function removePermissionAndDependents(selected: Set<string>, code: string): void {
-  if (!selected.has(code)) return;
+function removeWithDependents(selected: Set<string>, code: string): void {
   selected.delete(code);
-
-  for (const [dependentCode, dependencies] of Object.entries(permissionDependencies)) {
-    if (dependencies.includes(code) && selected.has(dependentCode)) {
-      removePermissionAndDependents(selected, dependentCode);
+  for (const [candidate, dependencies] of Object.entries(permissionDependencies)) {
+    if (selected.has(candidate) && dependencies.includes(code)) {
+      removeWithDependents(selected, candidate);
     }
   }
 }
 
-function getPendingChangeInfo(
-  pendingChange: PendingPermissionChange,
-  selectedCodes: string[],
-  permissionMap: Map<string, AccessPermission>,
-  delegableCodes: Set<string>,
-): { title: string; description: string; confirmLabel: string } {
-  if (!pendingChange) {
-    return { title: "Подтвердить изменение", description: "", confirmLabel: "Продолжить" };
+function canDelegateToTarget({
+  code,
+  targetScopeType,
+  targetEnterpriseId,
+  targetDepartmentId,
+  actorPermissionScopes,
+  actorEnterpriseId,
+  actorDepartmentId,
+  isSuperadmin,
+}: {
+  code: string;
+  targetScopeType: CustomRoleScopeType;
+  targetEnterpriseId: number | null;
+  targetDepartmentId: number | null;
+  actorPermissionScopes: Record<string, AccessScopeType>;
+  actorEnterpriseId: number | null;
+  actorDepartmentId: number | null;
+  isSuperadmin: boolean;
+}): boolean {
+  if (!canScopePermissionTo(code, targetScopeType)) return false;
+  if (isSuperadmin) return true;
+  const actorScope = actorPermissionScopes[code];
+  if (!actorScope || actorScope === "self") return false;
+  if (actorScope === "global") return true;
+  if (targetScopeType === "global") return false;
+  if (actorScope === "enterprise") {
+    return Boolean(targetEnterpriseId) && targetEnterpriseId === actorEnterpriseId;
   }
+  return (
+    targetScopeType === "department" &&
+    Boolean(targetDepartmentId) &&
+    targetDepartmentId === actorDepartmentId
+  );
+}
 
-  if (pendingChange.kind === "permission") {
-    const permission = permissionMap.get(pendingChange.code);
-    if (pendingChange.checked) {
-      return {
-        title: `Включить «${permission?.name ?? pendingChange.code}»?`,
-        description:
-          "Это критическое разрешение. Оно позволяет выполнять действие с повышенным влиянием на данные или безопасность системы. Технические зависимости будут включены автоматически.",
-        confirmLabel: "Включить",
-      };
-    }
-    const dependents = getDependentPermissionCodes(selectedCodes, pendingChange.code)
-      .map((code) => permissionMap.get(code)?.name ?? code);
+function normalizeCustomRoleScope(scope: AccessScopeType): CustomRoleScopeType {
+  if (scope === "global" || scope === "enterprise" || scope === "department") {
+    return scope;
+  }
+  return "department";
+}
+
+function initialScopeForActor(
+  actorScope: CustomRoleScopeType,
+  enterpriseId: number | null,
+  departmentId: number | null,
+): RoleScopeSelection {
+  if (actorScope === "global") {
+    return { scopeType: "global", enterpriseId: "", departmentId: "" };
+  }
+  if (actorScope === "enterprise") {
     return {
-      title: `Отключить «${permission?.name ?? pendingChange.code}»?`,
-      description: dependents.length
-        ? `Вместе с ним будут отключены зависящие разрешения: ${dependents.join(", ")}.`
-        : "Разрешение будет отключено.",
-      confirmLabel: "Отключить",
+      scopeType: "enterprise",
+      enterpriseId: String(enterpriseId ?? ""),
+      departmentId: "",
     };
   }
-
-  const section = rolePermissionSections.find((item) => item.key === pendingChange.sectionKey);
-  if (pendingChange.checked) {
-    const criticalNames = (section?.permissionCodes ?? [])
-      .filter(
-        (code) =>
-          delegableCodes.has(code) &&
-          !selectedCodes.includes(code) &&
-          getPermissionRiskLevel(code) === "critical",
-      )
-      .map((code) => permissionMap.get(code)?.name ?? code);
-    return {
-      title: `Включить разрешения раздела «${section?.title ?? ""}»?`,
-      description: criticalNames.length
-        ? `Будут включены в том числе критические действия: ${criticalNames.join(", ")}. Необходимые зависимости также добавятся автоматически.`
-        : "Будут включены все доступные для делегирования разрешения раздела.",
-      confirmLabel: "Включить",
-    };
-  }
-
-  const selectedInSection = (section?.permissionCodes ?? []).filter(
-    (code) => delegableCodes.has(code) && selectedCodes.includes(code),
-  );
-  const affected = new Set<string>(selectedInSection);
-  selectedInSection.forEach((code) =>
-    getDependentPermissionCodes(selectedCodes, code).forEach((dependent) =>
-      affected.add(dependent),
-    ),
-  );
   return {
-    title: `Снять разрешения раздела «${section?.title ?? ""}»?`,
-    description: `Будет отключено разрешений: ${affected.size}. Зависимые действия в других разделах также могут быть сняты автоматически.`,
-    confirmLabel: "Снять",
+    scopeType: "department",
+    enterpriseId: String(enterpriseId ?? ""),
+    departmentId: String(departmentId ?? ""),
   };
+}
+
+function scopeFromRole(role: AccessRoleSummary): RoleScopeSelection {
+  return {
+    scopeType: normalizeCustomRoleScope(role.scopeType),
+    enterpriseId: String(role.enterpriseId ?? ""),
+    departmentId: String(role.departmentId ?? ""),
+  };
+}
+
+function scopeLabelFor(
+  scope: CustomRoleScopeType,
+  enterpriseName: string,
+  departmentName: string,
+): string {
+  if (scope === "global") return "вся система";
+  if (scope === "enterprise") {
+    return enterpriseName ? `предприятие «${enterpriseName}»` : "предприятие не выбрано";
+  }
+  return departmentName ? `отдел «${departmentName}»` : "отдел не выбран";
 }
 
 function serializeRoleDraft(
   name: string,
   description: string,
   permissionCodes: string[],
+  scope: RoleScopeSelection,
 ): string {
   return JSON.stringify({
     name,
     description,
     permissionCodes: [...new Set(permissionCodes)].sort(),
+    scopeType: scope.scopeType,
+    enterpriseId: scope.scopeType === "global" ? "" : scope.enterpriseId,
+    departmentId: scope.scopeType === "department" ? scope.departmentId : "",
   });
 }
 
-function getRoleEditorScopeLabel(
-  scopeType: AccessScopeType,
-  role: AccessRoleSummary | null,
-  enterpriseName: string,
-  departmentName: string,
-): string {
-  if (scopeType === "global") return "вся система";
-  if (scopeType === "enterprise") {
-    const name = role?.enterpriseName || enterpriseName;
-    return name ? `предприятие «${name}»` : "текущее предприятие";
+function describePendingChange(
+  pending: PendingPermissionChange,
+  permissionMap: Map<string, AccessPermission>,
+  selectedCodes: string[],
+): { title: string; description: string; confirmLabel: string } {
+  if (!pending) {
+    return { title: "Подтвердить изменение", description: "", confirmLabel: "Продолжить" };
   }
-  if (scopeType === "department") {
-    const name = role?.departmentName || departmentName;
-    return name ? `отдел «${name}»` : "текущий отдел";
+  if (pending.kind === "section") {
+    const section = rolePermissionSections.find((item) => item.key === pending.sectionKey);
+    return {
+      title: `${pending.checked ? "Включить" : "Снять"} разрешения «${section?.title ?? "раздела"}»?`,
+      description: pending.checked
+        ? "Будут включены доступные разрешения раздела и их обязательные зависимости, включая критические действия."
+        : "Будут сняты разрешения раздела и зависящие от них действия.",
+      confirmLabel: pending.checked ? "Включить" : "Снять",
+    };
   }
-  return "личная область";
+  const permission = permissionMap.get(pending.code);
+  const dependents = getDependentPermissionCodes(selectedCodes, pending.code)
+    .map((code) => permissionMap.get(code)?.name ?? code);
+  return {
+    title: `${pending.checked ? "Включить" : "Отключить"} «${permission?.name ?? pending.code}»?`,
+    description: pending.checked
+      ? "Это критическое разрешение. Обязательные зависимости будут включены автоматически."
+      : dependents.length
+        ? `Вместе с ним будут отключены зависимые действия: ${dependents.join(", ")}.`
+        : "Разрешение будет отключено.",
+    confirmLabel: pending.checked ? "Включить" : "Отключить",
+  };
+}
+
+async function loadRoleScopeRecords(): Promise<{
+  enterprises: HrRecord[];
+  departments: HrRecord[];
+}> {
+  const [enterprises, departments] = await Promise.all([
+    loadAll("enterprises"),
+    loadAll("departments"),
+  ]);
+  return { enterprises, departments };
+}
+
+async function loadAll(
+  entity: Extract<HrEntityKey, "enterprises" | "departments">,
+): Promise<HrRecord[]> {
+  const records: HrRecord[] = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const result = await hrApiClient.list({
+      entity,
+      page,
+      pageSize: 100,
+      filters: { is_archived: { operator: "equals", value: 0 } },
+      orderBy: "name",
+      orderDirection: "asc",
+    });
+    records.push(...result.items);
+    totalPages = Math.max(result.totalPages, 1);
+    page += 1;
+  } while (page <= totalPages);
+  return records;
+}
+
+function positiveId(value: unknown): number | null {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function PermissionSwitch({
   checked,
-  disabled = false,
+  disabled,
   label,
   onCheckedChange,
 }: {
   checked: boolean;
-  disabled?: boolean;
+  disabled: boolean;
   label: string;
   onCheckedChange: (checked: boolean) => void;
 }): JSX.Element {
@@ -862,11 +1084,11 @@ function PermissionSwitch({
     <RadixSwitch.Root
       aria-label={label}
       checked={checked}
-      className="relative h-7 w-12 shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] shadow-inner outline-none transition data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[state=checked]:border-[var(--accent-border)] data-[state=checked]:bg-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent-border)] focus-visible:ring-offset-2"
+      className="relative h-7 w-12 shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] shadow-inner outline-none transition data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[state=checked]:border-[var(--accent-border)] data-[state=checked]:bg-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent-border)]"
       disabled={disabled}
       onCheckedChange={onCheckedChange}
     >
-      <RadixSwitch.Thumb className="block h-5 w-5 translate-x-1 rounded-full bg-white shadow-md transition-transform duration-200 data-[state=checked]:translate-x-6" />
+      <RadixSwitch.Thumb className="block h-5 w-5 translate-x-1 rounded-full bg-white shadow-md transition-transform data-[state=checked]:translate-x-6" />
     </RadixSwitch.Root>
   );
 }
@@ -894,5 +1116,35 @@ function SummaryValue({ label, value }: { label: string; value: number }): JSX.E
       <p className="app-text text-2xl font-black">{value}</p>
       <p className="app-muted mt-1 text-xs font-bold">{label}</p>
     </div>
+  );
+}
+
+function Notice({
+  children,
+  icon,
+  title,
+  tone,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  title: string;
+  tone: "warning" | "info";
+}): JSX.Element {
+  return (
+    <section
+      className={
+        tone === "warning"
+          ? "rounded-[24px] border border-amber-300/60 bg-amber-50/80 p-5 text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100"
+          : "rounded-[24px] border border-sky-300/60 bg-sky-50/80 p-5 text-sky-900 dark:border-sky-700/50 dark:bg-sky-950/30 dark:text-sky-100"
+      }
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 shrink-0">{icon}</span>
+        <div>
+          <p className="font-black">{title}</p>
+          <p className="mt-1 text-sm leading-6 opacity-85">{children}</p>
+        </div>
+      </div>
+    </section>
   );
 }

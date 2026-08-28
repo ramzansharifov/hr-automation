@@ -5,10 +5,8 @@ import {
   FiBriefcase,
   FiChevronRight,
   FiEdit2,
-  FiHash,
   FiLayers,
   FiMail,
-  FiMapPin,
   FiPhone,
   FiPlus,
   FiTrash2,
@@ -47,15 +45,21 @@ export function OrganizationDetailsPage(): JSX.Element {
   const enterpriseId = positiveId(params.enterpriseId);
   const departmentId = positiveId(params.departmentId);
   const mode: OrganizationDetailsMode = departmentId ? "department" : "enterprise";
+
   const canViewEmployees = hasPermission("employees.view");
-  const canChangeEmployment = hasPermission("employees.change_employment");
-  const canAssignLeader = hasPermission("organization.assign_leader");
-  const canCreatePosition = hasPermission("organization.create");
-  const canEditPosition = hasPermission("organization.edit");
-  const canDeletePosition = hasPermission("organization.delete");
-  const canCreateDepartment = canCreatePosition;
-  const canEditDepartment = canEditPosition;
-  const canDeleteDepartment = canDeletePosition;
+  const canViewDepartments = hasPermission("departments.view");
+  const canViewPositions = hasPermission("positions.view");
+  const canAssignLeader = hasPermission(
+    mode === "enterprise"
+      ? "enterprises.assign_leader"
+      : "departments.assign_leader",
+  );
+  const canCreateDepartment = hasPermission("departments.create");
+  const canEditDepartment = hasPermission("departments.edit");
+  const canDeleteDepartment = hasPermission("departments.delete");
+  const canCreatePosition = hasPermission("positions.create");
+  const canEditPosition = hasPermission("positions.edit");
+  const canDeletePosition = hasPermission("positions.delete");
 
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
   const [department, setDepartment] = useState<HrRecord | null>(null);
@@ -66,23 +70,19 @@ export function OrganizationDetailsPage(): JSX.Element {
   const [hasError, setHasError] = useState(false);
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [isLeaderDialogOpen, setIsLeaderDialogOpen] = useState(false);
-  const [departmentDialogMode, setDepartmentDialogMode] = useState<"create" | "edit">(
-    "create",
-  );
+  const [departmentDialogMode, setDepartmentDialogMode] = useState<"create" | "edit">("create");
   const [editingDepartment, setEditingDepartment] = useState<HrRecord | null>(null);
   const [deletingDepartment, setDeletingDepartment] = useState<HrRecord | null>(null);
   const [isDepartmentFormOpen, setIsDepartmentFormOpen] = useState(false);
   const [isDepartmentDeleteOpen, setIsDepartmentDeleteOpen] = useState(false);
-  const [positionDialogMode, setPositionDialogMode] = useState<"create" | "edit">(
-    "create",
-  );
+  const [positionDialogMode, setPositionDialogMode] = useState<"create" | "edit">("create");
   const [editingPosition, setEditingPosition] = useState<HrRecord | null>(null);
   const [deletingPosition, setDeletingPosition] = useState<HrRecord | null>(null);
   const [isPositionFormOpen, setIsPositionFormOpen] = useState(false);
   const [isPositionDeleteOpen, setIsPositionDeleteOpen] = useState(false);
 
   useEffect(() => {
-    let isActive = true;
+    let active = true;
 
     async function loadDetails(): Promise<void> {
       if (!enterpriseId || (mode === "department" && !departmentId)) {
@@ -110,60 +110,66 @@ export function OrganizationDetailsPage(): JSX.Element {
           throw new Error("Отдел не найден в выбранном предприятии");
         }
 
-        const departmentRows = departmentRecord
-          ? [departmentRecord]
-          : await loadAllRecords("departments", { enterprise_id: enterpriseId }, "name");
+        let departmentRows: HrRecord[] = [];
+        if (departmentRecord) {
+          departmentRows = [departmentRecord];
+        } else if (canViewDepartments) {
+          departmentRows = await loadAllRecords(
+            "departments",
+            { enterprise_id: enterpriseId },
+            "name",
+          );
+        }
+
         const departmentIds = departmentRows
           .map((item) => positiveId(item.id))
           .filter((id): id is number => Boolean(id));
 
         const [positionRows, employeeRows] = await Promise.all([
-          departmentIds.length
+          canViewPositions && departmentIds.length
             ? loadAllRecords(
                 "positions",
-                {
-                  department_id: {
-                    operator: "in",
-                    value: departmentIds,
-                  },
-                },
+                { department_id: { operator: "in", value: departmentIds } },
                 "name",
               )
             : Promise.resolve([]),
           canViewEmployees && departmentIds.length
             ? loadAllRecords(
                 "employees",
-                {
-                  department_id: {
-                    operator: "in",
-                    value: departmentIds,
-                  },
-                },
+                { department_id: { operator: "in", value: departmentIds } },
                 "last_name",
               )
             : Promise.resolve([]),
         ]);
 
-        if (!isActive) return;
+        if (!active) return;
         setEnterprise(enterpriseRecord);
         setDepartment(departmentRecord);
         setDepartments(departmentRows);
         setPositions(positionRows);
         setEmployees(employeeRows);
       } catch (error) {
-        if (!isActive) return;
+        if (!active) return;
         setHasError(true);
         toast.error(errorMessage(error, "Не удалось загрузить данные организации"));
       } finally {
-        if (isActive) setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     }
 
     void loadDetails();
     return () => {
-      isActive = false;
+      active = false;
     };
-  }, [canViewEmployees, departmentId, enterpriseId, mode, refreshIndex]);
+  }, [
+    canViewDepartments,
+    canViewEmployees,
+    canViewPositions,
+    departmentId,
+    enterpriseId,
+    mode,
+    refreshIndex,
+  ]);
 
   const employeeCountByDepartment = useMemo(
     () => countById(employees, "department_id"),
@@ -177,11 +183,6 @@ export function OrganizationDetailsPage(): JSX.Element {
     () => countById(employees, "position_id"),
     [employees],
   );
-
-  function openLeaderDialog(): void {
-    if (!canAssignLeader || !enterpriseId) return;
-    setIsLeaderDialogOpen(true);
-  }
 
   function openCreateDepartment(): void {
     if (!canCreateDepartment || !enterpriseId || mode !== "enterprise") return;
@@ -205,7 +206,6 @@ export function OrganizationDetailsPage(): JSX.Element {
 
   async function saveDepartment(data: HrRecord): Promise<void> {
     if (!enterpriseId) throw new Error("Предприятие не найдено");
-
     if (departmentDialogMode === "create") {
       if (!canCreateDepartment) throw new Error("Недостаточно прав для создания отдела");
       await hrApiClient.create({
@@ -214,24 +214,22 @@ export function OrganizationDetailsPage(): JSX.Element {
       });
     } else {
       if (!canEditDepartment) throw new Error("Недостаточно прав для изменения отдела");
-      const currentDepartmentId = positiveId(editingDepartment?.id);
-      if (!currentDepartmentId) throw new Error("Отдел не найден");
+      const id = positiveId(editingDepartment?.id);
+      if (!id) throw new Error("Отдел не найден");
       await hrApiClient.update({
         entity: "departments",
-        id: currentDepartmentId,
+        id,
         data: { ...data, enterprise_id: enterpriseId },
       });
     }
-
     setRefreshIndex((value) => value + 1);
   }
 
   async function deleteDepartment(): Promise<void> {
     if (!canDeleteDepartment) throw new Error("Недостаточно прав для удаления отдела");
-    const currentDepartmentId = positiveId(deletingDepartment?.id);
-    if (!currentDepartmentId) throw new Error("Отдел не найден");
-
-    await hrApiClient.delete({ entity: "departments", id: currentDepartmentId });
+    const id = positiveId(deletingDepartment?.id);
+    if (!id) throw new Error("Отдел не найден");
+    await hrApiClient.delete({ entity: "departments", id });
     setDeletingDepartment(null);
     setRefreshIndex((value) => value + 1);
   }
@@ -243,22 +241,21 @@ export function OrganizationDetailsPage(): JSX.Element {
     setIsPositionFormOpen(true);
   }
 
-  function openEditPosition(position: HrRecord): void {
+  function openEditPosition(item: HrRecord): void {
     if (!canEditPosition) return;
     setPositionDialogMode("edit");
-    setEditingPosition(position);
+    setEditingPosition(item);
     setIsPositionFormOpen(true);
   }
 
-  function openDeletePosition(position: HrRecord): void {
+  function openDeletePosition(item: HrRecord): void {
     if (!canDeletePosition) return;
-    setDeletingPosition(position);
+    setDeletingPosition(item);
     setIsPositionDeleteOpen(true);
   }
 
   async function savePosition(data: HrRecord): Promise<void> {
     if (!departmentId) throw new Error("Отдел не найден");
-
     if (positionDialogMode === "create") {
       if (!canCreatePosition) throw new Error("Недостаточно прав для создания должности");
       await hrApiClient.create({
@@ -267,31 +264,27 @@ export function OrganizationDetailsPage(): JSX.Element {
       });
     } else {
       if (!canEditPosition) throw new Error("Недостаточно прав для изменения должности");
-      const positionId = positiveId(editingPosition?.id);
-      if (!positionId) throw new Error("Должность не найдена");
+      const id = positiveId(editingPosition?.id);
+      if (!id) throw new Error("Должность не найдена");
       await hrApiClient.update({
         entity: "positions",
-        id: positionId,
+        id,
         data: { ...data, department_id: departmentId },
       });
     }
-
     setRefreshIndex((value) => value + 1);
   }
 
   async function deletePosition(): Promise<void> {
     if (!canDeletePosition) throw new Error("Недостаточно прав для удаления должности");
-    const positionId = positiveId(deletingPosition?.id);
-    if (!positionId) throw new Error("Должность не найдена");
-
-    await hrApiClient.delete({ entity: "positions", id: positionId });
+    const id = positiveId(deletingPosition?.id);
+    if (!id) throw new Error("Должность не найдена");
+    await hrApiClient.delete({ entity: "positions", id });
     setDeletingPosition(null);
     setRefreshIndex((value) => value + 1);
   }
 
-  if (isLoading) {
-    return <LoadingState label="Загрузка карточки организации..." />;
-  }
+  if (isLoading) return <LoadingState label="Загрузка карточки организации..." />;
 
   if (hasError || !enterprise || (mode === "department" && !department)) {
     return (
@@ -304,16 +297,7 @@ export function OrganizationDetailsPage(): JSX.Element {
 
   const record = mode === "enterprise" ? enterprise : department!;
   const title = recordName(record);
-  const subtitle =
-    mode === "enterprise"
-      ? displayValue(enterprise.legal_name)
-      : `Предприятие: ${recordName(enterprise)}`;
-  const activeEmployees = employees.filter(
-    (employee) => String(employee.status) === "active",
-  );
-  const unassignedEmployees = employees.filter(
-    (employee) => !positiveId(employee.position_id),
-  );
+  const activeEmployees = employees.filter((item) => String(item.status) === "active");
   const leaderEmployeeId =
     mode === "enterprise"
       ? positiveId(enterprise.general_director_employee_id)
@@ -322,10 +306,6 @@ export function OrganizationDetailsPage(): JSX.Element {
     mode === "enterprise"
       ? displayValue(enterprise.general_director_name)
       : displayValue(department!.director_name);
-  const backPath =
-    mode === "enterprise"
-      ? "/enterprises"
-      : `/enterprises/${enterpriseId}/departments`;
 
   return (
     <motion.div
@@ -335,45 +315,37 @@ export function OrganizationDetailsPage(): JSX.Element {
       transition={{ duration: 0.32, ease: "easeOut" }}
     >
       <section className="app-accent-gradient-panel overflow-hidden rounded-[30px] border border-white/10 p-6 text-white shadow-2xl sm:p-7">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-start gap-4 sm:items-center">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-xl font-black shadow-lg backdrop-blur">
-              {initials(title)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-white/70">
-                {mode === "enterprise" ? "Карточка предприятия" : "Карточка отдела"}
-              </p>
-              <h1 className="mt-1 truncate text-2xl font-black sm:text-3xl">{title}</h1>
-              <p className="mt-2 max-w-3xl text-sm font-semibold text-white/75">
-                {subtitle}
-              </p>
-            </div>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/70">
+              {mode === "enterprise" ? "Карточка предприятия" : "Карточка отдела"}
+            </p>
+            <h1 className="mt-2 text-2xl font-black sm:text-3xl">{title}</h1>
+            <p className="mt-2 text-sm font-semibold text-white/75">
+              {mode === "enterprise"
+                ? displayValue(enterprise.legal_name)
+                : `Предприятие: ${recordName(enterprise)}`}
+            </p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button
               className="border-white/20 bg-white/10 text-white hover:bg-white/15"
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
-              onClick={() => navigate(backPath)}
+              leftIcon={<FiArrowLeft />}
+              onClick={() =>
+                navigate(
+                  mode === "enterprise"
+                    ? "/enterprises"
+                    : `/enterprises/${enterpriseId}/departments`,
+                )
+              }
               variant="ghost"
             >
               Назад
             </Button>
-            {mode === "department" && (
+            {mode === "enterprise" && canViewDepartments && (
               <Button
-                className="border-white/20 bg-white/10 text-white hover:bg-white/15"
-                onClick={() => navigate(`/enterprises/${enterpriseId}`)}
-                variant="ghost"
-              >
-                Предприятие
-              </Button>
-            )}
-            {mode === "enterprise" && (
-              <Button
-                className="border-white/20 shadow-lg"
+                className="border-white/20 bg-white text-slate-900"
                 onClick={() => navigate(`/enterprises/${enterpriseId}/departments`)}
-                style={{ background: "#ffffff", color: "#0f172a" }}
                 variant="ghost"
               >
                 Открыть отделы
@@ -384,68 +356,52 @@ export function OrganizationDetailsPage(): JSX.Element {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {mode === "enterprise" ? (
-          <>
-            <MetricCard icon={<FiLayers />} label="Отделов" value={departments.length} />
-            <MetricCard
-              icon={<FiUsers />}
-              label="Сотрудников"
-              value={canViewEmployees ? employees.length : "—"}
-            />
-            <MetricCard icon={<FiBriefcase />} label="Должностей" value={positions.length} />
-            <MetricCard
-              icon={<FiUserCheck />}
-              label="Активных сотрудников"
-              value={canViewEmployees ? activeEmployees.length : "—"}
-            />
-          </>
-        ) : (
-          <>
-            <MetricCard
-              icon={<FiUsers />}
-              label="Сотрудников"
-              value={canViewEmployees ? employees.length : "—"}
-            />
-            <MetricCard icon={<FiBriefcase />} label="Должностей" value={positions.length} />
-            <MetricCard
-              icon={<FiUserCheck />}
-              label="Активных"
-              value={canViewEmployees ? activeEmployees.length : "—"}
-            />
-            <MetricCard
-              icon={<FiHash />}
-              label="Без должности"
-              value={canViewEmployees ? unassignedEmployees.length : "—"}
-            />
-          </>
-        )}
+        <MetricCard
+          icon={<FiLayers />}
+          label="Отделов"
+          value={canViewDepartments ? departments.length : "—"}
+        />
+        <MetricCard
+          icon={<FiBriefcase />}
+          label="Должностей"
+          value={canViewPositions ? positions.length : "—"}
+        />
+        <MetricCard
+          icon={<FiUsers />}
+          label="Сотрудников"
+          value={canViewEmployees ? employees.length : "—"}
+        />
+        <MetricCard
+          icon={<FiUserCheck />}
+          label="Активных сотрудников"
+          value={canViewEmployees ? activeEmployees.length : "—"}
+        />
       </section>
 
-      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
-        {mode === "enterprise" ? (
-          <InfoPanel icon={<FiBriefcase />} title="Основная информация">
-            <InfoRow label="Категория" value={displayValue(enterprise.legal_form)} />
-            <InfoRow
-              label="Юридическое название"
-              value={displayValue(enterprise.legal_name)}
-            />
-            <InfoRow
-              label="Регистрационный номер"
-              value={displayValue(enterprise.registration_number)}
-            />
-            <InfoRow label="Адрес" value={displayValue(enterprise.address)} wide />
-          </InfoPanel>
-        ) : (
-          <InfoPanel icon={<FiLayers />} title="Информация об отделе">
-            <InfoRow label="Предприятие" value={recordName(enterprise)} />
-            <InfoRow label="Расположение" value={displayValue(department!.location)} />
-            <InfoRow
-              label="Дата создания"
-              value={department!.created_on ? formatDate(department!.created_on) : "—"}
-            />
-            <InfoRow label="Название" value={recordName(department!)} />
-          </InfoPanel>
-        )}
+      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
+        <InfoPanel
+          icon={mode === "enterprise" ? <FiBriefcase /> : <FiLayers />}
+          title={mode === "enterprise" ? "Основная информация" : "Информация об отделе"}
+        >
+          {mode === "enterprise" ? (
+            <>
+              <InfoRow label="Юридическое название" value={displayValue(enterprise.legal_name)} />
+              <InfoRow label="Форма" value={displayValue(enterprise.legal_form)} />
+              <InfoRow label="Регистрационный номер" value={displayValue(enterprise.registration_number)} />
+              <InfoRow label="Адрес" value={displayValue(enterprise.address)} />
+            </>
+          ) : (
+            <>
+              <InfoRow label="Предприятие" value={recordName(enterprise)} />
+              <InfoRow label="Расположение" value={displayValue(department!.location)} />
+              <InfoRow
+                label="Дата создания"
+                value={department!.created_on ? formatDate(department!.created_on) : "—"}
+              />
+              <InfoRow label="Название" value={recordName(department!)} />
+            </>
+          )}
+        </InfoPanel>
 
         <div className="space-y-5">
           <ContactCard record={record} />
@@ -454,49 +410,38 @@ export function OrganizationDetailsPage(): JSX.Element {
             canViewEmployee={canViewEmployees}
             employeeId={leaderEmployeeId}
             leaderName={leaderName}
-            onManage={openLeaderDialog}
-            title={
-              mode === "enterprise"
-                ? "Руководитель предприятия"
-                : "Руководитель отдела"
-            }
+            onManage={() => setIsLeaderDialogOpen(true)}
+            title={mode === "enterprise" ? "Руководитель предприятия" : "Руководитель отдела"}
           />
         </div>
       </section>
 
-      {mode === "enterprise" ? (
+      {mode === "enterprise" && (
         <section className="app-surface app-border overflow-hidden rounded-[28px] border">
           <SectionHeader
             actions={
               canCreateDepartment ? (
-                <Button
-                  leftIcon={<FiPlus className="h-4 w-4" />}
-                  onClick={openCreateDepartment}
-                  size="sm"
-                  type="button"
-                >
+                <Button leftIcon={<FiPlus />} onClick={openCreateDepartment} size="sm">
                   Добавить отдел
                 </Button>
               ) : undefined
             }
-            description="Отделы предприятия можно добавлять, редактировать и удалять прямо на этой странице."
+            description="CRUD отделов управляется отдельными разрешениями роли."
             icon={<FiLayers />}
             title="Отделы"
           />
-          {departments.length ? (
+          {!canViewDepartments ? (
+            <EmptySection text="У текущей роли нет разрешения departments.view." />
+          ) : departments.length === 0 ? (
+            <EmptySection text="В предприятии пока нет отделов." />
+          ) : (
             <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
               {departments.map((item) => {
                 const id = positiveId(item.id);
                 return (
-                  <article
-                    className="app-surface-muted app-border rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-[var(--accent-border)] hover:shadow-lg"
-                    key={String(item.id)}
-                  >
+                  <article className="app-surface-muted app-border rounded-2xl border p-4" key={String(item.id)}>
                     <div className="flex items-start justify-between gap-4">
-                      <Link
-                        className="group min-w-0 flex-1"
-                        to={`/enterprises/${enterpriseId}/departments/${id}`}
-                      >
+                      <Link className="group min-w-0 flex-1" to={`/enterprises/${enterpriseId}/departments/${id}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="app-text truncate font-black">{recordName(item)}</p>
@@ -506,47 +451,20 @@ export function OrganizationDetailsPage(): JSX.Element {
                                 : `Руководитель: ${displayValue(item.director_name)}`}
                             </p>
                           </div>
-                          <FiChevronRight className="app-muted mt-1 h-5 w-5 shrink-0 transition group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
+                          <FiChevronRight className="app-muted h-5 w-5 shrink-0" />
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
-                          <MiniBadge
-                            label="Сотрудников"
-                            value={
-                              canViewEmployees
-                                ? employeeCountByDepartment.get(id ?? -1) ?? 0
-                                : "—"
-                            }
-                          />
-                          <MiniBadge
-                            label="Должностей"
-                            value={positionCountByDepartment.get(id ?? -1) ?? 0}
-                          />
-                          {item.location && (
-                            <MiniBadge label="Локация" value={String(item.location)} />
-                          )}
+                          <MiniBadge label="Сотрудников" value={canViewEmployees ? employeeCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
+                          <MiniBadge label="Должностей" value={canViewPositions ? positionCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
                         </div>
                       </Link>
-
                       {(canEditDepartment || canDeleteDepartment) && (
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 gap-2">
                           {canEditDepartment && (
-                            <IconButton
-                              className="app-table-action-button app-table-action-button--edit"
-                              icon={<FiEdit2 />}
-                              label="Редактировать отдел"
-                              onClick={() => openEditDepartment(item)}
-                              size="sm"
-                            />
+                            <IconButton icon={<FiEdit2 />} label="Редактировать отдел" onClick={() => openEditDepartment(item)} size="sm" />
                           )}
                           {canDeleteDepartment && (
-                            <IconButton
-                              className="app-table-action-button app-table-action-button--delete"
-                              icon={<FiTrash2 />}
-                              label="Удалить отдел"
-                              onClick={() => openDeleteDepartment(item)}
-                              size="sm"
-                              tone="danger"
-                            />
+                            <IconButton icon={<FiTrash2 />} label="Удалить отдел" onClick={() => openDeleteDepartment(item)} size="sm" tone="danger" />
                           )}
                         </div>
                       )}
@@ -555,95 +473,61 @@ export function OrganizationDetailsPage(): JSX.Element {
                 );
               })}
             </div>
-          ) : (
-            <EmptySection text="В предприятии пока нет отделов." />
           )}
         </section>
-      ) : (
+      )}
+
+      {mode === "department" && (
         <section className="app-surface app-border overflow-hidden rounded-[28px] border">
           <SectionHeader
             actions={
               canCreatePosition ? (
-                <Button
-                  leftIcon={<FiPlus className="h-4 w-4" />}
-                  onClick={openCreatePosition}
-                  size="sm"
-                  type="button"
-                >
+                <Button leftIcon={<FiPlus />} onClick={openCreatePosition} size="sm">
                   Добавить должность
                 </Button>
               ) : undefined
             }
-            description="Должности отдела можно добавлять, редактировать и удалять прямо на этой странице."
+            description="CRUD должностей управляется независимо от CRUD отделов."
             icon={<FiBriefcase />}
             title="Должности"
           />
-          {positions.length ? (
+          {!canViewPositions ? (
+            <EmptySection text="У текущей роли нет разрешения positions.view." />
+          ) : positions.length === 0 ? (
+            <EmptySection text="В отделе пока нет должностей." />
+          ) : (
             <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
-              {positions.map((position) => {
-                const id = positiveId(position.id);
+              {positions.map((item) => {
+                const id = positiveId(item.id);
                 return (
-                  <article
-                    className="app-surface-muted app-border rounded-2xl border p-4"
-                    key={String(position.id)}
-                  >
+                  <article className="app-surface-muted app-border rounded-2xl border p-4" key={String(item.id)}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
-                            <FiBriefcase />
-                          </span>
-                          <p className="app-text min-w-0 truncate font-black">
-                            {recordName(position)}
-                          </p>
-                        </div>
-                        <p className="app-muted mt-3 line-clamp-2 text-xs font-semibold leading-5">
-                          {displayValue(position.responsibilities) === "—"
+                        <p className="app-text font-black">{recordName(item)}</p>
+                        <p className="app-muted mt-2 text-xs leading-5">
+                          {displayValue(item.responsibilities) === "—"
                             ? "Обязанности не указаны"
-                            : String(position.responsibilities)}
+                            : String(item.responsibilities)}
                         </p>
+                        <div className="mt-4">
+                          <MiniBadge label="Сотрудников" value={canViewEmployees ? employeeCountByPosition.get(id ?? -1) ?? 0 : "—"} />
+                        </div>
                       </div>
-
                       {(canEditPosition || canDeletePosition) && (
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 gap-2">
                           {canEditPosition && (
-                            <IconButton
-                              className="app-table-action-button app-table-action-button--edit"
-                              icon={<FiEdit2 />}
-                              label="Редактировать должность"
-                              onClick={() => openEditPosition(position)}
-                              size="sm"
-                            />
+                            <IconButton icon={<FiEdit2 />} label="Редактировать должность" onClick={() => openEditPosition(item)} size="sm" />
                           )}
                           {canDeletePosition && (
-                            <IconButton
-                              className="app-table-action-button app-table-action-button--delete"
-                              icon={<FiTrash2 />}
-                              label="Удалить должность"
-                              onClick={() => openDeletePosition(position)}
-                              size="sm"
-                              tone="danger"
-                            />
+                            <IconButton icon={<FiTrash2 />} label="Удалить должность" onClick={() => openDeletePosition(item)} size="sm" tone="danger" />
                           )}
                         </div>
                       )}
-                    </div>
-                    <div className="mt-4">
-                      <MiniBadge
-                        label="Сотрудников"
-                        value={
-                          canViewEmployees
-                            ? employeeCountByPosition.get(id ?? -1) ?? 0
-                            : "—"
-                        }
-                      />
                     </div>
                   </article>
                 );
               })}
             </div>
-          ) : (
-            <EmptySection text="В отделе пока нет должностей." />
           )}
         </section>
       )}
@@ -653,36 +537,29 @@ export function OrganizationDetailsPage(): JSX.Element {
           description={
             canViewEmployees
               ? mode === "enterprise"
-                ? "Сотрудники всех отделов предприятия."
+                ? "Сотрудники доступных отделов предприятия."
                 : "Сотрудники выбранного отдела."
-              : "Для просмотра кадрового состава требуется разрешение на просмотр сотрудников."
+              : "Просмотр кадрового состава защищён отдельным разрешением employees.view."
           }
           icon={<FiUsers />}
           title="Сотрудники"
         />
-        {canViewEmployees ? (
-          employees.length ? (
-            <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2 xl:grid-cols-3">
-              {employees.slice(0, 12).map((employee) => (
-                <EmployeeCard employee={employee} key={String(employee.id)} />
-              ))}
-              {employees.length > 12 && (
-                <div className="app-muted col-span-full px-1 pt-2 text-xs font-semibold">
-                  Показаны первые 12 сотрудников из {employees.length}.
-                </div>
-              )}
-            </div>
-          ) : (
-            <EmptySection text="Сотрудники пока не добавлены." />
-          )
-        ) : (
+        {!canViewEmployees ? (
           <EmptySection text="У текущей роли нет разрешения employees.view." />
+        ) : employees.length === 0 ? (
+          <EmptySection text="Сотрудники пока не добавлены." />
+        ) : (
+          <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2 xl:grid-cols-3">
+            {employees.slice(0, 12).map((item) => (
+              <EmployeeCard employee={item} key={String(item.id)} />
+            ))}
+          </div>
         )}
       </section>
 
-      {enterpriseId && (
+      {enterpriseId && canAssignLeader && (
         <DepartmentLeaderDialog
-          canChangeEmployment={canChangeEmployment}
+          canChangeEmployment={canAssignLeader}
           currentLeaderId={leaderEmployeeId}
           departmentId={departmentId}
           departmentName={department ? recordName(department) : ""}
@@ -701,18 +578,13 @@ export function OrganizationDetailsPage(): JSX.Element {
         <HrEntityDialog
           entity="departments"
           hiddenFieldNames={["enterprise_id"]}
-          initialRecord={
-            departmentDialogMode === "create"
-              ? { enterprise_id: enterpriseId }
-              : editingDepartment
-          }
+          initialRecord={departmentDialogMode === "create" ? { enterprise_id: enterpriseId } : editingDepartment}
           mode={departmentDialogMode}
           onOpenChange={setIsDepartmentFormOpen}
           onSubmit={saveDepartment}
           open={isDepartmentFormOpen}
         />
       )}
-
       {mode === "enterprise" && canDeleteDepartment && (
         <HrEntityDeleteDialog
           onConfirm={deleteDepartment}
@@ -723,23 +595,17 @@ export function OrganizationDetailsPage(): JSX.Element {
           open={isDepartmentDeleteOpen}
         />
       )}
-
       {mode === "department" && departmentId && (canCreatePosition || canEditPosition) && (
         <HrEntityDialog
           entity="positions"
           hiddenFieldNames={["department_id"]}
-          initialRecord={
-            positionDialogMode === "create"
-              ? { department_id: departmentId }
-              : editingPosition
-          }
+          initialRecord={positionDialogMode === "create" ? { department_id: departmentId } : editingPosition}
           mode={positionDialogMode}
           onOpenChange={setIsPositionFormOpen}
           onSubmit={savePosition}
           open={isPositionFormOpen}
         />
       )}
-
       {mode === "department" && canDeletePosition && (
         <HrEntityDeleteDialog
           onConfirm={deletePosition}
@@ -754,21 +620,11 @@ export function OrganizationDetailsPage(): JSX.Element {
   );
 }
 
-function MetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-}): JSX.Element {
+function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }): JSX.Element {
   return (
     <article className="app-surface app-border rounded-[24px] border p-5 shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-lg">
-          {icon}
-        </span>
+        <span className="app-accent-soft flex h-11 w-11 items-center justify-center rounded-xl border text-lg">{icon}</span>
         <div>
           <p className="app-muted text-[11px] font-black uppercase tracking-wide">{label}</p>
           <p className="app-text mt-1 text-2xl font-black">{value}</p>
@@ -778,21 +634,11 @@ function MetricCard({
   );
 }
 
-function InfoPanel({
-  children,
-  icon,
-  title,
-}: {
-  children: ReactNode;
-  icon: ReactNode;
-  title: string;
-}): JSX.Element {
+function InfoPanel({ children, icon, title }: { children: ReactNode; icon: ReactNode; title: string }): JSX.Element {
   return (
     <section className="app-surface app-border overflow-hidden rounded-[28px] border">
       <div className="app-surface-muted app-border flex items-center gap-3 border-b px-5 py-4">
-        <span className="app-accent-soft flex h-10 w-10 items-center justify-center rounded-xl border">
-          {icon}
-        </span>
+        <span className="app-accent-soft flex h-10 w-10 items-center justify-center rounded-xl border">{icon}</span>
         <h2 className="app-text text-lg font-black">{title}</h2>
       </div>
       <div className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2">{children}</div>
@@ -800,21 +646,11 @@ function InfoPanel({
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  wide = false,
-}: {
-  label: string;
-  value: ReactNode;
-  wide?: boolean;
-}): JSX.Element {
+function InfoRow({ label, value }: { label: string; value: ReactNode }): JSX.Element {
   return (
-    <div className={wide ? "sm:col-span-2" : ""}>
+    <div>
       <p className="app-muted text-[11px] font-black uppercase tracking-wide">{label}</p>
-      <div className="app-text-soft mt-1.5 break-words text-sm font-bold leading-6">
-        {value}
-      </div>
+      <div className="app-text-soft mt-1.5 break-words text-sm font-bold leading-6">{value}</div>
     </div>
   );
 }
@@ -824,42 +660,17 @@ function ContactCard({ record }: { record: HrRecord }): JSX.Element {
     <article className="app-surface app-border rounded-[24px] border p-5">
       <p className="app-muted text-[11px] font-black uppercase tracking-wide">Контакты</p>
       <div className="mt-4 space-y-3">
-        <ContactRow
-          icon={<FiPhone />}
-          label="Телефон"
-          value={displayValue(record.phone)}
-        />
-        <ContactRow
-          icon={<FiMail />}
-          label="Email"
-          value={displayValue(record.email)}
-        />
-        {record.location && (
-          <ContactRow
-            icon={<FiMapPin />}
-            label="Расположение"
-            value={String(record.location)}
-          />
-        )}
+        <ContactRow icon={<FiPhone />} label="Телефон" value={displayValue(record.phone)} />
+        <ContactRow icon={<FiMail />} label="Email" value={displayValue(record.email)} />
       </div>
     </article>
   );
 }
 
-function ContactRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}): JSX.Element {
+function ContactRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }): JSX.Element {
   return (
     <div className="flex items-start gap-3">
-      <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
-        {icon}
-      </span>
+      <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">{icon}</span>
       <div className="min-w-0">
         <p className="app-muted text-[10px] font-black uppercase tracking-wide">{label}</p>
         <p className="app-text-soft mt-1 break-all text-sm font-bold">{value}</p>
@@ -883,40 +694,23 @@ function LeaderCard({
   onManage: () => void;
   title: string;
 }): JSX.Element {
-  const hasLeader = leaderName !== "—";
-
   return (
     <article className="app-surface app-border rounded-[24px] border p-5">
-      <div className="flex items-start gap-3">
-        <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-lg">
-          <FiUserCheck />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="app-muted text-[10px] font-black uppercase tracking-wide">{title}</p>
-          {canViewEmployee && employeeId ? (
-            <Link
-              className="app-text mt-1 inline-flex min-w-0 items-center gap-1 text-sm font-black transition hover:text-[var(--accent)]"
-              to={`/employees/${employeeId}`}
-            >
-              <span className="truncate">{hasLeader ? leaderName : "Не назначен"}</span>
-              <FiChevronRight className="h-4 w-4 shrink-0" />
-            </Link>
-          ) : (
-            <p className="app-text mt-1 truncate text-sm font-black">
-              {hasLeader ? leaderName : "Не назначен"}
-            </p>
-          )}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="app-muted text-[11px] font-black uppercase tracking-wide">{title}</p>
+          <p className="app-text mt-2 font-black">{leaderName}</p>
         </div>
         {canManage && (
-          <Button onClick={onManage} size="sm" type="button" variant="secondary">
-            {hasLeader ? "Изменить" : "Назначить"}
+          <Button onClick={onManage} size="sm" variant="secondary">
+            Управлять
           </Button>
         )}
       </div>
-      {canManage && (
-        <p className="app-muted mt-4 text-xs font-semibold leading-5">
-          Назначение руководителем оформляется отдельным кадровым изменением. Можно выбрать активного сотрудника с текущей должностью или из другого подразделения.
-        </p>
+      {employeeId && canViewEmployee && (
+        <Link className="app-accent-text mt-3 inline-flex text-xs font-black" to={`/employees/${employeeId}`}>
+          Открыть сотрудника
+        </Link>
       )}
     </article>
   );
@@ -935,151 +729,85 @@ function SectionHeader({
 }): JSX.Element {
   return (
     <div className="app-surface-muted app-border flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
-          {icon}
-        </span>
-        <div className="min-w-0">
+      <div className="flex items-start gap-3">
+        <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">{icon}</span>
+        <div>
           <h2 className="app-text text-lg font-black">{title}</h2>
-          <p className="app-muted mt-0.5 text-xs font-semibold">{description}</p>
+          <p className="app-muted mt-1 text-xs leading-5">{description}</p>
         </div>
       </div>
-      {actions && <div className="shrink-0">{actions}</div>}
+      {actions}
     </div>
   );
 }
 
 function MiniBadge({ label, value }: { label: string; value: ReactNode }): JSX.Element {
   return (
-    <span className="app-surface app-border rounded-full border px-3 py-1.5 text-[11px] font-bold">
-      <span className="app-muted">{label}: </span>
-      <span className="app-text">{value}</span>
+    <span className="app-surface app-border app-text-soft inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold">
+      {label}: {value}
     </span>
   );
 }
 
 function EmployeeCard({ employee }: { employee: HrRecord }): JSX.Element {
   const id = positiveId(employee.id);
-  const name = employeeName(employee);
-  const status = String(employee.status ?? "active");
-  const content = (
-    <div className="flex items-start gap-3">
-      <span className="app-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-xs font-black">
-        {initials(name)}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <p className="app-text truncate font-black">{name}</p>
-          <StatusBadge status={status} />
-        </div>
-        <p className="app-muted mt-1 truncate text-xs font-semibold">
-          {[employee.department_name, employee.position_name]
-            .map((value) => String(value ?? "").trim())
-            .filter(Boolean)
-            .join(" · ") || "Должность не назначена"}
-        </p>
-      </div>
-    </div>
-  );
-
-  return id ? (
-    <Link
-      className="app-surface-muted app-border rounded-2xl border p-4 transition hover:border-[var(--accent-border)] hover:shadow-lg"
-      to={`/employees/${id}`}
-    >
-      {content}
-    </Link>
-  ) : (
-    <article className="app-surface-muted app-border rounded-2xl border p-4">
-      {content}
-    </article>
-  );
-}
-
-function StatusBadge({ status }: { status: string }): JSX.Element {
-  const active = status === "active";
+  const name = [employee.last_name, employee.first_name, employee.middle_name]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
   return (
-    <span
-      className={[
-        "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black",
-        active
-          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600"
-          : "app-surface app-border app-text-soft",
-      ].join(" ")}
-    >
-      {active ? "Активен" : status === "terminated" ? "Уволен" : status}
-    </span>
+    <Link className="app-surface-muted app-border rounded-2xl border p-4 transition hover:border-[var(--accent-border)]" to={`/employees/${id}`}>
+      <p className="app-text truncate font-black">{name || "Сотрудник"}</p>
+      <p className="app-muted mt-1 truncate text-xs font-semibold">{displayValue(employee.position_name)}</p>
+    </Link>
   );
 }
 
 function EmptySection({ text }: { text: string }): JSX.Element {
-  return <div className="app-muted p-8 text-center text-sm font-semibold">{text}</div>;
+  return <p className="app-muted p-6 text-center text-sm font-semibold">{text}</p>;
 }
 
 async function loadAllRecords(
   entity: HrEntityKey,
-  filters: OrganizationFilters | undefined,
+  filters: OrganizationFilters,
   orderBy: string,
 ): Promise<HrRecord[]> {
   const records: HrRecord[] = [];
   let page = 1;
   let totalPages = 1;
-
   do {
     const result = await hrApiClient.list({
       entity,
+      page,
+      pageSize: 100,
       filters,
       orderBy,
       orderDirection: "asc",
-      page,
-      pageSize: 100,
     });
     records.push(...result.items);
     totalPages = Math.max(result.totalPages, 1);
     page += 1;
   } while (page <= totalPages);
-
   return records;
 }
 
 function countById(records: HrRecord[], key: string): Map<number, number> {
   const result = new Map<number, number>();
-  records.forEach((record) => {
+  for (const record of records) {
     const id = positiveId(record[key]);
-    if (!id) return;
+    if (!id) continue;
     result.set(id, (result.get(id) ?? 0) + 1);
-  });
+  }
   return result;
 }
 
-function recordName(record: HrRecord): string {
-  return String(record.name ?? record.title ?? "—");
-}
-
-function employeeName(record: HrRecord): string {
-  return (
-    [record.last_name, record.first_name, record.middle_name]
-      .map((value) => String(value ?? "").trim())
-      .filter(Boolean)
-      .join(" ") || "Сотрудник"
-  );
+function recordName(record: HrRecord | null): string {
+  return String(record?.name ?? "Без названия");
 }
 
 function displayValue(value: unknown): string {
-  const normalized = String(value ?? "").trim();
-  return normalized || "—";
-}
-
-function initials(value: string): string {
-  return (
-    value
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => Array.from(part)[0] ?? "")
-      .join("")
-      .toUpperCase() || "HR"
-  );
+  const text = String(value ?? "").trim();
+  return text || "—";
 }
 
 function positiveId(value: unknown): number | null {

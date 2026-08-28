@@ -43,26 +43,29 @@ export function OrganizationHierarchyPage(): JSX.Element {
     : enterpriseId
       ? "departments"
       : "enterprises";
+  const createPermission = `${level}.create`;
+  const editPermission = `${level}.edit`;
+  const deletePermission = `${level}.delete`;
   const canCreate =
-    hasPermission("organization.create") &&
+    hasPermission(createPermission) &&
     canUseStructureAction(
       level,
       "create",
-      session.permissionScopes["organization.create"],
+      session.permissionScopes[createPermission],
     );
   const canEditStructure =
-    hasPermission("organization.edit") &&
+    hasPermission(editPermission) &&
     canUseStructureAction(
       level,
       "edit",
-      session.permissionScopes["organization.edit"],
+      session.permissionScopes[editPermission],
     );
   const canDeleteStructure =
-    hasPermission("organization.delete") &&
+    hasPermission(deletePermission) &&
     canUseStructureAction(
       level,
       "delete",
-      session.permissionScopes["organization.delete"],
+      session.permissionScopes[deletePermission],
     );
 
   const [enterprise, setEnterprise] = useState<HrRecord | null>(null);
@@ -273,7 +276,10 @@ function canUseStructureAction(
   scope: AccessScopeType | undefined,
 ): boolean {
   if (!scope || scope === "self") return false;
-  if (level === "enterprises") return scope === "global";
+  if (level === "enterprises") {
+    if (action === "edit") return scope === "global" || scope === "enterprise";
+    return scope === "global";
+  }
   if (level === "departments") {
     if (action === "create" || action === "delete") {
       return scope === "global" || scope === "enterprise";
