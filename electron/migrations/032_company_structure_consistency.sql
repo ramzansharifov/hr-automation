@@ -276,7 +276,9 @@ END;
 
 -- ---------------------------------------------------------------------------
 -- Remove the abandoned leave-balance / production-calendar capability. Vacation
--- planning and approval remain in the vacations domain.
+-- planning and approval remain in the vacations domain. The legacy calculated
+-- vacation columns remain for upgrade/export compatibility but are no longer an
+-- exposed management feature.
 -- ---------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS role_permissions_system_insert_guard;
 DROP TRIGGER IF EXISTS role_permissions_system_delete_guard;
@@ -305,5 +307,3 @@ END;
 
 DROP TABLE IF EXISTS leave_balances;
 DROP TABLE IF EXISTS work_calendar_days;
-ALTER TABLE vacations DROP COLUMN working_days_count;
-ALTER TABLE vacations DROP COLUMN entitlement_year;
