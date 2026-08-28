@@ -77,27 +77,11 @@ const permissionFilters: Array<{ value: PermissionFilter; label: string }> = [
 const scopeOptions: Array<{
   value: CustomRoleScopeType;
   label: string;
-  description: string;
   icon: typeof FiGlobe;
 }> = [
-  {
-    value: "global",
-    label: "Вся система",
-    description: "Доступ ко всем предприятиям в пределах выбранных разрешений.",
-    icon: FiGlobe,
-  },
-  {
-    value: "enterprise",
-    label: "Предприятие",
-    description: "Доступ только к одному выбранному предприятию.",
-    icon: FiLayers,
-  },
-  {
-    value: "department",
-    label: "Отдел",
-    description: "Доступ только к одному выбранному отделу.",
-    icon: FiGrid,
-  },
+  { value: "global", label: "Вся система", icon: FiGlobe },
+  { value: "enterprise", label: "Предприятие", icon: FiLayers },
+  { value: "department", label: "Отдел", icon: FiGrid },
 ];
 
 export function AccessRoleFormPage(): JSX.Element {
@@ -350,12 +334,7 @@ export function AccessRoleFormPage(): JSX.Element {
             if (permissionFilter === "selected" && !selected) return false;
             if (permissionFilter === "unselected" && selected) return false;
             if (!search) return true;
-            return [
-              permission.name,
-              permission.description,
-              permission.code,
-              section.title,
-            ]
+            return [permission.name, permission.code, section.title]
               .join(" ")
               .toLocaleLowerCase()
               .includes(search);
@@ -554,7 +533,6 @@ export function AccessRoleFormPage(): JSX.Element {
             </Button>
           </div>
         }
-        description={`Каждое действие настраивается отдельно. Область действия: ${scopeLabel}.`}
         eyebrow="Управление доступом"
         icon={<FiShield />}
         title={isEditMode ? `Редактирование · ${role?.name ?? "Роль"}` : "Новая роль"}
@@ -591,12 +569,7 @@ export function AccessRoleFormPage(): JSX.Element {
 
             <div className="app-border-soft border-t pt-5">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="app-text text-sm font-black">Область действия</p>
-                  <p className="app-muted mt-1 text-xs leading-5">
-                    Ограничивает все разрешения роли выбранной организационной областью.
-                  </p>
-                </div>
+                <p className="app-text text-sm font-black">Область действия</p>
                 {isEditMode && (
                   <span className="app-surface-muted app-border app-muted rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide">
                     Не изменяется
@@ -632,9 +605,6 @@ export function AccessRoleFormPage(): JSX.Element {
                           <span className="flex items-center gap-2">
                             <Icon className="h-4 w-4" />
                             <span className="app-text text-sm font-black">{option.label}</span>
-                          </span>
-                          <span className="app-muted mt-2 block text-[11px] leading-5">
-                            {option.description}
                           </span>
                         </button>
                       );
@@ -704,9 +674,6 @@ export function AccessRoleFormPage(): JSX.Element {
               }
             />
           </div>
-          <p className="app-muted mt-4 text-xs leading-5">
-            Зависимости включаются автоматически. Выдать можно только те действия, которые сам администратор вправе делегировать в выбранную область.
-          </p>
           {isDirty && (
             <p className="mt-3 text-xs font-black text-amber-600 dark:text-amber-300">
               Есть несохранённые изменения
@@ -723,7 +690,7 @@ export function AccessRoleFormPage(): JSX.Element {
               aria-label="Поиск разрешений"
               className="pl-10"
               onChange={(event) => setPermissionSearch(event.target.value)}
-              placeholder="Поиск по действию, описанию или коду"
+              placeholder="Поиск по действию или коду"
               value={permissionSearch}
             />
           </div>
@@ -778,17 +745,12 @@ export function AccessRoleFormPage(): JSX.Element {
                       className="app-surface app-border overflow-hidden rounded-[28px] border"
                       key={section.key}
                     >
-                      <header className="app-surface-muted app-border-soft flex items-start justify-between gap-4 border-b p-5">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h2 className="app-text text-lg font-black">{section.title}</h2>
-                            <span className="app-muted text-xs font-bold">
-                              {enabled}/{section.permissionCodes.length}
-                            </span>
-                          </div>
-                          <p className="app-muted mt-1 text-sm leading-5">
-                            {section.description}
-                          </p>
+                      <header className="app-surface-muted app-border-soft flex items-center justify-between gap-4 border-b p-5">
+                        <div className="flex items-center gap-2">
+                          <h2 className="app-text text-lg font-black">{section.title}</h2>
+                          <span className="app-muted text-xs font-bold">
+                            {enabled}/{section.permissionCodes.length}
+                          </span>
                         </div>
                         <Button
                           disabled={editorLocked || availableCodes.length === 0}
@@ -822,9 +784,6 @@ export function AccessRoleFormPage(): JSX.Element {
                                     </span>
                                   )}
                                 </div>
-                                <p className="app-muted mt-1 text-xs leading-5">
-                                  {permission.description}
-                                </p>
                                 {dependencies.length > 0 && (
                                   <p className="mt-2 text-[11px] font-semibold text-sky-700 dark:text-sky-300">
                                     Требует: {dependencies.join(" · ")}
