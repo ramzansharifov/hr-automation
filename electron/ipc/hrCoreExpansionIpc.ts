@@ -12,6 +12,7 @@ import { getDatabase } from "../database/connection";
 import { AuditService } from "../services/auditService";
 import { getActiveAuthenticationService } from "../services/authenticationService";
 import { AuthorizationService } from "../services/authorizationService";
+import { EmployeeImportService } from "../services/employeeImportService";
 import { HrCoreExpansionService } from "../services/hrCoreExpansionService";
 
 const scopeRank: Record<AuthSession["scopeType"], number> = {
@@ -27,6 +28,7 @@ export function registerHrCoreExpansionIpcHandlers(): void {
   const authorizationService = new AuthorizationService(database, authenticationService);
   const auditService = new AuditService(database);
   const service = new HrCoreExpansionService(database);
+  const employeeImportService = new EmployeeImportService(database);
 
   ipcMain.handle("hr:changeLeadership", (event, raw: unknown) => {
     assertTrustedSender(event);
@@ -126,20 +128,23 @@ export function registerHrCoreExpansionIpcHandlers(): void {
   ipcMain.handle("dataExchange:selectEmployeeImport", (event) => {
     assertTrustedSender(event);
     authorizationService.requirePermission("data_exchange.import");
-    return service.selectEmployeeImportFile();
+    return employeeImportService.selectFile();
   });
 
   ipcMain.handle("dataExchange:previewEmployeeImport", (event, raw: unknown) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("data_exchange.import");
-    return service.previewEmployeeImport(raw as PreviewEmployeeImportParams, session);
+    return employeeImportService.preview(
+      raw as PreviewEmployeeImportParams,
+      session,
+    );
   });
 
   ipcMain.handle("dataExchange:applyEmployeeImport", (event, raw: unknown) => {
     assertTrustedSender(event);
     const session = authorizationService.requirePermission("data_exchange.import");
     const params = raw as ApplyEmployeeImportParams;
-    const result = service.applyEmployeeImport(params, session);
+    const result = employeeImportService.apply(params, session);
     if (!params.dryRun) {
       auditService.record(
         authenticationService.requireSession(),
@@ -152,6 +157,8 @@ export function registerHrCoreExpansionIpcHandlers(): void {
           totalRows: result.totalRows,
           importedRows: result.importedRows,
           skippedRows: result.skippedRows,
+          enterpriseId: session.enterpriseId,
+          departmentId: session.departmentId,
         },
       );
     }
@@ -171,7 +178,11 @@ export function registerHrCoreExpansionIpcHandlers(): void {
         null,
         null,
         null,
-        { format: params.format },
+        {
+          format: params.format,
+          enterpriseId: session.enterpriseId,
+          departmentId: session.departmentId,
+        },
       );
     }
     return result;
