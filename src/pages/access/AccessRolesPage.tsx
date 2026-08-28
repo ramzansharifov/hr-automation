@@ -26,7 +26,7 @@ import { AccessMetric, getErrorMessage } from "./AccessControlShared";
 
 export function AccessRolesPage(): JSX.Element {
   const navigate = useNavigate();
-  const { hasPermission, session } = useAuth();
+  const { hasPermission } = useAuth();
   const canCreate = hasPermission("roles.create");
   const canEdit = hasPermission("roles.edit");
   const canDelete = hasPermission("roles.delete");
@@ -107,12 +107,7 @@ export function AccessRolesPage(): JSX.Element {
           <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
             <FiShield className="h-5 w-5" />
           </span>
-          <div className="min-w-0">
-            <p className="app-text truncate font-black">{role.name}</p>
-            <p className="app-muted mt-1 max-w-[420px] truncate text-xs">
-              {role.description || "Описание не указано"}
-            </p>
-          </div>
+          <p className="app-text truncate font-black">{role.name}</p>
         </div>
       ),
     },
@@ -120,12 +115,9 @@ export function AccessRolesPage(): JSX.Element {
       key: "scope",
       header: "Область действия",
       render: (role) => (
-        <div className="min-w-[190px]">
-          <p className="app-text-soft text-sm font-bold">{getRoleScopeLabel(role)}</p>
-          <p className="app-muted mt-1 text-xs">
-            {role.isSystem ? "Определяется оргструктурой пользователя" : "Фиксированная привязка"}
-          </p>
-        </div>
+        <p className="app-text-soft min-w-[190px] text-sm font-bold">
+          {getRoleScopeLabel(role)}
+        </p>
       ),
     },
     {
@@ -168,13 +160,6 @@ export function AccessRolesPage(): JSX.Element {
 
   const systemRoles = roles.filter((role) => role.isSystem).length;
   const customRoles = roles.length - systemRoles;
-  const roleScope = session.permissionScopes["roles.view"];
-  const contextDescription =
-    roleScope === "enterprise"
-      ? `Пользовательские роли, созданные здесь, действуют только в предприятии «${session.enterpriseName}».`
-      : roleScope === "department"
-        ? `Пользовательские роли, созданные здесь, действуют только в отделе «${session.departmentName}».`
-        : "Системные и пользовательские роли с точечным набором разрешённых действий.";
 
   return (
     <div className="space-y-6">
@@ -192,7 +177,6 @@ export function AccessRolesPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        description={contextDescription}
         icon={<FiShield />}
         title="Роли"
       />
