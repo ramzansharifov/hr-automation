@@ -71,9 +71,6 @@ export class HrCrudService {
       data.approved_by_account_type = null;
       data.approved_by_account_id = null;
       data.approved_by_name = null;
-      if (!Number(data.entitlement_year)) {
-        data.entitlement_year = Number(String(data.starts_at ?? "").slice(0, 4)) || null;
-      }
     }
 
     return this.repository.create(getHrCrudEntityConfig(params.entity), data);
