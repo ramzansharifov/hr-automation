@@ -286,48 +286,6 @@ export interface DeleteEmployeeDocumentParams {
   reason: string;
 }
 
-// Internal compatibility types for the pre-existing service implementation.
-// There is no public HrApi/preload/IPC surface for leave balances or production
-// calendars anymore; the corresponding permissions and tables are removed by
-// migration 032.
-export interface LeaveBalanceSummary {
-  employeeId: number;
-  year: number;
-  entitlementDays: number;
-  carryoverDays: number;
-  adjustmentDays: number;
-  usedDays: number;
-  plannedDays: number;
-  remainingDays: number;
-}
-
-export interface LeaveOverview {
-  balance: LeaveBalanceSummary;
-  vacations: HrRecord[];
-  calendarDays: HrRecord[];
-  warnings: string[];
-}
-
-export interface LeaveOverviewParams {
-  employeeId: number;
-  year: number;
-}
-
-export interface SaveLeaveBalanceParams {
-  employeeId: number;
-  year: number;
-  entitlementDays: number;
-  carryoverDays: number;
-  adjustmentDays: number;
-}
-
-export interface SaveWorkCalendarDayParams {
-  enterpriseId: number;
-  date: string;
-  isWorkday: boolean;
-  name?: string;
-}
-
 export type AttentionSeverity = "info" | "warning" | "critical";
 export interface AttentionItem {
   id: string;
