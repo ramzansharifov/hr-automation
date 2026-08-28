@@ -1,4 +1,5 @@
 import glob
+import re
 import sqlite3
 import unittest
 
@@ -59,6 +60,44 @@ class GranularRbacIntegrationTests(unittest.TestCase):
         self.assertFalse(any(code.startswith("organization.") for code in codes))
         self.assertNotIn("employment_history.manage", codes)
 
+    def test_role_builder_exposes_every_live_permission(self):
+        live_codes = {row[0] for row in self.db.execute("SELECT code FROM permissions")}
+        with open(
+            "src/pages/access/rolePermissionSections.ts",
+            "r",
+            encoding="utf-8",
+        ) as role_builder_file:
+            role_builder_source = role_builder_file.read()
+        exposed_codes = set(
+            re.findall(r'"([a-z_]+\.[a-z_]+)"', role_builder_source)
+        )
+        self.assertEqual(
+            exposed_codes,
+            live_codes,
+            "Every live permission must be configurable in the custom-role UI",
+        )
+
+    def test_attention_access_always_includes_dashboard(self):
+        broken_roles = self.db.execute(
+            """
+            SELECT role.code
+            FROM roles AS role
+            JOIN role_permissions AS attention_grant ON attention_grant.role_id = role.id
+            JOIN permissions AS attention_permission
+              ON attention_permission.id = attention_grant.permission_id
+             AND attention_permission.code = 'attention.view'
+            WHERE NOT EXISTS (
+              SELECT 1
+              FROM role_permissions AS dashboard_grant
+              JOIN permissions AS dashboard_permission
+                ON dashboard_permission.id = dashboard_grant.permission_id
+              WHERE dashboard_grant.role_id = role.id
+                AND dashboard_permission.code = 'dashboard.view'
+            )
+            """
+        ).fetchall()
+        self.assertEqual(broken_roles, [])
+
     def test_superadmin_has_every_live_permission(self):
         all_codes = {row[0] for row in self.db.execute("SELECT code FROM permissions")}
         self.assertEqual(self.permissions_for("superadmin"), all_codes)
@@ -70,7 +109,7 @@ class GranularRbacIntegrationTests(unittest.TestCase):
             "departments.view", "departments.create", "departments.edit",
             "departments.delete", "departments.assign_leader",
             "positions.view", "positions.create", "positions.edit", "positions.delete",
-            "roles.create", "enterprises.view", "departments.view",
+            "roles.create",
         }.issubset(codes))
         self.assertTrue({
             "enterprises.create", "enterprises.delete", "audit.view", "employees.export",
