@@ -232,18 +232,21 @@ jobs:
           if leave_permissions != 0:
               raise SystemExit("Legacy leave-management permissions still exist")
 
-          vacation_columns = {
-              row[1] for row in connection.execute("PRAGMA table_info(vacations)")
-          }
-          if "working_days_count" in vacation_columns or "entitlement_year" in vacation_columns:
-              raise SystemExit("Legacy leave-management columns still exist on vacations")
-
           violations = connection.execute("PRAGMA foreign_key_check").fetchall()
           if violations:
               raise SystemExit(f"Foreign key violations after data upgrade: {violations}")
 
           print("Existing HR data survives the complete HR core upgrade")
           PY
+
+          # Old SQLite installations may retain two no-longer-used vacation
+          # columns for migration compatibility. Active application code must
+          # never read/write them or depend on the removed leave backend.
+          if grep -R -nE 'working_days_count|entitlement_year|leave_balances|work_calendar_days|leave\.(view|manage|calendar_manage)' \
+            --exclude-dir=migrations --exclude='*.sql' electron src; then
+            echo "Legacy leave-management symbols are referenced by active application code"
+            exit 1
+          fi
 
       - name: HR core integration tests
         id: integration
