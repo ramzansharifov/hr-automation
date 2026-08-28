@@ -9,7 +9,7 @@ export function seedDatabase(database: Database.Database): void {
     const enterpriseId = seedEnterprise(database);
     seedDepartments(database, enterpriseId);
     seedPositions(database);
-    seedEmployees(database);
+    seedEmployees(database, enterpriseId);
     seedVacations(database);
   });
 
@@ -122,15 +122,18 @@ function seedPositions(database: Database.Database): void {
   );
 }
 
-function seedEmployees(database: Database.Database): void {
+function seedEmployees(
+  database: Database.Database,
+  enterpriseId: number,
+): void {
   const insertEmployee = database.prepare(`
     INSERT OR IGNORE INTO employees (
-      id, department_id, position_id, employee_number,
+      id, enterprise_id, department_id, position_id, employee_number,
       last_name, first_name, middle_name, birth_date, gender,
       address, phone, email, hire_date, salary, status,
       employment_type, contract_number, contract_date, workplace
     ) VALUES (
-      @id, @departmentId, @positionId, @employeeNumber,
+      @id, @enterpriseId, @departmentId, @positionId, @employeeNumber,
       @lastName, @firstName, @middleName, @birthDate, @gender,
       @address, @phone, @email, @hireDate, @salary, 'active',
       'full_time', @contractNumber, @contractDate, @workplace
@@ -167,6 +170,7 @@ function seedEmployees(database: Database.Database): void {
 
   insertEmployee.run({
     id: 1,
+    enterpriseId,
     departmentId: hrAssignment.departmentId,
     positionId: hrAssignment.positionId,
     employeeNumber: "EMP-001",
@@ -187,6 +191,7 @@ function seedEmployees(database: Database.Database): void {
 
   insertEmployee.run({
     id: 2,
+    enterpriseId,
     departmentId: accountantAssignment.departmentId,
     positionId: accountantAssignment.positionId,
     employeeNumber: "EMP-002",
@@ -207,6 +212,7 @@ function seedEmployees(database: Database.Database): void {
 
   insertEmployee.run({
     id: 3,
+    enterpriseId,
     departmentId: administratorAssignment.departmentId,
     positionId: administratorAssignment.positionId,
     employeeNumber: "EMP-003",
