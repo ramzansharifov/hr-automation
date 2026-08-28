@@ -98,7 +98,7 @@ export const permissionDependencies: Record<string, string[]> = {
   "users.delete": ["users.view"],
   "users.reset_password": ["users.view"],
 
-  "roles.create": ["roles.view"],
+  "roles.create": ["roles.view", "departments.view"],
   "roles.edit": ["roles.view"],
   "roles.delete": ["roles.view"],
 
