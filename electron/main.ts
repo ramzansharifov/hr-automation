@@ -137,6 +137,7 @@ function createWindow(): void {
           const dashboard = await window.hrApi.dashboard()
           const attention = await window.hrApi.listAttentionItems()
           const analytics = await window.hrApi.getAnalytics()
+          const documentTypes = await window.hrApi.listDocumentTypes()
 
           return {
             hasRoot,
@@ -148,7 +149,11 @@ function createWindow(): void {
             scopeModelReady,
             dashboardReady: typeof dashboard?.employeesTotal === 'number',
             attentionReady: Array.isArray(attention),
-            analyticsReady: Boolean(analytics && typeof analytics === 'object')
+            analyticsReady: Boolean(analytics && typeof analytics === 'object'),
+            documentTypesReady:
+              Array.isArray(documentTypes) &&
+              documentTypes.length >= 6 &&
+              documentTypes.every((type) => type.enterpriseId === businessContext.enterpriseId)
           }
         })()`)
 
@@ -161,7 +166,8 @@ function createWindow(): void {
           !result?.scopeModelReady ||
           !result?.dashboardReady ||
           !result?.attentionReady ||
-          !result?.analyticsReady
+          !result?.analyticsReady ||
+          !result?.documentTypesReady
         ) {
           throw new Error(`Renderer HR core smoke check failed: ${JSON.stringify(result)}`)
         }
