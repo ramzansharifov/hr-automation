@@ -128,9 +128,6 @@ export function SettingsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={
-          <>Личные параметры интерфейса{hasSystemTools ? " и доступные системные инструменты" : ""}.</>
-        }
         icon={<FiSettings />}
         meta={
           <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
@@ -220,9 +217,6 @@ export function SettingsPage(): JSX.Element {
           <div>
             <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Администрирование</p>
             <h2 className="app-text mt-1 text-2xl font-black">Системные инструменты</h2>
-            <p className="app-muted mt-2 max-w-3xl text-sm leading-6">
-              Здесь отображаются только те операции, на которые у текущей роли есть отдельное разрешение.
-            </p>
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.5fr)]">
@@ -297,9 +291,6 @@ export function SettingsPage(): JSX.Element {
 
             {canExportEmployees && (
               <SettingsCard icon={<FiDownload className="h-5 w-5" />} title="Экспорт">
-                <p className="app-muted mb-4 text-sm leading-6">
-                  Выгрузка реестра сотрудников в CSV для резервного просмотра и внешней обработки.
-                </p>
                 <Button className="w-full" leftIcon={<FiDownload />} onClick={() => void exportEmployees()}>
                   Экспортировать сотрудников
                 </Button>
