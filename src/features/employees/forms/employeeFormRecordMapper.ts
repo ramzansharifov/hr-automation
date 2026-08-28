@@ -18,6 +18,7 @@ export function mapEmployeeRecordToFormValues(record: HrRecord | null | undefine
   if (!record) return employeeDefaultValues
 
   return {
+    enterprise_id: valueToString(record.enterprise_id),
     employee_number: valueToString(record.employee_number),
     last_name: valueToString(record.last_name),
     first_name: valueToString(record.first_name),
