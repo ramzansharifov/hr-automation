@@ -61,13 +61,6 @@ const analyticsNavigationItem: AppNavigationItem = {
   permissionCode: "analytics.view",
 };
 
-const documentsNavigationItem: AppNavigationItem = {
-  titleKey: "Документы",
-  path: "/documents",
-  icon: FiFileText,
-  permissionCode: "documents.view",
-};
-
 const dataExchangeNavigationItem: AppNavigationItem = {
   titleKey: "Импорт и экспорт",
   path: "/data-exchange",
@@ -158,7 +151,6 @@ export const mainNavigationItems: AppNavigationItem[] = [
   myDepartmentNavigationItem,
   colleaguesNavigationItem,
   employeesNavigationItem,
-  documentsNavigationItem,
   enterprisesNavigationItem,
   vacationsNavigationItem,
   vacanciesNavigationItem,
@@ -220,7 +212,6 @@ const enterpriseAdminNavigationItems: AppNavigationItem[] = [
     ...employeesNavigationItem,
     titleKey: "Сотрудники предприятия",
   },
-  documentsNavigationItem,
   {
     ...vacationsNavigationItem,
     titleKey: "Отпуска предприятия",
@@ -243,7 +234,6 @@ const departmentAdminNavigationItems: AppNavigationItem[] = [
     ...employeesNavigationItem,
     titleKey: "Сотрудники отдела",
   },
-  documentsNavigationItem,
   {
     ...vacationsNavigationItem,
     titleKey: "Отпуска отдела",
@@ -282,6 +272,12 @@ export const administrationNavigationItems: AppNavigationItem[] = [
     icon: FiBookOpen,
     permissionCode: "vacation_types.view",
     entity: "vacation_types",
+  },
+  {
+    titleKey: "Типы документов",
+    path: "/document-types",
+    icon: FiFileText,
+    permissionCode: "document_types.view",
   },
   {
     titleKey: "Пользователи",

@@ -37,6 +37,10 @@ export const permissionDependencies: Record<string, string[]> = {
   "vacation_types.edit": ["vacation_types.view"],
   "vacation_types.delete": ["vacation_types.view"],
 
+  "document_types.create": ["document_types.view"],
+  "document_types.edit": ["document_types.view"],
+  "document_types.delete": ["document_types.view"],
+
   "documents.view": ["employees.view"],
   "documents.add": ["documents.view", "employees.view"],
   "documents.delete": ["documents.view", "employees.view"],
@@ -86,14 +90,18 @@ export const enterpriseLevelPermissionCodes = new Set([
   "vacation_types.create",
   "vacation_types.edit",
   "vacation_types.delete",
+  "document_types.create",
+  "document_types.edit",
+  "document_types.delete",
   "leave.calendar_manage",
 ]);
 
 // Operational HR modules are tenant-bound. The platform superadmin keeps these
 // permissions in the system role, but they have no effective scope until an
 // enterprise workspace is selected. Employees intentionally remain a global
-// cross-enterprise registry; access control, settings, audit and the enterprise
-// registry also remain platform-level concerns.
+// cross-enterprise registry; employee documents now live inside employee cards,
+// so document file permissions follow the opened employee rather than requiring
+// a workspace selection. Catalogs remain enterprise-scoped administrative data.
 export const businessContextPermissionCodes = new Set([
   "dashboard.view",
   "vacations.view",
@@ -105,6 +113,10 @@ export const businessContextPermissionCodes = new Set([
   "vacation_types.create",
   "vacation_types.edit",
   "vacation_types.delete",
+  "document_types.view",
+  "document_types.create",
+  "document_types.edit",
+  "document_types.delete",
   "vacancies.view",
   "vacancies.create",
   "vacancies.edit",
@@ -114,9 +126,6 @@ export const businessContextPermissionCodes = new Set([
   "candidates.edit",
   "candidates.delete",
   "candidates.hire",
-  "documents.view",
-  "documents.add",
-  "documents.delete",
   "leave.view",
   "leave.manage",
   "leave.calendar_manage",
@@ -166,6 +175,7 @@ const elevatedPermissionCodes = new Set([
   "candidates.delete",
   "candidates.hire",
   "vacation_types.delete",
+  "document_types.delete",
   "leave.manage",
   "leave.calendar_manage",
   "data_exchange.import",

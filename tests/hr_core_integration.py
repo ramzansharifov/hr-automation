@@ -77,6 +77,7 @@ class HrCoreIntegrationTests(unittest.TestCase):
         required_tables = {
             "leadership_history",
             "employee_documents",
+            "document_types",
             "work_calendar_days",
             "leave_balances",
             "data_exchange_runs",
@@ -98,6 +99,13 @@ class HrCoreIntegrationTests(unittest.TestCase):
                 employee_columns
             )
         )
+        document_columns = {
+            row[1]
+            for row in self.connection.execute(
+                "PRAGMA table_info(employee_documents)"
+            ).fetchall()
+        }
+        self.assertIn("document_type_id", document_columns)
 
         permission_codes = {
             row[0]
@@ -105,6 +113,8 @@ class HrCoreIntegrationTests(unittest.TestCase):
                 """
                 SELECT code FROM permissions WHERE code IN (
                   'documents.view', 'documents.add', 'documents.delete',
+                  'document_types.view', 'document_types.create',
+                  'document_types.edit', 'document_types.delete',
                   'leave.view', 'leave.manage', 'leave.calendar_manage',
                   'attention.view', 'analytics.view',
                   'data_exchange.import', 'data_exchange.export'
@@ -112,7 +122,7 @@ class HrCoreIntegrationTests(unittest.TestCase):
                 """
             ).fetchall()
         }
-        self.assertEqual(len(permission_codes), 10)
+        self.assertEqual(len(permission_codes), 14)
 
     def test_pending_employee_has_no_fake_hire_history(self):
         enterprise_id, _, _ = seed_organization(self.connection)
@@ -164,6 +174,68 @@ class HrCoreIntegrationTests(unittest.TestCase):
                 ) VALUES (?, ?, '2026-09-08', '2026-09-12', 5, 3, 1, 'planned')
                 """,
                 (employee_id, vacation_type_id),
+            )
+
+    def test_document_types_are_enterprise_scoped_and_used_types_are_preserved(self):
+        organization = seed_organization(self.connection)
+        employee_id = seed_active_employee(self.connection, organization)
+        enterprise_id = organization[0]
+
+        seeded_types = self.connection.execute(
+            "SELECT id, name FROM document_types WHERE enterprise_id = ? ORDER BY name",
+            (enterprise_id,),
+        ).fetchall()
+        self.assertGreaterEqual(len(seeded_types), 6)
+        contract_type_id = self.connection.execute(
+            """
+            SELECT id FROM document_types
+            WHERE enterprise_id = ? AND name = 'Трудовой договор'
+            """,
+            (enterprise_id,),
+        ).fetchone()[0]
+
+        document_id = self.connection.execute(
+            """
+            INSERT INTO employee_documents (
+              employee_id, document_type_id, document_type, title,
+              original_name, stored_name, relative_path,
+              size_bytes, sha256
+            ) VALUES (?, ?, 'Трудовой договор', 'Договор №1',
+                      'contract.pdf', 'contract.pdf', '1/contract.pdf',
+                      100, ?)
+            """,
+            (employee_id, contract_type_id, "a" * 64),
+        ).lastrowid
+        self.assertGreater(document_id, 0)
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "используется"):
+            self.connection.execute(
+                "DELETE FROM document_types WHERE id = ?", (contract_type_id,)
+            )
+
+        other_enterprise_id = self.connection.execute(
+            "INSERT INTO enterprises (name) VALUES ('Other Enterprise')"
+        ).lastrowid
+        other_type_id = self.connection.execute(
+            """
+            SELECT id FROM document_types
+            WHERE enterprise_id = ? AND name = 'Приказ'
+            """,
+            (other_enterprise_id,),
+        ).fetchone()[0]
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "предприятия сотрудника"):
+            self.connection.execute(
+                """
+                INSERT INTO employee_documents (
+                  employee_id, document_type_id, document_type, title,
+                  original_name, stored_name, relative_path,
+                  size_bytes, sha256
+                ) VALUES (?, ?, 'Приказ', 'Чужой тип',
+                          'wrong.pdf', 'wrong.pdf', '1/wrong.pdf',
+                          100, ?)
+                """,
+                (employee_id, other_type_id, "b" * 64),
             )
 
     def test_used_vacancy_is_archived_and_unused_vacancy_is_deleted(self):

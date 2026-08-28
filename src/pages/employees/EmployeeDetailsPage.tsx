@@ -25,6 +25,7 @@ import {
   EmployeeOverviewCards,
   EmployeeProfileHeader,
 } from "../../features/employees/components/EmployeeDetailsCards";
+import { EmployeeDocumentsPanel } from "../../features/employees/components/EmployeeDocumentsPanel";
 import { EmployeeLifecyclePanel } from "../../features/employees/components/EmployeeLifecyclePanel";
 import { EmployeeVacationsPanel } from "../../features/employees/components/EmployeeOperationalRecords";
 import { EmployeeSectionEditDialog } from "../../features/employees/forms/EmployeeSectionEditDialog";
@@ -46,6 +47,7 @@ export function EmployeeDetailsPage(): JSX.Element {
   const canEditEmployee = hasPermission("employees.edit");
   const canChangeEmployment = hasPermission("employees.change_employment");
   const canTerminateEmployee = hasPermission("employees.terminate");
+  const canViewDocuments = hasPermission("documents.view");
   const canCreateVacation = hasPermission("vacations.create");
   const canEditVacation = hasPermission("vacations.edit");
   const canDeleteVacation = hasPermission("vacations.delete");
@@ -172,6 +174,11 @@ export function EmployeeDetailsPage(): JSX.Element {
             >
               <FiBookOpen /> Образование и опыт
             </Tabs.Trigger>
+            {canViewDocuments && (
+              <Tabs.Trigger className={detailsTabTriggerClass} value="documents">
+                <FiFileText /> Документы
+              </Tabs.Trigger>
+            )}
             <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
               <FiCalendar /> Отпуска
             </Tabs.Trigger>
@@ -300,6 +307,12 @@ export function EmployeeDetailsPage(): JSX.Element {
               />
             </div>
           </Tabs.Content>
+
+          {canViewDocuments && (
+            <Tabs.Content value="documents" className="outline-none">
+              <EmployeeDocumentsPanel employeeId={employeeId} />
+            </Tabs.Content>
+          )}
 
           <Tabs.Content value="vacations" className="outline-none">
             <EmployeeVacationsPanel
