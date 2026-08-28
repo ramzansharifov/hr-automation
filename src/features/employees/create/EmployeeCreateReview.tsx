@@ -5,13 +5,19 @@ import { EmployeeInfoSection } from "../components/EmployeeInfoSection";
 import type { EmployeeFormValues } from "../types";
 
 interface EmployeeCreateReviewProps {
+  departmentName: string;
+  enterpriseName: string;
   locale: string;
+  positionName: string;
   t: TFunction;
   values: EmployeeFormValues;
 }
 
 export function EmployeeCreateReview({
+  departmentName,
+  enterpriseName,
   locale,
+  positionName,
   t,
   values,
 }: EmployeeCreateReviewProps): JSX.Element {
@@ -79,16 +85,56 @@ export function EmployeeCreateReview({
           },
         ]}
       />
-      <div className="app-accent-soft app-border rounded-2xl border p-4 text-sm font-semibold leading-6">
-        <p className="app-text font-black">Организационное назначение оформляется отдельно</p>
-        <p className="app-muted mt-1">
-          После создания сотрудника можно назначить в предприятие, отдел и на должность через кадровое изменение или сразу выбрать его руководителем отдела, если у него ещё нет назначения.
-        </p>
-      </div>
+      <EmployeeInfoSection
+        title={t("employeesDetails.sections.company")}
+        items={[
+          { label: "Предприятие", value: valueOrEmpty(enterpriseName, t) },
+          { label: "Отдел", value: valueOrEmpty(departmentName, t) },
+          { label: "Должность", value: valueOrEmpty(positionName, t) },
+          {
+            label: "Дата приёма",
+            value: formatDate(values.hire_date, locale),
+          },
+          {
+            label: "Оклад",
+            value: new Intl.NumberFormat(locale).format(Number(values.salary || 0)),
+          },
+          {
+            label: "Табельный номер",
+            value: valueOrEmpty(values.employee_number, t),
+          },
+          {
+            label: "Тип занятости",
+            value: employmentTypeLabel(values.employment_type),
+          },
+          {
+            label: "Номер трудового договора",
+            value: valueOrEmpty(values.contract_number, t),
+          },
+          {
+            label: "Дата договора",
+            value: formatDate(values.contract_date, locale),
+          },
+          {
+            label: "Срок договора до",
+            value: formatDate(values.contract_end_date, locale),
+          },
+        ]}
+      />
     </div>
   );
 }
 
 function valueOrEmpty(value: string, t: TFunction): string {
   return value.trim() || t("employeesDetails.emptyValue");
+}
+
+function employmentTypeLabel(value: string): string {
+  const labels: Record<string, string> = {
+    full_time: "Полная занятость",
+    part_time: "Частичная занятость",
+    temporary: "Временная работа",
+    internship: "Стажировка",
+  };
+  return labels[value] ?? value || "—";
 }
