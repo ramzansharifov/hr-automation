@@ -104,6 +104,11 @@ function createWindow(): void {
           let contextRequired = false
           let scopeModelReady = false
           let employeeOwnershipReady = false
+          let e2eEnterpriseId = 0
+          let e2eDepartmentId = 0
+          let e2eEmployeeId = 0
+          let foreignDepartmentId = 0
+
           if (businessContext?.requiresEnterpriseSelection && !businessContext.enterpriseId) {
             try {
               await window.hrApi.dashboard()
@@ -123,32 +128,42 @@ function createWindow(): void {
                 address: 'E2E'
               }
             })
-            const enterpriseId = Number(enterprise.id)
+            e2eEnterpriseId = Number(enterprise.id)
             businessContext = await window.hrApi.setBusinessContext({
-              enterpriseId,
+              enterpriseId: e2eEnterpriseId,
               departmentId: null
             })
 
             const department = await window.hrApi.create({
               entity: 'departments',
               data: {
-                enterprise_id: enterpriseId,
+                enterprise_id: e2eEnterpriseId,
                 name: 'E2E Department'
               }
             })
-            const departmentId = Number(department.id)
+            e2eDepartmentId = Number(department.id)
+
+            const foreignDepartment = await window.hrApi.create({
+              entity: 'departments',
+              data: {
+                enterprise_id: e2eEnterpriseId,
+                name: 'E2E Foreign Department'
+              }
+            })
+            foreignDepartmentId = Number(foreignDepartment.id)
+
             const position = await window.hrApi.create({
               entity: 'positions',
               data: {
-                department_id: departmentId,
+                department_id: e2eDepartmentId,
                 name: 'E2E Position'
               }
             })
             const employee = await window.hrApi.create({
               entity: 'employees',
               data: {
-                enterprise_id: enterpriseId,
-                department_id: departmentId,
+                enterprise_id: e2eEnterpriseId,
+                department_id: e2eDepartmentId,
                 position_id: Number(position.id),
                 last_name: 'Тестов',
                 first_name: 'Сотрудник',
@@ -157,11 +172,12 @@ function createWindow(): void {
                 status: 'active'
               }
             })
-            employeeOwnershipReady = Number(employee.enterprise_id) === enterpriseId
+            e2eEmployeeId = Number(employee.id)
+            employeeOwnershipReady = Number(employee.enterprise_id) === e2eEnterpriseId
 
             businessContext = await window.hrApi.setBusinessContext({
-              enterpriseId,
-              departmentId
+              enterpriseId: e2eEnterpriseId,
+              departmentId: e2eDepartmentId
             })
 
             const scopedAuthState = await window.hrApi.getAuthState()
@@ -182,6 +198,177 @@ function createWindow(): void {
             typeof window.hrApi.saveLeaveBalance === 'undefined' &&
             typeof window.hrApi.saveWorkCalendarDay === 'undefined'
 
+          let customRoleScopeReady = false
+          let customRoleCrudReady = false
+          let customRoleDeleteDenied = false
+          let customRoleForeignScopeDenied = false
+          let customRoleDepartmentEditDenied = false
+          let customRoleEducationReady = false
+          let customRoleEducationEditDenied = false
+
+          if (
+            e2eEnterpriseId > 0 &&
+            e2eDepartmentId > 0 &&
+            e2eEmployeeId > 0 &&
+            foreignDepartmentId > 0
+          ) {
+            const customRole = await window.hrApi.saveAccessRole({
+              name: 'E2E Department Editor',
+              description: 'Granular RBAC smoke role',
+              scopeType: 'department',
+              enterpriseId: e2eEnterpriseId,
+              departmentId: e2eDepartmentId,
+              permissionCodes: [
+                'positions.create',
+                'positions.edit',
+                'employee_education.create'
+              ]
+            })
+
+            customRoleScopeReady =
+              customRole?.scopeType === 'department' &&
+              Number(customRole?.enterpriseId) === e2eEnterpriseId &&
+              Number(customRole?.departmentId) === e2eDepartmentId &&
+              customRole?.permissionCodes?.includes('enterprises.view') &&
+              customRole?.permissionCodes?.includes('departments.view') &&
+              customRole?.permissionCodes?.includes('positions.view') &&
+              customRole?.permissionCodes?.includes('positions.create') &&
+              customRole?.permissionCodes?.includes('positions.edit') &&
+              !customRole?.permissionCodes?.includes('positions.delete') &&
+              customRole?.permissionCodes?.includes('employees.view') &&
+              customRole?.permissionCodes?.includes('employee_education.view') &&
+              customRole?.permissionCodes?.includes('employee_education.create') &&
+              !customRole?.permissionCodes?.includes('employee_education.edit')
+
+            const customPassword = 'E2E-Role-2026!'
+            await window.hrApi.saveAccessUser({
+              employeeId: e2eEmployeeId,
+              username: 'e2e.department.editor',
+              status: 'active',
+              roleIds: [Number(customRole.id)],
+              password: customPassword,
+              mustChangePassword: false
+            })
+
+            await window.hrApi.logout()
+            const customSession = await window.hrApi.login({
+              username: 'e2e.department.editor',
+              password: customPassword
+            })
+            const customScopes = customSession?.permissionScopes ?? {}
+            customRoleScopeReady =
+              customRoleScopeReady &&
+              customSession?.username === 'e2e.department.editor' &&
+              customSession?.scopeType === 'department' &&
+              Number(customSession?.enterpriseId) === e2eEnterpriseId &&
+              Number(customSession?.departmentId) === e2eDepartmentId &&
+              customScopes['positions.create'] === 'department' &&
+              customScopes['positions.edit'] === 'department' &&
+              typeof customScopes['positions.delete'] === 'undefined' &&
+              customScopes['employee_education.create'] === 'department' &&
+              typeof customScopes['employee_education.edit'] === 'undefined'
+
+            const visiblePositions = await window.hrApi.list({
+              entity: 'positions',
+              page: 1,
+              pageSize: 100,
+              orderBy: 'name',
+              orderDirection: 'asc'
+            })
+            const positionScopeReady =
+              Array.isArray(visiblePositions?.items) &&
+              visiblePositions.items.length > 0 &&
+              visiblePositions.items.every(
+                (item) => Number(item.department_id) === e2eDepartmentId
+              )
+
+            const createdPosition = await window.hrApi.create({
+              entity: 'positions',
+              data: {
+                department_id: e2eDepartmentId,
+                name: 'E2E Scoped Position'
+              }
+            })
+            const updatedPosition = await window.hrApi.update({
+              entity: 'positions',
+              id: Number(createdPosition.id),
+              data: {
+                department_id: e2eDepartmentId,
+                name: 'E2E Scoped Position Updated'
+              }
+            })
+            customRoleCrudReady =
+              positionScopeReady &&
+              Number(createdPosition.department_id) === e2eDepartmentId &&
+              updatedPosition?.name === 'E2E Scoped Position Updated'
+
+            try {
+              await window.hrApi.delete({
+                entity: 'positions',
+                id: Number(createdPosition.id)
+              })
+            } catch {
+              customRoleDeleteDenied = true
+            }
+
+            try {
+              await window.hrApi.create({
+                entity: 'positions',
+                data: {
+                  department_id: foreignDepartmentId,
+                  name: 'E2E Forbidden Position'
+                }
+              })
+            } catch {
+              customRoleForeignScopeDenied = true
+            }
+
+            try {
+              await window.hrApi.update({
+                entity: 'departments',
+                id: e2eDepartmentId,
+                data: {
+                  enterprise_id: e2eEnterpriseId,
+                  name: 'E2E Forbidden Department Rename'
+                }
+              })
+            } catch {
+              customRoleDepartmentEditDenied = true
+            }
+
+            const education = await window.hrApi.create({
+              entity: 'employee_education',
+              data: {
+                employee_id: e2eEmployeeId,
+                education_type: 'higher',
+                education_degree: 'bachelor',
+                institution_name: 'E2E Academy',
+                speciality: 'Software Engineering',
+                started_at: '2020-09-01',
+                ended_at: '2024-06-30',
+                document_number: 'E2E-EDU-001'
+              }
+            })
+            customRoleEducationReady =
+              Number(education?.employee_id) === e2eEmployeeId &&
+              education?.institution_name === 'E2E Academy'
+
+            try {
+              await window.hrApi.update({
+                entity: 'employee_education',
+                id: Number(education.id),
+                data: {
+                  employee_id: e2eEmployeeId,
+                  education_type: 'higher',
+                  education_degree: 'master',
+                  institution_name: 'E2E Academy'
+                }
+              })
+            } catch {
+              customRoleEducationEditDenied = true
+            }
+          }
+
           return {
             hasRoot,
             hasApi,
@@ -199,7 +386,14 @@ function createWindow(): void {
             documentTypesReady:
               Array.isArray(documentTypes) &&
               documentTypes.length >= 6 &&
-              documentTypes.every((type) => type.enterpriseId === businessContext.enterpriseId)
+              documentTypes.every((type) => type.enterpriseId === businessContext.enterpriseId),
+            customRoleScopeReady,
+            customRoleCrudReady,
+            customRoleDeleteDenied,
+            customRoleForeignScopeDenied,
+            customRoleDepartmentEditDenied,
+            customRoleEducationReady,
+            customRoleEducationEditDenied
           }
         })()`)
 
@@ -216,7 +410,14 @@ function createWindow(): void {
           !result?.dashboardReady ||
           !result?.attentionReady ||
           !result?.analyticsReady ||
-          !result?.documentTypesReady
+          !result?.documentTypesReady ||
+          !result?.customRoleScopeReady ||
+          !result?.customRoleCrudReady ||
+          !result?.customRoleDeleteDenied ||
+          !result?.customRoleForeignScopeDenied ||
+          !result?.customRoleDepartmentEditDenied ||
+          !result?.customRoleEducationReady ||
+          !result?.customRoleEducationEditDenied
         ) {
           throw new Error(`Renderer HR core smoke check failed: ${JSON.stringify(result)}`)
         }
