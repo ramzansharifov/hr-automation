@@ -42,7 +42,7 @@ export const permissionDependencies: Record<string, string[]> = {
   "document_types.delete": ["document_types.view"],
 
   "documents.view": ["employees.view"],
-  "documents.add": ["documents.view", "employees.view", "document_types.view"],
+  "documents.add": ["documents.view", "employees.view"],
   "documents.delete": ["documents.view", "employees.view"],
 
   "leave.view": ["vacations.view", "employees.view"],
