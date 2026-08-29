@@ -130,18 +130,11 @@ export function BusinessContextRoute(): JSX.Element {
   return (
     <div className="space-y-5">
       <section className="app-surface app-border flex flex-col gap-4 rounded-[24px] border p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
-              <FiLayers className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="app-text text-sm font-black">Контекст работы</p>
-              <p className="app-muted mt-0.5 text-xs font-semibold">
-                Все данные раздела ограничены выбранным предприятием и, при необходимости, отделом.
-              </p>
-            </div>
-          </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
+            <FiLayers className="h-4 w-4" />
+          </span>
+          <p className="app-text text-sm font-black">Контекст работы</p>
         </div>
 
         {state.canSelectEnterprise ? (

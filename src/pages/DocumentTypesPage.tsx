@@ -110,9 +110,6 @@ export function DocumentTypesPage(): JSX.Element {
     }
   }
 
-  const enterpriseName =
-    businessContext?.enterpriseName ?? session.enterpriseName ?? "текущего предприятия";
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -129,7 +126,6 @@ export function DocumentTypesPage(): JSX.Element {
             </Button>
           ) : undefined
         }
-        description={`Справочник кадровых документов предприятия «${enterpriseName}». Эти типы используются при добавлении файлов в карточке сотрудника.`}
         icon={<FiBookOpen />}
         title="Типы документов"
       />
@@ -214,14 +210,9 @@ export function DocumentTypesPage(): JSX.Element {
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
           <Dialog.Content className="app-surface app-border fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[24px] border p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <Dialog.Title className="app-text text-xl font-black">
-                  {editing ? "Редактировать тип документа" : "Новый тип документа"}
-                </Dialog.Title>
-                <Dialog.Description className="app-muted mt-1 text-sm leading-6">
-                  Тип будет доступен для документов сотрудников текущего предприятия.
-                </Dialog.Description>
-              </div>
+              <Dialog.Title className="app-text text-xl font-black">
+                {editing ? "Редактировать тип документа" : "Новый тип документа"}
+              </Dialog.Title>
               <Dialog.Close asChild>
                 <button
                   aria-label="Закрыть"

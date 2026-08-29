@@ -35,24 +35,19 @@ export function AttentionQueueSection(): JSX.Element {
   return (
     <section className="app-surface app-border overflow-hidden rounded-[28px] border">
       <div className="app-border-soft flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="app-accent-soft app-accent-text flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border">
             <FiAlertCircle className="h-5 w-5" />
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h2 className="app-text text-lg font-black">Требует внимания</h2>
-              <div className="app-muted flex flex-wrap items-center gap-2 text-xs font-bold">
-                <span>{items.length} задач</span>
-                <span>•</span>
-                <span>{critical} критичных</span>
-                <span>•</span>
-                <span>{warnings} требуют внимания</span>
-              </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="app-text text-lg font-black">Требует внимания</h2>
+            <div className="app-muted flex flex-wrap items-center gap-2 text-xs font-bold">
+              <span>{items.length} задач</span>
+              <span>•</span>
+              <span>{critical} критичных</span>
+              <span>•</span>
+              <span>{warnings} требуют внимания</span>
             </div>
-            <p className="app-muted mt-1 text-sm font-semibold leading-5">
-              Кадровые ситуации, сроки и незавершённые действия в текущем рабочем контексте.
-            </p>
           </div>
         </div>
         <Button

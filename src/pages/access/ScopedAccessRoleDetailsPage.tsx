@@ -81,7 +81,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
     const query = search.trim().toLocaleLowerCase();
     if (!query) return rolePermissions;
     return rolePermissions.filter((permission) =>
-      [permission.name, permission.code, permission.module, permission.description]
+      [permission.name, permission.code, permission.module]
         .join(" ")
         .toLocaleLowerCase()
         .includes(query),
@@ -165,7 +165,6 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
             )}
           </div>
         }
-        description={role.description || "Описание роли не указано."}
         eyebrow={role.isSystem ? "Системная роль" : "Пользовательская роль"}
         icon={<FiShield />}
         title={role.name}
@@ -181,7 +180,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         <AccessMetric
           icon={role.scopeType === "department" ? <FiBriefcase /> : <FiLayers />}
           label="Область"
-          value={role.scopeType === "department" ? 1 : 1}
+          value={1}
         />
       </section>
 
@@ -191,11 +190,6 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
             Где действует роль
           </p>
           <p className="app-text mt-1 font-black">{scopeLabel}</p>
-          <p className="app-muted mt-1 text-xs leading-5">
-            {role.isSystem
-              ? "Системная роль использует оргструктуру сотрудника, которому она назначена."
-              : "Эта привязка фиксирована: роль нельзя использовать за пределами указанной области."}
-          </p>
         </div>
         <span className="app-surface-muted app-border rounded-full border px-3 py-1.5 text-xs font-black">
           {role.isSystem ? "Системная" : "Локальная"}
@@ -230,9 +224,6 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
                       <FiCheckCircle className="app-accent-text mt-0.5 h-4 w-4 shrink-0" />
                       <div>
                         <p className="app-text text-sm font-black">{permission.name}</p>
-                        <p className="app-muted mt-1 text-xs leading-5">
-                          {permission.description}
-                        </p>
                         <p className="app-muted mt-1 font-mono text-[10px]">{permission.code}</p>
                       </div>
                     </div>
@@ -254,10 +245,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         <aside className="app-surface app-border h-fit rounded-[28px] border p-5">
           <div className="flex items-center gap-3">
             <FiUsers className="app-accent-text h-5 w-5" />
-            <div>
-              <p className="app-text font-black">Пользователи роли</p>
-              <p className="app-muted mt-1 text-xs">Только в вашей доступной области</p>
-            </div>
+            <p className="app-text font-black">Пользователи роли</p>
           </div>
           <div className="mt-4 space-y-2">
             {assignedUsers.slice(0, 12).map((user) => (

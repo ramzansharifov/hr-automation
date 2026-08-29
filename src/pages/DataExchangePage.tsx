@@ -125,22 +125,12 @@ export function DataExchangePage(): JSX.Element {
 
   return (
     <div className="grid gap-6">
-      <PageHeader
-        description="Импорт проходит через сопоставление колонок, предварительную проверку, поиск ошибок и дубликатов. Экспорт учитывает текущую область доступа пользователя."
-        eyebrow="Data Exchange"
-        icon={<FiFile />}
-        title="Импорт и экспорт"
-      />
+      <PageHeader eyebrow="Data Exchange" icon={<FiFile />} title="Импорт и экспорт" />
 
       <section className="grid gap-5 xl:grid-cols-2">
         <article className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="app-text text-lg font-black">Импорт сотрудников</h2>
-              <p className="app-muted mt-1 text-sm leading-6">
-                Поддерживаются CSV и XLSX. Сотрудник без полного кадрового назначения создаётся как «Ожидает оформления».
-              </p>
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="app-text text-lg font-black">Импорт сотрудников</h2>
             <FiUpload className="app-muted h-5 w-5 shrink-0" />
           </div>
 
@@ -243,13 +233,8 @@ export function DataExchangePage(): JSX.Element {
         </article>
 
         <article className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="app-text text-lg font-black">Расширенный экспорт</h2>
-              <p className="app-muted mt-1 text-sm leading-6">
-                Выгрузка сотрудников, структуры, отпусков, кадрового журнала, вакансий и audit в CSV или Excel.
-              </p>
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="app-text text-lg font-black">Расширенный экспорт</h2>
             <FiDownload className="app-muted h-5 w-5 shrink-0" />
           </div>
 
