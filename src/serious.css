@@ -380,6 +380,18 @@ aside .rounded-xl {
   color: var(--color-text);
 }
 
+.app-icon-button-secondary {
+  background: var(--button-secondary-bg);
+  border-color: var(--button-secondary-border);
+  color: var(--button-secondary-fg);
+}
+
+.app-icon-button-secondary:hover:not(:disabled) {
+  background: var(--button-secondary-bg-hover);
+  border-color: var(--button-secondary-border-hover);
+  color: var(--color-text);
+}
+
 .app-icon-button-accent {
   background: color-mix(in srgb, var(--accent) 9%, var(--color-surface));
   border-color: color-mix(in srgb, var(--accent) 22%, var(--color-border));
