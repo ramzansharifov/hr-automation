@@ -1,23 +1,77 @@
-/* A stricter visual pass loaded after modern.css. */
+/* A stricter, calmer visual layer loaded after modern.css. */
 
 :root {
-  --serious-radius-panel: 16px;
-  --serious-radius-control: 10px;
-  --serious-radius-small: 8px;
+  --serious-radius-panel: 14px;
+  --serious-radius-control: 9px;
+  --serious-radius-small: 7px;
+
+  --color-page: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8f9fb;
+  --color-surface-hover: #f1f3f6;
+  --color-border: #dfe3e9;
+  --color-border-soft: #eceff3;
+  --color-text: #111827;
+  --color-text-soft: #374151;
+  --color-text-muted: #6b7280;
+  --color-placeholder: #9ca3af;
+  --shell-panel: #ffffff;
+  --shell-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+  --shell-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --sidebar-bg: #0c111d;
+  --sidebar-border: rgba(148, 163, 184, 0.13);
+  --sidebar-button: rgba(255, 255, 255, 0.035);
+  --sidebar-button-hover: rgba(255, 255, 255, 0.065);
+  --sidebar-button-border: rgba(148, 163, 184, 0.11);
+  --sidebar-button-border-hover: rgba(148, 163, 184, 0.22);
 }
 
-/* Flatter hierarchy: less glow, less inflated rounding. */
-.app-accent-gradient-panel {
-  border-radius: var(--serious-radius-panel) !important;
-  box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 14%, transparent) !important;
+:root[data-theme="dark"] {
+  --color-page: #0b0f17;
+  --color-surface: #111722;
+  --color-surface-muted: #161d29;
+  --color-surface-hover: #1b2432;
+  --color-border: #2a3443;
+  --color-border-soft: #222b38;
+  --color-text: #f3f4f6;
+  --color-text-soft: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-placeholder: #6b7280;
+  --shell-panel: #111722;
+  --shell-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shell-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --sidebar-bg: #080c14;
 }
 
+/* Neutral application canvas. Decorative page glows made every HR screen feel like a landing page. */
+html,
+body,
+.app-page {
+  background: var(--color-page) !important;
+}
+
+body,
+.app-page {
+  background-image: none !important;
+}
+
+.app-topbar {
+  background: color-mix(in srgb, var(--color-surface) 97%, transparent) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Flatter hierarchy: surfaces are separated mostly by borders, not glow and elevation. */
 .app-surface {
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shell-shadow-soft) !important;
 }
 
-:root[data-theme="dark"] .app-surface {
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+.app-surface-muted {
+  background: var(--color-surface-muted) !important;
+  background-image: none !important;
 }
 
 main section.app-surface,
@@ -30,13 +84,13 @@ main .rounded-\[26px\],
 }
 
 main .rounded-\[24px\] {
-  border-radius: 14px !important;
+  border-radius: 12px !important;
 }
 
 main .rounded-2xl,
 header .rounded-2xl,
 aside .rounded-2xl {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
 }
 
 main .rounded-xl,
@@ -45,6 +99,7 @@ aside .rounded-xl {
   border-radius: var(--serious-radius-small) !important;
 }
 
+/* Shared controls */
 .app-input,
 .app-button-primary,
 .app-button-secondary,
@@ -52,11 +107,99 @@ aside .rounded-xl {
   border-radius: var(--serious-radius-control) !important;
 }
 
+.app-input {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+.app-input:hover {
+  border-color: color-mix(in srgb, var(--color-text-muted) 42%, var(--color-border)) !important;
+}
+
+.app-input:focus {
+  background: var(--color-surface) !important;
+  border-color: var(--accent-border) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
 .app-button-primary {
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  background: var(--accent) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.app-button-primary:hover {
+  background: var(--accent-hover) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .app-button-secondary {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+.app-button-secondary:hover {
+  background: var(--color-surface-hover) !important;
+  border-color: color-mix(in srgb, var(--color-text-muted) 34%, var(--color-border)) !important;
+}
+
+.app-accent-soft {
+  background: color-mix(in srgb, var(--accent) 8%, var(--color-surface)) !important;
+  border-color: color-mix(in srgb, var(--accent) 19%, var(--color-border)) !important;
+  color: color-mix(in srgb, var(--accent) 76%, var(--color-text)) !important;
+}
+
+:root[data-theme="dark"] .app-accent-soft {
+  background: color-mix(in srgb, var(--accent) 12%, var(--color-surface)) !important;
+  color: color-mix(in srgb, var(--accent-border) 72%, #ffffff) !important;
+}
+
+/* Page header: a working header, not a promotional hero. */
+.app-page-header {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--serious-radius-panel);
+  box-shadow: var(--shell-shadow-soft);
+}
+
+.app-page-header__icon {
+  background: color-mix(in srgb, var(--accent) 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 19%, var(--color-border));
+  color: var(--accent);
+}
+
+/* Legacy accent panels stay supported, but much calmer where still used. */
+.app-accent-gradient-panel {
+  background: var(--color-surface) !important;
+  background-image: none !important;
+  border-color: var(--color-border) !important;
+  border-radius: var(--serious-radius-panel) !important;
+  box-shadow: var(--shell-shadow-soft) !important;
+}
+
+/* Sidebar active states use a quiet indicator instead of a bright gradient pill. */
+aside a[class*="bg-gradient-to-"] {
+  background: rgba(255, 255, 255, 0.075) !important;
+  background-image: none !important;
+  box-shadow: inset 3px 0 0 var(--accent-border) !important;
+}
+
+aside a[class*="bg-gradient-to-"]:hover {
+  background: rgba(255, 255, 255, 0.095) !important;
+}
+
+aside nav section > p {
+  color: #64748b !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.11em !important;
+}
+
+/* Topbar account summary should not look like another dashboard card. */
+.app-topbar .app-surface {
   box-shadow: none !important;
 }
 
@@ -64,12 +207,13 @@ aside .rounded-xl {
 [aria-label="Режим отображения"][role="group"] {
   border-radius: var(--serious-radius-control) !important;
   padding: 3px !important;
+  box-shadow: none !important;
 }
 
 [aria-label="Режим отображения"][role="group"] > button {
-  min-height: 36px;
-  border-radius: 7px !important;
-  padding-inline: 14px;
+  min-height: 34px;
+  border-radius: 6px !important;
+  padding-inline: 12px;
   font-weight: 700;
 }
 
@@ -80,7 +224,7 @@ aside .rounded-xl {
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 16px !important;
+    gap: 14px !important;
   }
 
   main section.app-surface
@@ -98,7 +242,7 @@ aside .rounded-xl {
     margin-left: auto;
     flex-direction: row !important;
     align-items: center;
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   main section.app-surface
@@ -113,7 +257,7 @@ aside .rounded-xl {
 /* Organization hierarchy uses the same toolbar composition as Employees. */
 main > div.space-y-6:has(> .organization-entity-table) {
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 main > div.space-y-6:has(> .organization-entity-table) > * {
@@ -132,7 +276,7 @@ main > div.space-y-6:has(> .organization-entity-table)
   z-index: 3;
   align-self: start;
   justify-self: start;
-  margin: 20px 0 0 20px !important;
+  margin: 16px 0 0 16px !important;
 }
 
 main > div.space-y-6:has(> .organization-entity-table)
@@ -140,6 +284,96 @@ main > div.space-y-6:has(> .organization-entity-table)
   grid-column: 1;
   grid-row: 2;
   margin-top: 0 !important;
+}
+
+/* Tables: denser, neutral and easy to scan horizontally. */
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+table thead tr {
+  background: var(--color-surface-muted) !important;
+}
+
+table th {
+  color: var(--color-text-muted) !important;
+  letter-spacing: 0.015em !important;
+  text-transform: none !important;
+  font-size: 0.73rem !important;
+  font-weight: 800 !important;
+}
+
+table th,
+table td {
+  padding-top: 11px !important;
+  padding-bottom: 11px !important;
+}
+
+table tbody tr {
+  transition: background-color 120ms ease !important;
+}
+
+table tbody tr:hover {
+  background: var(--color-surface-hover) !important;
+  transform: none !important;
+}
+
+table tbody td {
+  color: var(--color-text-soft);
+}
+
+table tbody td:first-child {
+  color: var(--color-text);
+}
+
+/* Card-mode rows should remain useful, but not behave like floating tiles. */
+main article.app-surface-muted {
+  box-shadow: none !important;
+}
+
+main article.app-surface-muted:hover {
+  transform: none !important;
+  border-color: color-mix(in srgb, var(--color-text-muted) 28%, var(--color-border)) !important;
+}
+
+/* KPI cards */
+.app-stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--serious-radius-panel);
+  box-shadow: var(--shell-shadow-soft);
+}
+
+.app-stat-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--color-border));
+}
+
+/* Dialogs */
+[role="dialog"] {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16) !important;
+  backdrop-filter: none !important;
+}
+
+:root[data-theme="dark"] [role="dialog"] {
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38) !important;
+}
+
+/* Status/action controls remain distinct without looking oversized. */
+.app-table-action-button {
+  border-radius: var(--serious-radius-small) !important;
+  box-shadow: none !important;
+}
+
+/* Reduce motion that does not communicate state. */
+@media (prefers-reduced-motion: no-preference) {
+  main article,
+  main section,
+  main button,
+  aside a {
+    transition-duration: 140ms !important;
+  }
 }
 
 @media (max-width: 639px) {
@@ -160,26 +394,6 @@ main > div.space-y-6:has(> .organization-entity-table)
 
   main > div.space-y-6:has(> .organization-entity-table)
     > .flex.justify-start:has(> [aria-label="Режим отображения"]) {
-    margin: 16px 0 0 16px !important;
+    margin: 14px 0 0 14px !important;
   }
-}
-
-/* Tables should read as business software, not floating bubbles. */
-table thead tr {
-  background: color-mix(in srgb, var(--color-surface-muted) 97%, transparent) !important;
-}
-
-table th,
-table td {
-  padding-top: 13px !important;
-  padding-bottom: 13px !important;
-}
-
-table tbody tr:hover {
-  transform: none !important;
-}
-
-/* Keep pills for statuses only; regular controls stay rectangular. */
-.app-table-action-button {
-  border-radius: var(--serious-radius-small) !important;
 }
