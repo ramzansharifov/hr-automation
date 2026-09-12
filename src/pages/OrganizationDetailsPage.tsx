@@ -326,6 +326,7 @@ export function OrganizationDetailsPage(): JSX.Element {
           <div className="flex flex-wrap gap-3">
             <ActionButton
               action="back"
+              context="inverse"
               onClick={() =>
                 navigate(
                   mode === "enterprise"
@@ -337,6 +338,7 @@ export function OrganizationDetailsPage(): JSX.Element {
             {mode === "enterprise" && canViewDepartments && (
               <ActionButton
                 action="open"
+                context="inverse"
                 onClick={() => navigate(`/enterprises/${enterpriseId}/departments`)}
               >
                 Открыть отделы
