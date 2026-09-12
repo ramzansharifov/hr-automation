@@ -126,6 +126,47 @@ export class AuthorizationService {
     };
   }
 
+  scopeEmployeeVacationListParams(
+    employeeId: number,
+    params: HrListParams,
+  ): HrListParams {
+    const session = this.authenticationService.requireSession();
+    const employeeScopedParams: HrListParams = {
+      ...params,
+      entity: "vacations",
+      filters: {
+        ...(params.filters ?? {}),
+        employee_id: intersectFilter(params.filters?.employee_id, [employeeId]),
+      },
+    };
+
+    if (session.permissionScopes["vacations.view"]) {
+      return this.scopeListParams("vacations", employeeScopedParams);
+    }
+
+    const isSystemSuperadmin =
+      session.employeeId === 0 &&
+      session.roles.some((role) => role.systemKey === "superadmin");
+    const hasGrantedVacationView =
+      session.permissionCodes.includes("vacations.view");
+    const canViewEmployeesGlobally =
+      session.permissionScopes["employees.view"] === "global";
+
+    if (
+      !isSystemSuperadmin ||
+      !hasGrantedVacationView ||
+      !canViewEmployeesGlobally
+    ) {
+      throw new Error("Недостаточно прав для просмотра данных");
+    }
+
+    // Employee cards are part of the global employee registry. The built-in
+    // superadmin may inspect one employee's historical vacations without
+    // selecting a workspace first, while operational vacation registries stay
+    // protected by Business Context.
+    return employeeScopedParams;
+  }
+
   assertCanViewRecord(entity: HrEntityKey, record: HrRecord): void {
     const session = this.requireViewPermission(entity, record);
     if (entity === "vacation_types") return;
