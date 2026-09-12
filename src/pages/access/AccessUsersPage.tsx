@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FiEdit2,
-  FiKey,
   FiLock,
-  FiPlus,
-  FiRefreshCw,
   FiShield,
-  FiTrash2,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
@@ -23,13 +18,14 @@ import type {
   SystemAdminSummary,
 } from "../../shared/types/access";
 import {
-  Button,
-  ConfirmDialog,
+  ActionButton,
+  ActionIconButton,
   DataTable,
+  DeleteConfirmDialog,
   Dialog,
-  IconButton,
   Input,
   PageHeader,
+  RecordActions,
   type DataTableColumn,
 } from "../../shared/ui";
 import {
@@ -299,10 +295,15 @@ export function AccessUsersPage(): JSX.Element {
   function renderUserActions(user: AccessUserSummary): JSX.Element | undefined {
     if (!hasActions) return undefined;
     return (
-      <>
+      <RecordActions
+        deleteLabel="Удалить пользователя"
+        editLabel="Редактировать пользователя"
+        onDelete={canDelete ? () => setDeleteUser(user) : undefined}
+        onEdit={canEdit ? () => void openEditUser(user) : undefined}
+      >
         {canResetPassword && (
-          <IconButton
-            icon={<FiKey />}
+          <ActionIconButton
+            action="passwordReset"
             label="Сбросить пароль"
             onClick={() => {
               setPassword("");
@@ -311,24 +312,7 @@ export function AccessUsersPage(): JSX.Element {
             size="sm"
           />
         )}
-        {canEdit && (
-          <IconButton
-            icon={<FiEdit2 />}
-            label="Редактировать"
-            onClick={() => void openEditUser(user)}
-            size="sm"
-          />
-        )}
-        {canDelete && (
-          <IconButton
-            icon={<FiTrash2 />}
-            label="Удалить"
-            onClick={() => setDeleteUser(user)}
-            size="sm"
-            tone="danger"
-          />
-        )}
-      </>
+      </RecordActions>
     );
   }
 
@@ -477,13 +461,12 @@ export function AccessUsersPage(): JSX.Element {
       <PageHeader
         actions={
           canCreate ? (
-            <Button
-              leftIcon={<FiPlus />}
+            <ActionButton
+              action="create"
               onClick={() => void openCreateUser()}
-              variant="primary"
             >
               Добавить пользователя
-            </Button>
+            </ActionButton>
           ) : undefined
         }
         description="Учётные записи сотрудников, назначенные роли и состояние доступа к системе."
@@ -549,17 +532,11 @@ export function AccessUsersPage(): JSX.Element {
         loadingLabel="Загрузка пользователей..."
         rows={rows}
         toolbar={
-          <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadData()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
       />
 
@@ -600,23 +577,27 @@ export function AccessUsersPage(): JSX.Element {
             />
           </Field>
           <div className="mt-5 flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setPasswordDialogUser(null)}>
-              Отмена
-            </Button>
-            <Button disabled={isSaving} onClick={() => void resetPassword()}>
+            <ActionButton
+              action="cancel"
+              onClick={() => setPasswordDialogUser(null)}
+            />
+            <ActionButton
+              action="passwordReset"
+              disabled={!password}
+              loading={isSaving}
+              onClick={() => void resetPassword()}
+            >
               Установить пароль
-            </Button>
+            </ActionButton>
           </div>
         </Dialog>
       )}
 
       {canDelete && (
-        <ConfirmDialog
-          cancelLabel="Отмена"
-          confirmLabel="Удалить"
+        <DeleteConfirmDialog
           description="Пользователь потеряет учётную запись, но связанный сотрудник и его кадровые данные останутся в системе."
           isLoading={isSaving}
-          onConfirm={() => void confirmDeleteUser()}
+          onConfirm={confirmDeleteUser}
           onOpenChange={(open) => !open && setDeleteUser(null)}
           open={Boolean(deleteUser)}
           title={`Удалить пользователя ${deleteUser?.username ?? ""}?`}
