@@ -172,13 +172,51 @@ aside .rounded-xl {
   color: var(--accent);
 }
 
-/* Legacy accent panels stay supported, but much calmer where still used. */
-.app-accent-gradient-panel {
-  background: var(--color-surface) !important;
-  background-image: none !important;
+/* PageHeader used to live on a dark hero, so legacy action classes are normalized here. */
+.app-page-header [class*="border-white"] {
   border-color: var(--color-border) !important;
+}
+
+.app-page-header [class*="bg-white/10"] {
+  background: var(--color-surface-muted) !important;
+}
+
+.app-page-header [class*="text-white"] {
+  color: var(--color-text-soft) !important;
+}
+
+.app-page-header button[class*="border-white"] {
+  background: var(--color-surface) !important;
+  color: var(--color-text-soft) !important;
+  box-shadow: none !important;
+}
+
+.app-page-header button[class*="border-white"]:hover {
+  background: var(--color-surface-hover) !important;
+}
+
+.app-page-header button[style] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.app-page-header button[style]:hover {
+  background: var(--accent-hover) !important;
+}
+
+/* Legacy accent panels are still used by a few detail cards that expect white text. */
+.app-accent-gradient-panel {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-hover) 82%, #111827) 0%,
+      color-mix(in srgb, var(--accent) 72%, #172033) 100%
+    ) !important;
+  border-color: color-mix(in srgb, var(--accent-border) 24%, transparent) !important;
   border-radius: var(--serious-radius-panel) !important;
-  box-shadow: var(--shell-shadow-soft) !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 10%, transparent) !important;
 }
 
 /* Sidebar active states use a quiet indicator instead of a bright gradient pill. */
