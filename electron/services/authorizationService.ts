@@ -140,10 +140,6 @@ export class AuthorizationService {
       },
     };
 
-    if (session.permissionScopes["vacations.view"]) {
-      return this.scopeListParams("vacations", employeeScopedParams);
-    }
-
     const isSystemSuperadmin =
       session.employeeId === 0 &&
       session.roles.some((role) => role.systemKey === "superadmin");
@@ -152,19 +148,22 @@ export class AuthorizationService {
     const canViewEmployeesGlobally =
       session.permissionScopes["employees.view"] === "global";
 
+    // Employee cards are part of the global employee registry. The built-in
+    // superadmin sees the selected employee's complete historical vacation
+    // record regardless of the currently selected operational workspace.
     if (
-      !isSystemSuperadmin ||
-      !hasGrantedVacationView ||
-      !canViewEmployeesGlobally
+      isSystemSuperadmin &&
+      hasGrantedVacationView &&
+      canViewEmployeesGlobally
     ) {
-      throw new Error("Недостаточно прав для просмотра данных");
+      return employeeScopedParams;
     }
 
-    // Employee cards are part of the global employee registry. The built-in
-    // superadmin may inspect one employee's historical vacations without
-    // selecting a workspace first, while operational vacation registries stay
-    // protected by Business Context.
-    return employeeScopedParams;
+    if (session.permissionScopes["vacations.view"]) {
+      return this.scopeListParams("vacations", employeeScopedParams);
+    }
+
+    throw new Error("Недостаточно прав для просмотра данных");
   }
 
   assertCanViewRecord(entity: HrEntityKey, record: HrRecord): void {
