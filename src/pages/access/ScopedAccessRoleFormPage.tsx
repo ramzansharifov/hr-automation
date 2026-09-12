@@ -52,6 +52,8 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingCriticalCode, setPendingCriticalCode] = useState<string | null>(null);
+  const [pendingRemovalCode, setPendingRemovalCode] = useState<string | null>(null);
+  const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -177,16 +179,8 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
     if (!checked) {
       const dependents = getDependentPermissionCodes(permissionCodes, code);
       if (dependents.length > 0) {
-        const labels = dependents
-          .map((dependent) => permissionMap.get(dependent)?.name ?? dependent)
-          .join(", ");
-        if (
-          !window.confirm(
-            `Это разрешение требуется для: ${labels}. Отключить его вместе с зависимыми действиями?`,
-          )
-        ) {
-          return;
-        }
+        setPendingRemovalCode(code);
+        return;
       }
       removePermission(code);
       return;
@@ -194,14 +188,16 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
     addPermission(code);
   }
 
+  function navigateToRoleList(): void {
+    navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles");
+  }
+
   function navigateBack(): void {
-    if (
-      isDirty &&
-      !window.confirm("Есть несохранённые изменения роли. Покинуть страницу?")
-    ) {
+    if (isDirty) {
+      setLeaveConfirmationOpen(true);
       return;
     }
-    navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles");
+    navigateToRoleList();
   }
 
   async function saveRole(): Promise<void> {
@@ -431,6 +427,44 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         onOpenChange={(open) => !open && setPendingCriticalCode(null)}
         open={Boolean(pendingCriticalCode)}
         title="Добавить критичное разрешение?"
+      />
+
+      <ConfirmDialog
+        cancelLabel="Отмена"
+        confirmLabel="Отключить разрешения"
+        description={
+          pendingRemovalCode
+            ? `Это разрешение требуется для: ${getDependentPermissionCodes(
+                permissionCodes,
+                pendingRemovalCode,
+              )
+                .map(
+                  (dependent) =>
+                    permissionMap.get(dependent)?.name ?? dependent,
+                )
+                .join(", ")}. Оно будет отключено вместе с зависимыми действиями.`
+            : ""
+        }
+        onConfirm={() => {
+          if (pendingRemovalCode) removePermission(pendingRemovalCode);
+          setPendingRemovalCode(null);
+        }}
+        onOpenChange={(open) => !open && setPendingRemovalCode(null)}
+        open={Boolean(pendingRemovalCode)}
+        title="Отключить зависимые разрешения?"
+      />
+
+      <ConfirmDialog
+        cancelLabel="Остаться"
+        confirmLabel="Покинуть страницу"
+        description="Есть несохранённые изменения роли. Если покинуть страницу сейчас, они будут потеряны."
+        onConfirm={() => {
+          setLeaveConfirmationOpen(false);
+          navigateToRoleList();
+        }}
+        onOpenChange={setLeaveConfirmationOpen}
+        open={leaveConfirmationOpen}
+        title="Покинуть страницу без сохранения?"
       />
     </div>
   );
