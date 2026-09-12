@@ -678,7 +678,7 @@ export class HrCrudRepository {
     if (params.filters) {
       Object.entries(params.filters).forEach(([column, filter], index) => {
         if (
-          !config.allowedColumns.includes(column) ||
+          !config.filterableColumns.includes(column) ||
           filter === undefined ||
           filter === null
         ) {

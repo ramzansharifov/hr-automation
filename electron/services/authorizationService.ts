@@ -285,17 +285,15 @@ export class AuthorizationService {
       employeesTotal: employeeIds.length,
       departmentsTotal: departmentIds.length,
       positionsTotal: positionIds.length,
-      activeVacations: this.countWithEmployeeIds(
-        `SELECT COUNT(*) FROM vacations
-         WHERE status IN ('planned', 'approved')`,
-        employeeIds,
+      activeVacations: this.countVacationsForSession(
+        session,
+        "status IN ('planned', 'approved')",
       ),
-      upcomingVacations: this.countWithEmployeeIds(
-        `SELECT COUNT(*) FROM vacations
-         WHERE status IN ('planned', 'approved')
-           AND starts_at >= DATE('now')
-           AND starts_at <= DATE('now', '+30 day')`,
-        employeeIds,
+      upcomingVacations: this.countVacationsForSession(
+        session,
+        `status IN ('planned', 'approved')
+         AND starts_at >= DATE('now')
+         AND starts_at <= DATE('now', '+30 day')`,
       ),
       openVacancies: this.countIn("vacancies", "position_id", positionIds, "status = 'open'"),
       candidatesOnOffer: this.countIn("candidates", "vacancy_id", vacancyIds, "status = 'offer'"),
@@ -340,6 +338,29 @@ export class AuthorizationService {
     session: AuthSession,
   ): { column: string; values: number[] } | null {
     if (session.scopeType === "global") return null;
+
+    if (entity === "employment_history") {
+      return {
+        column: "id",
+        values: this.getHistoricalEmploymentHistoryIds(session),
+      };
+    }
+
+    if (entity === "vacations") {
+      if (session.scopeType === "self") {
+        return { column: "employee_id", values: [session.employeeId] };
+      }
+      if (session.scopeType === "enterprise") {
+        return {
+          column: "enterprise_id_snapshot",
+          values: compactIds([session.enterpriseId]),
+        };
+      }
+      return {
+        column: "department_id_snapshot",
+        values: compactIds([session.departmentId]),
+      };
+    }
 
     if (entity === "enterprises") {
       return { column: "id", values: compactIds([session.enterpriseId]) };
@@ -393,6 +414,16 @@ export class AuthorizationService {
       throw new Error("Вид отпуска находится вне доступной области данных");
     }
 
+    if (entity === "employment_history") {
+      if (this.isEmploymentHistoryInScope(record, session)) return;
+      throw new Error("Кадровое событие находится вне доступной области данных");
+    }
+
+    if (entity === "vacations") {
+      if (this.isVacationInScope(record, session)) return;
+      throw new Error("Отпуск находится вне доступной области данных");
+    }
+
     const context = this.resolveRecordContext(entity, record);
     const allowed =
       session.scopeType === "self"
@@ -427,12 +458,7 @@ export class AuthorizationService {
     }
 
     if (
-      [
-        "employee_education",
-        "employee_experience",
-        "employment_history",
-        "vacations",
-      ].includes(entity)
+      ["employee_education", "employee_experience"].includes(entity)
     ) {
       return this.getEmployeeContext(toPositiveNumber(record.employee_id));
     }
@@ -460,6 +486,91 @@ export class AuthorizationService {
       departmentId: null,
       enterpriseId: toPositiveNumber(record.id),
     };
+  }
+
+  private getHistoricalEmploymentHistoryIds(session: AuthSession): number[] {
+    if (session.scopeType === "global") {
+      return (
+        this.database.prepare("SELECT id FROM employment_history").all() as Array<{
+          id: number;
+        }>
+      ).map((row) => row.id);
+    }
+
+    if (session.scopeType === "self") {
+      return (
+        this.database
+          .prepare("SELECT id FROM employment_history WHERE employee_id = ?")
+          .all(session.employeeId) as Array<{ id: number }>
+      ).map((row) => row.id);
+    }
+
+    if (session.scopeType === "enterprise") {
+      if (!session.enterpriseId) return [];
+      return (
+        this.database
+          .prepare(
+            `SELECT id FROM employment_history
+             WHERE previous_enterprise_id = ? OR new_enterprise_id = ?`,
+          )
+          .all(session.enterpriseId, session.enterpriseId) as Array<{ id: number }>
+      ).map((row) => row.id);
+    }
+
+    if (!session.departmentId) return [];
+    return (
+      this.database
+        .prepare(
+          `SELECT id FROM employment_history
+           WHERE previous_department_id = ? OR new_department_id = ?`,
+        )
+        .all(session.departmentId, session.departmentId) as Array<{ id: number }>
+    ).map((row) => row.id);
+  }
+
+  private isEmploymentHistoryInScope(
+    record: HrRecord,
+    session: AuthSession,
+  ): boolean {
+    if (session.scopeType === "global") return true;
+    if (session.scopeType === "self") {
+      return toPositiveNumber(record.employee_id) === session.employeeId;
+    }
+    if (session.scopeType === "enterprise") {
+      return (
+        toPositiveNumber(record.previous_enterprise_id) === session.enterpriseId ||
+        toPositiveNumber(record.new_enterprise_id) === session.enterpriseId
+      );
+    }
+    return (
+      toPositiveNumber(record.previous_department_id) === session.departmentId ||
+      toPositiveNumber(record.new_department_id) === session.departmentId
+    );
+  }
+
+  private isVacationInScope(record: HrRecord, session: AuthSession): boolean {
+    if (session.scopeType === "global") return true;
+    const employeeId = toPositiveNumber(record.employee_id);
+    if (session.scopeType === "self") {
+      return employeeId === session.employeeId;
+    }
+
+    const enterpriseSnapshot = toPositiveNumber(record.enterprise_id_snapshot);
+    const departmentSnapshot = toPositiveNumber(record.department_id_snapshot);
+
+    if (session.scopeType === "enterprise" && enterpriseSnapshot) {
+      return enterpriseSnapshot === session.enterpriseId;
+    }
+    if (session.scopeType === "department" && departmentSnapshot) {
+      return departmentSnapshot === session.departmentId;
+    }
+
+    // New records receive their snapshots from DB triggers after INSERT. Before
+    // INSERT, validate them against the employee's current assignment.
+    const current = this.getEmployeeContext(employeeId);
+    return session.scopeType === "enterprise"
+      ? current.enterpriseId === session.enterpriseId
+      : current.departmentId === session.departmentId;
   }
 
   private resolveEmployeeId(entity: HrEntityKey, record: HrRecord): number | null {
@@ -634,14 +745,36 @@ export class AuthorizationService {
     );
   }
 
-  private countWithEmployeeIds(baseSql: string, employeeIds: number[]): number {
-    if (employeeIds.length === 0) return 0;
-    const placeholders = employeeIds.map(() => "?").join(", ");
+  private countVacationsForSession(
+    session: AuthSession,
+    condition: string,
+  ): number {
+    if (session.scopeType === "global") {
+      return this.scalar(`SELECT COUNT(*) FROM vacations WHERE ${condition}`);
+    }
+    if (session.scopeType === "self") {
+      return this.scalar(
+        `SELECT COUNT(*) FROM vacations
+         WHERE employee_id = ? AND ${condition}`,
+        [session.employeeId],
+      );
+    }
+    if (session.scopeType === "enterprise") {
+      if (!session.enterpriseId) return 0;
+      return this.scalar(
+        `SELECT COUNT(*) FROM vacations
+         WHERE enterprise_id_snapshot = ? AND ${condition}`,
+        [session.enterpriseId],
+      );
+    }
+    if (!session.departmentId) return 0;
     return this.scalar(
-      `${baseSql} AND employee_id IN (${placeholders})`,
-      employeeIds,
+      `SELECT COUNT(*) FROM vacations
+       WHERE department_id_snapshot = ? AND ${condition}`,
+      [session.departmentId],
     );
   }
+
 
   private scalar(sql: string, params: unknown[] = []): number {
     return Number(this.database.prepare(sql).pluck().get(...params) ?? 0);

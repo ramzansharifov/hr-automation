@@ -66,6 +66,8 @@ export class HrDataExportService {
     session: AuthSession,
   ): { headers: string[]; rows: TabularRow[] } {
     const employeeScope = this.employeeScope(session, "employee");
+    const vacationScope = this.vacationScope(session, "vacation");
+    const historyScope = this.employmentHistoryScope(session, "history");
 
     if (domain === "employees") {
       const headers = [
@@ -193,10 +195,10 @@ export class HrDataExportService {
              ON enterprise.id = vacation.enterprise_id_snapshot
            LEFT JOIN vacation_types AS vacation_type
              ON vacation_type.id = vacation.vacation_type_id
-           WHERE (${employeeScope.sql})
+           WHERE (${vacationScope.sql})
            ORDER BY vacation.starts_at DESC`,
         )
-        .all(employeeScope.params) as TabularRow[];
+        .all(vacationScope.params) as TabularRow[];
       return { headers, rows };
     }
 
@@ -238,10 +240,10 @@ export class HrDataExportService {
              ON previous_position.id = history.previous_position_id
            LEFT JOIN positions AS next_position
              ON next_position.id = history.new_position_id
-           WHERE (${employeeScope.sql})
+           WHERE (${historyScope.sql})
            ORDER BY history.effective_at DESC, history.id DESC`,
         )
-        .all(employeeScope.params) as TabularRow[];
+        .all(historyScope.params) as TabularRow[];
       return { headers, rows };
     }
 
@@ -339,6 +341,49 @@ export class HrDataExportService {
          WHERE id = ?`,
       )
       .all(session.enterpriseId) as TabularRow[];
+  }
+
+  private employmentHistoryScope(
+    session: AuthSession,
+    alias: string,
+  ): ScopedSql {
+    if (session.scopeType === "global") return { sql: "1 = 1", params: {} };
+    if (session.scopeType === "enterprise") {
+      return {
+        sql: `(${alias}.previous_enterprise_id = @scopeEnterpriseId OR ${alias}.new_enterprise_id = @scopeEnterpriseId)`,
+        params: { scopeEnterpriseId: session.enterpriseId },
+      };
+    }
+    if (session.scopeType === "department") {
+      return {
+        sql: `(${alias}.previous_department_id = @scopeDepartmentId OR ${alias}.new_department_id = @scopeDepartmentId)`,
+        params: { scopeDepartmentId: session.departmentId },
+      };
+    }
+    return {
+      sql: `${alias}.employee_id = @scopeEmployeeId`,
+      params: { scopeEmployeeId: session.employeeId },
+    };
+  }
+
+  private vacationScope(session: AuthSession, alias: string): ScopedSql {
+    if (session.scopeType === "global") return { sql: "1 = 1", params: {} };
+    if (session.scopeType === "enterprise") {
+      return {
+        sql: `${alias}.enterprise_id_snapshot = @scopeEnterpriseId`,
+        params: { scopeEnterpriseId: session.enterpriseId },
+      };
+    }
+    if (session.scopeType === "department") {
+      return {
+        sql: `${alias}.department_id_snapshot = @scopeDepartmentId`,
+        params: { scopeDepartmentId: session.departmentId },
+      };
+    }
+    return {
+      sql: `${alias}.employee_id = @scopeEmployeeId`,
+      params: { scopeEmployeeId: session.employeeId },
+    };
   }
 
   private employeeScope(session: AuthSession, alias: string): ScopedSql {

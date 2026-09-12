@@ -248,9 +248,11 @@ export function EmployeeCreatePage(): JSX.Element {
         <Button type="button" onClick={() => navigate("/employees")} variant="ghost">
           {t("employeesCreate.actions.cancel")}
         </Button>
-        <Button type="button" onClick={handleBack} variant="secondary">
-          {t("employeesCreate.actions.back")}
-        </Button>
+        {activeStep > 0 && (
+          <Button type="button" onClick={handleBack} variant="secondary">
+            {t("employeesCreate.actions.back")}
+          </Button>
+        )}
         {activeStep < employeeCreateSteps.length - 1 ? (
           <Button type="button" onClick={() => void handleNext()} variant="primary">
             {t("employeesCreate.actions.next")}

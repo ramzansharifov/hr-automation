@@ -128,20 +128,30 @@ export function BusinessContextRoute(): JSX.Element {
   }));
 
   return (
-    <div className="space-y-5">
-      <section className="app-surface app-border flex flex-col gap-4 rounded-[24px] border p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
-            <FiLayers className="h-4 w-4" />
+    <div className="space-y-4">
+      <section className="app-surface app-border flex flex-col gap-3 rounded-[20px] border px-4 py-3 lg:flex-row lg:items-end">
+        <div className="flex min-w-0 items-center gap-2 lg:mr-auto lg:self-center">
+          <span className="app-accent-soft flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
+            <FiLayers className="h-3.5 w-3.5" />
           </span>
-          <p className="app-text text-sm font-black">Контекст работы</p>
+          <div className="min-w-0">
+            <p className="app-muted text-[10px] font-black uppercase tracking-[0.12em]">
+              Рабочая область
+            </p>
+            {!state.canSelectEnterprise && (
+              <p className="app-text truncate text-sm font-black">
+                {state.enterpriseName || "Предприятие не определено"}
+                {state.departmentName ? ` · ${state.departmentName}` : ""}
+              </p>
+            )}
+          </div>
         </div>
 
-        {state.canSelectEnterprise ? (
-          <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-[620px]">
-            <label className="grid gap-1.5">
-              <span className="app-muted flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.08em]">
-                <FiLayers className="h-3.5 w-3.5" /> Предприятие
+        {state.canSelectEnterprise && (
+          <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-[560px]">
+            <label className="grid gap-1">
+              <span className="app-muted flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.08em]">
+                <FiLayers className="h-3 w-3" /> Предприятие
               </span>
               <Select
                 allowEmpty
@@ -155,9 +165,9 @@ export function BusinessContextRoute(): JSX.Element {
               />
             </label>
 
-            <label className="grid gap-1.5">
-              <span className="app-muted flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.08em]">
-                <FiBriefcase className="h-3.5 w-3.5" /> Отдел
+            <label className="grid gap-1">
+              <span className="app-muted flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.08em]">
+                <FiBriefcase className="h-3 w-3" /> Отдел
               </span>
               <Select
                 allowEmpty
@@ -172,13 +182,6 @@ export function BusinessContextRoute(): JSX.Element {
               />
             </label>
           </div>
-        ) : (
-          <div className="app-surface-muted app-border-soft rounded-2xl border px-4 py-3 text-sm font-bold">
-            <span className="app-text">{state.enterpriseName || "Предприятие не определено"}</span>
-            {state.departmentName ? (
-              <span className="app-muted"> · {state.departmentName}</span>
-            ) : null}
-          </div>
         )}
       </section>
 
@@ -191,7 +194,7 @@ export function BusinessContextRoute(): JSX.Element {
       {state.requiresEnterpriseSelection && !state.enterpriseId ? (
         <EmptyState
           title="Выберите предприятие"
-          description="Superadmin работает с операционными HR-разделами только внутри конкретного предприятия. После выбора можно дополнительно сузить данные до одного отдела."
+          description="Выберите рабочее предприятие. При необходимости можно дополнительно ограничить данные одним отделом."
         />
       ) : (
         <Outlet />

@@ -210,14 +210,11 @@ export function UnifiedFiltersWorkspace(): JSX.Element {
           </div>
         </div>
 
-        <div className="app-border-soft flex flex-col gap-3 border-b px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-          <div>
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Параметры выборки</p>
-            <h2 className="app-text mt-1 text-xl font-black">{activeTab.label}</h2>
-          </div>
-          <div className="app-accent-soft flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-black">
+        <div className="app-border-soft flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <h2 className="app-text text-lg font-black">{activeTab.label}</h2>
+          <div className="app-accent-soft flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-black">
             <FiFilter className="h-4 w-4" />
-            Условий: {activeCount}
+            Активных фильтров: {activeCount}
           </div>
         </div>
 
@@ -282,11 +279,7 @@ export function UnifiedFiltersWorkspace(): JSX.Element {
         </form>
       </section>
 
-      <section className="app-surface app-border overflow-hidden rounded-[28px] border">
-        <div className="app-border-soft border-b px-5 py-5 sm:px-7">
-          <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Результаты</p>
-          <h2 className="app-text mt-1 text-xl font-black">Таблица по запросу</h2>
-        </div>
+      <section className="app-surface app-border overflow-hidden rounded-[24px] border">
         <ResultsPanel
           activeModule={activeModule}
           appliedRevision={appliedRevision}

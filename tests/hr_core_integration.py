@@ -150,6 +150,8 @@ class HrCoreIntegrationTests(unittest.TestCase):
                 "document_type_id",
                 "enterprise_id_snapshot",
                 "enterprise_name_snapshot",
+                "department_id_snapshot",
+                "department_name_snapshot",
             }.issubset(document_columns)
         )
 
@@ -173,9 +175,12 @@ class HrCoreIntegrationTests(unittest.TestCase):
             for row in self.connection.execute("PRAGMA table_info(vacations)").fetchall()
         }
         self.assertTrue(
-            {"enterprise_id_snapshot", "enterprise_name_snapshot"}.issubset(
-                vacation_columns
-            )
+            {
+                "enterprise_id_snapshot",
+                "enterprise_name_snapshot",
+                "department_id_snapshot",
+                "department_name_snapshot",
+            }.issubset(vacation_columns)
         )
         self.assertNotIn("working_days_count", vacation_columns)
         self.assertNotIn("entitlement_year", vacation_columns)
@@ -378,20 +383,28 @@ class HrCoreIntegrationTests(unittest.TestCase):
 
         before_document = self.connection.execute(
             """
-            SELECT enterprise_id_snapshot, enterprise_name_snapshot
+            SELECT enterprise_id_snapshot, enterprise_name_snapshot,
+                   department_id_snapshot, department_name_snapshot
             FROM employee_documents WHERE id = ?
             """,
             (document_id,),
         ).fetchone()
         before_vacation = self.connection.execute(
             """
-            SELECT enterprise_id_snapshot, enterprise_name_snapshot
+            SELECT enterprise_id_snapshot, enterprise_name_snapshot,
+                   department_id_snapshot, department_name_snapshot
             FROM vacations WHERE id = ?
             """,
             (vacation_id,),
         ).fetchone()
-        self.assertEqual(before_document, (first_org[0], "First Enterprise"))
-        self.assertEqual(before_vacation, (first_org[0], "First Enterprise"))
+        self.assertEqual(
+            before_document,
+            (first_org[0], "First Enterprise", first_org[1], f"Engineering {first_org[0]}"),
+        )
+        self.assertEqual(
+            before_vacation,
+            (first_org[0], "First Enterprise", first_org[1], f"Engineering {first_org[0]}"),
+        )
 
         self.connection.execute(
             """
@@ -404,14 +417,16 @@ class HrCoreIntegrationTests(unittest.TestCase):
 
         after_document = self.connection.execute(
             """
-            SELECT enterprise_id_snapshot, enterprise_name_snapshot
+            SELECT enterprise_id_snapshot, enterprise_name_snapshot,
+                   department_id_snapshot, department_name_snapshot
             FROM employee_documents WHERE id = ?
             """,
             (document_id,),
         ).fetchone()
         after_vacation = self.connection.execute(
             """
-            SELECT enterprise_id_snapshot, enterprise_name_snapshot
+            SELECT enterprise_id_snapshot, enterprise_name_snapshot,
+                   department_id_snapshot, department_name_snapshot
             FROM vacations WHERE id = ?
             """,
             (vacation_id,),

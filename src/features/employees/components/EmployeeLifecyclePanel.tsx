@@ -54,8 +54,11 @@ export function EmployeeLifecyclePanel({
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
+  const lifecycleStatus = String(employee.lifecycle_status ?? employee.status ?? "");
+  const isPending = ["draft", "pending_assignment"].includes(lifecycleStatus);
+  const isActive = lifecycleStatus === "active" || String(employee.status) === "active";
   const [career, setCareer] = useState({
-    enterpriseId: "",
+    enterpriseId: String(employee.enterprise_id ?? ""),
     departmentId: String(employee.department_id ?? ""),
     positionId: String(employee.position_id ?? ""),
     salaryMode: "keep",
@@ -104,7 +107,7 @@ export function EmployeeLifecyclePanel({
     const departmentId = String(employee.department_id ?? "");
     const enterpriseId =
       departments.find((department) => department.value === departmentId)
-        ?.enterpriseId ?? "";
+        ?.enterpriseId ?? String(employee.enterprise_id ?? "");
     setCareer((current) => ({
       ...current,
       enterpriseId,
@@ -139,8 +142,7 @@ export function EmployeeLifecyclePanel({
       employee.hire_date ??
       "",
   );
-  const isActive = String(employee.status) === "active";
-  const careerEndDate = isActive ? undefined : String(employee.terminated_at ?? "");
+  const careerEndDate = isActive || isPending ? undefined : String(employee.terminated_at ?? "");
 
   async function saveCareerChange(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -166,7 +168,11 @@ export function EmployeeLifecyclePanel({
       await loadData();
       setCareerOpen(false);
       setCareer((current) => ({ ...current, reason: "" }));
-      toast.success("Кадровое изменение сохранено в журнале");
+      toast.success(
+        isPending
+          ? "Сотрудник оформлен на работу"
+          : "Кадровое изменение сохранено в журнале",
+      );
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось сохранить кадровое изменение"));
     } finally {
@@ -224,7 +230,11 @@ export function EmployeeLifecyclePanel({
         <Metric
           icon={<FiClock />}
           label="Общий стаж"
-          value={durationBetween(String(employee.hire_date ?? ""), careerEndDate)}
+          value={
+            isPending
+              ? "Не начат"
+              : durationBetween(String(employee.hire_date ?? ""), careerEndDate)
+          }
         />
         <Metric
           icon={<FiArrowUpRight />}
@@ -256,7 +266,7 @@ export function EmployeeLifecyclePanel({
           </div>
           {(canChangeEmployment || canTerminate) && (
             <div className="flex flex-wrap gap-2">
-              {canChangeEmployment && (
+              {canChangeEmployment && !isPending && (
                 <Button
                   leftIcon={<FiCalendar />}
                   onClick={() => setCorrectionOpen(true)}
@@ -265,9 +275,9 @@ export function EmployeeLifecyclePanel({
                   Исправить дату приёма
                 </Button>
               )}
-              {isActive && canChangeEmployment && (
+              {(isActive || isPending) && canChangeEmployment && (
                 <Button leftIcon={<FiPlus />} onClick={() => setCareerOpen(true)}>
-                  Кадровое изменение
+                  {isPending ? "Оформить на работу" : "Кадровое изменение"}
                 </Button>
               )}
               {isActive && canTerminate && (
@@ -299,8 +309,12 @@ export function EmployeeLifecyclePanel({
           <Dialog
             open={careerOpen}
             onOpenChange={setCareerOpen}
-            title="Кадровое изменение"
-            description="Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
+            title={isPending ? "Оформить на работу" : "Кадровое изменение"}
+            description={
+              isPending
+                ? "Укажите первое кадровое назначение сотрудника: предприятие, отдел, должность, дату и основание."
+                : "Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
+            }
           >
             <form className="grid gap-4" onSubmit={saveCareerChange}>
               <Field label="Предприятие">
@@ -543,25 +557,58 @@ function HistoryItem({
 }): JSX.Element {
   const changeType = String(item.change_type ?? "");
   const terminated = changeType === "terminated";
+  const hired = changeType === "hired";
+  const previousEnterprise = String(item.previous_enterprise_name ?? "").trim();
+  const nextEnterprise = String(item.new_enterprise_name ?? "").trim();
+  const previousDepartment = String(item.previous_department_name ?? "").trim();
+  const nextDepartment = String(item.new_department_name ?? "").trim();
+  const enterpriseChanged =
+    Boolean(previousEnterprise && nextEnterprise) &&
+    previousEnterprise !== nextEnterprise;
+  const departmentChanged =
+    Boolean(previousDepartment && nextDepartment) &&
+    previousDepartment !== nextDepartment;
+
   const title = terminated
     ? "Увольнение"
-    : changeType === "hired"
+    : hired
       ? "Приём на работу"
       : changeType === "enterprise_director"
         ? "Назначение руководителем предприятия"
         : changeType === "department_leader"
           ? "Назначение руководителем отдела"
-          : String(item.new_position_name ?? "Кадровое изменение");
-  const department = terminated
-    ? String(item.previous_department_name ?? "")
-    : String(item.new_department_name ?? "");
+          : enterpriseChanged
+            ? "Перевод между предприятиями"
+            : departmentChanged
+              ? "Перевод между отделами"
+              : String(item.new_position_name ?? "Кадровое изменение");
+
+  const enterprise = transitionValue(
+    previousEnterprise,
+    nextEnterprise,
+    hired,
+    terminated,
+  );
+  const department = transitionValue(
+    previousDepartment,
+    nextDepartment,
+    hired,
+    terminated,
+  );
   const salary = terminated ? item.previous_salary : item.new_salary;
+  const context = [
+    enterprise,
+    department,
+    salary !== null && salary !== undefined
+      ? formatCurrency(salary, locale)
+      : "",
+  ].filter(Boolean);
 
   return (
     <article className="app-surface app-border rounded-2xl border p-4">
       <div className="flex flex-wrap justify-between gap-2">
         <p className="app-text flex items-center gap-2 font-black">
-          {terminated ? <FiUserX /> : changeType === "hired" ? <FiEdit3 /> : null}
+          {terminated ? <FiUserX /> : hired ? <FiEdit3 /> : null}
           {title}
         </p>
         <time className="app-muted text-sm font-bold">
@@ -569,16 +616,27 @@ function HistoryItem({
         </time>
       </div>
       <p className="app-muted mt-2 text-sm">
-        {department || "Отдел не указан"}
-        {salary !== null && salary !== undefined
-          ? ` · ${formatCurrency(salary, locale)}`
-          : ""}
+        {context.length > 0 ? context.join(" · ") : "Оргструктура не указана"}
       </p>
       <p className="app-muted mt-2 text-xs">
         {String(item.reason ?? "Кадровое изменение")}
       </p>
     </article>
   );
+}
+
+function transitionValue(
+  previousValue: string,
+  nextValue: string,
+  hired: boolean,
+  terminated: boolean,
+): string {
+  if (hired) return nextValue;
+  if (terminated) return previousValue;
+  if (previousValue && nextValue && previousValue !== nextValue) {
+    return `${previousValue} → ${nextValue}`;
+  }
+  return nextValue || previousValue;
 }
 
 function durationBetween(startDate: string, endDate?: string): string {

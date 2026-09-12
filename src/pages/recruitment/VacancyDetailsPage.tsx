@@ -198,17 +198,6 @@ export function VacancyDetailsPage(): JSX.Element {
                 Редактировать
               </Button>
             )}
-            {canCreateCandidate && (
-              <Button
-                leftIcon={<FiUserPlus className="h-4 w-4" />}
-                onClick={openCandidateCreate}
-                style={{ background: "#fff", color: "#0f172a" }}
-                type="button"
-                variant="ghost"
-              >
-                Добавить кандидата
-              </Button>
-            )}
           </>
         }
         description={
