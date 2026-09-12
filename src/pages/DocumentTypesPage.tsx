@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import {
-  FiBookOpen,
-  FiEdit2,
-  FiPlus,
-  FiTrash2,
-  FiX,
-} from "react-icons/fi";
+import { FiBookOpen } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
@@ -14,11 +8,14 @@ import { useBusinessContext } from "../features/business-context/useBusinessCont
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { DocumentTypeRecord } from "../shared/types/documentTypes";
 import {
-  Button,
+  ActionButton,
+  ActionIconButton,
+  DeleteConfirmDialog,
   EmptyState,
   Input,
   LoadingState,
   PageHeader,
+  RecordActions,
   Toggle,
 } from "../shared/ui";
 
@@ -32,6 +29,7 @@ export function DocumentTypesPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DocumentTypeRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentTypeRecord | null>(null);
   const [name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,15 +93,12 @@ export function DocumentTypesPage(): JSX.Element {
     }
   }
 
-  async function remove(type: DocumentTypeRecord): Promise<void> {
-    if (!canDelete) return;
-    const confirmed = window.confirm(
-      `Удалить тип документа «${type.name}»? Если он уже используется, система не позволит его удалить.`,
-    );
-    if (!confirmed) return;
+  async function remove(): Promise<void> {
+    if (!deleteTarget || !canDelete) return;
     try {
-      await hrApiClient.deleteDocumentType(type.id);
+      await hrApiClient.deleteDocumentType(deleteTarget.id);
       toast.success("Тип документа удалён");
+      setDeleteTarget(null);
       await load();
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось удалить тип документа"));
@@ -115,13 +110,9 @@ export function DocumentTypesPage(): JSX.Element {
       <PageHeader
         actions={
           canCreate ? (
-            <Button
-              leftIcon={<FiPlus />}
-              onClick={openCreate}
-              variant="primary"
-            >
+            <ActionButton action="create" onClick={openCreate}>
               Добавить тип документа
-            </Button>
+            </ActionButton>
           ) : undefined
         }
         icon={<FiBookOpen />}
@@ -165,28 +156,12 @@ export function DocumentTypesPage(): JSX.Element {
                     </td>
                     {(canEdit || canDelete) && (
                       <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          {canEdit && (
-                            <Button
-                              leftIcon={<FiEdit2 className="h-4 w-4" />}
-                              onClick={() => openEdit(type)}
-                              size="sm"
-                              variant="secondary"
-                            >
-                              Изменить
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button
-                              leftIcon={<FiTrash2 className="h-4 w-4" />}
-                              onClick={() => void remove(type)}
-                              size="sm"
-                              variant="ghost"
-                            >
-                              Удалить
-                            </Button>
-                          )}
-                        </div>
+                        <RecordActions
+                          deleteLabel="Удалить тип документа"
+                          editLabel="Редактировать тип документа"
+                          onDelete={canDelete ? () => setDeleteTarget(type) : undefined}
+                          onEdit={canEdit ? () => openEdit(type) : undefined}
+                        />
                       </td>
                     )}
                   </tr>
@@ -195,6 +170,22 @@ export function DocumentTypesPage(): JSX.Element {
             </table>
           </div>
         </section>
+      )}
+
+      {canDelete && (
+        <DeleteConfirmDialog
+          description={
+            deleteTarget
+              ? `Тип «${deleteTarget.name}» будет удалён. Если он уже используется, система не позволит выполнить удаление.`
+              : ""
+          }
+          onConfirm={remove}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          open={Boolean(deleteTarget)}
+          title="Удалить тип документа?"
+        />
       )}
 
       <Dialog.Root
@@ -212,13 +203,7 @@ export function DocumentTypesPage(): JSX.Element {
                 {editing ? "Редактировать тип документа" : "Новый тип документа"}
               </Dialog.Title>
               <Dialog.Close asChild>
-                <button
-                  aria-label="Закрыть"
-                  className="app-surface-muted app-border app-text-soft flex h-9 w-9 items-center justify-center rounded-xl border"
-                  type="button"
-                >
-                  <FiX />
-                </button>
+                <ActionIconButton action="close" label="Закрыть" />
               </Dialog.Close>
             </div>
 
@@ -250,13 +235,14 @@ export function DocumentTypesPage(): JSX.Element {
 
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
-                <Button type="button" variant="secondary">
-                  Отмена
-                </Button>
+                <ActionButton action="cancel" type="button" />
               </Dialog.Close>
-              <Button disabled={saving} onClick={() => void save()} type="button">
-                Сохранить
-              </Button>
+              <ActionButton
+                action="save"
+                loading={saving}
+                onClick={() => void save()}
+                type="button"
+              />
             </div>
           </Dialog.Content>
         </Dialog.Portal>
