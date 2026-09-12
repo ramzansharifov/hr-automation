@@ -16,6 +16,7 @@ const iconButtonVariants = cva("app-icon-button", {
     },
     tone: {
       neutral: "app-icon-button-neutral",
+      secondary: "app-icon-button-secondary",
       accent: "app-icon-button-accent",
       danger: "app-icon-button-danger",
       inverse: "app-icon-button-inverse",
