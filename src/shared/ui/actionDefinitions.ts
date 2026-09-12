@@ -22,6 +22,8 @@ import type { IconType } from "react-icons";
 
 import type { ButtonVariant } from "./buttonVariants";
 
+export type ActionContext = "default" | "inverse";
+
 export type AppAction =
   | "back"
   | "cancel"
@@ -165,3 +167,13 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
     variant: "secondary",
   },
 };
+
+
+export function getActionVariant(
+  action: AppAction,
+  context: ActionContext = "default",
+): ButtonVariant {
+  const variant = actionDefinitions[action].variant;
+  if (context === "default" || variant === "danger") return variant;
+  return variant === "primary" ? "inverse" : "inverseGhost";
+}
