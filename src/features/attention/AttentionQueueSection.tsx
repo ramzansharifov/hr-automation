@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiArrowRight, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiArrowRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useBusinessContext } from "../business-context/useBusinessContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AttentionItem } from "../../shared/types/hr";
-import { Button, EmptyState, LoadingState } from "../../shared/ui";
+import { ActionButton, EmptyState, LoadingState } from "../../shared/ui";
 
 export function AttentionQueueSection(): JSX.Element {
   const navigate = useNavigate();
@@ -50,15 +50,12 @@ export function AttentionQueueSection(): JSX.Element {
             </div>
           </div>
         </div>
-        <Button
-          disabled={loading}
-          leftIcon={<FiRefreshCw className={loading ? "animate-spin" : undefined} />}
+        <ActionButton
+          action="refresh"
+          loading={loading}
           onClick={() => void load()}
           size="sm"
-          variant="secondary"
-        >
-          Обновить
-        </Button>
+        />
       </div>
 
       <div className="p-4 sm:p-5">
