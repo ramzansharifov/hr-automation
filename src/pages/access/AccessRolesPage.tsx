@@ -167,11 +167,9 @@ export function AccessRolesPage(): JSX.Element {
         actions={
           canCreate ? (
             <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
-              leftIcon={<FiPlus className="h-4 w-4" />}
+              leftIcon={<FiPlus />}
               onClick={() => navigate("/roles/new")}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               Создать роль
             </Button>
