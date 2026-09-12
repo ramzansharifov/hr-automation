@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FiArrowLeft,
   FiBriefcase,
   FiCheck,
   FiCheckCircle,
   FiMessageCircle,
-  FiPlus,
-  FiSave,
   FiTool,
-  FiX,
 } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -22,8 +18,8 @@ import type {
   VacancySkillType,
 } from "../../shared/types/hr";
 import {
-  Button,
-  IconButton,
+  ActionButton,
+  ActionIconButton,
   Input,
   LoadingState,
   Select,
@@ -267,7 +263,13 @@ export function VacancyFormPage(): JSX.Element {
       <section className="app-surface app-border rounded-[30px] border p-6 sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
-            <IconButton className="rounded-full" icon={<FiArrowLeft />} label="Вернуться к вакансиям" onClick={() => navigate("/vacancies")} size="lg" />
+            <ActionIconButton
+              action="back"
+              className="rounded-full"
+              label="Вернуться к вакансиям"
+              onClick={() => navigate("/vacancies")}
+              size="lg"
+            />
             <div>
               <span className="app-accent-soft app-accent-text inline-flex items-center gap-2 rounded-full border border-[var(--accent-border)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em]">
                 <FiBriefcase className="h-3.5 w-3.5" />
@@ -464,23 +466,21 @@ export function VacancyFormPage(): JSX.Element {
             </section>
 
             <section className="app-surface app-border rounded-[24px] border p-4">
-              <Button
+              <ActionButton
+                action={isEdit ? "save" : "create"}
                 className="w-full"
                 disabled={!canSave}
-                leftIcon={<FiSave className="h-4 w-4" />}
+                loading={isSaving}
                 type="submit"
-                variant="primary"
               >
                 {isEdit ? "Сохранить изменения" : "Создать вакансию"}
-              </Button>
-              <Button
+              </ActionButton>
+              <ActionButton
+                action="cancel"
                 className="mt-2 w-full"
                 onClick={() => navigate("/vacancies")}
                 type="button"
-                variant="ghost"
-              >
-                Отмена
-              </Button>
+              />
             </section>
           </aside>
         </div>
@@ -537,9 +537,9 @@ function SkillSection({
             <p className="app-muted mt-1 text-sm leading-5">{description}</p>
           </div>
         </div>
-        <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={onAdd} type="button" variant="secondary">
+        <ActionButton action="create" onClick={onAdd} size="sm" type="button">
           Добавить
-        </Button>
+        </ActionButton>
       </div>
 
       <div className="app-surface-muted app-border mt-4 rounded-2xl border px-4 py-3">
@@ -559,7 +559,12 @@ function SkillSection({
           <article className="app-surface-muted app-border rounded-[22px] border p-4" key={skill.key}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="app-text text-sm font-black">{String(index + 1).padStart(2, "0")} · {skill.name.trim() || "Новый навык"}</p>
-              <IconButton icon={<FiX />} label="Удалить навык" onClick={() => onRemove(skill.key)} size="sm" tone="danger" />
+              <ActionIconButton
+                action="delete"
+                label="Удалить навык"
+                onClick={() => onRemove(skill.key)}
+                size="sm"
+              />
             </div>
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px]">
               <SkillInputField label="Навык">
