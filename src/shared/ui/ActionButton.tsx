@@ -8,6 +8,8 @@ import { cn } from "../lib/cn";
 import { Button } from "./Button";
 import {
   actionDefinitions,
+  getActionVariant,
+  type ActionContext,
   type AppAction,
 } from "./actionDefinitions";
 
@@ -17,6 +19,7 @@ export interface ActionButtonProps
     "leftIcon" | "rightIcon" | "variant"
   > {
   action: AppAction;
+  context?: ActionContext;
   hideIcon?: boolean;
   loading?: boolean;
   loadingLabel?: ReactNode;
@@ -28,6 +31,7 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
       action,
       children,
       className,
+      context = "default",
       disabled,
       hideIcon = false,
       loading = false,
@@ -54,7 +58,7 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
         leftIcon={definition.iconPosition === "right" ? undefined : icon}
         ref={ref}
         rightIcon={definition.iconPosition === "right" ? icon : undefined}
-        variant={definition.variant}
+        variant={getActionVariant(action, context)}
       >
         {label}
       </Button>
