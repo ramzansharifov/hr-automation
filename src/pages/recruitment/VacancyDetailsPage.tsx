@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FiArrowLeft,
   FiAward,
   FiBriefcase,
-  FiEdit2,
-  FiPlus,
   FiUserPlus,
   FiUsers,
 } from "react-icons/fi";
@@ -20,8 +17,9 @@ import {
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord, VacancyProfile } from "../../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   Dialog,
+  FormActions,
   EmptyState,
   Input,
   LoadingState,
@@ -178,23 +176,21 @@ export function VacancyDetailsPage(): JSX.Element {
       <PageHeader
         actions={
           <>
-            <Button
-              leftIcon={<FiArrowLeft />}
+            <ActionButton
+              action="back"
               onClick={() => navigate("/vacancies")}
               type="button"
-              variant="secondary"
             >
               К списку
-            </Button>
+            </ActionButton>
             {canEditVacancy && (
-              <Button
-                leftIcon={<FiEdit2 />}
+              <ActionButton
+                action="edit"
                 onClick={() => navigate(`/vacancies/${vacancyId}/edit`)}
                 type="button"
-                variant="primary"
               >
                 Редактировать
-              </Button>
+              </ActionButton>
             )}
           </>
         }
@@ -255,9 +251,9 @@ export function VacancyDetailsPage(): JSX.Element {
               </p>
             </div>
             {canCreateCandidate && (
-              <Button leftIcon={<FiPlus />} onClick={openCandidateCreate} type="button">
+              <ActionButton action="create" onClick={openCandidateCreate} type="button">
                 Добавить кандидата
-              </Button>
+              </ActionButton>
             )}
           </div>
 
@@ -293,25 +289,23 @@ export function VacancyDetailsPage(): JSX.Element {
         <Dialog
           description={`Кандидат будет сразу привязан к вакансии «${title}». Оцените навыки по шкале 0–10.`}
           footer={
-            <div className="flex justify-end gap-3">
-              <Button onClick={() => setCandidateDraft(null)} type="button" variant="secondary">
-                Отмена
-              </Button>
-              <Button
-                disabled={
-                  isSaving ||
-                  !candidateDraft.lastName.trim() ||
-                  !candidateDraft.firstName.trim()
-                }
-                onClick={() => {
-                  const form = document.getElementById("vacancy-candidate-form") as HTMLFormElement | null;
-                  form?.requestSubmit();
-                }}
-                type="button"
-              >
-                {isSaving ? "Сохранение..." : "Добавить кандидата"}
-              </Button>
-            </div>
+            <FormActions
+              loading={isSaving}
+              onCancel={() => setCandidateDraft(null)}
+              onSubmit={() => {
+                const form = document.getElementById(
+                  "vacancy-candidate-form",
+                ) as HTMLFormElement | null;
+                form?.requestSubmit();
+              }}
+              submitAction="create"
+              submitDisabled={
+                !candidateDraft.lastName.trim() ||
+                !candidateDraft.firstName.trim()
+              }
+              submitLabel="Добавить кандидата"
+              submitType="button"
+            />
           }
           onOpenChange={(open) => !open && setCandidateDraft(null)}
           open
