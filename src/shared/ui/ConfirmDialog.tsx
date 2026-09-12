@@ -2,11 +2,13 @@ import { useState } from "react";
 
 import type { ButtonVariant } from "./buttonVariants";
 import { ActionButton } from "./ActionButton";
+import type { AppAction } from "./actionDefinitions";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
 
 interface ConfirmDialogProps {
   cancelLabel?: string;
+  confirmAction?: AppAction;
   confirmLabel?: string;
   confirmVariant?: ButtonVariant;
   description: string;
@@ -20,6 +22,7 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   cancelLabel = "Отмена",
+  confirmAction,
   confirmLabel = "Подтвердить",
   confirmVariant = "danger",
   description,
@@ -58,7 +61,7 @@ export function ConfirmDialog({
           </Button>
           {confirmVariant === "danger" ? (
             <ActionButton
-              action="delete"
+              action={confirmAction ?? "delete"}
               loading={busy}
               loadingLabel={loadingLabel}
               onClick={() => void handleConfirm()}
