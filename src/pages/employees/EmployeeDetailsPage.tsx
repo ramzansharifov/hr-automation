@@ -6,7 +6,6 @@ import {
   FiBriefcase,
   FiCalendar,
   FiClock,
-  FiEdit2,
   FiFileText,
   FiUser,
 } from "react-icons/fi";
