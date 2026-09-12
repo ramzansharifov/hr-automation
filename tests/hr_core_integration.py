@@ -399,11 +399,11 @@ class HrCoreIntegrationTests(unittest.TestCase):
         ).fetchone()
         self.assertEqual(
             before_document,
-            (first_org[0], "First Enterprise", first_org[1], `Engineering ${first_org[0]}`),
+            (first_org[0], "First Enterprise", first_org[1], f"Engineering {first_org[0]}"),
         )
         self.assertEqual(
             before_vacation,
-            (first_org[0], "First Enterprise", first_org[1], `Engineering ${first_org[0]}`),
+            (first_org[0], "First Enterprise", first_org[1], f"Engineering {first_org[0]}"),
         )
 
         self.connection.execute(
