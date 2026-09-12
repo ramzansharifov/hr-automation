@@ -136,29 +136,26 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
+              leftIcon={<FiArrowLeft />}
               onClick={() => navigate("/roles")}
-              variant="ghost"
+              variant="secondary"
             >
               К ролям
             </Button>
             {canModifyRole && canEdit && (
               <Button
-                className="border-white/20 bg-white/10 text-white"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                leftIcon={<FiEdit2 />}
                 onClick={() => navigate(`/roles/${role.id}/edit`)}
-                variant="ghost"
+                variant="primary"
               >
                 Редактировать
               </Button>
             )}
             {canModifyRole && canDelete && (
               <Button
-                className="border-red-300/40 bg-red-500/10 text-white"
-                leftIcon={<FiTrash2 className="h-4 w-4" />}
+                leftIcon={<FiTrash2 />}
                 onClick={() => setDeleteRole(role)}
-                variant="ghost"
+                variant="danger"
               >
                 Удалить
               </Button>
