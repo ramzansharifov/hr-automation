@@ -21,11 +21,10 @@ export function RecruitmentPageHeader({
       actions={
         onAction && actionLabel ? (
           <Button
-            className="w-full shrink-0 border-white/20 shadow-xl hover:opacity-90 lg:w-auto"
-            leftIcon={<FiPlus className="h-4 w-4" />}
+            className="w-full lg:w-auto"
+            leftIcon={<FiPlus />}
             onClick={onAction}
-            style={{ background: "#ffffff", color: "#0f172a" }}
-            variant="ghost"
+            variant="primary"
           >
             {actionLabel}
           </Button>
