@@ -5,13 +5,19 @@ import {
 } from "react-router-dom";
 
 import { cn } from "../lib/cn";
-import { actionDefinitions, type AppAction } from "./actionDefinitions";
+import {
+  actionDefinitions,
+  getActionVariant,
+  type ActionContext,
+  type AppAction,
+} from "./actionDefinitions";
 import { buttonVariants, type ButtonSize } from "./buttonVariants";
 
 export interface ActionLinkProps extends LinkProps {
   action: AppAction;
   children?: ReactNode;
   className?: string;
+  context?: ActionContext;
   hideIcon?: boolean;
   size?: ButtonSize;
 }
@@ -20,6 +26,7 @@ export function ActionLink({
   action,
   children,
   className,
+  context = "default",
   hideIcon = false,
   size = "md",
   ...props
@@ -36,7 +43,7 @@ export function ActionLink({
     <Link
       {...props}
       className={cn(
-        buttonVariants({ size, variant: definition.variant }),
+        buttonVariants({ size, variant: getActionVariant(action, context) }),
         className,
       )}
     >
