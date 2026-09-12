@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronRight, FiLayers, FiPlus } from "react-icons/fi";
+import { FiChevronRight, FiLayers } from "react-icons/fi";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -205,13 +205,12 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
   const headerActions = canCreate ? (
     <div className="flex flex-wrap items-center justify-end gap-3">
-      <Button
-        leftIcon={<FiPlus />}
+      <ActionButton
+        action="create"
         onClick={() => tableRef.current?.openCreate()}
-        variant="primary"
       >
         {page.createLabel}
-      </Button>
+      </ActionButton>
     </div>
   ) : undefined;
 
