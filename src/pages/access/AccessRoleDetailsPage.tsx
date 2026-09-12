@@ -154,10 +154,9 @@ export function AccessRoleDetailsPage(): JSX.Element {
         <PageHeader
           actions={
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
+              leftIcon={<FiArrowLeft />}
               onClick={() => navigate("/roles")}
-              variant="ghost"
+              variant="secondary"
             >
               К ролям
             </Button>
@@ -181,20 +180,17 @@ export function AccessRoleDetailsPage(): JSX.Element {
         actions={
           <>
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
+              leftIcon={<FiArrowLeft />}
               onClick={() => navigate("/roles")}
-              variant="ghost"
+              variant="secondary"
             >
               Все роли
             </Button>
             {!role.isSystem && canEdit && (
               <Button
-                className="border-white/20 shadow-xl hover:opacity-90"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                leftIcon={<FiEdit2 />}
                 onClick={() => navigate(`/roles/${role.id}/edit`)}
-                style={{ background: "#ffffff", color: "#0f172a" }}
-                variant="ghost"
+                variant="primary"
               >
                 Редактировать
               </Button>
@@ -205,10 +201,10 @@ export function AccessRoleDetailsPage(): JSX.Element {
         icon={<FiShield />}
         meta={
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black text-white/90">
+            <span className="app-accent-soft rounded-full border px-3 py-1 text-xs font-black">
               {role.isSystem ? "Системная роль" : "Пользовательская роль"}
             </span>
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black text-white/90">
+            <span className="app-accent-soft rounded-full border px-3 py-1 text-xs font-black">
               {role.code}
             </span>
           </div>
