@@ -426,12 +426,11 @@ export function OrganizationDetailsPage(): JSX.Element {
                 </Button>
               ) : undefined
             }
-            description="CRUD отделов управляется отдельными разрешениями роли."
             icon={<FiLayers />}
             title="Отделы"
           />
           {!canViewDepartments ? (
-            <EmptySection text="У текущей роли нет разрешения departments.view." />
+            <EmptySection text="Нет доступа к просмотру отделов." />
           ) : departments.length === 0 ? (
             <EmptySection text="В предприятии пока нет отделов." />
           ) : (
@@ -492,7 +491,7 @@ export function OrganizationDetailsPage(): JSX.Element {
             title="Должности"
           />
           {!canViewPositions ? (
-            <EmptySection text="У текущей роли нет разрешения positions.view." />
+            <EmptySection text="Нет доступа к просмотру должностей." />
           ) : positions.length === 0 ? (
             <EmptySection text="В отделе пока нет должностей." />
           ) : (
@@ -534,18 +533,11 @@ export function OrganizationDetailsPage(): JSX.Element {
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <SectionHeader
-          description={
-            canViewEmployees
-              ? mode === "enterprise"
-                ? "Сотрудники доступных отделов предприятия."
-                : "Сотрудники выбранного отдела."
-              : "Просмотр кадрового состава защищён отдельным разрешением employees.view."
-          }
           icon={<FiUsers />}
           title="Сотрудники"
         />
         {!canViewEmployees ? (
-          <EmptySection text="У текущей роли нет разрешения employees.view." />
+          <EmptySection text="Нет доступа к просмотру сотрудников." />
         ) : employees.length === 0 ? (
           <EmptySection text="Сотрудники пока не добавлены." />
         ) : (
@@ -718,23 +710,18 @@ function LeaderCard({
 
 function SectionHeader({
   actions,
-  description,
   icon,
   title,
 }: {
   actions?: ReactNode;
-  description: string;
   icon: ReactNode;
   title: string;
 }): JSX.Element {
   return (
     <div className="app-surface-muted app-border flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-start gap-3">
-        <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">{icon}</span>
-        <div>
-          <h2 className="app-text text-lg font-black">{title}</h2>
-          <p className="app-muted mt-1 text-xs leading-5">{description}</p>
-        </div>
+      <div className="flex items-center gap-3">
+        <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">{icon}</span>
+        <h2 className="app-text text-lg font-black">{title}</h2>
       </div>
       {actions}
     </div>
