@@ -5,14 +5,16 @@ import {
   FiBookOpen,
   FiBriefcase,
   FiCalendar,
-  FiEdit2,
   FiFileText,
-  FiPlus,
-  FiTrash2,
 } from "react-icons/fi";
 
 import type { HrRecord } from "../../../shared/types/hr";
-import { Button, EmptyState, IconButton, LoadingState } from "../../../shared/ui";
+import {
+  ActionButton,
+  EmptyState,
+  LoadingState,
+  RecordActions,
+} from "../../../shared/ui";
 import {
   formatRelatedDate,
   getEducationLevelFromRecord,
@@ -57,15 +59,14 @@ export function RelatedRecordsHeader({
           </div>
         </div>
         {onAction && (
-          <Button
+          <ActionButton
+            action="create"
             className="w-full shrink-0 sm:w-auto"
-            leftIcon={<FiPlus className="h-4 w-4" />}
             onClick={onAction}
             type="button"
-            variant="primary"
           >
             {actionLabel}
-          </Button>
+          </ActionButton>
         )}
       </div>
     </header>
@@ -234,16 +235,13 @@ function RecordCardHeader({
           {badges && <div className="mt-2 flex flex-wrap gap-2">{badges}</div>}
         </div>
       </div>
-      {(onEdit || onDelete) && (
-        <div className="flex shrink-0 gap-2 self-end sm:self-auto">
-          {onEdit && (
-            <IconButton className="app-table-action-button app-table-action-button--edit" icon={<FiEdit2 />} label={editLabel} onClick={onEdit} />
-          )}
-          {onDelete && (
-            <IconButton className="app-table-action-button app-table-action-button--delete" icon={<FiTrash2 />} label={deleteLabel} onClick={onDelete} tone="danger" />
-          )}
-        </div>
-      )}
+      <RecordActions
+        className="shrink-0 self-end sm:self-auto"
+        deleteLabel={deleteLabel}
+        editLabel={editLabel}
+        onDelete={onDelete}
+        onEdit={onEdit}
+      />
     </div>
   );
 }
