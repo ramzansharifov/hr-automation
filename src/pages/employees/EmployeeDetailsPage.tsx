@@ -161,9 +161,6 @@ export function EmployeeDetailsPage(): JSX.Element {
         fullName={fullName}
         isActive={getString(employee.status) === "active"}
         onBack={() => navigate("/employees")}
-        onEdit={
-          canEditEmployee ? () => openSectionEditor("personal") : undefined
-        }
         position={valueOrEmpty(positionName, t)}
         status={status}
         t={t}
