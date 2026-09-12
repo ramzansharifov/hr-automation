@@ -27,7 +27,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       rightIcon,
       size = "md",
       type = "button",
-      variant = "secondary",
+      variant = "primary",
       ...props
     },
     ref,
