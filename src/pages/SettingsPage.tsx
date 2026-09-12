@@ -26,7 +26,13 @@ import { useAuth } from "../features/auth/AuthContext";
 import { supportedLanguages } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { BackupInfo } from "../shared/types/hr";
-import { Button, ConfirmDialog, LoadingState, PageHeader } from "../shared/ui";
+import {
+  Button,
+  ChoiceButton,
+  ConfirmDialog,
+  LoadingState,
+  PageHeader,
+} from "../shared/ui";
 
 function getThemeIcon(theme: ThemePreference): typeof FiSun {
   if (theme === "dark") return FiMoon;
@@ -130,7 +136,7 @@ export function SettingsPage(): JSX.Element {
       <PageHeader
         icon={<FiSettings />}
         meta={
-          <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+          <span className="app-accent-soft inline-flex rounded-full border px-3 py-1 text-xs font-bold">
             {t(`settings.appearance.theme.palette.${resolvedTheme}`)}
           </span>
         }
@@ -144,18 +150,15 @@ export function SettingsPage(): JSX.Element {
               const isSelected = theme === option.id;
               const Icon = getThemeIcon(option.id);
               return (
-                <button
-                  className={[
-                    "flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition",
-                    isSelected ? "app-accent app-accent-border shadow-lg" : "app-button-secondary",
-                  ].join(" ")}
+                <ChoiceButton
+                  align="center"
                   key={option.id}
+                  leading={<Icon />}
                   onClick={() => setTheme(option.id)}
-                  type="button"
+                  selected={isSelected}
                 >
-                  <Icon className="h-4 w-4" />
                   {t(`settings.appearance.theme.options.${option.id}`)}
-                </button>
+                </ChoiceButton>
               );
             })}
           </div>
@@ -166,24 +169,21 @@ export function SettingsPage(): JSX.Element {
             {accentColorOptions.map((option) => {
               const isSelected = accentColor === option.id;
               return (
-                <button
-                  className={[
-                    "app-surface flex h-12 items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-bold transition",
-                    isSelected ? "app-accent-border" : "app-border app-hover-muted",
-                  ].join(" ")}
+                <ChoiceButton
+                  align="between"
                   key={option.id}
-                  onClick={() => setAccentColor(option.id)}
-                  type="button"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
+                  leading={
                     <span
-                      className="h-5 w-5 shrink-0 rounded-full border border-white/40 shadow-sm"
+                      className="h-5 w-5 rounded-full border border-black/10 shadow-sm dark:border-white/20"
                       style={{ backgroundColor: option.value }}
                     />
-                    <span className="truncate">{t(`settings.appearance.accent.options.${option.id}`)}</span>
-                  </span>
-                  {isSelected && <FiCheck className="app-accent-text h-4 w-4 shrink-0" />}
-                </button>
+                  }
+                  onClick={() => setAccentColor(option.id)}
+                  selected={isSelected}
+                  trailing={isSelected ? <FiCheck /> : undefined}
+                >
+                  {t(`settings.appearance.accent.options.${option.id}`)}
+                </ChoiceButton>
               );
             })}
           </div>
@@ -194,18 +194,16 @@ export function SettingsPage(): JSX.Element {
             {supportedLanguages.map((language) => {
               const isSelected = currentLanguage.split("-")[0] === language.id;
               return (
-                <button
-                  className={[
-                    "flex h-12 min-w-32 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition",
-                    isSelected ? "app-accent app-accent-border shadow-lg" : "app-button-secondary",
-                  ].join(" ")}
+                <ChoiceButton
+                  align="center"
+                  className="min-w-32"
                   key={language.id}
                   onClick={() => void i18n.changeLanguage(language.id)}
-                  type="button"
+                  selected={isSelected}
+                  trailing={isSelected ? <FiCheck /> : undefined}
                 >
                   {t(language.labelKey)}
-                  {isSelected && <FiCheck className="h-4 w-4 shrink-0" />}
-                </button>
+                </ChoiceButton>
               );
             })}
           </div>
@@ -226,8 +224,9 @@ export function SettingsPage(): JSX.Element {
                   {canCreateBackup && (
                     <Button
                       disabled={isCreatingBackup}
-                      leftIcon={<FiArchive className="h-4 w-4" />}
+                      leftIcon={<FiArchive />}
                       onClick={() => void createBackup()}
+                      variant="primary"
                     >
                       {isCreatingBackup ? "Создание..." : "Создать копию"}
                     </Button>
@@ -291,7 +290,12 @@ export function SettingsPage(): JSX.Element {
 
             {canExportEmployees && (
               <SettingsCard icon={<FiDownload className="h-5 w-5" />} title="Экспорт">
-                <Button className="w-full" leftIcon={<FiDownload />} onClick={() => void exportEmployees()}>
+                <Button
+                  className="w-full"
+                  leftIcon={<FiDownload />}
+                  onClick={() => void exportEmployees()}
+                  variant="primary"
+                >
                   Экспортировать сотрудников
                 </Button>
               </SettingsCard>
