@@ -14,6 +14,7 @@ const toneByAction: Record<
   AppAction,
   ComponentPropsWithoutRef<typeof IconButton>["tone"]
 > = {
+  backup: "accent",
   back: "neutral",
   cancel: "neutral",
   close: "neutral",
@@ -22,6 +23,7 @@ const toneByAction: Record<
   delete: "danger",
   edit: "accent",
   export: "neutral",
+  folderOpen: "neutral",
   hire: "accent",
   import: "neutral",
   manage: "neutral",
@@ -31,6 +33,7 @@ const toneByAction: Record<
   previous: "neutral",
   refresh: "neutral",
   reset: "neutral",
+  restore: "danger",
   save: "accent",
   search: "accent",
   terminate: "danger",
