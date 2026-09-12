@@ -6,6 +6,7 @@ import {
   FiEdit2,
   FiExternalLink,
   FiEye,
+  FiKey,
   FiPlus,
   FiRefreshCw,
   FiRotateCcw,
@@ -35,6 +36,7 @@ export type AppAction =
   | "manage"
   | "next"
   | "open"
+  | "passwordReset"
   | "previous"
   | "refresh"
   | "reset"
@@ -121,6 +123,12 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
   open: {
     defaultLabel: "Открыть",
     icon: FiExternalLink,
+    variant: "secondary",
+  },
+  passwordReset: {
+    defaultLabel: "Сбросить пароль",
+    icon: FiKey,
+    loadingLabel: "Сохранение...",
     variant: "secondary",
   },
   previous: {
