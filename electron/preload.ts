@@ -101,6 +101,8 @@ const hrApi: ExtendedHrApi = {
     ipcRenderer.invoke("recruitment:hireCandidate", params),
   deleteCandidate: (id: number) =>
     ipcRenderer.invoke("recruitment:deleteCandidate", id),
+  listEmployeeVacations: (employeeId: number) =>
+    ipcRenderer.invoke("hr:listEmployeeVacations", employeeId),
   listEmployeeDocuments: (employeeId?: number) =>
     ipcRenderer.invoke("documents:list", employeeId),
   listEmployeeDocumentTypes: (employeeId: number) =>
