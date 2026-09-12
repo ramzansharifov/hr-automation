@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FiAlertTriangle,
-  FiArrowLeft,
   FiCheckCircle,
   FiGlobe,
   FiGrid,
   FiLayers,
   FiLock,
-  FiSave,
   FiSearch,
   FiShield,
   FiSliders,
@@ -34,6 +32,7 @@ import type {
 } from "../../shared/types/access";
 import type { HrEntityKey, HrRecord } from "../../shared/types/hr";
 import {
+  ActionButton,
   Button,
   ConfirmDialog,
   EmptyState,
@@ -513,21 +512,20 @@ export function AccessRoleFormPage(): JSX.Element {
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiArrowLeft />}
-              onClick={() => navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles")}
-              variant="secondary"
-            >
-              Назад
-            </Button>
-            <Button
+            <ActionButton
+              action="back"
+              onClick={() =>
+                navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles")
+              }
+            />
+            <ActionButton
+              action="save"
               disabled={!canSave}
-              leftIcon={<FiSave />}
+              loading={isSaving}
               onClick={() => void saveRole()}
-              variant="primary"
             >
-              {isSaving ? "Сохранение..." : "Сохранить роль"}
-            </Button>
+              Сохранить роль
+            </ActionButton>
           </div>
         }
         eyebrow="Управление доступом"
