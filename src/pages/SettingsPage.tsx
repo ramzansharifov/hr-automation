@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
-  FiArchive,
   FiCheck,
   FiDownload,
-  FiFolder,
   FiGlobe,
   FiHardDrive,
   FiMonitor,
   FiMoon,
-  FiRefreshCw,
   FiSettings,
   FiSun,
 } from "react-icons/fi";
@@ -27,6 +24,7 @@ import { supportedLanguages } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { BackupInfo } from "../shared/types/hr";
 import {
+  ActionButton,
   Button,
   ChoiceButton,
   ConfirmDialog,
@@ -222,32 +220,26 @@ export function SettingsPage(): JSX.Element {
               <SettingsCard icon={<FiHardDrive className="h-5 w-5" />} title="Резервные копии">
                 <div className="mb-5 flex flex-wrap gap-3">
                   {canCreateBackup && (
-                    <Button
-                      disabled={isCreatingBackup}
-                      leftIcon={<FiArchive />}
+                    <ActionButton
+                      action="backup"
+                      loading={isCreatingBackup}
                       onClick={() => void createBackup()}
-                      variant="primary"
                     >
-                      {isCreatingBackup ? "Создание..." : "Создать копию"}
-                    </Button>
+                      Создать копию
+                    </ActionButton>
                   )}
                   {canOpenBackupsFolder && (
-                    <Button
-                      leftIcon={<FiFolder className="h-4 w-4" />}
+                    <ActionButton
+                      action="folderOpen"
                       onClick={() => void openBackupsFolder()}
-                      variant="secondary"
-                    >
-                      Открыть папку
-                    </Button>
+                    />
                   )}
                   {canViewBackups && (
-                    <Button
-                      leftIcon={<FiRefreshCw className={isLoadingBackups ? "animate-spin" : ""} />}
+                    <ActionButton
+                      action="refresh"
+                      loading={isLoadingBackups}
                       onClick={() => void loadBackups()}
-                      variant="ghost"
-                    >
-                      Обновить
-                    </Button>
+                    />
                   )}
                 </div>
 
@@ -272,9 +264,11 @@ export function SettingsPage(): JSX.Element {
                             </p>
                           </div>
                           {canRestoreBackup && (
-                            <Button onClick={() => setRestoreTarget(backup)} variant="secondary">
-                              Восстановить
-                            </Button>
+                            <ActionButton
+                              action="restore"
+                              onClick={() => setRestoreTarget(backup)}
+                              size="sm"
+                            />
                           )}
                         </div>
                       ))}
@@ -290,14 +284,13 @@ export function SettingsPage(): JSX.Element {
 
             {canExportEmployees && (
               <SettingsCard icon={<FiDownload className="h-5 w-5" />} title="Экспорт">
-                <Button
+                <ActionButton
+                  action="export"
                   className="w-full"
-                  leftIcon={<FiDownload />}
                   onClick={() => void exportEmployees()}
-                  variant="primary"
                 >
                   Экспортировать сотрудников
-                </Button>
+                </ActionButton>
               </SettingsCard>
             )}
           </div>
@@ -308,6 +301,7 @@ export function SettingsPage(): JSX.Element {
         <ConfirmDialog
           cancelLabel="Отмена"
           confirmLabel="Восстановить базу"
+          confirmVariant="danger"
           description={
             restoreTarget
               ? `Текущая база будет заменена копией «${restoreTarget.name}». После восстановления приложение автоматически перезапустится.`
