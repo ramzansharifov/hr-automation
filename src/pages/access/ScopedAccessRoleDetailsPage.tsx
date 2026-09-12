@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FiArrowLeft,
   FiBriefcase,
   FiCheckCircle,
-  FiEdit2,
   FiLayers,
   FiSearch,
   FiShield,
-  FiTrash2,
   FiUsers,
 } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
@@ -21,8 +18,8 @@ import type {
   AccessUserSummary,
 } from "../../shared/types/access";
 import {
-  Button,
-  ConfirmDialog,
+  ActionButton,
+  DeleteConfirmDialog,
   EmptyState,
   Input,
   LoadingState,
@@ -44,7 +41,6 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
   const [users, setUsers] = useState<AccessUserSummary[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [deleteRole, setDeleteRole] = useState<AccessRoleSummary | null>(null);
 
   const loadData = useCallback(async () => {
@@ -101,16 +97,13 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
 
   async function confirmDeleteRole(): Promise<void> {
     if (!deleteRole || !canDelete) return;
-    setIsSaving(true);
     try {
       await hrApiClient.deleteAccessRole(deleteRole.id);
       toast.success("Роль удалена");
+      setDeleteRole(null);
       navigate("/roles");
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось удалить роль"));
-    } finally {
-      setIsSaving(false);
-      setDeleteRole(null);
     }
   }
 
@@ -135,30 +128,24 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiArrowLeft />}
-              onClick={() => navigate("/roles")}
-              variant="secondary"
-            >
+            <ActionButton action="back" onClick={() => navigate("/roles")}>
               К ролям
-            </Button>
+            </ActionButton>
             {canModifyRole && canEdit && (
-              <Button
-                leftIcon={<FiEdit2 />}
+              <ActionButton
+                action="edit"
                 onClick={() => navigate(`/roles/${role.id}/edit`)}
-                variant="primary"
               >
                 Редактировать
-              </Button>
+              </ActionButton>
             )}
             {canModifyRole && canDelete && (
-              <Button
-                leftIcon={<FiTrash2 />}
+              <ActionButton
+                action="delete"
                 onClick={() => setDeleteRole(role)}
-                variant="danger"
               >
-                Удалить
-              </Button>
+                Удалить роль
+              </ActionButton>
             )}
           </div>
         }
