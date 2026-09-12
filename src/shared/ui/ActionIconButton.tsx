@@ -38,9 +38,10 @@ const toneByAction: Record<
 export interface ActionIconButtonProps
   extends Omit<
     ComponentPropsWithoutRef<typeof IconButton>,
-    "danger" | "icon" | "tone"
+    "danger" | "icon" | "label" | "tone"
   > {
   action: AppAction;
+  label?: string;
   loading?: boolean;
 }
 
