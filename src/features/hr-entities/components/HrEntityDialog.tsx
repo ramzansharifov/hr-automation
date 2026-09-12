@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import type { HrEntityKey, HrRecord } from '../../../shared/types/hr'
-import { Button, Dialog } from '../../../shared/ui'
+import { Dialog, FormActions } from '../../../shared/ui'
 import { getUserFacingErrorMessage } from '../../../shared/lib/userFacingErrors'
 import { getHrEntityFormConfig } from '../config/hrEntityFormConfig'
 import {
@@ -62,14 +62,13 @@ export function HrEntityDialog({
   return (
     <Dialog
       footer={
-        <div className="flex flex-wrap justify-end gap-3">
-          <Button disabled={isSubmitting} onClick={() => onOpenChange(false)} variant="secondary">
-            {t('common.actions.cancel')}
-          </Button>
-          <Button disabled={isSubmitting} form={formId} type="submit" variant="primary">
-            {t('common.actions.save')}
-          </Button>
-        </div>
+        <FormActions
+          cancelLabel={t('common.actions.cancel')}
+          form={formId}
+          loading={isSubmitting}
+          onCancel={() => onOpenChange(false)}
+          submitLabel={t('common.actions.save')}
+        />
       }
       onOpenChange={onOpenChange}
       open={open}
