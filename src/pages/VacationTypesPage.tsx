@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { FiBookOpen, FiPlus } from "react-icons/fi";
+import { FiBookOpen } from "react-icons/fi";
 import { Navigate } from "react-router-dom";
 
 import { useAuth } from "../features/auth/AuthContext";
@@ -7,7 +7,11 @@ import {
   HrEntityTable,
   type HrEntityTableHandle,
 } from "../features/hr-table/HrEntityTable";
-import { Button, PageHeader, useStoredViewMode } from "../shared/ui";
+import {
+  ActionButton,
+  PageHeader,
+  useStoredViewMode,
+} from "../shared/ui";
 
 export function VacationTypesPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
@@ -31,13 +35,12 @@ export function VacationTypesPage(): JSX.Element {
       <PageHeader
         actions={
           canCreateVacationTypes ? (
-            <Button
-              leftIcon={<FiPlus />}
+            <ActionButton
+              action="create"
               onClick={() => tableRef.current?.openCreate()}
-              variant="primary"
             >
               Добавить вид отпуска
-            </Button>
+            </ActionButton>
           ) : undefined
         }
         description={description}
