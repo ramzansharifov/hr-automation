@@ -371,24 +371,6 @@ button:disabled {
   background: color-mix(in srgb, var(--accent-soft) 64%, #ffffff);
 }
 
-.app-button-primary {
-  background: var(--accent);
-  color: #ffffff;
-}
-.app-button-primary:hover {
-  background: var(--accent-hover);
-}
-
-.app-button-secondary {
-  background: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text-soft);
-}
-
-.app-button-secondary:hover {
-  background: var(--color-surface-hover);
-}
-
 .app-link-accent {
   color: var(--accent);
 }
