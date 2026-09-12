@@ -144,7 +144,9 @@ export function EmployeeDetailsPage(): JSX.Element {
   ]
     .filter(Boolean)
     .join(" ");
-  const status = employeeStatusLabel(employee.status, t);
+  const lifecycleStatus = getString(employee.lifecycle_status || employee.status);
+  const isPendingAssignment = ["draft", "pending_assignment"].includes(lifecycleStatus);
+  const status = employeeStatusLabel(lifecycleStatus, t);
 
   return (
     <motion.div
@@ -167,7 +169,12 @@ export function EmployeeDetailsPage(): JSX.Element {
         t={t}
       />
 
-      <Tabs.Root className="employee-profile-shell" defaultValue="card">
+      <Tabs.Root
+        className="employee-profile-shell"
+        defaultValue={
+          isPendingAssignment && canViewEmploymentHistory ? "history" : "card"
+        }
+      >
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -408,7 +415,11 @@ function employeeStatusLabel(
   value: unknown,
   t: (key: string) => string,
 ): string {
-  if (String(value) === "terminated") return "Уволен";
+  const status = String(value ?? "");
+  if (status === "terminated") return "Уволен";
+  if (status === "pending_assignment" || status === "draft") {
+    return "Ожидает оформления";
+  }
   return humanizeStatus(value, t);
 }
 
