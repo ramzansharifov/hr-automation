@@ -6,7 +6,6 @@ import {
   FiChevronRight,
   FiGrid,
   FiLayers,
-  FiRefreshCw,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
@@ -23,7 +22,7 @@ import type {
   HrListResult,
   HrRecord,
 } from "../shared/types/hr";
-import { Button, PageHeader } from "../shared/ui";
+import { ActionButton, PageHeader } from "../shared/ui";
 
 const initialStats: HrDashboardStats = {
   employeesTotal: 0,
@@ -195,13 +194,11 @@ export function LeadershipDashboardPage({
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadDashboard()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
         description={description}
         eyebrow={isEnterpriseDirector ? "Управление предприятием" : "Управление отделом"}
