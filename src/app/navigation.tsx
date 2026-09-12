@@ -179,6 +179,7 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
+  filtersNavigationItem,
 ];
 
 const departmentHeadNavigationItems: AppNavigationItem[] = [
@@ -200,6 +201,7 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
+  filtersNavigationItem,
 ];
 
 const enterpriseAdminNavigationItems: AppNavigationItem[] = [
@@ -220,7 +222,6 @@ const enterpriseAdminNavigationItems: AppNavigationItem[] = [
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
-  dataExchangeNavigationItem,
   filtersNavigationItem,
 ];
 
@@ -242,7 +243,6 @@ const departmentAdminNavigationItems: AppNavigationItem[] = [
   vacanciesNavigationItem,
   candidatesNavigationItem,
   analyticsNavigationItem,
-  dataExchangeNavigationItem,
   filtersNavigationItem,
 ];
 
