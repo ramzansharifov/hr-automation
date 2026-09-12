@@ -6,8 +6,11 @@ import {
 
 import { cn } from "../lib/cn";
 
+type ChoiceButtonAlign = "start" | "center" | "between";
+
 export interface ChoiceButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-pressed"> {
+  align?: ChoiceButtonAlign;
   leading?: ReactNode;
   selected: boolean;
   trailing?: ReactNode;
@@ -16,6 +19,7 @@ export interface ChoiceButtonProps
 export const ChoiceButton = forwardRef<HTMLButtonElement, ChoiceButtonProps>(
   (
     {
+      align = "start",
       children,
       className,
       leading,
@@ -29,7 +33,11 @@ export const ChoiceButton = forwardRef<HTMLButtonElement, ChoiceButtonProps>(
     <button
       {...props}
       aria-pressed={selected}
-      className={cn("app-choice-button", className)}
+      className={cn(
+        "app-choice-button",
+        `app-choice-button-${align}`,
+        className,
+      )}
       ref={ref}
       type={type}
     >
