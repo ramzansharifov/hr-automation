@@ -342,6 +342,7 @@ export function AppLayout(): JSX.Element {
                   onClick={() => void logout()}
                   size="lg"
                   title="Выйти"
+                  tone="secondary"
                 />
               </div>
             </div>
