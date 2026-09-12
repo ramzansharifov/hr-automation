@@ -298,8 +298,9 @@ export const administrationNavigationItems: AppNavigationItem[] = [
 ];
 
 export function getBottomNavigationItems(
-  _scopedAdminRole: ScopedAdminRoleKey | null = null,
+  scopedAdminRole: ScopedAdminRoleKey | null = null,
 ): AppNavigationItem[] {
+  void scopedAdminRole;
   return [profileNavigationItem, settingsNavigationItem];
 }
 
