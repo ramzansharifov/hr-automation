@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { FiPlus, FiSearch } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 
-import { Button, Input, PageHeader } from "../../shared/ui";
+import { ActionButton, Input, PageHeader } from "../../shared/ui";
 
 export function RecruitmentPageHeader({
   actionLabel,
@@ -20,14 +20,13 @@ export function RecruitmentPageHeader({
     <PageHeader
       actions={
         onAction && actionLabel ? (
-          <Button
+          <ActionButton
+            action="create"
             className="w-full lg:w-auto"
-            leftIcon={<FiPlus />}
             onClick={onAction}
-            variant="primary"
           >
             {actionLabel}
-          </Button>
+          </ActionButton>
         ) : undefined
       }
       description={description}
