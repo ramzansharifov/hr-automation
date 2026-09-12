@@ -146,7 +146,6 @@ const departmentsManagementNavigationItem: AppNavigationItem = {
 };
 
 export const mainNavigationItems: AppNavigationItem[] = [
-  profileNavigationItem,
   dashboardNavigationItem,
   myEnterpriseNavigationItem,
   myDepartmentNavigationItem,
@@ -161,7 +160,6 @@ export const mainNavigationItems: AppNavigationItem[] = [
 ];
 
 const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
-  profileNavigationItem,
   {
     ...dashboardNavigationItem,
     titleKey: "Обзор предприятия",
@@ -183,7 +181,6 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
 ];
 
 const departmentHeadNavigationItems: AppNavigationItem[] = [
-  profileNavigationItem,
   {
     ...dashboardNavigationItem,
     titleKey: "Обзор отдела",
@@ -301,11 +298,12 @@ export const administrationNavigationItems: AppNavigationItem[] = [
 ];
 
 export function getBottomNavigationItems(
-  scopedAdminRole: ScopedAdminRoleKey | null = null,
+  _scopedAdminRole: ScopedAdminRoleKey | null = null,
 ): AppNavigationItem[] {
-  return scopedAdminRole
-    ? [profileNavigationItem, settingsNavigationItem]
-    : [settingsNavigationItem];
+  return [profileNavigationItem, settingsNavigationItem];
 }
 
-export const bottomNavigationItems: AppNavigationItem[] = [settingsNavigationItem];
+export const bottomNavigationItems: AppNavigationItem[] = [
+  profileNavigationItem,
+  settingsNavigationItem,
+];
