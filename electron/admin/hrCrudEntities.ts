@@ -5,6 +5,7 @@ export interface HrCrudEntityConfig {
   tableName: string;
   primaryKey: string;
   allowedColumns: string[];
+  filterableColumns: string[];
   searchableColumns: string[];
   defaultOrderBy: string;
   hasUpdatedAt: boolean;
@@ -20,13 +21,18 @@ function entity(
       HrCrudEntityConfig,
       "defaultOrderBy" | "hasUpdatedAt" | "listColumns"
     >
-  > = {},
+  > & { extraFilterableColumns?: string[] } = {},
 ): HrCrudEntityConfig {
+  const writableColumns = ["id", ...allowedColumns];
   return {
     key,
     tableName: key,
     primaryKey: "id",
-    allowedColumns: ["id", ...allowedColumns],
+    allowedColumns: writableColumns,
+    filterableColumns: [
+      ...writableColumns,
+      ...(options.extraFilterableColumns ?? []),
+    ],
     searchableColumns,
     defaultOrderBy: options.defaultOrderBy ?? "id",
     hasUpdatedAt: options.hasUpdatedAt ?? true,
@@ -317,6 +323,10 @@ export const hrCrudEntities: Record<HrEntityKey, HrCrudEntityConfig> = {
     ["reason", "status", "decision_comment"],
     {
       defaultOrderBy: "starts_at",
+      extraFilterableColumns: [
+        "enterprise_id_snapshot",
+        "department_id_snapshot",
+      ],
       listColumns: {
         employee_name: `(SELECT ${employeeFullName("employee")}
           FROM employees AS employee
