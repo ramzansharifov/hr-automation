@@ -24,7 +24,7 @@ export function ConfirmDialog({
   cancelLabel = "Отмена",
   confirmAction,
   confirmLabel = "Подтвердить",
-  confirmVariant = "danger",
+  confirmVariant = "primary",
   description,
   isLoading = false,
   loadingLabel = "Выполнение...",
@@ -35,6 +35,13 @@ export function ConfirmDialog({
 }: ConfirmDialogProps): JSX.Element {
   const [internalLoading, setInternalLoading] = useState(false);
   const busy = isLoading || internalLoading;
+  const semanticConfirmAction =
+    confirmAction ??
+    (confirmVariant === "danger"
+      ? "delete"
+      : confirmVariant === "primary"
+        ? "confirm"
+        : null);
 
   async function handleConfirm(): Promise<void> {
     if (busy) return;
@@ -52,16 +59,16 @@ export function ConfirmDialog({
       description={description}
       footer={
         <div className="flex justify-end gap-3">
-          <Button
+          <ActionButton
+            action="cancel"
             disabled={busy}
             onClick={() => onOpenChange(false)}
-            variant="secondary"
           >
             {cancelLabel}
-          </Button>
-          {confirmVariant === "danger" ? (
+          </ActionButton>
+          {semanticConfirmAction ? (
             <ActionButton
-              action={confirmAction ?? "delete"}
+              action={semanticConfirmAction}
               loading={busy}
               loadingLabel={loadingLabel}
               onClick={() => void handleConfirm()}
