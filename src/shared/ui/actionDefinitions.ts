@@ -9,6 +9,8 @@ import {
   FiEye,
   FiFolder,
   FiKey,
+  FiLogIn,
+  FiLogOut,
   FiPlus,
   FiRefreshCw,
   FiRotateCcw,
@@ -31,6 +33,7 @@ export type AppAction =
   | "backup"
   | "back"
   | "cancel"
+  | "clear"
   | "close"
   | "confirm"
   | "create"
@@ -40,6 +43,8 @@ export type AppAction =
   | "folderOpen"
   | "hire"
   | "import"
+  | "login"
+  | "logout"
   | "manage"
   | "next"
   | "open"
@@ -75,6 +80,11 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
   },
   cancel: {
     defaultLabel: "Отмена",
+    icon: FiX,
+    variant: "secondary",
+  },
+  clear: {
+    defaultLabel: "Очистить",
     icon: FiX,
     variant: "secondary",
   },
@@ -127,6 +137,17 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
     defaultLabel: "Импорт",
     icon: FiUpload,
     loadingLabel: "Импорт...",
+    variant: "secondary",
+  },
+  login: {
+    defaultLabel: "Войти",
+    icon: FiLogIn,
+    loadingLabel: "Вход...",
+    variant: "primary",
+  },
+  logout: {
+    defaultLabel: "Выйти",
+    icon: FiLogOut,
     variant: "secondary",
   },
   manage: {
