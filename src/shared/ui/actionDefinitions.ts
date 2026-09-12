@@ -15,6 +15,7 @@ import {
   FiSettings,
   FiTrash2,
   FiUpload,
+  FiUserX,
   FiUserCheck,
   FiX,
 } from "react-icons/fi";
@@ -44,6 +45,7 @@ export type AppAction =
   | "reset"
   | "save"
   | "search"
+  | "terminate"
   | "view";
 
 interface ActionDefinition {
@@ -160,6 +162,12 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
     icon: FiSearch,
     loadingLabel: "Поиск...",
     variant: "primary",
+  },
+  terminate: {
+    defaultLabel: "Уволить",
+    icon: FiUserX,
+    loadingLabel: "Оформление...",
+    variant: "danger",
   },
   view: {
     defaultLabel: "Просмотреть",
