@@ -1,4 +1,5 @@
 import {
+  FiArchive,
   FiArrowLeft,
   FiArrowRight,
   FiCheck,
@@ -6,6 +7,7 @@ import {
   FiEdit2,
   FiExternalLink,
   FiEye,
+  FiFolder,
   FiKey,
   FiPlus,
   FiRefreshCw,
@@ -26,6 +28,7 @@ import type { ButtonVariant } from "./buttonVariants";
 export type ActionContext = "default" | "inverse";
 
 export type AppAction =
+  | "backup"
   | "back"
   | "cancel"
   | "close"
@@ -34,6 +37,7 @@ export type AppAction =
   | "delete"
   | "edit"
   | "export"
+  | "folderOpen"
   | "hire"
   | "import"
   | "manage"
@@ -43,6 +47,7 @@ export type AppAction =
   | "previous"
   | "refresh"
   | "reset"
+  | "restore"
   | "save"
   | "search"
   | "terminate"
@@ -57,6 +62,12 @@ interface ActionDefinition {
 }
 
 export const actionDefinitions: Record<AppAction, ActionDefinition> = {
+  backup: {
+    defaultLabel: "Создать резервную копию",
+    icon: FiArchive,
+    loadingLabel: "Создание...",
+    variant: "primary",
+  },
   back: {
     defaultLabel: "Назад",
     icon: FiArrowLeft,
@@ -99,6 +110,11 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
     defaultLabel: "Экспорт",
     icon: FiDownload,
     loadingLabel: "Экспорт...",
+    variant: "secondary",
+  },
+  folderOpen: {
+    defaultLabel: "Открыть папку",
+    icon: FiFolder,
     variant: "secondary",
   },
   hire: {
@@ -150,6 +166,12 @@ export const actionDefinitions: Record<AppAction, ActionDefinition> = {
     defaultLabel: "Сбросить",
     icon: FiRotateCcw,
     variant: "secondary",
+  },
+  restore: {
+    defaultLabel: "Восстановить",
+    icon: FiRotateCcw,
+    loadingLabel: "Восстановление...",
+    variant: "danger",
   },
   save: {
     defaultLabel: "Сохранить",
