@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   FiAlertTriangle,
-  FiArrowLeft,
   FiBriefcase,
   FiLayers,
   FiLock,
-  FiSave,
   FiSearch,
   FiShield,
 } from "react-icons/fi";
@@ -26,6 +24,7 @@ import type {
   SaveAccessRoleParams,
 } from "../../shared/types/access";
 import {
+  ActionButton,
   Button,
   ConfirmDialog,
   EmptyState,
@@ -254,21 +253,15 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiArrowLeft />}
-              onClick={navigateBack}
-              variant="secondary"
-            >
-              Назад
-            </Button>
-            <Button
+            <ActionButton action="back" onClick={navigateBack} />
+            <ActionButton
+              action="save"
               disabled={!canSave}
-              leftIcon={<FiSave />}
+              loading={isSaving}
               onClick={() => void saveRole()}
-              variant="primary"
             >
-              {isSaving ? "Сохранение..." : "Сохранить роль"}
-            </Button>
+              Сохранить роль
+            </ActionButton>
           </div>
         }
         description="Разрешения этой роли будут действовать только внутри указанной организационной области. Область задаётся вашим уровнем администрирования и не выбирается вручную."
