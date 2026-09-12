@@ -1,7 +1,10 @@
+import type { ReactNode } from "react";
+
 import { cn } from "../lib/cn";
 import { ActionIconButton } from "./ActionIconButton";
 
 interface RecordActionsProps {
+  children?: ReactNode;
   className?: string;
   deleteLabel?: string;
   editLabel?: string;
@@ -14,6 +17,7 @@ interface RecordActionsProps {
 }
 
 export function RecordActions({
+  children,
   className,
   deleteLabel = "Удалить",
   editLabel = "Редактировать",
@@ -24,7 +28,7 @@ export function RecordActions({
   stopPropagation = true,
   viewLabel = "Открыть",
 }: RecordActionsProps): JSX.Element | null {
-  if (!onView && !onEdit && !onDelete) return null;
+  if (!children && !onView && !onEdit && !onDelete) return null;
 
   return (
     <div
@@ -35,6 +39,7 @@ export function RecordActions({
           : undefined
       }
     >
+      {children}
       {onView && (
         <ActionIconButton
           action="view"
