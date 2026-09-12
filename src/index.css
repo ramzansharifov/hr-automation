@@ -324,6 +324,10 @@ button:disabled {
   overflow: hidden;
 }
 
+.app-date-input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
 }

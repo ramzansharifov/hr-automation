@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type InputHTMLAttributes,
   type MouseEvent,
   type Ref,
@@ -123,10 +124,16 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
     function handleInputClick(event: MouseEvent<HTMLInputElement>): void {
       onClick?.(event)
-      if (!event.defaultPrevented && !interactionDisabled) {
-        syncCalendarFromInput()
-        setOpen(true)
-      }
+    }
+
+    function handleInputChange(event: ChangeEvent<HTMLInputElement>): void {
+      const nextValue = event.currentTarget.value
+      setSelectedValue(nextValue)
+
+      const nextDate = parseDateValue(nextValue)
+      if (nextDate) setViewMonth(startOfMonth(nextDate))
+
+      onChange?.(event)
     }
 
     function writeValue(nextValue: string): void {
@@ -170,19 +177,21 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             aria-expanded={open}
             aria-haspopup="dialog"
             className={[
-              'app-input app-placeholder h-11 w-full rounded-2xl border px-4 pr-11 text-sm outline-none transition',
+              'app-date-input app-input app-placeholder h-11 w-full rounded-2xl border px-4 pr-11 text-sm outline-none transition',
               invalid ? 'border-rose-400 focus:border-rose-500' : '',
-              interactionDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+              interactionDisabled ? 'cursor-not-allowed opacity-60' : '',
               className,
             ].join(' ')}
             defaultValue={defaultValue}
             disabled={disabled}
-            onChange={onChange}
+            max={max}
+            min={min}
+            onChange={handleInputChange}
             onClick={handleInputClick}
             placeholder={placeholder}
-            readOnly
+            readOnly={readOnly}
             required={required}
-            type="text"
+            type="date"
             value={value}
           />
 
