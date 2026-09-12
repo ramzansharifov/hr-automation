@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   FiChevronLeft,
   FiChevronRight,
-  FiLogOut,
   FiUser,
 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
@@ -25,7 +24,7 @@ import {
   getBottomNavigationItems,
   getMainNavigationItems,
 } from "./navigation";
-import { IconButton } from "../shared/ui";
+import { ActionIconButton, IconButton } from "../shared/ui";
 import { HRLogo } from "./brand/HRLogo";
 import { GlobalSearch } from "./GlobalSearch";
 
@@ -334,13 +333,12 @@ export function AppLayout(): JSX.Element {
                     </span>
                   </span>
                 </div>
-                <IconButton
-                  icon={<FiLogOut />}
+                <ActionIconButton
+                  action="logout"
                   label="Выйти из системы"
                   onClick={() => void logout()}
                   size="lg"
                   title="Выйти"
-                  tone="secondary"
                 />
               </div>
             </div>
