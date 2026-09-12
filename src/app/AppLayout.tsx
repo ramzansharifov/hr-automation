@@ -25,6 +25,7 @@ import {
   getBottomNavigationItems,
   getMainNavigationItems,
 } from "./navigation";
+import { IconButton } from "../shared/ui";
 import { HRLogo } from "./brand/HRLogo";
 import { GlobalSearch } from "./GlobalSearch";
 
@@ -335,15 +336,13 @@ export function AppLayout(): JSX.Element {
                     </span>
                   </span>
                 </div>
-                <button
-                  aria-label="Выйти из системы"
-                  className="app-button-secondary app-border flex h-11 w-11 items-center justify-center rounded-2xl border transition"
+                <IconButton
+                  icon={<FiLogOut />}
+                  label="Выйти из системы"
                   onClick={() => void logout()}
+                  size="lg"
                   title="Выйти"
-                  type="button"
-                >
-                  <FiLogOut className="h-[18px] w-[18px]" />
-                </button>
+                />
               </div>
             </div>
           </header>
