@@ -300,6 +300,7 @@ export function SettingsPage(): JSX.Element {
       {canRestoreBackup && (
         <ConfirmDialog
           cancelLabel="Отмена"
+          confirmAction="restore"
           confirmLabel="Восстановить базу"
           confirmVariant="danger"
           description={
