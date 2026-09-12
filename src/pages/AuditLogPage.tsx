@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { FiActivity, FiRefreshCw, FiSearch } from "react-icons/fi";
+import { FiActivity, FiSearch } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { AuditEvent } from "../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   DataTable,
   Input,
   PageHeader,
@@ -103,13 +103,11 @@ export function AuditLogPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void load()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
         description={description}
         eyebrow="Администрирование"
@@ -134,18 +132,16 @@ export function AuditLogPage(): JSX.Element {
               value={search}
             />
           </div>
-          <Button type="submit">Найти</Button>
+          <ActionButton action="search" type="submit" />
           {search && (
-            <Button
+            <ActionButton
+              action="reset"
               onClick={() => {
                 setSearch("");
                 void load("");
               }}
               type="button"
-              variant="secondary"
-            >
-              Сбросить
-            </Button>
+            />
           )}
         </form>
       </section>
