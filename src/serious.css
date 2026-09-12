@@ -150,40 +150,6 @@ aside .rounded-xl {
   color: var(--accent);
 }
 
-/* PageHeader used to live on a dark hero, so legacy action classes are normalized here. */
-.app-page-header [class*="border-white"] {
-  border-color: var(--color-border) !important;
-}
-
-.app-page-header [class*="bg-white/10"] {
-  background: var(--color-surface-muted) !important;
-}
-
-.app-page-header [class*="text-white"] {
-  color: var(--color-text-soft) !important;
-}
-
-.app-page-header button[class*="border-white"] {
-  background: var(--color-surface) !important;
-  color: var(--color-text-soft) !important;
-  box-shadow: none !important;
-}
-
-.app-page-header button[class*="border-white"]:hover {
-  background: var(--color-surface-hover) !important;
-}
-
-.app-page-header button[style] {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-}
-
-.app-page-header button[style]:hover {
-  background: var(--accent-hover) !important;
-}
-
 /* Legacy accent panels are still used by a few detail cards that expect white text. */
 .app-accent-gradient-panel {
   background:
