@@ -7,10 +7,10 @@ import { toast } from "react-toastify";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../../shared/types/hr";
 import {
-  Button,
-  ConfirmDialog,
+  DeleteConfirmDialog,
   Dialog,
   FieldError,
+  FormActions,
   type SelectOption,
 } from "../../../shared/ui";
 import {
@@ -247,7 +247,13 @@ export function EmployeeEducationPanel({
               value={formValues.document_number}
             />
             <FieldError message={error} />
-            <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
+            <FormActions
+              className="pt-2"
+              loading={isSubmitting}
+              onCancel={closeDialog}
+              submitAction={editingId ? "save" : "create"}
+              submitLabel={t(editingId ? "common.actions.save" : "common.actions.create")}
+            />
           </form>
         </Dialog>
       )}
@@ -442,7 +448,13 @@ export function EmployeeExperiencePanel({
               value={formValues.responsibilities}
             />
             <FieldError message={error} />
-            <FormActions editing={Boolean(editingId)} isSubmitting={isSubmitting} onCancel={closeDialog} t={t} />
+            <FormActions
+              className="pt-2"
+              loading={isSubmitting}
+              onCancel={closeDialog}
+              submitAction={editingId ? "save" : "create"}
+              submitLabel={t(editingId ? "common.actions.save" : "common.actions.create")}
+            />
           </form>
         </Dialog>
       )}
@@ -455,29 +467,6 @@ export function EmployeeExperiencePanel({
           t={t}
         />
       )}
-    </div>
-  );
-}
-
-function FormActions({
-  editing,
-  isSubmitting,
-  onCancel,
-  t,
-}: {
-  editing: boolean;
-  isSubmitting: boolean;
-  onCancel: () => void;
-  t: ReturnType<typeof useTranslation>["t"];
-}): JSX.Element {
-  return (
-    <div className="flex justify-end gap-3 pt-2">
-      <Button type="button" variant="secondary" onClick={onCancel}>
-        {t("common.actions.cancel")}
-      </Button>
-      <Button disabled={isSubmitting} type="submit" variant="primary">
-        {t(editing ? "common.actions.save" : "common.actions.create")}
-      </Button>
     </div>
   );
 }
@@ -496,12 +485,11 @@ function DeleteDialog({
   t: ReturnType<typeof useTranslation>["t"];
 }): JSX.Element {
   return (
-    <ConfirmDialog
-      cancelLabel={t("common.actions.cancel")}
+    <DeleteConfirmDialog
       confirmLabel={t("common.actions.delete")}
       description={t("forms.delete.description")}
       isLoading={isSubmitting}
-      onConfirm={() => void onConfirm()}
+      onConfirm={onConfirm}
       onOpenChange={(open) => !open && onOpenChange(null)}
       open={Boolean(deleteTarget)}
       title={t("forms.delete.title")}
