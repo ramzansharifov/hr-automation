@@ -419,7 +419,12 @@ export function OrganizationDetailsPage(): JSX.Element {
           <SectionHeader
             actions={
               canCreateDepartment ? (
-                <Button leftIcon={<FiPlus />} onClick={openCreateDepartment} size="sm">
+                <Button
+                  leftIcon={<FiPlus />}
+                  onClick={openCreateDepartment}
+                  size="sm"
+                  variant="primary"
+                >
                   Добавить отдел
                 </Button>
               ) : undefined
@@ -479,7 +484,12 @@ export function OrganizationDetailsPage(): JSX.Element {
           <SectionHeader
             actions={
               canCreatePosition ? (
-                <Button leftIcon={<FiPlus />} onClick={openCreatePosition} size="sm">
+                <Button
+                  leftIcon={<FiPlus />}
+                  onClick={openCreatePosition}
+                  size="sm"
+                  variant="primary"
+                >
                   Добавить должность
                 </Button>
               ) : undefined
