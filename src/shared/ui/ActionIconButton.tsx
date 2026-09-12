@@ -33,6 +33,7 @@ const toneByAction: Record<
   reset: "neutral",
   save: "accent",
   search: "accent",
+  terminate: "danger",
   view: "neutral",
 };
 
