@@ -1,7 +1,7 @@
 export { ActionButton, type ActionButtonProps } from './ActionButton'
 export { ActionIconButton, type ActionIconButtonProps } from './ActionIconButton'
 export { ActionLink, type ActionLinkProps } from './ActionLink'
-export { type AppAction } from './actionDefinitions'
+export { type ActionContext, type AppAction } from './actionDefinitions'
 export { Button, type ButtonProps } from './Button'
 export { type ButtonSize, type ButtonVariant } from './buttonVariants'
 export { ChoiceButton, type ChoiceButtonProps } from './ChoiceButton'
