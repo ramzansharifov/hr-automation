@@ -55,6 +55,9 @@ export class HrAnalyticsService {
       "position",
       "department",
     );
+    const historyScope = this.employmentHistoryScope(session, "history");
+    const vacationScope = this.vacationScope(session, "vacation");
+
     const openVacancies = this.scalar(
       `SELECT COUNT(*) FROM vacancies AS vacancy
        JOIN positions AS position ON position.id = vacancy.position_id
@@ -70,20 +73,22 @@ export class HrAnalyticsService {
          julianday(employee.employment_started_at) - julianday(candidate.created_at)
        )
        FROM candidates AS candidate
+       JOIN vacancies AS vacancy ON vacancy.id = candidate.vacancy_id
+       JOIN positions AS position ON position.id = vacancy.position_id
+       JOIN departments AS department ON department.id = position.department_id
        JOIN employees AS employee ON employee.id = candidate.employee_id
        WHERE employee.employment_started_at IS NOT NULL
-         AND (${employeeScope.sql})`,
-      employeeParams,
+         AND (${vacancyScope.sql})`,
+      vacancyScope.params,
     );
 
     const employeesOnLeaveToday = this.scalar(
       `SELECT COUNT(DISTINCT vacation.employee_id)
        FROM vacations AS vacation
-       JOIN employees AS employee ON employee.id = vacation.employee_id
        WHERE vacation.status = 'approved'
          AND DATE('now') BETWEEN vacation.starts_at AND vacation.ends_at
-         AND (${employeeScope.sql})`,
-      employeeParams,
+         AND (${vacationScope.sql})`,
+      vacationScope.params,
     );
 
     const headcountByEnterprise = this.series(
@@ -109,24 +114,22 @@ export class HrAnalyticsService {
     const hiresByMonth = this.series(
       `SELECT SUBSTR(history.effective_at, 1, 7) AS label, COUNT(*) AS value
        FROM employment_history AS history
-       JOIN employees AS employee ON employee.id = history.employee_id
        WHERE history.change_type = 'hired'
          AND history.effective_at >= DATE('now', '-11 months', 'start of month')
-         AND (${employeeScope.sql})
+         AND (${historyScope.sql})
        GROUP BY label
        ORDER BY label`,
-      employeeParams,
+      historyScope.params,
     );
     const terminationsByMonth = this.series(
       `SELECT SUBSTR(history.effective_at, 1, 7) AS label, COUNT(*) AS value
        FROM employment_history AS history
-       JOIN employees AS employee ON employee.id = history.employee_id
        WHERE history.change_type = 'terminated'
          AND history.effective_at >= DATE('now', '-11 months', 'start of month')
-         AND (${employeeScope.sql})
+         AND (${historyScope.sql})
        GROUP BY label
        ORDER BY label`,
-      employeeParams,
+      historyScope.params,
     );
     const vacanciesByStatus = this.series(
       `SELECT vacancy.status AS label, COUNT(*) AS value
@@ -142,15 +145,14 @@ export class HrAnalyticsService {
       `SELECT COALESCE(vacation_type.name, 'Без вида') AS label,
               SUM(vacation.days_count) AS value
        FROM vacations AS vacation
-       JOIN employees AS employee ON employee.id = vacation.employee_id
        LEFT JOIN vacation_types AS vacation_type
          ON vacation_type.id = vacation.vacation_type_id
        WHERE vacation.status IN ('approved', 'completed')
          AND SUBSTR(vacation.starts_at, 1, 4) = STRFTIME('%Y', 'now')
-         AND (${employeeScope.sql})
+         AND (${vacationScope.sql})
        GROUP BY vacation_type.id, vacation_type.name
        ORDER BY value DESC`,
-      employeeParams,
+      vacationScope.params,
     );
 
     return {
@@ -187,6 +189,49 @@ export class HrAnalyticsService {
     }
     return {
       sql: `${alias}.id = @scopeEmployeeId`,
+      params: { scopeEmployeeId: session.employeeId },
+    };
+  }
+
+  private employmentHistoryScope(
+    session: AuthSession,
+    alias: string,
+  ): ScopedSql {
+    if (session.scopeType === "global") return { sql: "1 = 1", params: {} };
+    if (session.scopeType === "enterprise") {
+      return {
+        sql: `(${alias}.previous_enterprise_id = @scopeEnterpriseId OR ${alias}.new_enterprise_id = @scopeEnterpriseId)`,
+        params: { scopeEnterpriseId: session.enterpriseId },
+      };
+    }
+    if (session.scopeType === "department") {
+      return {
+        sql: `(${alias}.previous_department_id = @scopeDepartmentId OR ${alias}.new_department_id = @scopeDepartmentId)`,
+        params: { scopeDepartmentId: session.departmentId },
+      };
+    }
+    return {
+      sql: `${alias}.employee_id = @scopeEmployeeId`,
+      params: { scopeEmployeeId: session.employeeId },
+    };
+  }
+
+  private vacationScope(session: AuthSession, alias: string): ScopedSql {
+    if (session.scopeType === "global") return { sql: "1 = 1", params: {} };
+    if (session.scopeType === "enterprise") {
+      return {
+        sql: `${alias}.enterprise_id_snapshot = @scopeEnterpriseId`,
+        params: { scopeEnterpriseId: session.enterpriseId },
+      };
+    }
+    if (session.scopeType === "department") {
+      return {
+        sql: `${alias}.department_id_snapshot = @scopeDepartmentId`,
+        params: { scopeDepartmentId: session.departmentId },
+      };
+    }
+    return {
+      sql: `${alias}.employee_id = @scopeEmployeeId`,
       params: { scopeEmployeeId: session.employeeId },
     };
   }
