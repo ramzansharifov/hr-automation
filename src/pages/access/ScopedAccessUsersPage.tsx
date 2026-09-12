@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FiEdit2,
-  FiKey,
-  FiPlus,
-  FiRefreshCw,
-  FiTrash2,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
@@ -18,13 +13,14 @@ import type {
   SaveAccessUserParams,
 } from "../../shared/types/access";
 import {
-  Button,
-  ConfirmDialog,
+  ActionButton,
+  ActionIconButton,
   DataTable,
+  DeleteConfirmDialog,
   Dialog,
-  IconButton,
   Input,
   PageHeader,
+  RecordActions,
   type DataTableColumn,
 } from "../../shared/ui";
 import {
@@ -256,11 +252,19 @@ export function ScopedAccessUsersPage(): JSX.Element {
   function renderActions(user: AccessUserSummary): JSX.Element | undefined {
     const isSelf = user.id === session.userId;
     if (!canEdit && !canDelete && !canResetPassword) return undefined;
+
     return (
-      <div className="flex items-center justify-center gap-2">
+      <RecordActions
+        deleteLabel="Удалить пользователя"
+        editLabel="Редактировать пользователя"
+        onDelete={
+          canDelete && !isSelf ? () => setDeleteUser(user) : undefined
+        }
+        onEdit={canEdit ? () => openEditUser(user) : undefined}
+      >
         {canResetPassword && !isSelf && (
-          <IconButton
-            icon={<FiKey />}
+          <ActionIconButton
+            action="passwordReset"
             label="Сбросить пароль"
             onClick={() => {
               setPassword("");
@@ -269,24 +273,7 @@ export function ScopedAccessUsersPage(): JSX.Element {
             size="sm"
           />
         )}
-        {canEdit && (
-          <IconButton
-            icon={<FiEdit2 />}
-            label="Редактировать"
-            onClick={() => openEditUser(user)}
-            size="sm"
-          />
-        )}
-        {canDelete && !isSelf && (
-          <IconButton
-            icon={<FiTrash2 />}
-            label="Удалить"
-            onClick={() => setDeleteUser(user)}
-            size="sm"
-            tone="danger"
-          />
-        )}
-      </div>
+      </RecordActions>
     );
   }
 
@@ -364,13 +351,12 @@ export function ScopedAccessUsersPage(): JSX.Element {
       <PageHeader
         actions={
           canCreate ? (
-            <Button
-              leftIcon={<FiPlus />}
+            <ActionButton
+              action="create"
               onClick={() => void openCreateUser()}
-              variant="primary"
             >
               Добавить пользователя
-            </Button>
+            </ActionButton>
           ) : undefined
         }
         description={`${scopeDescription} Системные роли администраторов сохраняются отдельно и не могут быть перераспределены локальным администратором.`}
@@ -415,17 +401,11 @@ export function ScopedAccessUsersPage(): JSX.Element {
         loadingLabel="Загрузка пользователей..."
         rows={users}
         toolbar={
-          <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadData()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
       />
 
@@ -466,23 +446,27 @@ export function ScopedAccessUsersPage(): JSX.Element {
             />
           </Field>
           <div className="mt-5 flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setPasswordDialogUser(null)}>
-              Отмена
-            </Button>
-            <Button disabled={isSaving} onClick={() => void resetPassword()}>
+            <ActionButton
+              action="cancel"
+              onClick={() => setPasswordDialogUser(null)}
+            />
+            <ActionButton
+              action="passwordReset"
+              disabled={!password}
+              loading={isSaving}
+              onClick={() => void resetPassword()}
+            >
               Установить пароль
-            </Button>
+            </ActionButton>
           </div>
         </Dialog>
       )}
 
       {canDelete && (
-        <ConfirmDialog
-          cancelLabel="Отмена"
-          confirmLabel="Удалить"
+        <DeleteConfirmDialog
           description="Учётная запись будет удалена, кадровая карточка сотрудника сохранится."
           isLoading={isSaving}
-          onConfirm={() => void confirmDeleteUser()}
+          onConfirm={confirmDeleteUser}
           onOpenChange={(open) => !open && setDeleteUser(null)}
           open={Boolean(deleteUser)}
           title={`Удалить пользователя ${deleteUser?.username ?? ""}?`}
