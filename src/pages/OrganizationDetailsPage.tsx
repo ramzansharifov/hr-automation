@@ -329,7 +329,6 @@ export function OrganizationDetailsPage(): JSX.Element {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white hover:bg-white/15"
               leftIcon={<FiArrowLeft />}
               onClick={() =>
                 navigate(
@@ -338,15 +337,14 @@ export function OrganizationDetailsPage(): JSX.Element {
                     : `/enterprises/${enterpriseId}/departments`,
                 )
               }
-              variant="ghost"
+              variant="inverseGhost"
             >
               Назад
             </Button>
             {mode === "enterprise" && canViewDepartments && (
               <Button
-                className="border-white/20 bg-white text-slate-900"
                 onClick={() => navigate(`/enterprises/${enterpriseId}/departments`)}
-                variant="ghost"
+                variant="inverse"
               >
                 Открыть отделы
               </Button>
