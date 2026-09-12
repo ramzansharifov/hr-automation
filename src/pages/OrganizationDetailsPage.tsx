@@ -486,7 +486,6 @@ export function OrganizationDetailsPage(): JSX.Element {
                 </Button>
               ) : undefined
             }
-            description="CRUD должностей управляется независимо от CRUD отделов."
             icon={<FiBriefcase />}
             title="Должности"
           />
