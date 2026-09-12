@@ -264,10 +264,9 @@ export function VacationsPage(): JSX.Element {
         actions={
           canCreate ? (
             <Button
-              leftIcon={<FiPlus className="h-4 w-4" />}
+              leftIcon={<FiPlus />}
               onClick={openCreate}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               Оформить отпуск
             </Button>
