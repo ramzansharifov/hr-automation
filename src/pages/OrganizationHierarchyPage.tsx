@@ -206,11 +206,9 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const headerActions = canCreate ? (
     <div className="flex flex-wrap items-center justify-end gap-3">
       <Button
-        className="border-white/20 shadow-xl hover:opacity-90"
-        leftIcon={<FiPlus className="h-4 w-4" />}
+        leftIcon={<FiPlus />}
         onClick={() => tableRef.current?.openCreate()}
-        style={{ background: "#ffffff", color: "#0f172a" }}
-        variant="ghost"
+        variant="primary"
       >
         {page.createLabel}
       </Button>
