@@ -514,20 +514,17 @@ export function AccessRoleFormPage(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white"
               leftIcon={<FiArrowLeft />}
               onClick={() => navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles")}
-              variant="ghost"
+              variant="secondary"
             >
               Назад
             </Button>
             <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
               disabled={!canSave}
               leftIcon={<FiSave />}
               onClick={() => void saveRole()}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               {isSaving ? "Сохранение..." : "Сохранить роль"}
             </Button>
