@@ -775,14 +775,6 @@ export class AuthorizationService {
     );
   }
 
-  private countWithEmployeeIds(baseSql: string, employeeIds: number[]): number {
-    if (employeeIds.length === 0) return 0;
-    const placeholders = employeeIds.map(() => "?").join(", ");
-    return this.scalar(
-      `${baseSql} AND employee_id IN (${placeholders})`,
-      employeeIds,
-    );
-  }
 
   private scalar(sql: string, params: unknown[] = []): number {
     return Number(this.database.prepare(sql).pluck().get(...params) ?? 0);
