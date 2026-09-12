@@ -19,7 +19,7 @@ import { getAppLocale } from "../shared/i18n";
 import { formatDate, humanizeStatus } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrDashboardStats, HrListResult } from "../shared/types/hr";
-import { PageHeader } from "../shared/ui";
+import { Button, PageHeader } from "../shared/ui";
 import { StatCard } from "../shared/ui/StatCard";
 
 const initialStats: HrDashboardStats = {
@@ -141,14 +141,13 @@ export function DashboardPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <button
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
+          <Button
+            leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
             onClick={() => void loadDashboard()}
-            type="button"
+            variant="secondary"
           >
-            <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             {t("common.actions.refresh")}
-          </button>
+          </Button>
         }
         description={pageDescription}
         eyebrow={scopedAdminRole ? "Локальное администрирование" : "HR Control Center"}
