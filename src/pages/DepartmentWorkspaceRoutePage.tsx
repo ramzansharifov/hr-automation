@@ -122,20 +122,17 @@ function DepartmentAdminWorkspace(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiBriefcase className="h-4 w-4" />}
+              leftIcon={<FiBriefcase />}
               onClick={() => navigate(detailsPath)}
-              variant="ghost"
+              variant="secondary"
             >
               Должности и руководитель
             </Button>
             {canEdit && (
               <Button
-                className="border-white/20 shadow-xl hover:opacity-90"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                leftIcon={<FiEdit2 />}
                 onClick={() => setIsEditOpen(true)}
-                style={{ background: "#ffffff", color: "#0f172a" }}
-                variant="ghost"
+                variant="primary"
               >
                 Редактировать отдел
               </Button>

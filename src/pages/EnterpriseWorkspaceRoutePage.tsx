@@ -109,28 +109,24 @@ function EnterpriseAdminWorkspace(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiUserCheck className="h-4 w-4" />}
+              leftIcon={<FiUserCheck />}
               onClick={() => navigate(enterpriseDetailsPath)}
-              variant="ghost"
+              variant="secondary"
             >
               Руководитель и структура
             </Button>
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiGrid className="h-4 w-4" />}
+              leftIcon={<FiGrid />}
               onClick={() => navigate("/management/departments")}
-              variant="ghost"
+              variant="secondary"
             >
               Отделы
             </Button>
             {canEdit && (
               <Button
-                className="border-white/20 shadow-xl hover:opacity-90"
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                leftIcon={<FiEdit2 />}
                 onClick={() => setIsEditOpen(true)}
-                style={{ background: "#ffffff", color: "#0f172a" }}
-                variant="ghost"
+                variant="primary"
               >
                 Редактировать предприятие
               </Button>

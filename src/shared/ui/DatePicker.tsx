@@ -11,6 +11,9 @@ import {
 } from 'react'
 import { FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
+import { Button } from './Button'
+import { IconButton } from './IconButton'
+
 export interface DatePickerProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   invalid?: boolean
@@ -184,14 +187,13 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           />
 
           <Popover.Trigger asChild>
-            <button
-              aria-label={calendarLabels.openCalendar}
-              className="app-text-soft absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl transition hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+            <IconButton
+              className="absolute right-1.5 top-1/2 -translate-y-1/2"
               disabled={interactionDisabled}
-              type="button"
-            >
-              <FiCalendar className="h-4 w-4" />
-            </button>
+              icon={<FiCalendar />}
+              label={calendarLabels.openCalendar}
+              size="sm"
+            />
           </Popover.Trigger>
         </div>
 
@@ -202,27 +204,23 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             sideOffset={8}
           >
             <div className="flex items-center justify-between gap-3">
-              <button
-                aria-label={calendarLabels.previousMonth}
-                className="app-text-soft flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition hover:bg-[var(--color-surface-hover)] disabled:cursor-not-allowed disabled:opacity-30"
+              <IconButton
                 disabled={!canGoPrevious}
+                icon={<FiChevronLeft />}
+                label={calendarLabels.previousMonth}
                 onClick={() => canGoPrevious && setViewMonth(previousMonth)}
-                type="button"
-              >
-                <FiChevronLeft className="h-4 w-4" />
-              </button>
+                size="sm"
+              />
 
               <div className="app-text text-sm font-black">{monthTitle}</div>
 
-              <button
-                aria-label={calendarLabels.nextMonth}
-                className="app-text-soft flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition hover:bg-[var(--color-surface-hover)] disabled:cursor-not-allowed disabled:opacity-30"
+              <IconButton
                 disabled={!canGoNext}
+                icon={<FiChevronRight />}
+                label={calendarLabels.nextMonth}
                 onClick={() => canGoNext && setViewMonth(nextMonth)}
-                type="button"
-              >
-                <FiChevronRight className="h-4 w-4" />
-              </button>
+                size="sm"
+              />
             </div>
 
             <div className="mt-3 grid grid-cols-7 gap-1">
@@ -254,7 +252,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                     className={[
                       'relative flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                       isSelected
-                        ? 'text-white shadow-sm'
+                        ? 'text-[var(--button-primary-fg)] shadow-sm'
                         : 'app-text hover:bg-[var(--color-surface-hover)]',
                       outsideMonth && !isSelected ? 'opacity-40' : '',
                       dayDisabled ? 'cursor-not-allowed opacity-25' : '',
@@ -266,7 +264,11 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                     key={formatDateValue(date)}
                     onClick={() => selectDate(date)}
                     role="gridcell"
-                    style={isSelected ? { background: 'var(--accent)' } : undefined}
+                    style={
+                      isSelected
+                        ? { background: 'var(--button-primary-bg)' }
+                        : undefined
+                    }
                     type="button"
                   >
                     {date.getDate()}
@@ -277,24 +279,20 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
             <div className="app-border-soft mt-4 flex items-center justify-between border-t pt-3">
               {!required ? (
-                <button
-                  className="app-muted rounded-xl px-3 py-2 text-xs font-bold transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                  onClick={clearDate}
-                  type="button"
-                >
+                <Button onClick={clearDate} size="sm" variant="ghost">
                   {calendarLabels.clear}
-                </button>
+                </Button>
               ) : (
                 <span />
               )}
-              <button
-                className="app-accent-text rounded-xl px-3 py-2 text-xs font-black transition hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+              <Button
                 disabled={!canSelectToday}
                 onClick={() => selectDate(today)}
-                type="button"
+                size="sm"
+                variant="secondary"
               >
                 {calendarLabels.today}
-              </button>
+              </Button>
             </div>
           </Popover.Content>
         </Popover.Portal>

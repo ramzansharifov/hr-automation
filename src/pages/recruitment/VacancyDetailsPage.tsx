@@ -179,21 +179,19 @@ export function VacancyDetailsPage(): JSX.Element {
         actions={
           <>
             <Button
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
+              leftIcon={<FiArrowLeft />}
               onClick={() => navigate("/vacancies")}
-              style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}
               type="button"
-              variant="ghost"
+              variant="secondary"
             >
               К списку
             </Button>
             {canEditVacancy && (
               <Button
-                leftIcon={<FiEdit2 className="h-4 w-4" />}
+                leftIcon={<FiEdit2 />}
                 onClick={() => navigate(`/vacancies/${vacancyId}/edit`)}
-                style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}
                 type="button"
-                variant="ghost"
+                variant="primary"
               >
                 Редактировать
               </Button>

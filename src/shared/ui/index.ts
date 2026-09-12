@@ -1,4 +1,6 @@
-export { Button } from './Button'
+export { Button, type ButtonProps } from './Button'
+export { type ButtonSize, type ButtonVariant } from './buttonVariants'
+export { ChoiceButton, type ChoiceButtonProps } from './ChoiceButton'
 export { ConfirmDialog } from './ConfirmDialog'
 export { DataTable, type DataTableColumn } from './DataTable'
 export { DatePicker, type DatePickerProps } from './DatePicker'

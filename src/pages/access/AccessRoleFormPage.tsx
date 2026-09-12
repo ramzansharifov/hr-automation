@@ -1,4 +1,3 @@
-import * as RadixSwitch from "@radix-ui/react-switch";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FiAlertTriangle,
@@ -43,6 +42,7 @@ import {
   PageHeader,
   SearchableSelect,
   Textarea,
+  Toggle,
   type SelectOption,
 } from "../../shared/ui";
 import { getErrorMessage } from "./accessControlData";
@@ -514,20 +514,17 @@ export function AccessRoleFormPage(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white"
               leftIcon={<FiArrowLeft />}
               onClick={() => navigate(isEditMode && roleId ? `/roles/${roleId}` : "/roles")}
-              variant="ghost"
+              variant="secondary"
             >
               Назад
             </Button>
             <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
               disabled={!canSave}
               leftIcon={<FiSave />}
               onClick={() => void saveRole()}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               {isSaving ? "Сохранение..." : "Сохранить роль"}
             </Button>
@@ -793,10 +790,10 @@ export function AccessRoleFormPage(): JSX.Element {
                                   {permission.code}
                                 </code>
                               </div>
-                              <PermissionSwitch
+                              <Toggle
+                                ariaLabel={permission.name}
                                 checked={checked}
                                 disabled={editorLocked || !delegable}
-                                label={permission.name}
                                 onCheckedChange={(checkedValue) =>
                                   requestPermissionChange(permission.code, checkedValue)
                                 }
@@ -1026,30 +1023,6 @@ async function loadAll(
 function positiveId(value: unknown): number | null {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
-}
-
-function PermissionSwitch({
-  checked,
-  disabled,
-  label,
-  onCheckedChange,
-}: {
-  checked: boolean;
-  disabled: boolean;
-  label: string;
-  onCheckedChange: (checked: boolean) => void;
-}): JSX.Element {
-  return (
-    <RadixSwitch.Root
-      aria-label={label}
-      checked={checked}
-      className="relative h-7 w-12 shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] shadow-inner outline-none transition data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[state=checked]:border-[var(--accent-border)] data-[state=checked]:bg-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent-border)]"
-      disabled={disabled}
-      onCheckedChange={onCheckedChange}
-    >
-      <RadixSwitch.Thumb className="block h-5 w-5 translate-x-1 rounded-full bg-white shadow-md transition-transform data-[state=checked]:translate-x-6" />
-    </RadixSwitch.Root>
-  );
 }
 
 function RiskBadge({ risk }: { risk: "elevated" | "critical" }): JSX.Element {

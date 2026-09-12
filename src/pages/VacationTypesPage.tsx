@@ -32,11 +32,9 @@ export function VacationTypesPage(): JSX.Element {
         actions={
           canCreateVacationTypes ? (
             <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
-              leftIcon={<FiPlus className="h-4 w-4" />}
+              leftIcon={<FiPlus />}
               onClick={() => tableRef.current?.openCreate()}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               Добавить вид отпуска
             </Button>

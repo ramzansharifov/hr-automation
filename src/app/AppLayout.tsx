@@ -25,6 +25,7 @@ import {
   getBottomNavigationItems,
   getMainNavigationItems,
 } from "./navigation";
+import { IconButton } from "../shared/ui";
 import { HRLogo } from "./brand/HRLogo";
 import { GlobalSearch } from "./GlobalSearch";
 
@@ -229,22 +230,20 @@ export function AppLayout(): JSX.Element {
         >
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
-              <button
-                aria-label={
+              <IconButton
+                className="absolute right-0 top-6 z-40 translate-x-1/2 opacity-0 shadow-xl group-hover/sidebar:opacity-100 focus-visible:opacity-100"
+                icon={
+                  isSidebarCollapsed ? <FiChevronRight /> : <FiChevronLeft />
+                }
+                label={
                   isSidebarCollapsed
                     ? t("app.sidebar.expandSidebar")
                     : t("app.sidebar.collapseSidebar")
                 }
-                className="absolute right-0 top-6 z-40 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-[var(--sidebar-button-border)] bg-[var(--sidebar-bg)] text-slate-400 opacity-0 shadow-xl transition group-hover/sidebar:opacity-100 hover:border-[var(--accent-border)] hover:text-white focus-visible:opacity-100"
                 onClick={() => setIsSidebarCollapsed((current) => !current)}
-                type="button"
-              >
-                {isSidebarCollapsed ? (
-                  <FiChevronRight className="h-4 w-4" />
-                ) : (
-                  <FiChevronLeft className="h-4 w-4" />
-                )}
-              </button>
+                size="sm"
+                tone="inverse"
+              />
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Content
@@ -335,15 +334,14 @@ export function AppLayout(): JSX.Element {
                     </span>
                   </span>
                 </div>
-                <button
-                  aria-label="Выйти из системы"
-                  className="app-button-secondary app-border flex h-11 w-11 items-center justify-center rounded-2xl border transition"
+                <IconButton
+                  icon={<FiLogOut />}
+                  label="Выйти из системы"
                   onClick={() => void logout()}
+                  size="lg"
                   title="Выйти"
-                  type="button"
-                >
-                  <FiLogOut className="h-[18px] w-[18px]" />
-                </button>
+                  tone="secondary"
+                />
               </div>
             </div>
           </header>

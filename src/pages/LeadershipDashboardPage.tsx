@@ -23,7 +23,7 @@ import type {
   HrListResult,
   HrRecord,
 } from "../shared/types/hr";
-import { PageHeader } from "../shared/ui";
+import { Button, PageHeader } from "../shared/ui";
 
 const initialStats: HrDashboardStats = {
   employeesTotal: 0,
@@ -195,20 +195,19 @@ export function LeadershipDashboardPage({
     <div className="space-y-6">
       <PageHeader
         actions={
-          <button
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/15"
+          <Button
+            leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
             onClick={() => void loadDashboard()}
-            type="button"
+            variant="secondary"
           >
-            <FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             Обновить
-          </button>
+          </Button>
         }
         description={description}
         eyebrow={isEnterpriseDirector ? "Управление предприятием" : "Управление отделом"}
         icon={isEnterpriseDirector ? <FiLayers /> : <FiBriefcase />}
         meta={
-          <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+          <span className="app-accent-soft inline-flex rounded-full border px-3 py-1 text-xs font-bold">
             {isEnterpriseDirector ? "Директор предприятия" : "Руководитель отдела"}
           </span>
         }

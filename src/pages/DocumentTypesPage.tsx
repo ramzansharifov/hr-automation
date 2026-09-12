@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import * as Switch from "@radix-ui/react-switch";
 import {
   FiBookOpen,
   FiEdit2,
@@ -20,6 +19,7 @@ import {
   Input,
   LoadingState,
   PageHeader,
+  Toggle,
 } from "../shared/ui";
 
 export function DocumentTypesPage(): JSX.Element {
@@ -116,11 +116,9 @@ export function DocumentTypesPage(): JSX.Element {
         actions={
           canCreate ? (
             <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
-              leftIcon={<FiPlus className="h-4 w-4" />}
+              leftIcon={<FiPlus />}
               onClick={openCreate}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               Добавить тип документа
             </Button>
@@ -242,13 +240,11 @@ export function DocumentTypesPage(): JSX.Element {
                     Отключённые типы сохраняются в истории, но их нельзя выбрать для нового документа.
                   </p>
                 </div>
-                <Switch.Root
+                <Toggle
+                  ariaLabel="Тип документа активен"
                   checked={isActive}
-                  className="app-border relative h-7 w-12 shrink-0 rounded-full border bg-slate-400/20 data-[state=checked]:bg-[var(--accent)]"
                   onCheckedChange={setIsActive}
-                >
-                  <Switch.Thumb className="block h-5 w-5 translate-x-1 rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-6" />
-                </Switch.Root>
+                />
               </div>
             </div>
 

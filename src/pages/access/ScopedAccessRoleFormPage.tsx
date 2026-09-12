@@ -255,20 +255,17 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button
-              className="border-white/20 bg-white/10 text-white"
-              leftIcon={<FiArrowLeft className="h-4 w-4" />}
+              leftIcon={<FiArrowLeft />}
               onClick={navigateBack}
-              variant="ghost"
+              variant="secondary"
             >
               Назад
             </Button>
             <Button
-              className="border-white/20 shadow-xl hover:opacity-90"
               disabled={!canSave}
-              leftIcon={<FiSave className="h-4 w-4" />}
+              leftIcon={<FiSave />}
               onClick={() => void saveRole()}
-              style={{ background: "#ffffff", color: "#0f172a" }}
-              variant="ghost"
+              variant="primary"
             >
               {isSaving ? "Сохранение..." : "Сохранить роль"}
             </Button>

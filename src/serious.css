@@ -24,6 +24,8 @@
   --sidebar-button-hover: rgba(255, 255, 255, 0.065);
   --sidebar-button-border: rgba(148, 163, 184, 0.11);
   --sidebar-button-border-hover: rgba(148, 163, 184, 0.22);
+
+
 }
 
 :root[data-theme="dark"] {
@@ -41,6 +43,8 @@
   --shell-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
   --shell-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.18);
   --sidebar-bg: #080c14;
+
+
 }
 
 /* Neutral application canvas. Decorative page glows made every HR screen feel like a landing page. */
@@ -101,8 +105,6 @@ aside .rounded-xl {
 
 /* Shared controls */
 .app-input,
-.app-button-primary,
-.app-button-secondary,
 .app-tab-trigger {
   border-radius: var(--serious-radius-control) !important;
 }
@@ -120,31 +122,7 @@ aside .rounded-xl {
 .app-input:focus {
   background: var(--color-surface) !important;
   border-color: var(--accent-border) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent) !important;
-}
-
-.app-button-primary {
-  background: var(--accent) !important;
-  background-image: none !important;
-  box-shadow: none !important;
-}
-
-.app-button-primary:hover {
-  background: var(--accent-hover) !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-.app-button-secondary {
-  background: var(--color-surface) !important;
-  border-color: var(--color-border) !important;
-  box-shadow: none !important;
-}
-
-.app-button-secondary:hover {
-  background: var(--color-surface-hover) !important;
-  border-color: color-mix(in srgb, var(--color-text-muted) 34%, var(--color-border)) !important;
+  box-shadow: 0 0 0 3px var(--control-focus-ring) !important;
 }
 
 .app-accent-soft {
@@ -170,40 +148,6 @@ aside .rounded-xl {
   background: color-mix(in srgb, var(--accent) 8%, var(--color-surface));
   border: 1px solid color-mix(in srgb, var(--accent) 19%, var(--color-border));
   color: var(--accent);
-}
-
-/* PageHeader used to live on a dark hero, so legacy action classes are normalized here. */
-.app-page-header [class*="border-white"] {
-  border-color: var(--color-border) !important;
-}
-
-.app-page-header [class*="bg-white/10"] {
-  background: var(--color-surface-muted) !important;
-}
-
-.app-page-header [class*="text-white"] {
-  color: var(--color-text-soft) !important;
-}
-
-.app-page-header button[class*="border-white"] {
-  background: var(--color-surface) !important;
-  color: var(--color-text-soft) !important;
-  box-shadow: none !important;
-}
-
-.app-page-header button[class*="border-white"]:hover {
-  background: var(--color-surface-hover) !important;
-}
-
-.app-page-header button[style] {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-}
-
-.app-page-header button[style]:hover {
-  background: var(--accent-hover) !important;
 }
 
 /* Legacy accent panels are still used by a few detail cards that expect white text. */

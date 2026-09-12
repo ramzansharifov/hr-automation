@@ -148,21 +148,18 @@ export function EmployeesPage(): JSX.Element {
             <div className="flex flex-wrap items-center justify-end gap-3">
               {canExportEmployees && (
                 <Button
-                  className="border-white/20 bg-white/10 text-white hover:bg-white/15"
-                  leftIcon={<FiDownload className="h-4 w-4" />}
+                  leftIcon={<FiDownload />}
                   onClick={() => void exportEmployees()}
-                  variant="ghost"
+                  variant="secondary"
                 >
                   Экспорт CSV
                 </Button>
               )}
               {canCreateEmployees && (
                 <Button
-                  className="border-white/20 shadow-xl hover:opacity-90"
-                  leftIcon={<FiPlus className="h-4 w-4" />}
+                  leftIcon={<FiPlus />}
                   onClick={() => navigate("/employees/new")}
-                  style={{ background: "#ffffff", color: "#0f172a" }}
-                  variant="ghost"
+                  variant="primary"
                 >
                   Добавить сотрудника
                 </Button>

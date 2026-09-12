@@ -1,57 +1,56 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
-type ButtonSize = 'sm' | 'md'
+import { cn } from "../lib/cn";
+import {
+  buttonVariants,
+  type ButtonSize,
+  type ButtonVariant,
+} from "./buttonVariants";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant
-  size?: ButtonSize
-  leftIcon?: ReactNode
-  rightIcon?: ReactNode
-}
-
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'app-button-primary',
-  secondary: 'app-button-secondary border',
-  ghost: 'app-text hover:bg-[var(--color-surface-hover)]',
-  danger: 'app-danger-soft border',
-}
-
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-10 px-3 text-sm',
-  md: 'h-11 px-4 text-sm',
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  size?: ButtonSize;
+  variant?: ButtonVariant;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       children,
-      className = '',
+      className,
       leftIcon,
       rightIcon,
-      size = 'md',
-      type = 'button',
-      variant = 'secondary',
+      size = "md",
+      type = "button",
+      variant = "primary",
       ...props
     },
     ref,
   ) => (
     <button
+      {...props}
+      className={cn(buttonVariants({ size, variant }), className)}
       ref={ref}
       type={type}
-      className={[
-        'inline-flex items-center justify-center gap-2 rounded-2xl font-bold transition disabled:cursor-not-allowed disabled:opacity-50',
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      ].join(' ')}
-      {...props}
     >
-      {leftIcon}
-      {children}
-      {rightIcon}
+      {leftIcon && (
+        <span aria-hidden="true" className="app-button__icon">
+          {leftIcon}
+        </span>
+      )}
+      <span className="app-button__label">{children}</span>
+      {rightIcon && (
+        <span aria-hidden="true" className="app-button__icon">
+          {rightIcon}
+        </span>
+      )}
     </button>
   ),
-)
+);
 
-Button.displayName = 'Button'
+Button.displayName = "Button";
