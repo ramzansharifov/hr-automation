@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord, PreviousLeaderOutcome } from "../../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   Dialog,
   Input,
   LoadingState,
@@ -335,12 +335,18 @@ export function DepartmentLeaderDialog({
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <Button disabled={loading} onClick={() => setConfirming(false)} type="button" variant="secondary">
-              Назад
-            </Button>
-            <Button disabled={loading} onClick={() => void save()} type="button">
-              Подтвердить
-            </Button>
+            <ActionButton
+              action="back"
+              disabled={loading}
+              onClick={() => setConfirming(false)}
+              type="button"
+            />
+            <ActionButton
+              action="confirm"
+              loading={loading}
+              onClick={() => void save()}
+              type="button"
+            />
           </div>
         </div>
       ) : (
@@ -496,11 +502,15 @@ export function DepartmentLeaderDialog({
           )}
 
           <div className="flex justify-end gap-3">
-            <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">
-              Отмена
-            </Button>
-            <Button
-              disabled={loading || (isChangingLeadership && !canChangeEmployment)}
+            <ActionButton
+              action="cancel"
+              onClick={() => onOpenChange(false)}
+              type="button"
+            />
+            <ActionButton
+              action={selectedAlreadyLeads || (!leaderId && !currentLeaderId) ? "close" : "confirm"}
+              disabled={isChangingLeadership && !canChangeEmployment}
+              loading={loading}
               onClick={requestSave}
               type="button"
             >
@@ -513,7 +523,7 @@ export function DepartmentLeaderDialog({
                   : currentLeaderId
                     ? "Снять руководителя"
                     : "Закрыть"}
-            </Button>
+            </ActionButton>
           </div>
         </div>
       )}
