@@ -3,14 +3,12 @@ import { useState } from "react";
 import {
   FiBriefcase,
   FiFilter,
-  FiRotateCcw,
-  FiSearch,
   FiUser,
 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
-import { Button, Input, Select, type SelectOption } from "../../../shared/ui";
+import { ActionButton, Input, Select, type SelectOption } from "../../../shared/ui";
 import { useEmployeeFormOptions } from "../../employees/hooks/useEmployeeFormOptions";
 import {
   clearStoredEmployeeFilterValues,
@@ -144,21 +142,12 @@ export function EmployeeFiltersPanel({
         </div>
 
         <footer className="app-surface-muted app-border-soft flex flex-col gap-3 border-t p-5 sm:flex-row sm:justify-end sm:p-6">
-          <Button
-            leftIcon={<FiRotateCcw className="h-4 w-4" />}
-            onClick={handleClear}
-            type="button"
-            variant="secondary"
-          >
+          <ActionButton action="reset" onClick={handleClear} type="button">
             Очистить
-          </Button>
-          <Button
-            leftIcon={<FiSearch className="h-4 w-4" />}
-            type="submit"
-            variant="primary"
-          >
+          </ActionButton>
+          <ActionButton action="search" type="submit">
             Применить фильтры
-          </Button>
+          </ActionButton>
         </footer>
       </form>
     </div>
