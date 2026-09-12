@@ -1,6 +1,7 @@
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface DeleteConfirmDialogProps {
+  confirmLabel?: string;
   description: string;
   isLoading?: boolean;
   onConfirm: () => void | Promise<void>;
@@ -10,6 +11,7 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({
+  confirmLabel = "Удалить",
   description,
   isLoading = false,
   onConfirm,
@@ -20,7 +22,7 @@ export function DeleteConfirmDialog({
   return (
     <ConfirmDialog
       cancelLabel="Отмена"
-      confirmLabel="Удалить"
+      confirmLabel={confirmLabel}
       confirmVariant="danger"
       description={description}
       isLoading={isLoading}
