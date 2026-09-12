@@ -9,8 +9,6 @@ import {
 } from 'react'
 import { motion } from 'framer-motion'
 import {
-  FiChevronLeft,
-  FiChevronRight,
   FiSearch,
   FiUser,
 } from 'react-icons/fi'
@@ -492,16 +490,15 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            type="button"
+          <ActionButton
+            action="previous"
             disabled={!canGoBack}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            leftIcon={<FiChevronLeft className="h-4 w-4" />}
             size="sm"
-            variant="secondary"
+            type="button"
           >
             {t('common.actions.back')}
-          </Button>
+          </ActionButton>
 
           <div className="flex items-center gap-1">
             {pageNumbers[0] > 1 && (
@@ -549,16 +546,15 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
             )}
           </div>
 
-          <Button
-            type="button"
+          <ActionButton
+            action="next"
             disabled={!canGoForward}
             onClick={() => setPage((current) => current + 1)}
-            rightIcon={<FiChevronRight className="h-4 w-4" />}
             size="sm"
-            variant="secondary"
+            type="button"
           >
             {t('common.actions.next')}
-          </Button>
+          </ActionButton>
         </div>
       </div>
     )
