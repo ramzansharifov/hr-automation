@@ -17,27 +17,27 @@ export function PageHeader({
   title,
 }: PageHeaderProps): JSX.Element {
   return (
-    <section className="app-accent-gradient-panel flex min-h-[96px] flex-col gap-4 overflow-hidden rounded-[28px] border px-6 py-5 sm:px-7 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur [&>svg]:h-6 [&>svg]:w-6">
+    <section className="app-accent-gradient-panel flex min-h-[78px] flex-col gap-3 overflow-hidden rounded-[22px] border px-5 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 items-center gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white backdrop-blur [&>svg]:h-5 [&>svg]:w-5">
           {icon}
         </span>
 
         <div className="min-w-0">
           {eyebrow && (
-            <div className="mb-1 text-xs font-black uppercase tracking-[0.16em] text-white/65">
+            <div className="mb-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/65">
               {eyebrow}
             </div>
           )}
-          <h1 className="truncate text-3xl font-black tracking-tight text-white sm:text-4xl">
+          <h1 className="truncate text-2xl font-black tracking-tight text-white sm:text-3xl">
             {title}
           </h1>
-          {meta && <div className="mt-2">{meta}</div>}
+          {meta && <div className="mt-1.5">{meta}</div>}
         </div>
       </div>
 
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-3 lg:justify-end">
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5 lg:justify-end">
           {actions}
         </div>
       )}
