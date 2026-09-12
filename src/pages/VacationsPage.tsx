@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  FiCalendar,
-  FiEdit2,
-  FiPlus,
-  FiRefreshCw,
-  FiTrash2,
-  FiUser,
-} from "react-icons/fi";
+import { FiCalendar, FiUser } from "react-icons/fi";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -19,10 +12,10 @@ import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   DataTable,
-  IconButton,
   PageHeader,
+  RecordActions,
   useStoredViewMode,
   type DataTableColumn,
 } from "../shared/ui";
@@ -121,28 +114,24 @@ export function VacationsPage(): JSX.Element {
     await loadData();
   }
 
-  function renderActions(record: HrRecord): JSX.Element {
+  function renderActions(record: HrRecord): JSX.Element | null {
     const recordCanDelete = String(record.status ?? "planned") === "planned";
+    const editLabel =
+      canEdit && canApprove
+        ? "Редактировать или согласовать отпуск"
+        : canApprove
+          ? "Согласовать отпуск"
+          : "Редактировать отпуск";
+
     return (
-      <>
-        {canOpenEditor && (
-          <IconButton
-            icon={<FiEdit2 />}
-            label={canEdit && canApprove ? "Редактировать или согласовать отпуск" : canApprove ? "Согласовать отпуск" : "Редактировать отпуск"}
-            onClick={() => openEdit(record)}
-            size="sm"
-          />
-        )}
-        {canDelete && recordCanDelete && (
-          <IconButton
-            icon={<FiTrash2 />}
-            label="Удалить отпуск"
-            onClick={() => openDelete(record)}
-            size="sm"
-            tone="danger"
-          />
-        )}
-      </>
+      <RecordActions
+        deleteLabel="Удалить отпуск"
+        editLabel={editLabel}
+        onDelete={
+          canDelete && recordCanDelete ? () => openDelete(record) : undefined
+        }
+        onEdit={canOpenEditor ? () => openEdit(record) : undefined}
+      />
     );
   }
 
@@ -263,13 +252,9 @@ export function VacationsPage(): JSX.Element {
         icon={<FiCalendar />}
         actions={
           canCreate ? (
-            <Button
-              leftIcon={<FiPlus />}
-              onClick={openCreate}
-              variant="primary"
-            >
+            <ActionButton action="create" onClick={openCreate}>
               Оформить отпуск
-            </Button>
+            </ActionButton>
           ) : undefined
         }
         title={pageTitle}
@@ -328,17 +313,11 @@ export function VacationsPage(): JSX.Element {
         onViewModeChange={setViewMode}
         rows={records}
         toolbar={
-          <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadData()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
         viewMode={viewMode}
       />
