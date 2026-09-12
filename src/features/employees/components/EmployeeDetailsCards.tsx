@@ -2,9 +2,7 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import type { TFunction } from "i18next";
 import {
-  FiArrowLeft,
   FiBriefcase,
-  FiEdit2,
   FiFileText,
   FiMapPin,
   FiPhone,
@@ -13,7 +11,7 @@ import {
 
 import { formatDate, humanizeStatus } from "../../../shared/lib/format";
 import type { HrRecord } from "../../../shared/types/hr";
-import { Button } from "../../../shared/ui";
+import { ActionButton, ActionIconButton } from "../../../shared/ui";
 
 interface EmployeeProfileHeaderProps {
   department: string;
@@ -75,23 +73,13 @@ export function EmployeeProfileHeader({
       </div>
 
       <div className="employee-profile-header__actions">
-        <Button
-          leftIcon={<FiArrowLeft className="h-4 w-4" />}
-          onClick={onBack}
-          type="button"
-          variant="secondary"
-        >
+        <ActionButton action="back" onClick={onBack} type="button">
           {t("employeesDetails.backToList")}
-        </Button>
+        </ActionButton>
         {onEdit && (
-          <Button
-            leftIcon={<FiEdit2 className="h-4 w-4" />}
-            onClick={onEdit}
-            type="button"
-            variant="primary"
-          >
+          <ActionButton action="edit" onClick={onEdit} type="button">
             {t("common.actions.edit")}
-          </Button>
+          </ActionButton>
         )}
       </div>
     </header>
@@ -193,14 +181,13 @@ function OverviewCard({
           <h2 className="employee-card-title">{title}</h2>
         </div>
         {onEdit && (
-          <button
-            aria-label={`${actionLabel}: ${title}`}
+          <ActionIconButton
+            action="edit"
             className="employee-card-edit"
+            label={`${actionLabel}: ${title}`}
             onClick={onEdit}
-            type="button"
-          >
-            <FiEdit2 />
-          </button>
+            size="sm"
+          />
         )}
       </header>
       <div className="employee-overview-card__body">{children}</div>
