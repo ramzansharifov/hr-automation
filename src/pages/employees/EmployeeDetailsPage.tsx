@@ -19,6 +19,7 @@ import { formatCurrency, formatDate, humanizeStatus } from "../../shared/lib/for
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import { useAuth } from "../../features/auth/AuthContext";
+import { useBusinessContext } from "../../features/business-context/useBusinessContext";
 import {
   EmployeeInfoField,
   EmployeeInfoPanel,
@@ -39,7 +40,8 @@ import "./EmployeeTabConsistency.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
-  const { hasPermission, session } = useAuth();
+  const { hasEffectivePermission, hasPermission, session } = useAuth();
+  const businessContext = useBusinessContext();
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
   const params = useParams();
@@ -62,10 +64,19 @@ export function EmployeeDetailsPage(): JSX.Element {
   const canDeleteExperience = hasPermission("employee_experience.delete");
   const canViewEmploymentHistory =
     hasPermission("employment_history.view") || isOwnProfile;
-  const canViewVacations = hasPermission("vacations.view");
-  const canCreateVacation = hasPermission("vacations.create");
-  const canEditVacation = hasPermission("vacations.edit");
-  const canDeleteVacation = hasPermission("vacations.delete");
+  const isSystemAdmin = session.employeeId === 0;
+  const canViewVacations =
+    hasEffectivePermission("vacations.view") ||
+    (isSystemAdmin && hasPermission("vacations.view"));
+  const canCreateVacation =
+    hasEffectivePermission("vacations.create") ||
+    (isSystemAdmin && hasPermission("vacations.create"));
+  const canEditVacation =
+    hasEffectivePermission("vacations.edit") ||
+    (isSystemAdmin && hasPermission("vacations.edit"));
+  const canDeleteVacation =
+    hasEffectivePermission("vacations.delete") ||
+    (isSystemAdmin && hasPermission("vacations.delete"));
   const canViewEducationOrExperience = canViewEducation || canViewExperience;
 
   const [employee, setEmployee] = useState<HrRecord | null>(null);
@@ -113,6 +124,22 @@ export function EmployeeDetailsPage(): JSX.Element {
       isActive = false;
     };
   }, [employeeId, t]);
+
+  async function prepareVacationWorkspace(
+    record?: HrRecord | null,
+  ): Promise<void> {
+    if (!isSystemAdmin) return;
+
+    const enterpriseId = Number(
+      record?.enterprise_id_snapshot ?? employee?.enterprise_id,
+    );
+    if (!Number.isInteger(enterpriseId) || enterpriseId < 1) {
+      throw new Error("Не удалось определить предприятие сотрудника");
+    }
+    if (businessContext.state?.enterpriseId === enterpriseId) return;
+
+    await businessContext.selectEnterprise(enterpriseId);
+  }
 
   async function handleEmployeeSaved(updatedEmployee: HrRecord): Promise<void> {
     setEmployee(updatedEmployee);
@@ -358,6 +385,7 @@ export function EmployeeDetailsPage(): JSX.Element {
                 canEdit={canEditVacation}
                 employeeId={employeeId}
                 locale={locale}
+                onBeforeAction={prepareVacationWorkspace}
               />
             </Tabs.Content>
           )}

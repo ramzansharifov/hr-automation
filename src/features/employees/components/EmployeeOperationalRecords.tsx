@@ -23,6 +23,7 @@ interface EmployeeOperationalPanelProps {
   canEdit: boolean;
   employeeId: number;
   locale: string;
+  onBeforeAction?: (record?: HrRecord | null) => Promise<void>;
 }
 
 interface RecordActions {
@@ -38,6 +39,7 @@ export function EmployeeVacationsPanel({
   canEdit,
   employeeId,
   locale,
+  onBeforeAction,
 }: EmployeeOperationalPanelProps): JSX.Element {
   const { t } = useTranslation();
   const [records, setRecords] = useState<HrRecord[]>([]);
@@ -51,9 +53,11 @@ export function EmployeeVacationsPanel({
   const loadRecords = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      setRecords(await loadEmployeeVacations(employeeId));
+      setRecords(await hrApiClient.listEmployeeVacations(employeeId));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить отпуска сотрудника"));
+      toast.error(getErrorMessage(error, "Не удалось загрузить отпуска сотрудника"), {
+        toastId: `employee-vacations-load-${employeeId}`,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -63,18 +67,32 @@ export function EmployeeVacationsPanel({
     void loadRecords();
   }, [loadRecords]);
 
-  function openCreate(): void {
+  async function openCreate(): Promise<void> {
     if (!canCreate) return;
-    setDialogMode("create");
-    setEditingRecord(null);
-    setIsFormOpen(true);
+    try {
+      await onBeforeAction?.(null);
+      setDialogMode("create");
+      setEditingRecord(null);
+      setIsFormOpen(true);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось подготовить рабочую область"), {
+        toastId: `employee-vacations-workspace-${employeeId}`,
+      });
+    }
   }
 
-  function openEdit(record: HrRecord): void {
+  async function openEdit(record: HrRecord): Promise<void> {
     if (!canEdit) return;
-    setDialogMode("edit");
-    setEditingRecord(record);
-    setIsFormOpen(true);
+    try {
+      await onBeforeAction?.(record);
+      setDialogMode("edit");
+      setEditingRecord(record);
+      setIsFormOpen(true);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось подготовить рабочую область"), {
+        toastId: `employee-vacations-workspace-${employeeId}`,
+      });
+    }
   }
 
   function openDelete(record: HrRecord): void {
@@ -84,6 +102,7 @@ export function EmployeeVacationsPanel({
   }
 
   async function saveRecord(data: HrRecord): Promise<void> {
+    await onBeforeAction?.(editingRecord);
     const employeeRecord = { ...data, employee_id: employeeId };
     if (dialogMode === "create") {
       if (!canCreate) return;
@@ -101,6 +120,7 @@ export function EmployeeVacationsPanel({
 
   async function deleteRecord(): Promise<void> {
     if (!canDelete) return;
+    await onBeforeAction?.(deletingRecord);
     await hrApiClient.delete({
       entity: "vacations",
       id: getRecordId(deletingRecord),
@@ -141,7 +161,7 @@ export function EmployeeVacationsPanel({
               Открыть общий реестр
             </Link>
             {canCreate && (
-              <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={openCreate}>
+              <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={() => void openCreate()}>
                 Оформить отпуск
               </Button>
             )}
@@ -171,7 +191,7 @@ export function EmployeeVacationsPanel({
                         canDelete && canDeleteVacation(record)
                           ? () => openDelete(record)
                           : undefined,
-                      onEdit: canEdit ? () => openEdit(record) : undefined,
+                      onEdit: canEdit ? () => void openEdit(record) : undefined,
                     }
                   : undefined
               }
@@ -298,26 +318,6 @@ function RecordMetric({ label, value }: { label: string; value: string }): JSX.E
       <p className="app-text mt-1 text-base font-black">{value}</p>
     </div>
   );
-}
-
-async function loadEmployeeVacations(employeeId: number): Promise<HrRecord[]> {
-  const records: HrRecord[] = [];
-  let page = 1;
-  let totalPages = 1;
-  do {
-    const result = await hrApiClient.list({
-      entity: "vacations",
-      page,
-      pageSize: 100,
-      filters: { employee_id: { operator: "equals", value: employeeId } },
-      orderBy: "starts_at",
-      orderDirection: "desc",
-    });
-    records.push(...result.items);
-    totalPages = Math.max(result.totalPages, 1);
-    page += 1;
-  } while (page <= totalPages);
-  return records;
 }
 
 function canDeleteVacation(record: HrRecord): boolean {

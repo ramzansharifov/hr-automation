@@ -409,6 +409,7 @@ export interface HrApi {
   saveCandidate(params: SaveCandidateParams): Promise<CandidateProfile>;
   hireCandidate(params: HireCandidateParams): Promise<HrRecord>;
   deleteCandidate(id: number): Promise<{ success: true }>;
+  listEmployeeVacations(employeeId: number): Promise<HrRecord[]>;
   listEmployeeDocuments(employeeId?: number): Promise<EmployeeDocumentSummary[]>;
   addEmployeeDocument(params: AddEmployeeDocumentParams): Promise<EmployeeDocumentSummary | null>;
   openEmployeeDocument(id: number): Promise<{ success: true }>;

@@ -4,6 +4,7 @@ import type { AuthSession } from "../../shared/types/access";
 export interface AuthContextValue {
   session: AuthSession;
   hasPermission: (permissionCode: string) => boolean;
+  hasEffectivePermission: (permissionCode: string) => boolean;
   logout: () => Promise<void>;
   updateSession: (session: AuthSession) => void;
 }

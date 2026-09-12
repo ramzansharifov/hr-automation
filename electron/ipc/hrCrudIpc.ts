@@ -82,6 +82,37 @@ export function registerHrCrudIpcHandlers(): void {
     return service.list(authorizationService.scopeListParams(params.entity, params));
   });
 
+  ipcMain.handle("hr:listEmployeeVacations", (event, raw: unknown) => {
+    assertTrustedSender(event);
+    const employeeId = Number(raw);
+    if (!Number.isInteger(employeeId) || employeeId < 1) {
+      throw new Error("Сотрудник не выбран");
+    }
+
+    const scopedParams = authorizationService.scopeEmployeeVacationListParams(
+      employeeId,
+      {
+        entity: "vacations",
+        page: 1,
+        pageSize: 100,
+        orderBy: "starts_at",
+        orderDirection: "desc",
+      },
+    );
+
+    const records: HrRecord[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const result = service.list({ ...scopedParams, page });
+      records.push(...result.items);
+      totalPages = Math.max(result.totalPages, 1);
+      page += 1;
+    } while (page <= totalPages);
+
+    return records;
+  });
+
   ipcMain.handle("hr:getById", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.getById(raw);

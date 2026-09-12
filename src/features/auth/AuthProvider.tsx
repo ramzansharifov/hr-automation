@@ -98,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         session,
         hasPermission: (permissionCode) =>
           session.permissionCodes.includes(permissionCode),
+        hasEffectivePermission: (permissionCode) =>
+          Boolean(session.permissionScopes[permissionCode]),
         logout: async () => {
           await hrApiClient.logout();
           setAuthState({ isInitialized: true, session: null });

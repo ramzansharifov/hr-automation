@@ -195,6 +195,8 @@ export const hrApiClient = {
     notifyAuthSessionChanged(getHrApi().hireCandidate(params)),
   deleteCandidate: (id: number) =>
     notifyAuthSessionChanged(getHrApi().deleteCandidate(id)),
+  listEmployeeVacations: (employeeId: number) =>
+    getHrApi().listEmployeeVacations(employeeId),
   listEmployeeDocuments: (employeeId: number) =>
     getHrApi().listEmployeeDocuments(employeeId),
   listEmployeeDocumentTypes: (employeeId: number) =>

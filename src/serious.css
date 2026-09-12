@@ -1,9 +1,9 @@
 /* A stricter, calmer visual layer loaded after modern.css. */
 
 :root {
-  --serious-radius-panel: 14px;
-  --serious-radius-control: 9px;
-  --serious-radius-small: 7px;
+  --serious-radius-panel: 10px;
+  --serious-radius-control: 6px;
+  --serious-radius-small: 4px;
 
   --color-page: #f5f6f8;
   --color-surface: #ffffff;
@@ -84,13 +84,13 @@ main .rounded-\[26px\],
 }
 
 main .rounded-\[24px\] {
-  border-radius: 12px !important;
+  border-radius: 9px !important;
 }
 
 main .rounded-2xl,
 header .rounded-2xl,
 aside .rounded-2xl {
-  border-radius: 10px !important;
+  border-radius: 8px !important;
 }
 
 main .rounded-xl,
@@ -250,7 +250,7 @@ aside nav section > p {
 
 [aria-label="Режим отображения"][role="group"] > button {
   min-height: 34px;
-  border-radius: 6px !important;
+  border-radius: 4px !important;
   padding-inline: 12px;
   font-weight: 700;
 }
@@ -396,6 +396,23 @@ main article.app-surface-muted:hover {
 
 :root[data-theme="dark"] [role="dialog"] {
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38) !important;
+}
+
+
+/* Toasts follow the same compact enterprise geometry. */
+.Toastify__toast {
+  border: 1px solid var(--color-border);
+  border-radius: 6px !important;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.14) !important;
+  min-height: 52px;
+}
+
+:root[data-theme="dark"] .Toastify__toast {
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32) !important;
+}
+
+.Toastify__progress-bar {
+  height: 2px !important;
 }
 
 /* Status/action controls remain distinct without looking oversized. */

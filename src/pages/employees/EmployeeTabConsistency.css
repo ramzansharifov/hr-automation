@@ -1,7 +1,7 @@
 .employee-profile-content {
-  --employee-tab-radius: 18px;
-  --employee-tab-inner-radius: 14px;
-  --employee-tab-control-radius: 12px;
+  --employee-tab-radius: 8px;
+  --employee-tab-inner-radius: 6px;
+  --employee-tab-control-radius: 6px;
   --employee-tab-icon-size: 40px;
   --employee-tab-gap: 16px;
 }
@@ -85,7 +85,7 @@
   > header.app-surface-muted.app-border
   .app-accent-soft.h-14.w-14 {
   border: 0;
-  border-radius: 11px;
+  border-radius: 6px;
   height: var(--employee-tab-icon-size);
   width: var(--employee-tab-icon-size);
 }
@@ -247,7 +247,7 @@
   > section.app-surface-muted.app-border:first-child
   .app-accent-soft.h-12.w-12 {
   border: 0;
-  border-radius: 11px;
+  border-radius: 6px;
   height: var(--employee-tab-icon-size);
   width: var(--employee-tab-icon-size);
 }
@@ -359,7 +359,7 @@
   > [data-state="active"]
   article.app-surface.app-border
   .app-accent-soft.h-11.w-11 {
-  border-radius: 11px;
+  border-radius: 6px;
   height: 40px;
   width: 40px;
 }
@@ -368,7 +368,7 @@
   > [data-state="active"]
   article.app-surface.app-border
   .app-surface-muted.app-border {
-  border-radius: 12px;
+  border-radius: 6px;
   box-shadow: none;
   padding: 12px 13px;
 }
@@ -458,7 +458,7 @@
 .employee-profile-content .app-table-action-button,
 .employee-profile-content button[aria-label^="Редактировать"],
 .employee-profile-content button[aria-label^="Удалить"] {
-  border-radius: 10px;
+  border-radius: 5px;
 }
 
 .employee-profile-content button[aria-label^="Редактировать"],
