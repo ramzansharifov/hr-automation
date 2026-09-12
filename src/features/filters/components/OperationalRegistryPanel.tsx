@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { FiRotateCcw, FiSearch } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrFilterCondition, HrRecord } from "../../../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   Input,
   Select,
   type SelectOption,
@@ -171,21 +170,12 @@ export function OperationalRegistryPanel({
           </div>
 
           <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
-            <Button
-              leftIcon={<FiRotateCcw className="h-4 w-4" />}
-              onClick={clearFilters}
-              type="button"
-              variant="secondary"
-            >
+            <ActionButton action="reset" onClick={clearFilters} type="button">
               Очистить
-            </Button>
-            <Button
-              leftIcon={<FiSearch className="h-4 w-4" />}
-              type="submit"
-              variant="primary"
-            >
+            </ActionButton>
+            <ActionButton action="search" type="submit">
               Показать реестр
-            </Button>
+            </ActionButton>
           </div>
         </form>
       </section>
