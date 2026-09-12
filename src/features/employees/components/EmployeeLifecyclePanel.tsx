@@ -557,25 +557,58 @@ function HistoryItem({
 }): JSX.Element {
   const changeType = String(item.change_type ?? "");
   const terminated = changeType === "terminated";
+  const hired = changeType === "hired";
+  const previousEnterprise = String(item.previous_enterprise_name ?? "").trim();
+  const nextEnterprise = String(item.new_enterprise_name ?? "").trim();
+  const previousDepartment = String(item.previous_department_name ?? "").trim();
+  const nextDepartment = String(item.new_department_name ?? "").trim();
+  const enterpriseChanged =
+    Boolean(previousEnterprise && nextEnterprise) &&
+    previousEnterprise !== nextEnterprise;
+  const departmentChanged =
+    Boolean(previousDepartment && nextDepartment) &&
+    previousDepartment !== nextDepartment;
+
   const title = terminated
     ? "Увольнение"
-    : changeType === "hired"
+    : hired
       ? "Приём на работу"
       : changeType === "enterprise_director"
         ? "Назначение руководителем предприятия"
         : changeType === "department_leader"
           ? "Назначение руководителем отдела"
-          : String(item.new_position_name ?? "Кадровое изменение");
-  const department = terminated
-    ? String(item.previous_department_name ?? "")
-    : String(item.new_department_name ?? "");
+          : enterpriseChanged
+            ? "Перевод между предприятиями"
+            : departmentChanged
+              ? "Перевод между отделами"
+              : String(item.new_position_name ?? "Кадровое изменение");
+
+  const enterprise = transitionValue(
+    previousEnterprise,
+    nextEnterprise,
+    hired,
+    terminated,
+  );
+  const department = transitionValue(
+    previousDepartment,
+    nextDepartment,
+    hired,
+    terminated,
+  );
   const salary = terminated ? item.previous_salary : item.new_salary;
+  const context = [
+    enterprise,
+    department,
+    salary !== null && salary !== undefined
+      ? formatCurrency(salary, locale)
+      : "",
+  ].filter(Boolean);
 
   return (
     <article className="app-surface app-border rounded-2xl border p-4">
       <div className="flex flex-wrap justify-between gap-2">
         <p className="app-text flex items-center gap-2 font-black">
-          {terminated ? <FiUserX /> : changeType === "hired" ? <FiEdit3 /> : null}
+          {terminated ? <FiUserX /> : hired ? <FiEdit3 /> : null}
           {title}
         </p>
         <time className="app-muted text-sm font-bold">
@@ -583,16 +616,27 @@ function HistoryItem({
         </time>
       </div>
       <p className="app-muted mt-2 text-sm">
-        {department || "Отдел не указан"}
-        {salary !== null && salary !== undefined
-          ? ` · ${formatCurrency(salary, locale)}`
-          : ""}
+        {context.length > 0 ? context.join(" · ") : "Оргструктура не указана"}
       </p>
       <p className="app-muted mt-2 text-xs">
         {String(item.reason ?? "Кадровое изменение")}
       </p>
     </article>
   );
+}
+
+function transitionValue(
+  previousValue: string,
+  nextValue: string,
+  hired: boolean,
+  terminated: boolean,
+): string {
+  if (hired) return nextValue;
+  if (terminated) return previousValue;
+  if (previousValue && nextValue && previousValue !== nextValue) {
+    return `${previousValue} → ${nextValue}`;
+  }
+  return nextValue || previousValue;
 }
 
 function durationBetween(startDate: string, endDate?: string): string {
