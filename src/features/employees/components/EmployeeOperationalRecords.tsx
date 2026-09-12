@@ -51,9 +51,11 @@ export function EmployeeVacationsPanel({
   const loadRecords = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      setRecords(await loadEmployeeVacations(employeeId));
+      setRecords(await hrApiClient.listEmployeeVacations(employeeId));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить отпуска сотрудника"));
+      toast.error(getErrorMessage(error, "Не удалось загрузить отпуска сотрудника"), {
+        toastId: `employee-vacations-load-${employeeId}`,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -298,26 +300,6 @@ function RecordMetric({ label, value }: { label: string; value: string }): JSX.E
       <p className="app-text mt-1 text-base font-black">{value}</p>
     </div>
   );
-}
-
-async function loadEmployeeVacations(employeeId: number): Promise<HrRecord[]> {
-  const records: HrRecord[] = [];
-  let page = 1;
-  let totalPages = 1;
-  do {
-    const result = await hrApiClient.list({
-      entity: "vacations",
-      page,
-      pageSize: 100,
-      filters: { employee_id: { operator: "equals", value: employeeId } },
-      orderBy: "starts_at",
-      orderDirection: "desc",
-    });
-    records.push(...result.items);
-    totalPages = Math.max(result.totalPages, 1);
-    page += 1;
-  } while (page <= totalPages);
-  return records;
 }
 
 function canDeleteVacation(record: HrRecord): boolean {
