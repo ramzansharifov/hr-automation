@@ -11,11 +11,7 @@ import { motion } from 'framer-motion'
 import {
   FiChevronLeft,
   FiChevronRight,
-  FiEdit2,
-  FiPlus,
-  FiRefreshCw,
   FiSearch,
-  FiTrash2,
   FiUser,
 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
@@ -31,9 +27,10 @@ import type {
 import { hrApiClient } from '../../shared/lib/hrApiClient'
 import { getAppLocale } from '../../shared/i18n'
 import {
+  ActionButton,
   Button,
   DataTable,
-  IconButton,
+  RecordActions,
   Select,
   type DataTableColumn,
   type SelectOption,
@@ -418,25 +415,20 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
                 >
                   {organizationDetailsColumn &&
                     renderCell(record, organizationDetailsColumn, locale)}
-                  {canEditEntity && (
-                    <IconButton
-                      className="app-table-action-button app-table-action-button--edit"
-                      icon={<FiEdit2 />}
-                      label={t('common.actions.edit')}
-                      onClick={() => handleEditClick(record)}
-                      size="sm"
-                    />
-                  )}
-                  {canDeleteEntity && (
-                    <IconButton
-                      className="app-table-action-button app-table-action-button--delete"
-                      icon={<FiTrash2 />}
-                      label={t('common.actions.delete')}
-                      onClick={() => handleDeleteClick(record)}
-                      size="sm"
-                      tone="danger"
-                    />
-                  )}
+                  <RecordActions
+                    deleteLabel={t('common.actions.delete')}
+                    editLabel={t('common.actions.edit')}
+                    onDelete={
+                      canDeleteEntity
+                        ? () => handleDeleteClick(record)
+                        : undefined
+                    }
+                    onEdit={
+                      canEditEntity
+                        ? () => handleEditClick(record)
+                        : undefined
+                    }
+                  />
                 </div>
               ),
             },
@@ -458,28 +450,23 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
           </form>
         )}
 
-        <Button
-          type="button"
+        <ActionButton
+          action="refresh"
+          loading={isLoading}
           onClick={handleRefresh}
-          leftIcon={
-            <FiRefreshCw
-              className={isLoading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'}
-            />
-          }
-          variant="secondary"
+          type="button"
         >
           {t('common.actions.refresh')}
-        </Button>
+        </ActionButton>
 
         {!hideCreateButton && canCreateEntity && (
-          <Button
-            type="button"
+          <ActionButton
+            action="create"
             onClick={handleCreateClick}
-            leftIcon={<FiPlus className="h-4 w-4" />}
-            variant="primary"
+            type="button"
           >
             {config.createLabel}
-          </Button>
+          </ActionButton>
         )}
       </div>
     )
@@ -613,25 +600,20 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
                     <>
                       {organizationDetailsColumn &&
                         renderCell(record, organizationDetailsColumn, locale)}
-                      {canEditEntity && (
-                        <IconButton
-                          className="app-table-action-button app-table-action-button--edit"
-                          icon={<FiEdit2 />}
-                          label={t('common.actions.edit')}
-                          onClick={() => handleEditClick(record)}
-                          size="sm"
-                        />
-                      )}
-                      {canDeleteEntity && (
-                        <IconButton
-                          className="app-table-action-button app-table-action-button--delete"
-                          icon={<FiTrash2 />}
-                          label={t('common.actions.delete')}
-                          onClick={() => handleDeleteClick(record)}
-                          size="sm"
-                          tone="danger"
-                        />
-                      )}
+                      <RecordActions
+                        deleteLabel={t('common.actions.delete')}
+                        editLabel={t('common.actions.edit')}
+                        onDelete={
+                          canDeleteEntity
+                            ? () => handleDeleteClick(record)
+                            : undefined
+                        }
+                        onEdit={
+                          canEditEntity
+                            ? () => handleEditClick(record)
+                            : undefined
+                        }
+                      />
                     </>
                   )
                 : undefined,
