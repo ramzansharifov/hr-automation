@@ -16,7 +16,7 @@ export const buttonVariants = cva("app-button", {
     },
   },
   defaultVariants: {
-    variant: "secondary",
+    variant: "primary",
     size: "md",
   },
 });
