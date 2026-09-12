@@ -39,7 +39,7 @@ import "./EmployeeTabConsistency.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
-  const { hasPermission, session } = useAuth();
+  const { hasEffectivePermission, hasPermission, session } = useAuth();
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
   const params = useParams();
@@ -62,10 +62,13 @@ export function EmployeeDetailsPage(): JSX.Element {
   const canDeleteExperience = hasPermission("employee_experience.delete");
   const canViewEmploymentHistory =
     hasPermission("employment_history.view") || isOwnProfile;
-  const canViewVacations = hasPermission("vacations.view");
-  const canCreateVacation = hasPermission("vacations.create");
-  const canEditVacation = hasPermission("vacations.edit");
-  const canDeleteVacation = hasPermission("vacations.delete");
+  const isSystemAdmin = session.employeeId === 0;
+  const canViewVacations =
+    hasEffectivePermission("vacations.view") ||
+    (isSystemAdmin && hasPermission("vacations.view"));
+  const canCreateVacation = hasEffectivePermission("vacations.create");
+  const canEditVacation = hasEffectivePermission("vacations.edit");
+  const canDeleteVacation = hasEffectivePermission("vacations.delete");
   const canViewEducationOrExperience = canViewEducation || canViewExperience;
 
   const [employee, setEmployee] = useState<HrRecord | null>(null);
