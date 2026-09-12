@@ -12,7 +12,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Button, EmptyState, LoadingState } from "../../shared/ui";
+import { ActionButton, EmptyState, LoadingState } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
 import { formatCurrency, formatDate, humanizeStatus } from "../../shared/lib/format";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
@@ -302,15 +302,14 @@ export function EmployeeDetailsPage(): JSX.Element {
               <EmployeeInfoPanel
                 action={
                   canEditEmployee ? (
-                    <Button
-                      leftIcon={<FiEdit2 className="h-4 w-4" />}
+                    <ActionButton
+                      action="edit"
                       onClick={() => openSectionEditor("company")}
                       size="sm"
                       type="button"
-                      variant="secondary"
                     >
                       {t("common.actions.edit")}
-                    </Button>
+                    </ActionButton>
                   ) : undefined
                 }
                 eyebrow="Кадровые реквизиты"
