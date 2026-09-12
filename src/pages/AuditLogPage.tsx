@@ -104,10 +104,9 @@ export function AuditLogPage(): JSX.Element {
       <PageHeader
         actions={
           <Button
-            className="border-white/20 bg-white/10 text-white"
             leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
             onClick={() => void load()}
-            variant="ghost"
+            variant="secondary"
           >
             Обновить
           </Button>
