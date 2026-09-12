@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   FiBriefcase,
-  FiEdit2,
   FiMail,
   FiMapPin,
   FiPhone,
@@ -18,7 +17,7 @@ import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   EmptyState,
   LoadingState,
   PageHeader,
@@ -121,21 +120,13 @@ function DepartmentAdminWorkspace(): JSX.Element {
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiBriefcase />}
-              onClick={() => navigate(detailsPath)}
-              variant="secondary"
-            >
+            <ActionButton action="manage" onClick={() => navigate(detailsPath)}>
               Должности и руководитель
-            </Button>
+            </ActionButton>
             {canEdit && (
-              <Button
-                leftIcon={<FiEdit2 />}
-                onClick={() => setIsEditOpen(true)}
-                variant="primary"
-              >
+              <ActionButton action="edit" onClick={() => setIsEditOpen(true)}>
                 Редактировать отдел
-              </Button>
+              </ActionButton>
             )}
           </div>
         }
