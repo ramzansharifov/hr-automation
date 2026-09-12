@@ -113,27 +113,6 @@ body {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
-.app-button-primary {
-  background: linear-gradient(135deg, var(--accent-border), var(--accent-hover));
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 24%, transparent);
-}
-
-.app-button-primary:hover {
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  transform: translateY(-1px);
-}
-
-.app-button-secondary {
-  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
-  border-color: color-mix(in srgb, var(--color-border) 86%, transparent);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
-}
-
-.app-button-secondary:hover {
-  background: var(--color-surface-hover);
-  border-color: color-mix(in srgb, var(--accent-border) 42%, var(--color-border));
-}
-
 .app-accent-soft {
   background: color-mix(in srgb, var(--accent) 12%, var(--color-surface));
   border-color: color-mix(in srgb, var(--accent-border) 34%, var(--color-border));
