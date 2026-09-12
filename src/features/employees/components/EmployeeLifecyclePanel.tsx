@@ -54,8 +54,11 @@ export function EmployeeLifecyclePanel({
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
+  const lifecycleStatus = String(employee.lifecycle_status ?? employee.status ?? "");
+  const isPending = ["draft", "pending_assignment"].includes(lifecycleStatus);
+  const isActive = lifecycleStatus === "active" || String(employee.status) === "active";
   const [career, setCareer] = useState({
-    enterpriseId: "",
+    enterpriseId: String(employee.enterprise_id ?? ""),
     departmentId: String(employee.department_id ?? ""),
     positionId: String(employee.position_id ?? ""),
     salaryMode: "keep",
@@ -104,7 +107,7 @@ export function EmployeeLifecyclePanel({
     const departmentId = String(employee.department_id ?? "");
     const enterpriseId =
       departments.find((department) => department.value === departmentId)
-        ?.enterpriseId ?? "";
+        ?.enterpriseId ?? String(employee.enterprise_id ?? "");
     setCareer((current) => ({
       ...current,
       enterpriseId,
@@ -139,8 +142,7 @@ export function EmployeeLifecyclePanel({
       employee.hire_date ??
       "",
   );
-  const isActive = String(employee.status) === "active";
-  const careerEndDate = isActive ? undefined : String(employee.terminated_at ?? "");
+  const careerEndDate = isActive || isPending ? undefined : String(employee.terminated_at ?? "");
 
   async function saveCareerChange(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -166,7 +168,11 @@ export function EmployeeLifecyclePanel({
       await loadData();
       setCareerOpen(false);
       setCareer((current) => ({ ...current, reason: "" }));
-      toast.success("Кадровое изменение сохранено в журнале");
+      toast.success(
+        isPending
+          ? "Сотрудник оформлен на работу"
+          : "Кадровое изменение сохранено в журнале",
+      );
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось сохранить кадровое изменение"));
     } finally {
@@ -224,7 +230,11 @@ export function EmployeeLifecyclePanel({
         <Metric
           icon={<FiClock />}
           label="Общий стаж"
-          value={durationBetween(String(employee.hire_date ?? ""), careerEndDate)}
+          value={
+            isPending
+              ? "Не начат"
+              : durationBetween(String(employee.hire_date ?? ""), careerEndDate)
+          }
         />
         <Metric
           icon={<FiArrowUpRight />}
@@ -256,7 +266,7 @@ export function EmployeeLifecyclePanel({
           </div>
           {(canChangeEmployment || canTerminate) && (
             <div className="flex flex-wrap gap-2">
-              {canChangeEmployment && (
+              {canChangeEmployment && !isPending && (
                 <Button
                   leftIcon={<FiCalendar />}
                   onClick={() => setCorrectionOpen(true)}
@@ -265,9 +275,9 @@ export function EmployeeLifecyclePanel({
                   Исправить дату приёма
                 </Button>
               )}
-              {isActive && canChangeEmployment && (
+              {(isActive || isPending) && canChangeEmployment && (
                 <Button leftIcon={<FiPlus />} onClick={() => setCareerOpen(true)}>
-                  Кадровое изменение
+                  {isPending ? "Оформить на работу" : "Кадровое изменение"}
                 </Button>
               )}
               {isActive && canTerminate && (
@@ -299,8 +309,12 @@ export function EmployeeLifecyclePanel({
           <Dialog
             open={careerOpen}
             onOpenChange={setCareerOpen}
-            title="Кадровое изменение"
-            description="Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
+            title={isPending ? "Оформить на работу" : "Кадровое изменение"}
+            description={
+              isPending
+                ? "Укажите первое кадровое назначение сотрудника: предприятие, отдел, должность, дату и основание."
+                : "Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
+            }
           >
             <form className="grid gap-4" onSubmit={saveCareerChange}>
               <Field label="Предприятие">
