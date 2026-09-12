@@ -27,6 +27,7 @@ const toneByAction: Record<
   manage: "neutral",
   next: "neutral",
   open: "neutral",
+  passwordReset: "neutral",
   previous: "neutral",
   refresh: "neutral",
   reset: "neutral",
