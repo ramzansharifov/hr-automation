@@ -602,3 +602,13 @@
 .app-record-actions .app-icon-button {
   box-shadow: none;
 }
+
+
+/* Standardized form/dialog footer actions */
+.app-form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
