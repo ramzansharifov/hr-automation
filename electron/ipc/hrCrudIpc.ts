@@ -133,7 +133,11 @@ export function registerHrCrudIpcHandlers(): void {
   ipcMain.handle("hr:checkEmployeeDuplicates", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.employeeDuplicateCheck(raw);
-    const session = authorizationService.requirePermission("employees.create");
+    const session = authorizationService.requireAnyPermission([
+      "employees.create",
+      "candidates.hire",
+      "data_exchange.import",
+    ]);
 
     const enterpriseId =
       session.scopeType === "global"
