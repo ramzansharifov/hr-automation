@@ -82,6 +82,49 @@ export interface HrDeleteParams {
   id: number;
 }
 
+export type EmployeeDuplicateFieldKey =
+  | "employee_number"
+  | "identity"
+  | "phone"
+  | "email"
+  | "contract_number";
+
+export interface EmployeeDuplicateCheckParams {
+  enterpriseId?: number | null;
+  employeeNumber?: string;
+  lastName?: string;
+  firstName?: string;
+  middleName?: string;
+  birthDate?: string;
+  phone?: string;
+  email?: string;
+  contractNumber?: string;
+}
+
+export interface EmployeeDuplicateFieldMatch {
+  field: EmployeeDuplicateFieldKey;
+  label: string;
+  value: string;
+  blocking: boolean;
+}
+
+export interface EmployeeDuplicateMatch {
+  employeeId: number;
+  employeeName: string;
+  employeeNumber: string | null;
+  enterpriseId: number | null;
+  enterpriseName: string | null;
+  departmentName: string | null;
+  lifecycleStatus: string | null;
+  blocking: boolean;
+  fields: EmployeeDuplicateFieldMatch[];
+}
+
+export interface EmployeeDuplicateCheckResult {
+  matches: EmployeeDuplicateMatch[];
+  hasBlockingMatches: boolean;
+}
+
 export type EmployeeLifecycleStatus =
   | "draft"
   | "pending_assignment"
@@ -392,6 +435,9 @@ export interface HrApi {
   changeOwnPassword(params: ChangeOwnPasswordParams): Promise<AuthSession>;
   list(params: HrListParams): Promise<HrListResult>;
   getById(params: HrGetByIdParams): Promise<HrRecord | null>;
+  checkEmployeeDuplicates(
+    params: EmployeeDuplicateCheckParams,
+  ): Promise<EmployeeDuplicateCheckResult>;
   create(params: HrCreateParams): Promise<HrRecord>;
   update(params: HrUpdateParams): Promise<HrRecord>;
   changeEmployment(params: HrEmploymentChangeParams): Promise<HrRecord>;
