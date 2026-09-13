@@ -6,25 +6,29 @@ MARKER = "-- requires_foreign_keys_off"
 MIGRATION_PATHS = sorted(glob.glob("electron/migrations/*.sql"))
 
 
+def apply_migration(connection, migration_path):
+    with open(migration_path, "r", encoding="utf-8") as migration_file:
+        sql = migration_file.read()
+    needs_fk_off = MARKER in sql
+    if needs_fk_off:
+        connection.execute("PRAGMA foreign_keys = OFF")
+    try:
+        connection.executescript(sql)
+        violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+        if violations:
+            raise AssertionError(
+                f"Foreign key violations after {migration_path}: {violations}"
+            )
+    finally:
+        if needs_fk_off:
+            connection.execute("PRAGMA foreign_keys = ON")
+
+
 def create_database():
     connection = sqlite3.connect(":memory:")
     connection.execute("PRAGMA foreign_keys = ON")
     for migration_path in MIGRATION_PATHS:
-        with open(migration_path, "r", encoding="utf-8") as migration_file:
-            sql = migration_file.read()
-        needs_fk_off = MARKER in sql
-        if needs_fk_off:
-            connection.execute("PRAGMA foreign_keys = OFF")
-        try:
-            connection.executescript(sql)
-            violations = connection.execute("PRAGMA foreign_key_check").fetchall()
-            if violations:
-                raise AssertionError(
-                    f"Foreign key violations after {migration_path}: {violations}"
-                )
-        finally:
-            if needs_fk_off:
-                connection.execute("PRAGMA foreign_keys = ON")
+        apply_migration(connection, migration_path)
     return connection
 
 
@@ -214,6 +218,156 @@ class HrCoreIntegrationTests(unittest.TestCase):
             ).fetchone()[0],
             0,
         )
+
+    def test_complete_legacy_pending_employee_is_activated_on_upgrade(self):
+        connection = sqlite3.connect(":memory:")
+        connection.execute("PRAGMA foreign_keys = ON")
+        try:
+            migration_037_index = next(
+                index
+                for index, path in enumerate(MIGRATION_PATHS)
+                if path.endswith("037_activate_complete_pending_employees.sql")
+            )
+            for migration_path in MIGRATION_PATHS[:migration_037_index]:
+                apply_migration(connection, migration_path)
+
+            organization = seed_organization(connection, "Upgrade Enterprise")
+            employee_id = connection.execute(
+                """
+                INSERT INTO employees (
+                  enterprise_id, department_id, position_id,
+                  last_name, first_name, hire_date,
+                  status, lifecycle_status, employment_started_at, salary
+                ) VALUES (?, ?, ?, 'Legacy', 'Pending', '2026-05-10',
+                          'pending_assignment', 'pending_assignment', NULL, 4200)
+                """,
+                organization,
+            ).lastrowid
+
+            for migration_path in MIGRATION_PATHS[migration_037_index:]:
+                apply_migration(connection, migration_path)
+
+            employee = connection.execute(
+                """
+                SELECT status, lifecycle_status, employment_started_at
+                FROM employees WHERE id = ?
+                """,
+                (employee_id,),
+            ).fetchone()
+            self.assertEqual(employee, ("active", "active", "2026-05-10"))
+
+            hired_history = connection.execute(
+                """
+                SELECT change_type, effective_at
+                FROM employment_history
+                WHERE employee_id = ? AND change_type = 'hired'
+                """,
+                (employee_id,),
+            ).fetchall()
+            self.assertEqual(hired_history, [("hired", "2026-05-10")])
+        finally:
+            connection.close()
+
+    def test_termination_marks_only_lifecycle_managed_user_block(self):
+        organization = seed_organization(self.connection)
+        employee_id = seed_active_employee(self.connection, organization)
+        user_id = self.connection.execute(
+            """
+            INSERT INTO users (
+              employee_id, username, password_hash, password_salt,
+              status, must_change_password
+            ) VALUES (?, 'lifecycle-user', 'hash', 'salt', 'active', 0)
+            """,
+            (employee_id,),
+        ).lastrowid
+
+        self.connection.execute(
+            """
+            UPDATE employees
+            SET status = 'terminated',
+                lifecycle_status = 'terminated',
+                terminated_at = '2026-06-01'
+            WHERE id = ?
+            """,
+            (employee_id,),
+        )
+        blocked = self.connection.execute(
+            "SELECT status, lifecycle_blocked FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        self.assertEqual(blocked, ("blocked", 1))
+
+        other_employee_id = seed_active_employee(
+            self.connection,
+            organization,
+            last_name="ManualBlocked",
+        )
+        manual_user_id = self.connection.execute(
+            """
+            INSERT INTO users (
+              employee_id, username, password_hash, password_salt,
+              status, must_change_password
+            ) VALUES (?, 'manual-block', 'hash', 'salt', 'blocked', 0)
+            """,
+            (other_employee_id,),
+        ).lastrowid
+        self.connection.execute(
+            """
+            UPDATE employees
+            SET status = 'terminated',
+                lifecycle_status = 'terminated',
+                terminated_at = '2026-06-01'
+            WHERE id = ?
+            """,
+            (other_employee_id,),
+        )
+        manually_blocked = self.connection.execute(
+            "SELECT status, lifecycle_blocked FROM users WHERE id = ?",
+            (manual_user_id,),
+        ).fetchone()
+        self.assertEqual(manually_blocked, ("blocked", 0))
+
+    def test_employee_creation_paths_share_hiring_service(self):
+        with open(
+            "electron/services/recruitmentService.ts",
+            "r",
+            encoding="utf-8",
+        ) as source_file:
+            recruitment_service = source_file.read()
+        with open(
+            "electron/repositories/recruitmentRepository.ts",
+            "r",
+            encoding="utf-8",
+        ) as source_file:
+            recruitment_repository = source_file.read()
+        with open(
+            "electron/services/employeeImportService.ts",
+            "r",
+            encoding="utf-8",
+        ) as source_file:
+            import_service = source_file.read()
+        with open(
+            "src/features/employees/types.ts",
+            "r",
+            encoding="utf-8",
+        ) as source_file:
+            employee_form_types = source_file.read()
+
+        self.assertIn(
+            "this.employmentService.createHiredEmployee",
+            recruitment_service,
+        )
+        self.assertNotIn("INSERT INTO employees", recruitment_repository)
+        self.assertIn(
+            "this.employmentService.createHiredEmployee",
+            import_service,
+        )
+        self.assertIn(
+            "this.employmentService.checkDuplicates",
+            import_service,
+        )
+        self.assertNotIn("status: string", employee_form_types)
+        self.assertNotIn("status: 'active'", employee_form_types)
 
     def test_pending_employee_has_enterprise_and_no_fake_hire_history(self):
         enterprise_id, _, _ = seed_organization(self.connection)
