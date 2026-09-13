@@ -3,8 +3,7 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
-
-import { cn } from "../lib/cn";
+import { FiLoader } from "react-icons/fi";
 import { Button } from "./Button";
 import {
   actionDefinitions,
@@ -42,9 +41,11 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
   ) => {
     const definition = actionDefinitions[action];
     const Icon = definition.icon;
-    const icon = hideIcon ? undefined : (
-      <Icon className={cn(action === "refresh" && loading && "animate-spin")} />
-    );
+    const icon = hideIcon
+      ? undefined
+      : loading
+        ? <FiLoader className="animate-spin" />
+        : <Icon />;
     const label = loading
       ? loadingLabel ?? definition.loadingLabel ?? children ?? definition.defaultLabel
       : children ?? definition.defaultLabel;
