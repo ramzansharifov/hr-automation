@@ -210,7 +210,7 @@ export function EmployeeLifecyclePanel({
       setCareer((current) => ({ ...current, reason: "" }));
       toast.success(
         isPending
-          ? "Сотрудник оформлен на работу"
+          ? "Карточка сотрудника полностью оформлена"
           : "Кадровое изменение сохранено в журнале",
       );
     } catch (error) {
@@ -362,7 +362,7 @@ export function EmployeeLifecyclePanel({
                   action={isPending ? "hire" : "edit"}
                   onClick={() => setCareerOpen(true)}
                 >
-                  {isPending ? "Оформить на работу" : "Кадровое изменение"}
+                  {isPending ? "Дооформить сотрудника" : "Кадровое изменение"}
                 </ActionButton>
               )}
               {isActive && canTerminate && (
@@ -399,10 +399,10 @@ export function EmployeeLifecyclePanel({
           <Dialog
             open={careerOpen}
             onOpenChange={setCareerOpen}
-            title={isPending ? "Оформить на работу" : "Кадровое изменение"}
+            title={isPending ? "Дооформить сотрудника" : "Кадровое изменение"}
             description={
               isPending
-                ? "Укажите первое кадровое назначение сотрудника: предприятие, отдел, должность, дату и основание."
+                ? "Заполните недостающие кадровые данные: предприятие, отдел, должность, дату и основание."
                 : "Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
             }
           >
