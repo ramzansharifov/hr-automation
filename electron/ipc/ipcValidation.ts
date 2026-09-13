@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  EmployeeDuplicateCheckParams,
   HireCandidateParams,
   HrCreateParams,
   HrDeleteParams,
@@ -89,6 +90,21 @@ export const ipcValidation = {
   },
   getById(value: unknown): HrGetByIdParams {
     return z.object({ entity: entitySchema, id: positiveId }).parse(value);
+  },
+  employeeDuplicateCheck(value: unknown): EmployeeDuplicateCheckParams {
+    return z
+      .object({
+        enterpriseId: positiveId.nullable().optional(),
+        employeeNumber: z.string().max(100).optional(),
+        lastName: z.string().max(200).optional(),
+        firstName: z.string().max(200).optional(),
+        middleName: z.string().max(200).optional(),
+        birthDate: dateSchema.optional().or(z.literal("")),
+        phone: z.string().max(100).optional(),
+        email: z.string().max(320).optional(),
+        contractNumber: z.string().max(200).optional(),
+      })
+      .parse(value);
   },
   create(value: unknown): HrCreateParams {
     return z.object({ entity: entitySchema, data: recordSchema }).parse(value);
