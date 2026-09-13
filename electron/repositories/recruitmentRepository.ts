@@ -281,7 +281,10 @@ export class RecruitmentRepository {
     return profile;
   }
 
-  hireCandidate(params: HireCandidateParams): HrRecord {
+  hireCandidate(
+    params: HireCandidateParams,
+    createEmployee: (candidate: HrRecord) => HrRecord,
+  ): HrRecord {
     const hire = this.database.transaction(() => {
       const candidate = this.database
         .prepare(
@@ -314,38 +317,12 @@ export class RecruitmentRepository {
       if (!Number.isInteger(enterpriseId) || enterpriseId < 1) {
         throw new Error("Для вакансии не определено предприятие");
       }
-      const candidateEmail = String(candidate.email ?? "").trim() || null;
 
-      const result = this.database
-        .prepare(
-          `INSERT INTO employees (
-             enterprise_id, department_id, position_id, employee_number,
-             last_name, first_name, middle_name,
-             phone, email, hire_date, status, salary, employment_type,
-             contract_number, contract_date, contract_end_date,
-             probation_end_date, workplace
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .run(
-          enterpriseId,
-          candidate.department_id,
-          candidate.position_id,
-          params.employeeNumber?.trim() || null,
-          String(candidate.last_name ?? "").trim(),
-          String(candidate.first_name ?? "").trim(),
-          String(candidate.middle_name ?? "").trim() || null,
-          String(candidate.phone ?? "").trim() || null,
-          candidateEmail,
-          params.hireDate,
-          params.salary,
-          String(candidate.employment_type ?? "full_time"),
-          params.contractNumber?.trim() || null,
-          params.contractDate || null,
-          params.contractEndDate || null,
-          params.probationEndDate || null,
-          params.workplace?.trim() || null,
-        );
-      const employeeId = Number(result.lastInsertRowid);
+      const employee = createEmployee(candidate);
+      const employeeId = Number(employee.id);
+      if (!Number.isInteger(employeeId) || employeeId < 1) {
+        throw new Error("Созданный сотрудник не найден");
+      }
 
       // Candidate contact data is historical recruitment data. It is preserved
       // after hire instead of being cleared merely to satisfy an e-mail uniqueness
@@ -377,9 +354,7 @@ export class RecruitmentRepository {
           .run(candidate.vacancy_id);
       }
 
-      return this.database
-        .prepare("SELECT * FROM employees WHERE id = ? LIMIT 1")
-        .get(employeeId) as HrRecord;
+      return employee;
     });
 
     return hire();

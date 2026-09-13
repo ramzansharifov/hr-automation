@@ -37,7 +37,7 @@ export function AnalyticsPage(): JSX.Element {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={FiUsers} title="Активные сотрудники" value={report.activeEmployees} />
-        <StatCard icon={FiClock} title="Ожидают оформления" value={report.pendingEmployees} />
+        <StatCard icon={FiClock} title="Требуют дооформления" value={report.pendingEmployees} />
         <StatCard icon={FiBriefcase} title="Открытые вакансии" value={report.openVacancies} />
         <StatCard icon={FiCalendar} title="Сегодня в отпуске" value={report.employeesOnLeaveToday} />
       </section>

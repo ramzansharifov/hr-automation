@@ -12,8 +12,11 @@ import type {
   EmployeeImportPreview,
   EmployeeImportResult,
   EmployeeImportSelection,
+  EmployeeImportWarning,
   PreviewEmployeeImportParams,
 } from "../../src/shared/types/hr";
+import { HrCrudRepository } from "../repositories/hrCrudRepository";
+import { EmployeeEmploymentService } from "./employeeEmploymentService";
 import { parseCsv, parseXlsx, type ParsedTable } from "./tabularFileService";
 
 interface ImportCacheEntry extends ParsedTable {
@@ -25,9 +28,11 @@ interface ImportResolvedRow {
   lastName: string;
   firstName: string;
   middleName: string | null;
+  birthDate: string | null;
   email: string | null;
   phone: string | null;
   employeeNumber: string | null;
+  contractNumber: string | null;
   enterpriseId: number;
   departmentId: number | null;
   positionId: number | null;
@@ -39,13 +44,19 @@ interface ImportEvaluation {
   totalRows: number;
   duplicateRows: number;
   errors: EmployeeImportError[];
+  warnings: EmployeeImportWarning[];
   validRows: ImportResolvedRow[];
 }
 
 export class EmployeeImportService {
   private readonly importCache = new Map<string, ImportCacheEntry>();
+  private readonly employmentService: EmployeeEmploymentService;
 
-  constructor(private readonly database: Database.Database) {}
+  constructor(private readonly database: Database.Database) {
+    this.employmentService = new EmployeeEmploymentService(
+      new HrCrudRepository(database),
+    );
+  }
 
   selectFile(): EmployeeImportSelection | null {
     const selected = dialog.showOpenDialogSync({
@@ -95,7 +106,9 @@ export class EmployeeImportService {
       totalRows: evaluation.totalRows,
       validRows: evaluation.validRows.length,
       duplicateRows: evaluation.duplicateRows,
+      warningRows: new Set(evaluation.warnings.map((warning) => warning.row)).size,
       errors: evaluation.errors.slice(0, 200),
+      warnings: evaluation.warnings.slice(0, 200),
     };
   }
 
@@ -110,47 +123,76 @@ export class EmployeeImportService {
         importedRows: 0,
         skippedRows: evaluation.totalRows - evaluation.validRows.length,
         errors: evaluation.errors.slice(0, 200),
+        warnings: evaluation.warnings.slice(0, 200),
       };
     }
 
     let importedRows = 0;
     const errors = [...evaluation.errors];
-    const insert = this.database.prepare(
+    const warnings = [...evaluation.warnings];
+    const insertPending = this.database.prepare(
       `INSERT INTO employees (
          enterprise_id, department_id, position_id, employee_number,
-         last_name, first_name, middle_name, email, phone,
-         hire_date, employment_started_at, status, lifecycle_status,
-         salary, registered_at
+         last_name, first_name, middle_name, birth_date, email, phone,
+         contract_number, hire_date, employment_started_at,
+         status, lifecycle_status, salary, registered_at
        ) VALUES (
          @enterpriseId, @departmentId, @positionId, @employeeNumber,
-         @lastName, @firstName, @middleName, @email, @phone,
-         @hireDateTechnical, @employmentStartedAt, @status, @lifecycleStatus,
-         @salary, CURRENT_TIMESTAMP
+         @lastName, @firstName, @middleName, @birthDate, @email, @phone,
+         @contractNumber, @hireDateTechnical, NULL,
+         'pending_assignment', 'pending_assignment', @salary, CURRENT_TIMESTAMP
        )`,
     );
 
     const transaction = this.database.transaction(() => {
       for (const row of evaluation.validRows) {
-        const active = Boolean(
+        const complete = Boolean(
           row.hireDate && row.departmentId && row.positionId,
         );
         try {
-          insert.run({
-            enterpriseId: row.enterpriseId,
-            departmentId: row.departmentId,
-            positionId: row.positionId,
-            employeeNumber: row.employeeNumber,
-            lastName: row.lastName,
-            firstName: row.firstName,
-            middleName: row.middleName,
-            email: row.email,
-            phone: row.phone,
-            hireDateTechnical: row.hireDate ?? today(),
-            employmentStartedAt: active ? row.hireDate : null,
-            status: active ? "active" : "pending_assignment",
-            lifecycleStatus: active ? "active" : "pending_assignment",
-            salary: row.salary,
-          });
+          if (complete) {
+            this.employmentService.createHiredEmployee(
+              {
+                enterprise_id: row.enterpriseId,
+                department_id: row.departmentId,
+                position_id: row.positionId,
+                employee_number: row.employeeNumber,
+                last_name: row.lastName,
+                first_name: row.firstName,
+                middle_name: row.middleName,
+                birth_date: row.birthDate,
+                email: row.email,
+                phone: row.phone,
+                contract_number: row.contractNumber,
+                hire_date: row.hireDate,
+                salary: row.salary,
+                employment_type: "full_time",
+              },
+              {
+                enterpriseId: row.enterpriseId,
+                departmentId:
+                  session.scopeType === "department"
+                    ? session.departmentId
+                    : null,
+              },
+            );
+          } else {
+            insertPending.run({
+              birthDate: row.birthDate,
+              contractNumber: row.contractNumber,
+              departmentId: row.departmentId,
+              email: row.email,
+              employeeNumber: row.employeeNumber,
+              enterpriseId: row.enterpriseId,
+              firstName: row.firstName,
+              hireDateTechnical: row.hireDate ?? today(),
+              lastName: row.lastName,
+              middleName: row.middleName,
+              phone: row.phone,
+              positionId: row.positionId,
+              salary: row.salary,
+            });
+          }
           importedRows += 1;
         } catch (error) {
           errors.push({ row: row.rowNumber, message: errorMessage(error) });
@@ -184,6 +226,7 @@ export class EmployeeImportService {
       importedRows,
       skippedRows: evaluation.totalRows - importedRows,
       errors: errors.slice(0, 200),
+      warnings: warnings.slice(0, 200),
     };
   }
 
@@ -206,8 +249,13 @@ export class EmployeeImportService {
     }
 
     const errors: EmployeeImportError[] = [];
+    const warnings: EmployeeImportWarning[] = [];
     const validRows: ImportResolvedRow[] = [];
     const seenNumbers = new Set<string>();
+    const seenIdentityBirth = new Set<string>();
+    const seenNames = new Set<string>();
+    const seenPhones = new Set<string>();
+    const seenEmails = new Set<string>();
     let duplicateRows = 0;
 
     cached.rows.forEach((source, index) => {
@@ -216,9 +264,11 @@ export class EmployeeImportService {
       const lastName = cell(source, columnMap.last_name);
       const firstName = cell(source, columnMap.first_name);
       const middleName = nullableCell(source, columnMap.middle_name);
+      const birthDate = nullableCell(source, columnMap.birth_date);
       const email = nullableCell(source, columnMap.email)?.toLowerCase() ?? null;
       const phone = nullableCell(source, columnMap.phone);
       const employeeNumber = nullableCell(source, columnMap.employee_number);
+      const contractNumber = nullableCell(source, columnMap.contract_number);
       const enterpriseName = nullableCell(source, columnMap.enterprise);
       const departmentName = nullableCell(source, columnMap.department);
       const positionName = nullableCell(source, columnMap.position);
@@ -231,6 +281,9 @@ export class EmployeeImportService {
 
       if (!lastName) rowErrors.push("не указана фамилия");
       if (!firstName) rowErrors.push("не указано имя");
+      if (birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        rowErrors.push("дата рождения должна быть в формате ГГГГ-ММ-ДД");
+      }
       if (hireDate && !/^\d{4}-\d{2}-\d{2}$/.test(hireDate)) {
         rowErrors.push("дата приёма должна быть в формате ГГГГ-ММ-ДД");
       }
@@ -274,21 +327,129 @@ export class EmployeeImportService {
         rowErrors.push("отдел находится вне доступной области данных");
       }
 
-      let duplicate = false;
+      let hardDuplicate = false;
+      const normalizedName = [lastName, firstName, middleName ?? ""]
+        .map(normalizeDuplicateText)
+        .join("|");
+      const identityBirthKey =
+        birthDate && normalizedName
+          ? `${normalizedName}|${birthDate}`
+          : "";
+      const normalizedPhone = normalizePhone(phone);
+      const normalizedEmail = normalizeDuplicateText(email);
+
       if (employeeNumber && enterpriseId) {
-        const normalizedKey = `${enterpriseId}:${employeeNumber.trim().toLowerCase()}`;
-        if (
-          seenNumbers.has(normalizedKey) ||
-          this.employeeNumberExists(enterpriseId, employeeNumber)
-        ) {
-          duplicate = true;
+        const normalizedKey = `${enterpriseId}:${normalizeDuplicateText(
+          employeeNumber,
+        )}`;
+        if (seenNumbers.has(normalizedKey)) {
+          hardDuplicate = true;
+          rowErrors.push(
+            "табельный номер повторяется в импортируемом файле",
+          );
         }
         seenNumbers.add(normalizedKey);
       }
-      if (duplicate) {
-        duplicateRows += 1;
-        rowErrors.push("табельный номер уже используется в этом предприятии");
+
+      if (identityBirthKey) {
+        if (seenIdentityBirth.has(identityBirthKey)) {
+          hardDuplicate = true;
+          rowErrors.push(
+            "ФИО и дата рождения повторяются в импортируемом файле",
+          );
+        }
+        seenIdentityBirth.add(identityBirthKey);
       }
+
+      if (normalizedName) {
+        if (seenNames.has(normalizedName) && !identityBirthKey) {
+          warnings.push({
+            row: rowNumber,
+            message:
+              "В импортируемом файле уже есть строка с таким же ФИО",
+          });
+        }
+        seenNames.add(normalizedName);
+      }
+      if (normalizedPhone) {
+        if (seenPhones.has(normalizedPhone)) {
+          warnings.push({
+            row: rowNumber,
+            message:
+              "В импортируемом файле уже есть строка с таким же телефоном",
+          });
+        }
+        seenPhones.add(normalizedPhone);
+      }
+      if (normalizedEmail) {
+        if (seenEmails.has(normalizedEmail)) {
+          warnings.push({
+            row: rowNumber,
+            message:
+              "В импортируемом файле уже есть строка с таким же email",
+          });
+        }
+        seenEmails.add(normalizedEmail);
+      }
+
+      if (enterpriseId) {
+        const duplicateResult = this.employmentService.checkDuplicates(
+          {
+            enterpriseId,
+            employeeNumber: employeeNumber ?? undefined,
+            lastName,
+            firstName,
+            middleName: middleName ?? undefined,
+            birthDate: birthDate ?? undefined,
+            phone: phone ?? undefined,
+            email: email ?? undefined,
+            contractNumber: contractNumber ?? undefined,
+          },
+          {
+            enterpriseId:
+              session.scopeType === "global"
+                ? enterpriseId
+                : session.enterpriseId,
+            departmentId:
+              session.scopeType === "department"
+                ? session.departmentId
+                : null,
+          },
+        );
+
+        const blockingMatches = duplicateResult.matches.filter(
+          (match) => match.blocking,
+        );
+        if (blockingMatches.length > 0) {
+          hardDuplicate = true;
+          for (const match of blockingMatches) {
+            rowErrors.push(
+              formatImportDuplicate(
+                "дубликат",
+                match.employeeName,
+                match.fields
+                  .filter((field) => field.blocking)
+                  .map((field) => field.label),
+              ),
+            );
+          }
+        }
+
+        for (const match of duplicateResult.matches.filter(
+          (candidate) => !candidate.blocking,
+        )) {
+          warnings.push({
+            row: rowNumber,
+            message: formatImportDuplicate(
+              "возможное совпадение",
+              match.employeeName,
+              match.fields.map((field) => field.label),
+            ),
+          });
+        }
+      }
+
+      if (hardDuplicate) duplicateRows += 1;
 
       if (rowErrors.length > 0 || !enterpriseId) {
         errors.push({ row: rowNumber, message: rowErrors.join("; ") });
@@ -300,9 +461,11 @@ export class EmployeeImportService {
         lastName,
         firstName,
         middleName,
+        birthDate,
         email,
         phone,
         employeeNumber,
+        contractNumber,
         enterpriseId,
         departmentId: departmentId ?? null,
         positionId: positionId ?? null,
@@ -315,6 +478,7 @@ export class EmployeeImportService {
       totalRows: cached.rows.length,
       duplicateRows,
       errors,
+      warnings,
       validRows,
     };
   }
@@ -365,22 +529,6 @@ export class EmployeeImportService {
     return row?.id ?? null;
   }
 
-  private employeeNumberExists(
-    enterpriseId: number,
-    employeeNumber: string,
-  ): boolean {
-    return Boolean(
-      this.database
-        .prepare(
-          `SELECT 1 FROM employees
-           WHERE enterprise_id = ?
-             AND LOWER(TRIM(employee_number)) = LOWER(TRIM(?))
-           LIMIT 1`,
-        )
-        .get(enterpriseId, employeeNumber),
-    );
-  }
-
   private trimCache(): void {
     while (this.importCache.size > 5) {
       const firstKey = this.importCache.keys().next().value as string | undefined;
@@ -388,6 +536,23 @@ export class EmployeeImportService {
       this.importCache.delete(firstKey);
     }
   }
+}
+
+function normalizeDuplicateText(value: unknown): string {
+  return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizePhone(value: unknown): string {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function formatImportDuplicate(
+  prefix: string,
+  employeeName: string,
+  fields: string[],
+): string {
+  const detail = fields.length > 0 ? `: ${fields.join(", ")}` : "";
+  return `${prefix} — «${employeeName}»${detail}`;
 }
 
 function today(): string {

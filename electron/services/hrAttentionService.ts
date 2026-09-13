@@ -29,13 +29,21 @@ export class HrAttentionService {
         employee.lifecycle_status ?? employee.status ?? "active",
       );
       if (lifecycle === "pending_assignment" || lifecycle === "draft") {
+        const missing: string[] = [];
+        if (!employee.enterprise_id) missing.push("предприятие");
+        if (!employee.department_id) missing.push("отдел");
+        if (!employee.position_id) missing.push("должность");
+        if (!String(employee.hire_date ?? "").trim()) {
+          missing.push("дата приёма");
+        }
+
         items.push(
           attention(
             `employee-pending-${id}`,
             "employee_pending",
             "warning",
-            "Ожидает оформления",
-            `${name}: требуется кадровое назначение`,
+            "Требует дооформления",
+            `${name}: ${missing.length > 0 ? `не заполнено — ${missing.join(", ")}` : "завершите кадровое оформление"}`,
             `/employees/${id}`,
             null,
           ),

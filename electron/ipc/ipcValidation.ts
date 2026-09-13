@@ -8,6 +8,7 @@ import type {
   HrGetByIdParams,
   HrHireDateCorrectionParams,
   HrListParams,
+  HrRehireParams,
   HrTerminationParams,
   HrUpdateParams,
   RecruitmentListParams,
@@ -138,6 +139,26 @@ export const ipcValidation = {
         employeeId: positiveId,
         effectiveAt: dateSchema,
         reason: z.string().min(1).max(2000),
+      })
+      .parse(value);
+  },
+  rehire(value: unknown): HrRehireParams {
+    return z
+      .object({
+        employeeId: positiveId,
+        enterpriseId: positiveId,
+        departmentId: positiveId,
+        positionId: positiveId,
+        effectiveAt: dateSchema,
+        salary: z.number().nonnegative(),
+        reason: z.string().min(1).max(2000),
+        employeeNumber: z.string().max(100).optional(),
+        employmentType: z.string().max(100).optional(),
+        contractNumber: z.string().max(200).optional(),
+        contractDate: dateSchema.optional().or(z.literal("")),
+        contractEndDate: dateSchema.optional().or(z.literal("")),
+        probationEndDate: dateSchema.optional().or(z.literal("")),
+        workplace: z.string().max(500).optional(),
       })
       .parse(value);
   },

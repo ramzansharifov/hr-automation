@@ -23,9 +23,11 @@ const importFields = [
   { key: "last_name", label: "Фамилия", required: true, aliases: ["фамилия", "last name", "lastname", "last_name"] },
   { key: "first_name", label: "Имя", required: true, aliases: ["имя", "first name", "firstname", "first_name"] },
   { key: "middle_name", label: "Отчество", required: false, aliases: ["отчество", "middle name", "middle_name"] },
+  { key: "birth_date", label: "Дата рождения", required: false, aliases: ["дата рождения", "birth date", "birth_date"] },
   { key: "email", label: "Email", required: false, aliases: ["email", "e-mail", "почта"] },
   { key: "phone", label: "Телефон", required: false, aliases: ["телефон", "phone", "mobile"] },
   { key: "employee_number", label: "Табельный номер", required: false, aliases: ["табельный номер", "employee number", "employee_number"] },
+  { key: "contract_number", label: "Номер трудового договора", required: false, aliases: ["номер договора", "трудовой договор", "contract number", "contract_number"] },
   { key: "enterprise", label: "Предприятие", required: false, aliases: ["предприятие", "enterprise", "company"] },
   { key: "department", label: "Отдел", required: false, aliases: ["отдел", "department"] },
   { key: "position", label: "Должность", required: false, aliases: ["должность", "position", "job title"] },
@@ -199,10 +201,11 @@ export function DataExchangePage(): JSX.Element {
 
               {preview && (
                 <div className="grid gap-4">
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <MiniMetric label="Всего" value={preview.totalRows} />
                     <MiniMetric label="Готово" value={preview.validRows} />
                     <MiniMetric label="Дубликаты" value={preview.duplicateRows} />
+                    <MiniMetric label="Проверить" value={preview.warningRows} />
                   </div>
                   {preview.errors.length > 0 && (
                     <div className="max-h-64 overflow-auto rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
@@ -211,6 +214,21 @@ export function DataExchangePage(): JSX.Element {
                         {preview.errors.slice(0, 100).map((item, index) => (
                           <p className="app-muted" key={`${item.row}-${index}`}>
                             <strong className="app-text">Строка {item.row}:</strong> {item.message}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {preview.warnings.length > 0 && (
+                    <div className="max-h-64 overflow-auto rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
+                      <p className="font-black text-amber-700 dark:text-amber-300">
+                        Возможные совпадения — проверьте перед импортом
+                      </p>
+                      <div className="mt-3 grid gap-2 text-sm">
+                        {preview.warnings.slice(0, 100).map((item, index) => (
+                          <p className="app-muted" key={`warning-${item.row}-${index}`}>
+                            <strong className="app-text">Строка {item.row}:</strong>{" "}
+                            {item.message}
                           </p>
                         ))}
                       </div>

@@ -50,12 +50,14 @@ export function EmployeeLifecyclePanel({
   const [positions, setPositions] = useState<PositionOption[]>([]);
   const [careerOpen, setCareerOpen] = useState(false);
   const [terminationOpen, setTerminationOpen] = useState(false);
+  const [rehireOpen, setRehireOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const lifecycleStatus = String(employee.lifecycle_status ?? employee.status ?? "");
   const isPending = ["draft", "pending_assignment"].includes(lifecycleStatus);
   const isActive = lifecycleStatus === "active" || String(employee.status) === "active";
+  const isTerminated = lifecycleStatus === "terminated";
   const [career, setCareer] = useState({
     enterpriseId: String(employee.enterprise_id ?? ""),
     departmentId: String(employee.department_id ?? ""),
@@ -68,6 +70,21 @@ export function EmployeeLifecyclePanel({
   const [termination, setTermination] = useState({
     effectiveAt: today,
     reason: "",
+  });
+  const [rehire, setRehire] = useState({
+    enterpriseId: String(employee.enterprise_id ?? ""),
+    departmentId: String(employee.department_id ?? ""),
+    positionId: String(employee.position_id ?? ""),
+    effectiveAt: today,
+    salary: String(employee.salary ?? 0),
+    reason: "",
+    employeeNumber: String(employee.employee_number ?? ""),
+    employmentType: String(employee.employment_type ?? "full_time"),
+    contractNumber: String(employee.contract_number ?? ""),
+    contractDate: String(employee.contract_date ?? ""),
+    contractEndDate: String(employee.contract_end_date ?? ""),
+    probationEndDate: String(employee.probation_end_date ?? ""),
+    workplace: String(employee.workplace ?? ""),
   });
   const [correction, setCorrection] = useState({
     hireDate: String(employee.hire_date ?? ""),
@@ -118,6 +135,20 @@ export function EmployeeLifecyclePanel({
       ...current,
       hireDate: String(employee.hire_date ?? ""),
     }));
+    setRehire((current) => ({
+      ...current,
+      enterpriseId,
+      departmentId,
+      positionId: String(employee.position_id ?? ""),
+      salary: String(employee.salary ?? 0),
+      employeeNumber: String(employee.employee_number ?? ""),
+      employmentType: String(employee.employment_type ?? "full_time"),
+      contractNumber: String(employee.contract_number ?? ""),
+      contractDate: String(employee.contract_date ?? ""),
+      contractEndDate: String(employee.contract_end_date ?? ""),
+      probationEndDate: String(employee.probation_end_date ?? ""),
+      workplace: String(employee.workplace ?? ""),
+    }));
   }, [departments, employee]);
 
   const availableDepartments = career.enterpriseId
@@ -128,6 +159,16 @@ export function EmployeeLifecyclePanel({
   const availablePositions = career.departmentId
     ? positions.filter(
         (position) => position.departmentId === career.departmentId,
+      )
+    : [];
+  const rehireDepartments = rehire.enterpriseId
+    ? departments.filter(
+        (department) => department.enterpriseId === rehire.enterpriseId,
+      )
+    : [];
+  const rehirePositions = rehire.departmentId
+    ? positions.filter(
+        (position) => position.departmentId === rehire.departmentId,
       )
     : [];
 
@@ -169,11 +210,49 @@ export function EmployeeLifecyclePanel({
       setCareer((current) => ({ ...current, reason: "" }));
       toast.success(
         isPending
-          ? "Сотрудник оформлен на работу"
+          ? "Карточка сотрудника полностью оформлена"
           : "Кадровое изменение сохранено в журнале",
       );
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось сохранить кадровое изменение"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveRehire(event: React.FormEvent): Promise<void> {
+    event.preventDefault();
+    if (!canChangeEmployment || !isTerminated) return;
+    if (!rehire.enterpriseId || !rehire.departmentId || !rehire.positionId) {
+      toast.error("Выберите предприятие, отдел и должность");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updated = await hrApiClient.rehireEmployee({
+        employeeId,
+        enterpriseId: Number(rehire.enterpriseId),
+        departmentId: Number(rehire.departmentId),
+        positionId: Number(rehire.positionId),
+        effectiveAt: rehire.effectiveAt,
+        salary: Number(rehire.salary),
+        reason: rehire.reason,
+        employeeNumber: rehire.employeeNumber || undefined,
+        employmentType: rehire.employmentType || undefined,
+        contractNumber: rehire.contractNumber || undefined,
+        contractDate: rehire.contractDate || undefined,
+        contractEndDate: rehire.contractEndDate || undefined,
+        probationEndDate: rehire.probationEndDate || undefined,
+        workplace: rehire.workplace || undefined,
+      });
+      await onEmployeeUpdated(updated);
+      await loadData();
+      setRehireOpen(false);
+      setRehire((current) => ({ ...current, reason: "" }));
+      toast.success("Повторный приём сохранён в кадровом журнале");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось повторно принять сотрудника"));
     } finally {
       setSaving(false);
     }
@@ -232,7 +311,12 @@ export function EmployeeLifecyclePanel({
           value={
             isPending
               ? "Не начат"
-              : durationBetween(String(employee.hire_date ?? ""), careerEndDate)
+              : totalEmploymentDuration(
+                  history,
+                  isActive,
+                  String(employee.hire_date ?? ""),
+                  careerEndDate,
+                )
           }
         />
         <Metric
@@ -278,7 +362,7 @@ export function EmployeeLifecyclePanel({
                   action={isPending ? "hire" : "edit"}
                   onClick={() => setCareerOpen(true)}
                 >
-                  {isPending ? "Оформить на работу" : "Кадровое изменение"}
+                  {isPending ? "Дооформить сотрудника" : "Кадровое изменение"}
                 </ActionButton>
               )}
               {isActive && canTerminate && (
@@ -286,6 +370,14 @@ export function EmployeeLifecyclePanel({
                   action="terminate"
                   onClick={() => setTerminationOpen(true)}
                 />
+              )}
+              {isTerminated && canChangeEmployment && (
+                <ActionButton
+                  action="hire"
+                  onClick={() => setRehireOpen(true)}
+                >
+                  Принять повторно
+                </ActionButton>
               )}
             </div>
           )}
@@ -307,10 +399,10 @@ export function EmployeeLifecyclePanel({
           <Dialog
             open={careerOpen}
             onOpenChange={setCareerOpen}
-            title={isPending ? "Оформить на работу" : "Кадровое изменение"}
+            title={isPending ? "Дооформить сотрудника" : "Кадровое изменение"}
             description={
               isPending
-                ? "Укажите первое кадровое назначение сотрудника: предприятие, отдел, должность, дату и основание."
+                ? "Заполните недостающие кадровые данные: предприятие, отдел, должность, дату и основание."
                 : "Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
             }
           >
@@ -453,6 +545,202 @@ export function EmployeeLifecyclePanel({
         </>
       )}
 
+      {canChangeEmployment && isTerminated && (
+        <Dialog
+          open={rehireOpen}
+          onOpenChange={setRehireOpen}
+          title="Принять сотрудника повторно"
+          description="Будет продолжена существующая карточка сотрудника. Предыдущий период работы и увольнение останутся в кадровой истории."
+        >
+          <form className="grid gap-4" onSubmit={saveRehire}>
+            <Field label="Предприятие">
+              <SearchableSelect
+                options={enterprises}
+                value={rehire.enterpriseId}
+                onValueChange={(enterpriseId) =>
+                  setRehire((value) => ({
+                    ...value,
+                    enterpriseId,
+                    departmentId: "",
+                    positionId: "",
+                  }))
+                }
+                placeholder="Выберите предприятие"
+                searchPlaceholder="Поиск предприятия"
+              />
+            </Field>
+            <Field label="Отдел">
+              <SearchableSelect
+                disabled={!rehire.enterpriseId}
+                options={rehireDepartments}
+                value={rehire.departmentId}
+                onValueChange={(departmentId) =>
+                  setRehire((value) => ({
+                    ...value,
+                    departmentId,
+                    positionId: "",
+                  }))
+                }
+                placeholder={
+                  rehire.enterpriseId
+                    ? "Выберите отдел"
+                    : "Сначала выберите предприятие"
+                }
+                searchPlaceholder="Поиск отдела"
+              />
+            </Field>
+            <Field label="Должность">
+              <SearchableSelect
+                disabled={!rehire.departmentId}
+                options={rehirePositions}
+                value={rehire.positionId}
+                onValueChange={(positionId) =>
+                  setRehire((value) => ({ ...value, positionId }))
+                }
+                placeholder={
+                  rehire.departmentId
+                    ? "Выберите должность"
+                    : "Сначала выберите отдел"
+                }
+                searchPlaceholder="Поиск должности"
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Дата повторного приёма">
+                <Input
+                  required
+                  type="date"
+                  value={rehire.effectiveAt}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      effectiveAt: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Оклад">
+                <Input
+                  min="0"
+                  required
+                  type="number"
+                  value={rehire.salary}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      salary: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Табельный номер">
+                <Input
+                  value={rehire.employeeNumber}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      employeeNumber: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Тип занятости">
+                <Select
+                  value={rehire.employmentType}
+                  onValueChange={(employmentType) =>
+                    setRehire((value) => ({ ...value, employmentType }))
+                  }
+                  options={[
+                    { value: "full_time", label: "Полная занятость" },
+                    { value: "part_time", label: "Частичная занятость" },
+                    { value: "temporary", label: "Временная работа" },
+                    { value: "internship", label: "Стажировка" },
+                  ]}
+                />
+              </Field>
+              <Field label="Номер договора">
+                <Input
+                  value={rehire.contractNumber}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      contractNumber: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Дата договора">
+                <Input
+                  type="date"
+                  value={rehire.contractDate}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      contractDate: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Окончание договора">
+                <Input
+                  type="date"
+                  value={rehire.contractEndDate}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      contractEndDate: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Испытательный срок до">
+                <Input
+                  type="date"
+                  value={rehire.probationEndDate}
+                  onChange={(event) =>
+                    setRehire((value) => ({
+                      ...value,
+                      probationEndDate: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+            </div>
+            <Field label="Место работы">
+              <Input
+                value={rehire.workplace}
+                onChange={(event) =>
+                  setRehire((value) => ({
+                    ...value,
+                    workplace: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Основание повторного приёма">
+              <Textarea
+                required
+                rows={3}
+                value={rehire.reason}
+                onChange={(event) =>
+                  setRehire((value) => ({
+                    ...value,
+                    reason: event.target.value,
+                  }))
+                }
+                placeholder="Например: приказ о повторном приёме №15"
+              />
+            </Field>
+            <FormActions
+              loading={saving}
+              onCancel={() => setRehireOpen(false)}
+              submitAction="hire"
+              submitLabel="Принять повторно"
+            />
+          </form>
+        </Dialog>
+      )}
+
       {canTerminate && (
         <Dialog
           open={terminationOpen}
@@ -547,7 +835,7 @@ function HistoryItem({
 }): JSX.Element {
   const changeType = String(item.change_type ?? "");
   const terminated = changeType === "terminated";
-  const hired = changeType === "hired";
+  const hired = changeType === "hired" || changeType === "rehired";
   const previousEnterprise = String(item.previous_enterprise_name ?? "").trim();
   const nextEnterprise = String(item.new_enterprise_name ?? "").trim();
   const previousDepartment = String(item.previous_department_name ?? "").trim();
@@ -561,8 +849,10 @@ function HistoryItem({
 
   const title = terminated
     ? "Увольнение"
-    : hired
-      ? "Приём на работу"
+    : changeType === "rehired"
+      ? "Повторный приём на работу"
+      : hired
+        ? "Приём на работу"
       : changeType === "enterprise_director"
         ? "Назначение руководителем предприятия"
         : changeType === "department_leader"
@@ -627,6 +917,54 @@ function transitionValue(
     return `${previousValue} → ${nextValue}`;
   }
   return nextValue || previousValue;
+}
+
+function totalEmploymentDuration(
+  history: HrRecord[],
+  isActive: boolean,
+  fallbackStart: string,
+  fallbackEnd?: string,
+): string {
+  const events = [...history].sort((left, right) =>
+    String(left.effective_at ?? "").localeCompare(
+      String(right.effective_at ?? ""),
+    ),
+  );
+  let currentStart: string | null = null;
+  let totalMs = 0;
+
+  for (const event of events) {
+    const type = String(event.change_type ?? "");
+    const date = String(event.effective_at ?? "");
+    if (!date) continue;
+
+    if ((type === "hired" || type === "rehired") && !currentStart) {
+      currentStart = date;
+      continue;
+    }
+    if (type === "terminated" && currentStart) {
+      const start = new Date(`${currentStart}T00:00:00`).getTime();
+      const end = new Date(`${date}T00:00:00`).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+        totalMs += end - start;
+      }
+      currentStart = null;
+    }
+  }
+
+  if (currentStart && isActive) {
+    const start = new Date(`${currentStart}T00:00:00`).getTime();
+    if (Number.isFinite(start)) totalMs += Date.now() - start;
+  }
+
+  if (totalMs <= 0) {
+    return durationBetween(fallbackStart, fallbackEnd);
+  }
+
+  const months = Math.max(0, Math.floor(totalMs / 2629800000));
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  return years ? `${years} г. ${rest} мес.` : `${rest} мес.`;
 }
 
 function durationBetween(startDate: string, endDate?: string): string {

@@ -13,6 +13,7 @@ import type {
   HrHireDateCorrectionParams,
   HrLeadershipChangeParams,
   HrListParams,
+  HrRehireParams,
   HrTerminationParams,
   PreviewEmployeeImportParams,
   RecruitmentListParams,
@@ -176,6 +177,8 @@ export const hrApiClient = {
     notifyAuthSessionChanged(getHrApi().changeLeadership(params)),
   terminateEmployee: (params: HrTerminationParams) =>
     notifyAuthSessionChanged(getHrApi().terminateEmployee(params)),
+  rehireEmployee: (params: HrRehireParams) =>
+    notifyAuthSessionChanged(getHrApi().rehireEmployee(params)),
   correctHireDate: (params: HrHireDateCorrectionParams) =>
     notifyAuthSessionChanged(getHrApi().correctHireDate(params)),
   delete: (params: HrDeleteParams) =>

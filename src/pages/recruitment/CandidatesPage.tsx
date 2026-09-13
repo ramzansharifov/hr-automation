@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { EmployeeDuplicateNotice } from "../../features/employees/create/EmployeeDuplicateNotice";
 import {
   FormField,
   MatchBar,
@@ -19,6 +20,7 @@ import {
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   CandidateProfile,
+  EmployeeDuplicateCheckResult,
   HireCandidateParams,
   HrRecord,
   SaveCandidateParams,
@@ -111,6 +113,10 @@ export function CandidatesPage(): JSX.Element {
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [hireOpen, setHireOpen] = useState(false);
+  const [hireDuplicateState, setHireDuplicateState] = useState<{
+    signature: string;
+    result: EmployeeDuplicateCheckResult;
+  } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
 
   const filteredCandidates = useMemo(
@@ -244,14 +250,54 @@ export function CandidatesPage(): JSX.Element {
   function openHire(): void {
     if (!canHire || !form.id || form.status !== "offer" || form.employeeId) return;
     setHireForm(emptyHireForm());
+    setHireDuplicateState(null);
     setHireOpen(true);
   }
 
   async function hireCandidate(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    await submitCandidateHire(false);
+  }
+
+  async function submitCandidateHire(
+    allowWarnings: boolean,
+  ): Promise<void> {
     if (!form.id || !canHire) return;
+
+    const vacancy = vacancies.find(
+      (item) => Number(item.id) === Number(form.vacancyId),
+    );
+    const duplicateParams = {
+      enterpriseId: Number(vacancy?.enterprise_id) || null,
+      employeeNumber: hireForm.employeeNumber,
+      lastName: form.lastName,
+      firstName: form.firstName,
+      middleName: form.middleName,
+      phone: form.phone,
+      email: form.email,
+      contractNumber: hireForm.contractNumber,
+    };
+    const signature = JSON.stringify(duplicateParams);
+
     setIsSaving(true);
     try {
+      const duplicateResult =
+        await hrApiClient.checkEmployeeDuplicates(duplicateParams);
+      setHireDuplicateState({ signature, result: duplicateResult });
+
+      if (duplicateResult.hasBlockingMatches) {
+        toast.error(
+          "Этот человек уже есть среди сотрудников. Используйте существующую карточку.",
+        );
+        return;
+      }
+      if (duplicateResult.matches.length > 0 && !allowWarnings) {
+        toast.warning(
+          "Найдены возможные совпадения. Проверьте их перед приёмом.",
+        );
+        return;
+      }
+
       const params: HireCandidateParams = {
         candidateId: form.id,
         hireDate: hireForm.hireDate,
@@ -265,11 +311,14 @@ export function CandidatesPage(): JSX.Element {
       };
       const employee = await hrApiClient.hireCandidate(params);
       setHireOpen(false);
+      setHireDuplicateState(null);
       setIsDialogOpen(false);
       await loadData();
       toast.success(`Сотрудник создан. ID: ${String(employee.id)}`);
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось принять кандидата на работу"));
+      toast.error(
+        errorMessage(error, "Не удалось принять кандидата на работу"),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -292,6 +341,23 @@ export function CandidatesPage(): JSX.Element {
 
   const previewMatch = calculateMatch(form.skills);
   const formDisabled = Boolean(form.employeeId) || (form.id ? !canEdit : !canCreate);
+  const selectedHireVacancy = vacancies.find(
+    (item) => Number(item.id) === Number(form.vacancyId),
+  );
+  const hireDuplicateSignature = JSON.stringify({
+    enterpriseId: Number(selectedHireVacancy?.enterprise_id) || null,
+    employeeNumber: hireForm.employeeNumber,
+    lastName: form.lastName,
+    firstName: form.firstName,
+    middleName: form.middleName,
+    phone: form.phone,
+    email: form.email,
+    contractNumber: hireForm.contractNumber,
+  });
+  const visibleHireDuplicateResult =
+    hireDuplicateState?.signature === hireDuplicateSignature
+      ? hireDuplicateState.result
+      : null;
 
   return (
     <div className="space-y-6">
@@ -426,6 +492,16 @@ export function CandidatesPage(): JSX.Element {
           title="Принять кандидата на работу"
         >
           <form className="grid gap-4" onSubmit={hireCandidate}>
+            {visibleHireDuplicateResult && (
+              <EmployeeDuplicateNotice
+                onContinue={
+                  visibleHireDuplicateResult.hasBlockingMatches
+                    ? undefined
+                    : () => void submitCandidateHire(true)
+                }
+                result={visibleHireDuplicateResult}
+              />
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <HireField label="Дата выхода" required type="date" value={hireForm.hireDate} onChange={(hireDate) => setHireForm((v) => ({ ...v, hireDate }))} />
               <HireField label="Согласованный оклад" required min="0" type="number" value={hireForm.salary} onChange={(salary) => setHireForm((v) => ({ ...v, salary }))} />

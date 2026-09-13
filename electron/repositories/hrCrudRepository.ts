@@ -10,6 +10,7 @@ import type {
   HrListParams,
   HrListResult,
   HrRecord,
+  HrRehireParams,
   HrTerminationParams,
 } from "../../src/shared/types/hr";
 import type { HrCrudEntityConfig } from "../admin/hrCrudEntities";
@@ -86,6 +87,7 @@ export class HrCrudRepository {
   checkEmployeeDuplicates(
     params: EmployeeDuplicateCheckParams,
     scope: { enterpriseId?: number | null; departmentId?: number | null } = {},
+    options: { excludeEmployeeId?: number | null } = {},
   ): EmployeeDuplicateCheckResult {
     const employeeNumber = normalizeDuplicateText(params.employeeNumber);
     const lastName = normalizeDuplicateText(params.lastName);
@@ -173,8 +175,14 @@ export class HrCrudRepository {
 
     const where = [
       ...scopeConditions,
+      options.excludeEmployeeId
+        ? "employees.id <> @excludeEmployeeId"
+        : "",
       `(${matchConditions.join(" OR ")})`,
     ].filter(Boolean);
+    if (options.excludeEmployeeId) {
+      queryParams.excludeEmployeeId = options.excludeEmployeeId;
+    }
 
     const rows = this.database
       .prepare(
@@ -669,6 +677,192 @@ export class HrCrudRepository {
     return change();
   }
 
+  rehireEmployee(params: HrRehireParams): HrRecord {
+    const rehire = this.database.transaction(() => {
+      const employee = this.getEmployee(params.employeeId);
+      const lifecycleStatus = String(
+        employee.lifecycle_status ?? employee.status ?? "",
+      );
+      if (lifecycleStatus !== "terminated") {
+        throw new Error("Повторно принять можно только уволенного сотрудника");
+      }
+
+      const enterprise = this.database
+        .prepare(
+          "SELECT id, is_archived FROM enterprises WHERE id = ? LIMIT 1",
+        )
+        .get(params.enterpriseId) as
+        | { id: number; is_archived: number }
+        | undefined;
+      if (!enterprise) throw new Error("Предприятие не найдено");
+      if (enterprise.is_archived) {
+        throw new Error("Нельзя принять сотрудника в архивное предприятие");
+      }
+
+      const department = this.database
+        .prepare(
+          "SELECT id, enterprise_id, is_archived FROM departments WHERE id = ? LIMIT 1",
+        )
+        .get(params.departmentId) as
+        | { id: number; enterprise_id: number | null; is_archived: number }
+        | undefined;
+      if (!department) throw new Error("Отдел не найден");
+      if (department.is_archived) {
+        throw new Error("Нельзя принять сотрудника в архивный отдел");
+      }
+      if (Number(department.enterprise_id) !== params.enterpriseId) {
+        throw new Error(
+          "Выбранный отдел не принадлежит указанному предприятию",
+        );
+      }
+
+      const position = this.database
+        .prepare(
+          "SELECT id, department_id, is_archived FROM positions WHERE id = ? LIMIT 1",
+        )
+        .get(params.positionId) as
+        | { id: number; department_id: number | null; is_archived: number }
+        | undefined;
+      if (!position) throw new Error("Должность не найдена");
+      if (position.is_archived) {
+        throw new Error("Нельзя принять сотрудника на архивную должность");
+      }
+      if (Number(position.department_id) !== params.departmentId) {
+        throw new Error(
+          "Выбранная должность не принадлежит указанному отделу",
+        );
+      }
+
+      this.assertLifecycleDate(
+        params.employeeId,
+        params.effectiveAt,
+        employee,
+      );
+      if (!Number.isFinite(params.salary) || params.salary < 0) {
+        throw new Error("Оклад указан неверно");
+      }
+
+      const currentDepartmentId = nullablePositiveNumber(
+        employee.department_id,
+      );
+      const currentPositionId = nullablePositiveNumber(employee.position_id);
+      const currentSalary = Number(employee.salary ?? 0);
+      const generatedByTrigger =
+        currentDepartmentId !== params.departmentId ||
+        currentPositionId !== params.positionId ||
+        currentSalary !== params.salary;
+
+      this.database
+        .prepare(
+          `UPDATE employees
+           SET enterprise_id = @enterpriseId,
+               department_id = @departmentId,
+               position_id = @positionId,
+               employee_number = @employeeNumber,
+               salary = @salary,
+               employment_type = @employmentType,
+               contract_number = @contractNumber,
+               contract_date = @contractDate,
+               contract_end_date = @contractEndDate,
+               probation_end_date = @probationEndDate,
+               workplace = @workplace,
+               hire_date = @effectiveAt,
+               employment_started_at = @effectiveAt,
+               status = 'active',
+               lifecycle_status = 'active',
+               terminated_at = NULL,
+               termination_reason = NULL,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = @employeeId`,
+        )
+        .run({
+          contractDate: nullableString(params.contractDate),
+          contractEndDate: nullableString(params.contractEndDate),
+          contractNumber: nullableString(params.contractNumber),
+          departmentId: params.departmentId,
+          effectiveAt: params.effectiveAt,
+          employeeId: params.employeeId,
+          employeeNumber:
+            nullableString(params.employeeNumber) ??
+            nullableString(employee.employee_number),
+          employmentType:
+            nullableString(params.employmentType) ??
+            nullableString(employee.employment_type) ??
+            "full_time",
+          enterpriseId: params.enterpriseId,
+          positionId: params.positionId,
+          probationEndDate: nullableString(params.probationEndDate),
+          salary: params.salary,
+          workplace: nullableString(params.workplace),
+        });
+
+      this.database
+        .prepare(
+          `UPDATE users
+           SET status = 'active',
+               lifecycle_blocked = 0,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE employee_id = ?
+             AND lifecycle_blocked = 1`,
+        )
+        .run(params.employeeId);
+
+      if (generatedByTrigger) {
+        const generatedHistory = this.database
+          .prepare(
+            `SELECT id FROM employment_history
+             WHERE employee_id = ?
+             ORDER BY id DESC LIMIT 1`,
+          )
+          .get(params.employeeId) as { id: number } | undefined;
+        if (!generatedHistory) {
+          throw new Error(
+            "Не удалось создать запись о повторном приёме",
+          );
+        }
+        this.database
+          .prepare(
+            `UPDATE employment_history
+             SET change_type = 'rehired',
+                 effective_at = @effectiveAt,
+                 reason = @reason
+             WHERE id = @historyId`,
+          )
+          .run({
+            effectiveAt: params.effectiveAt,
+            historyId: generatedHistory.id,
+            reason: params.reason.trim(),
+          });
+      } else {
+        this.database
+          .prepare(
+            `INSERT INTO employment_history (
+               employee_id, change_type,
+               previous_department_id, new_department_id,
+               previous_position_id, new_position_id,
+               previous_salary, new_salary,
+               effective_at, reason
+             ) VALUES (?, 'rehired', ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            params.employeeId,
+            currentDepartmentId,
+            params.departmentId,
+            currentPositionId,
+            params.positionId,
+            currentSalary,
+            params.salary,
+            params.effectiveAt,
+            params.reason.trim(),
+          );
+      }
+
+      return this.getEmployee(params.employeeId);
+    });
+
+    return rehire();
+  }
+
   terminateEmployee(params: HrTerminationParams): HrRecord {
     const terminate = this.database.transaction(() => {
       const employee = this.getEmployee(params.employeeId);
@@ -1031,6 +1225,11 @@ export class HrCrudRepository {
       | undefined;
     return Number(result ?? 0);
   }
+}
+
+function nullableString(value: unknown): string | null {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
 }
 
 function normalizeDuplicateText(value: unknown): string {

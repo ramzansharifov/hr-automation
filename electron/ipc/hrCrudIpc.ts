@@ -19,15 +19,19 @@ import { AuditService } from "../services/auditService";
 import { AuthenticationService } from "../services/authenticationService";
 import { AuthorizationService } from "../services/authorizationService";
 import { BackupService } from "../services/backupService";
+import { EmployeeEmploymentService } from "../services/employeeEmploymentService";
 import { HrCrudService } from "../services/hrCrudService";
 import { RecruitmentService } from "../services/recruitmentService";
 import { ipcValidation } from "./ipcValidation";
 
 export function registerHrCrudIpcHandlers(): void {
   const database = getDatabase();
-  const service = new HrCrudService(new HrCrudRepository(database));
+  const hrRepository = new HrCrudRepository(database);
+  const employmentService = new EmployeeEmploymentService(hrRepository);
+  const service = new HrCrudService(hrRepository);
   const recruitmentService = new RecruitmentService(
     new RecruitmentRepository(database),
+    employmentService,
   );
   const accessService = new AccessControlService(
     new AccessControlRepository(database),
@@ -129,7 +133,11 @@ export function registerHrCrudIpcHandlers(): void {
   ipcMain.handle("hr:checkEmployeeDuplicates", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.employeeDuplicateCheck(raw);
-    const session = authorizationService.requirePermission("employees.create");
+    const session = authorizationService.requireAnyPermission([
+      "employees.create",
+      "candidates.hire",
+      "data_exchange.import",
+    ]);
 
     const enterpriseId =
       session.scopeType === "global"
@@ -263,6 +271,39 @@ export function registerHrCrudIpcHandlers(): void {
       employee,
       updated,
       { effectiveAt: params.effectiveAt, reason: params.reason },
+    );
+    return updated;
+  });
+
+  ipcMain.handle("hr:rehireEmployee", (event, raw: unknown) => {
+    assertTrustedSender(event);
+    const params = ipcValidation.rehire(raw);
+    const employee = service.getById({
+      entity: "employees",
+      id: params.employeeId,
+    });
+    if (!employee) throw new Error("Сотрудник не найден");
+
+    authorizationService.assertCanChangeEmployment(employee, "change", {
+      enterpriseId: params.enterpriseId,
+      departmentId: params.departmentId,
+    });
+
+    const updated = service.rehireEmployee(params);
+    auditService.record(
+      authenticationService.requireSession(),
+      "employment.rehire",
+      "employees",
+      params.employeeId,
+      employee,
+      updated,
+      {
+        enterpriseId: params.enterpriseId,
+        departmentId: params.departmentId,
+        positionId: params.positionId,
+        effectiveAt: params.effectiveAt,
+        reason: params.reason,
+      },
     );
     return updated;
   });
@@ -607,8 +648,6 @@ function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
     return {
       ...data,
       enterprise_id: session.enterpriseId,
-      department_id: null,
-      position_id: null,
     };
   }
   if (session.scopeType === "department") {
@@ -619,7 +658,6 @@ function scopeNewEmployeeData(data: HrRecord, session: AuthSession): HrRecord {
       ...data,
       enterprise_id: session.enterpriseId,
       department_id: session.departmentId,
-      position_id: null,
     };
   }
   throw new Error("Создание сотрудников недоступно в личной области данных");
