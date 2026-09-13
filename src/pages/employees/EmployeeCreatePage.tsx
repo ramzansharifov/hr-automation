@@ -334,6 +334,25 @@ export function EmployeeCreatePage(): JSX.Element {
     duplicateState?.signature === currentDuplicateSignature
       ? duplicateState.result
       : null;
+
+  useEffect(() => {
+    if (
+      !duplicateState ||
+      duplicateState.signature === currentDuplicateSignature
+    ) {
+      return;
+    }
+
+    clearErrors([
+      "employee_number",
+      "last_name",
+      "first_name",
+      "middle_name",
+      "birth_date",
+    ]);
+    setDuplicateState(null);
+  }, [clearErrors, currentDuplicateSignature, duplicateState]);
+
   const enterpriseName =
     enterprises.find((item) => item.value === normalizedReviewValues.enterprise_id)?.label ?? "";
   const departmentName =
