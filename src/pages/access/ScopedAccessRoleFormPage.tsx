@@ -25,7 +25,6 @@ import type {
 } from "../../shared/types/access";
 import {
   ActionButton,
-  Button,
   ConfirmDialog,
   EmptyState,
   Input,
