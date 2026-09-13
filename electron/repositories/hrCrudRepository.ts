@@ -131,11 +131,15 @@ export class HrCrudRepository {
       const identityParts = [
         "LOWER(TRIM(COALESCE(employees.last_name, ''))) = @lastName",
         "LOWER(TRIM(COALESCE(employees.first_name, ''))) = @firstName",
-        "LOWER(TRIM(COALESCE(employees.middle_name, ''))) = @middleName",
       ];
       queryParams.lastName = lastName;
       queryParams.firstName = firstName;
-      queryParams.middleName = middleName;
+      if (middleName) {
+        identityParts.push(
+          "LOWER(TRIM(COALESCE(employees.middle_name, ''))) = @middleName",
+        );
+        queryParams.middleName = middleName;
+      }
       if (birthDate) {
         identityParts.push(
           "TRIM(COALESCE(employees.birth_date, '')) = @birthDate",
@@ -234,7 +238,7 @@ export class HrCrudRepository {
           hasIdentity &&
           rowLastName === lastName &&
           rowFirstName === firstName &&
-          rowMiddleName === middleName;
+          (!middleName || rowMiddleName === middleName);
         if (sameIdentity) {
           const identityBlocking = Boolean(
             birthDate && rowBirthDate && rowBirthDate === birthDate,
