@@ -1,13 +1,18 @@
 import type {
   HireCandidateParams,
+  HrRecord,
   RecruitmentListParams,
   SaveCandidateParams,
   SaveVacancyParams,
 } from "../../src/shared/types/hr";
 import { RecruitmentRepository } from "../repositories/recruitmentRepository";
+import { EmployeeEmploymentService } from "./employeeEmploymentService";
 
 export class RecruitmentService {
-  constructor(private readonly repository: RecruitmentRepository) {}
+  constructor(
+    private readonly repository: RecruitmentRepository,
+    private readonly employmentService: EmployeeEmploymentService,
+  ) {}
 
   listVacancies(params: RecruitmentListParams) {
     return this.repository.listVacancies(params);
@@ -119,13 +124,45 @@ export class RecruitmentService {
       throw new Error("Принять на работу можно кандидата на этапе «Оффер»");
     }
 
-    return this.repository.hireCandidate(params);
+    return this.repository.hireCandidate(params, (candidate) =>
+      this.employmentService.createHiredEmployee(
+        employeeRecordFromCandidate(candidate, params),
+        {
+          enterpriseId: Number(candidate.enterprise_id),
+        },
+      ),
+    );
   }
 
   deleteCandidate(id: number) {
     this.repository.deleteCandidate(assertId(id, "кандидата"));
     return { success: true as const };
   }
+}
+
+function employeeRecordFromCandidate(
+  candidate: HrRecord,
+  params: HireCandidateParams,
+): HrRecord {
+  return {
+    enterprise_id: Number(candidate.enterprise_id),
+    department_id: Number(candidate.department_id),
+    position_id: Number(candidate.position_id),
+    employee_number: params.employeeNumber?.trim() || null,
+    last_name: String(candidate.last_name ?? "").trim(),
+    first_name: String(candidate.first_name ?? "").trim(),
+    middle_name: String(candidate.middle_name ?? "").trim() || null,
+    phone: String(candidate.phone ?? "").trim() || null,
+    email: String(candidate.email ?? "").trim() || null,
+    hire_date: params.hireDate,
+    salary: params.salary,
+    employment_type: String(candidate.employment_type ?? "full_time"),
+    contract_number: params.contractNumber?.trim() || null,
+    contract_date: params.contractDate || null,
+    contract_end_date: params.contractEndDate || null,
+    probation_end_date: params.probationEndDate || null,
+    workplace: params.workplace?.trim() || null,
+  };
 }
 
 function assertId(value: number, label: string): number {
