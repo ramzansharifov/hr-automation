@@ -796,6 +796,17 @@ export class HrCrudRepository {
           workplace: nullableString(params.workplace),
         });
 
+      this.database
+        .prepare(
+          `UPDATE users
+           SET status = 'active',
+               lifecycle_blocked = 0,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE employee_id = ?
+             AND lifecycle_blocked = 1`,
+        )
+        .run(params.employeeId);
+
       if (generatedByTrigger) {
         const generatedHistory = this.database
           .prepare(
