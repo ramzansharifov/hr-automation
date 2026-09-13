@@ -20,7 +20,7 @@ import type {
   HrRecord,
 } from "../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   EmptyState,
   LoadingState,
   PageHeader,
