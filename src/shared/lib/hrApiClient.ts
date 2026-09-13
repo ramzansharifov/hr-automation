@@ -3,6 +3,7 @@ import type {
   ApplyEmployeeImportParams,
   AuditListParams,
   DeleteEmployeeDocumentParams,
+  EmployeeDuplicateCheckParams,
   ExportDataParams,
   HireCandidateParams,
   HrCreateParams,
@@ -163,6 +164,8 @@ export const hrApiClient = {
     getHrApi().changeOwnPassword(params),
   list: (params: HrListParams) => listWithWorkspaceContext(params),
   getById: (params: HrGetByIdParams) => getHrApi().getById(params),
+  checkEmployeeDuplicates: (params: EmployeeDuplicateCheckParams) =>
+    getHrApi().checkEmployeeDuplicates(params),
   create: (params: HrCreateParams) =>
     notifyAuthSessionChanged(getHrApi().create(params)),
   update: (params: HrUpdateParams) =>
