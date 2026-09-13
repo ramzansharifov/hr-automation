@@ -65,7 +65,6 @@ export function mapEmployeeFormValuesToRecord(values: EmployeeFormValues): HrRec
     department_id: nullableNumber(values.department_id),
     position_id: nullableNumber(values.position_id),
     hire_date: values.hire_date,
-    status: values.status,
     salary: Number(values.salary || 0),
     employment_type: values.employment_type,
     contract_number: nullableString(values.contract_number),
