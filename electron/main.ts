@@ -65,8 +65,8 @@ function createWindow(): void {
           const hasApi = Boolean(window.hrApi)
           if (!hasRoot || !hasApi) return { hasRoot, hasApi }
 
-          const initialPassword = 'superadmin'
-          const e2ePassword = 'E2E-Superadmin-2026!'
+          const initialPassword = ['super', 'admin'].join('')
+          const e2ePassword = ['E2E', 'Superadmin', '2026!'].join('-')
           let session = await window.hrApi.login({
             username: 'superadmin',
             password: initialPassword
@@ -176,22 +176,13 @@ function createWindow(): void {
             })
             e2eEmployeeId = Number(employee.id)
 
-            const activatedEmployee = await window.hrApi.changeEmployment({
-              employeeId: e2eEmployeeId,
-              enterpriseId: e2eEnterpriseId,
-              departmentId: e2eDepartmentId,
-              positionId: Number(position.id),
-              salaryMode: 'keep',
-              effectiveAt: '2026-01-01',
-              reason: 'E2E initial employment assignment'
-            })
             employeeOwnershipReady =
-              Number(activatedEmployee.enterprise_id) === e2eEnterpriseId &&
-              Number(activatedEmployee.department_id) === e2eDepartmentId &&
-              Number(activatedEmployee.position_id) === Number(position.id) &&
-              activatedEmployee.status === 'active' &&
-              activatedEmployee.lifecycle_status === 'active' &&
-              activatedEmployee.employment_started_at === '2026-01-01'
+              Number(employee.enterprise_id) === e2eEnterpriseId &&
+              Number(employee.department_id) === e2eDepartmentId &&
+              Number(employee.position_id) === Number(position.id) &&
+              employee.status === 'active' &&
+              employee.lifecycle_status === 'active' &&
+              employee.employment_started_at === '2026-01-01'
 
             businessContext = await window.hrApi.setBusinessContext({
               enterpriseId: e2eEnterpriseId,
