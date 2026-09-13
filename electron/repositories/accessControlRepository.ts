@@ -449,7 +449,8 @@ export class AccessControlRepository {
             .prepare(
               `UPDATE users
                SET employee_id = ?, username = ?, status = ?, password_hash = ?,
-                   password_salt = ?, must_change_password = ?
+                   password_salt = ?, must_change_password = ?,
+                   lifecycle_blocked = 0
                WHERE id = ?`,
             )
             .run(
@@ -465,7 +466,8 @@ export class AccessControlRepository {
           this.database
             .prepare(
               `UPDATE users
-               SET employee_id = ?, username = ?, status = ?, must_change_password = ?
+               SET employee_id = ?, username = ?, status = ?, must_change_password = ?,
+                   lifecycle_blocked = 0
                WHERE id = ?`,
             )
             .run(
