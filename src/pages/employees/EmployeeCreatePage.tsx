@@ -1,10 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
-import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
+import {
+  useForm,
+  type FieldErrors,
+  type Resolver,
+} from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
+import type {
+  EmployeeDuplicateCheckParams,
+  EmployeeDuplicateCheckResult,
+} from "../../shared/types/hr";
 import { ActionButton } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
@@ -21,6 +29,7 @@ import {
   type EmployeeFormValues,
 } from "../../features/employees/types";
 import { EmployeeCreateProgress } from "../../features/employees/create/EmployeeCreateProgress";
+import { EmployeeDuplicateNotice } from "../../features/employees/create/EmployeeDuplicateNotice";
 import { EmployeeCreateReview } from "../../features/employees/create/EmployeeCreateReview";
 import { employeeCreateSteps } from "../../features/employees/create/employeeCreateSteps";
 import {
@@ -36,7 +45,14 @@ export function EmployeeCreatePage(): JSX.Element {
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [acceptedDuplicateSignature, setAcceptedDuplicateSignature] =
+    useState<string | null>(null);
+  const [duplicateState, setDuplicateState] = useState<{
+    signature: string;
+    result: EmployeeDuplicateCheckResult;
+  } | null>(null);
   const {
     departments,
     enterprises,
@@ -45,11 +61,13 @@ export function EmployeeCreatePage(): JSX.Element {
     positions,
   } = useEmployeeFormOptions();
   const {
+    clearErrors,
     control,
     formState: { errors },
     getValues,
     handleSubmit,
     register,
+    setError,
     setValue,
     trigger,
     watch,
@@ -98,11 +116,26 @@ export function EmployeeCreatePage(): JSX.Element {
     }
   }, [availablePositions, getValues, setValue]);
 
-  async function handleNext(): Promise<void> {
-    if (activeStep >= employeeCreateSteps.length - 1 || isSubmitting) return;
+  async function handleNext(allowWarnings = false): Promise<void> {
+    if (
+      activeStep >= employeeCreateSteps.length - 1 ||
+      isSubmitting ||
+      isCheckingDuplicates
+    ) {
+      return;
+    }
+
+    clearDuplicateFieldErrors();
     const currentStep = employeeCreateSteps[activeStep];
     const isStepValid = await trigger(currentStep.fields);
     if (!isStepValid) return;
+
+    const canContinue = await validateEmployeeDuplicates(
+      getValues(),
+      allowWarnings,
+    );
+    if (!canContinue) return;
+
     setActiveStep((current) =>
       Math.min(current + 1, employeeCreateSteps.length - 1),
     );
@@ -116,9 +149,20 @@ export function EmployeeCreatePage(): JSX.Element {
     setActiveStep((current) => Math.max(current - 1, 0));
   }
 
-  async function handleFinalCreate(): Promise<void> {
-    if (activeStep !== employeeCreateSteps.length - 1 || isSubmitting) return;
-    await handleSubmit(handleCreate, handleCreateInvalid)();
+  async function handleFinalCreate(allowWarnings = false): Promise<void> {
+    if (
+      activeStep !== employeeCreateSteps.length - 1 ||
+      isSubmitting ||
+      isCheckingDuplicates
+    ) {
+      return;
+    }
+
+    clearDuplicateFieldErrors();
+    await handleSubmit(
+      (values) => handleCreate(values, allowWarnings),
+      handleCreateInvalid,
+    )();
   }
 
   function handleCreateInvalid(
@@ -131,10 +175,25 @@ export function EmployeeCreatePage(): JSX.Element {
     toast.error(t("employeesCreate.toasts.validationError"));
   }
 
-  async function handleCreate(values: EmployeeFormValues): Promise<void> {
-    if (activeStep !== employeeCreateSteps.length - 1 || isSubmitting) return;
-    setIsSubmitting(true);
+  async function handleCreate(
+    values: EmployeeFormValues,
+    allowWarnings = false,
+  ): Promise<void> {
+    if (
+      activeStep !== employeeCreateSteps.length - 1 ||
+      isSubmitting ||
+      isCheckingDuplicates
+    ) {
+      return;
+    }
 
+    const canContinue = await validateEmployeeDuplicates(
+      values,
+      allowWarnings,
+    );
+    if (!canContinue) return;
+
+    setIsSubmitting(true);
     try {
       const normalizedValues = normalizeEmployeeFormValues(values);
       const created = await hrApiClient.create({
@@ -154,6 +213,92 @@ export function EmployeeCreatePage(): JSX.Element {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function validateEmployeeDuplicates(
+    values: EmployeeFormValues,
+    allowWarnings: boolean,
+  ): Promise<boolean> {
+    const normalizedValues = normalizeEmployeeFormValues(values);
+    const params = buildEmployeeDuplicateCheckParams(normalizedValues);
+    const signature = employeeDuplicateSignature(params);
+
+    setIsCheckingDuplicates(true);
+    try {
+      const result = await hrApiClient.checkEmployeeDuplicates(params);
+      setDuplicateState({ signature, result });
+
+      if (result.matches.length === 0) {
+        return true;
+      }
+
+      applyBlockingDuplicateErrors(result);
+
+      if (result.hasBlockingMatches) {
+        toast.error(
+          "Найден дубликат сотрудника. Проверьте совпадающие поля перед продолжением.",
+          { toastId: "employee-create-blocking-duplicate" },
+        );
+        return false;
+      }
+
+      if (allowWarnings || acceptedDuplicateSignature === signature) {
+        setAcceptedDuplicateSignature(signature);
+        return true;
+      }
+
+      toast.warning(
+        "Найдены возможные совпадения. Проверьте их и подтвердите продолжение.",
+        { toastId: "employee-create-possible-duplicate" },
+      );
+      return false;
+    } catch (error) {
+      toast.error(
+        getUserFacingErrorMessage(
+          error,
+          "Не удалось проверить сотрудника на дубликаты",
+        ),
+        { toastId: "employee-create-duplicate-check-error" },
+      );
+      return false;
+    } finally {
+      setIsCheckingDuplicates(false);
+    }
+  }
+
+  function applyBlockingDuplicateErrors(
+    result: EmployeeDuplicateCheckResult,
+  ): void {
+    for (const match of result.matches) {
+      for (const field of match.fields) {
+        if (!field.blocking) continue;
+        const message = `Совпадает с сотрудником «${match.employeeName}»`;
+
+        if (field.field === "employee_number") {
+          setError("employee_number", { type: "duplicate", message });
+        }
+        if (field.field === "identity") {
+          setError("last_name", { type: "duplicate", message });
+          setError("first_name", { type: "duplicate", message });
+          if (getValues("middle_name").trim()) {
+            setError("middle_name", { type: "duplicate", message });
+          }
+          if (getValues("birth_date").trim()) {
+            setError("birth_date", { type: "duplicate", message });
+          }
+        }
+      }
+    }
+  }
+
+  function clearDuplicateFieldErrors(): void {
+    clearErrors([
+      "employee_number",
+      "last_name",
+      "first_name",
+      "middle_name",
+      "birth_date",
+    ]);
   }
 
   function normalizeField(name: keyof EmployeeFormValues): void {
@@ -182,6 +327,32 @@ export function EmployeeCreatePage(): JSX.Element {
   }
 
   const normalizedReviewValues = normalizeEmployeeFormValues(watchedValues);
+  const currentDuplicateSignature = employeeDuplicateSignature(
+    buildEmployeeDuplicateCheckParams(normalizedReviewValues),
+  );
+  const visibleDuplicateResult =
+    duplicateState?.signature === currentDuplicateSignature
+      ? duplicateState.result
+      : null;
+
+  useEffect(() => {
+    if (
+      !duplicateState ||
+      duplicateState.signature === currentDuplicateSignature
+    ) {
+      return;
+    }
+
+    clearErrors([
+      "employee_number",
+      "last_name",
+      "first_name",
+      "middle_name",
+      "birth_date",
+    ]);
+    setDuplicateState(null);
+  }, [clearErrors, currentDuplicateSignature, duplicateState]);
+
   const enterpriseName =
     enterprises.find((item) => item.value === normalizedReviewValues.enterprise_id)?.label ?? "";
   const departmentName =
@@ -196,6 +367,22 @@ export function EmployeeCreatePage(): JSX.Element {
       </section>
 
       <div className="app-border-soft min-h-[430px] border-b p-5 sm:p-8">
+        {visibleDuplicateResult && (
+          <EmployeeDuplicateNotice
+            onContinue={
+              visibleDuplicateResult.hasBlockingMatches
+                ? undefined
+                : () => {
+                    if (activeStep === employeeCreateSteps.length - 1) {
+                      void handleFinalCreate(true);
+                    } else {
+                      void handleNext(true);
+                    }
+                  }
+            }
+            result={visibleDuplicateResult}
+          />
+        )}
         {activeStep === 0 && (
           <EmployeePersonalFormSection
             control={control}
@@ -260,6 +447,7 @@ export function EmployeeCreatePage(): JSX.Element {
         {activeStep < employeeCreateSteps.length - 1 ? (
           <ActionButton
             action="next"
+            loading={isCheckingDuplicates}
             onClick={() => void handleNext()}
             type="button"
           >
@@ -268,7 +456,7 @@ export function EmployeeCreatePage(): JSX.Element {
         ) : (
           <ActionButton
             action="create"
-            loading={isSubmitting}
+            loading={isSubmitting || isCheckingDuplicates}
             onClick={() => void handleFinalCreate()}
             type="button"
           >
@@ -278,4 +466,44 @@ export function EmployeeCreatePage(): JSX.Element {
       </footer>
     </div>
   );
+}
+
+function buildEmployeeDuplicateCheckParams(
+  values: EmployeeFormValues,
+): EmployeeDuplicateCheckParams {
+  const enterpriseId = Number(values.enterprise_id);
+  return {
+    enterpriseId:
+      Number.isInteger(enterpriseId) && enterpriseId > 0
+        ? enterpriseId
+        : null,
+    employeeNumber: values.employee_number,
+    lastName: values.last_name,
+    firstName: values.first_name,
+    middleName: values.middle_name,
+    birthDate: values.birth_date,
+    phone: values.phone,
+    email: values.email,
+    contractNumber: values.contract_number,
+  };
+}
+
+function employeeDuplicateSignature(
+  params: EmployeeDuplicateCheckParams,
+): string {
+  return JSON.stringify({
+    enterpriseId: params.enterpriseId ?? null,
+    employeeNumber: normalizeComparable(params.employeeNumber),
+    lastName: normalizeComparable(params.lastName),
+    firstName: normalizeComparable(params.firstName),
+    middleName: normalizeComparable(params.middleName),
+    birthDate: normalizeComparable(params.birthDate),
+    phone: String(params.phone ?? "").replace(/\D/g, ""),
+    email: normalizeComparable(params.email),
+    contractNumber: normalizeComparable(params.contractNumber),
+  });
+}
+
+function normalizeComparable(value: unknown): string {
+  return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }

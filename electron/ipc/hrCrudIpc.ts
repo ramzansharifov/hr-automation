@@ -126,6 +126,26 @@ export function registerHrCrudIpcHandlers(): void {
     return record;
   });
 
+  ipcMain.handle("hr:checkEmployeeDuplicates", (event, raw: unknown) => {
+    assertTrustedSender(event);
+    const params = ipcValidation.employeeDuplicateCheck(raw);
+    const session = authorizationService.requirePermission("employees.create");
+
+    const enterpriseId =
+      session.scopeType === "global"
+        ? (params.enterpriseId ?? null)
+        : (session.enterpriseId ?? null);
+    const departmentId =
+      session.scopeType === "department"
+        ? (session.departmentId ?? null)
+        : null;
+
+    return service.checkEmployeeDuplicates(params, {
+      enterpriseId,
+      departmentId,
+    });
+  });
+
   ipcMain.handle("hr:create", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.create(raw);

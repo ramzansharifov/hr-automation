@@ -3,6 +3,7 @@ import type {
   AddEmployeeDocumentParams,
   ApplyEmployeeImportParams,
   AuditListParams,
+  EmployeeDuplicateCheckParams,
   DeleteEmployeeDocumentParams,
   ExportDataParams,
   HireCandidateParams,
@@ -69,6 +70,8 @@ const hrApi: ExtendedHrApi = {
   list: (params: HrListParams) => ipcRenderer.invoke(hrChannel(params.entity, "list"), params),
   getById: (params: HrGetByIdParams) =>
     ipcRenderer.invoke(hrChannel(params.entity, "getById"), params),
+  checkEmployeeDuplicates: (params: EmployeeDuplicateCheckParams) =>
+    ipcRenderer.invoke("hr:checkEmployeeDuplicates", params),
   create: (params: HrCreateParams) =>
     ipcRenderer.invoke(hrChannel(params.entity, "create"), params),
   update: (params: HrUpdateParams) =>

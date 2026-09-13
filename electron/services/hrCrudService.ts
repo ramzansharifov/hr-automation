@@ -1,4 +1,6 @@
 import type {
+  EmployeeDuplicateCheckParams,
+  EmployeeDuplicateCheckResult,
   HrCreateParams,
   HrDashboardStats,
   HrDeleteParams,
@@ -44,6 +46,13 @@ export class HrCrudService {
     );
   }
 
+  checkEmployeeDuplicates(
+    params: EmployeeDuplicateCheckParams,
+    scope: { enterpriseId?: number | null; departmentId?: number | null } = {},
+  ): EmployeeDuplicateCheckResult {
+    return this.repository.checkEmployeeDuplicates(params, scope);
+  }
+
   create(params: HrCreateParams): HrRecord {
     if (params.entity === "employment_history") {
       throw new Error("Кадровый журнал формируется автоматически");
@@ -51,6 +60,24 @@ export class HrCrudService {
 
     const data = this.prepareData(params.entity, params.data, "create");
     if (params.entity === "employees") {
+      const duplicateResult = this.repository.checkEmployeeDuplicates(
+        employeeDuplicateParamsFromRecord(data),
+        {
+          enterpriseId: nullablePositiveNumber(data.enterprise_id),
+          departmentId: null,
+        },
+      );
+      const blockingMatch = duplicateResult.matches.find((match) => match.blocking);
+      if (blockingMatch) {
+        const fields = blockingMatch.fields
+          .filter((field) => field.blocking)
+          .map((field) => field.label)
+          .join(", ");
+        throw new Error(
+          `Найден дубликат сотрудника «${blockingMatch.employeeName}». Совпадает: ${fields}`,
+        );
+      }
+
       const registeredAt = new Date().toISOString();
       data.status = "pending_assignment";
       data.lifecycle_status = "pending_assignment";
@@ -284,6 +311,31 @@ export class HrCrudService {
       );
     }
   }
+}
+
+function employeeDuplicateParamsFromRecord(
+  record: HrRecord,
+): EmployeeDuplicateCheckParams {
+  return {
+    enterpriseId: nullablePositiveNumber(record.enterprise_id),
+    employeeNumber: stringValue(record.employee_number),
+    lastName: stringValue(record.last_name),
+    firstName: stringValue(record.first_name),
+    middleName: stringValue(record.middle_name),
+    birthDate: stringValue(record.birth_date),
+    phone: stringValue(record.phone),
+    email: stringValue(record.email),
+    contractNumber: stringValue(record.contract_number),
+  };
+}
+
+function stringValue(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function nullablePositiveNumber(value: unknown): number | null {
+  const numberValue = Number(value);
+  return Number.isInteger(numberValue) && numberValue > 0 ? numberValue : null;
 }
 
 function assertReasonAndDate(reason: string, date: string): void {
