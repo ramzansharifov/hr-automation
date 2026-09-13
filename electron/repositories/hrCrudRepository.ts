@@ -1,5 +1,8 @@
 import type Database from "better-sqlite3";
 import type {
+  EmployeeDuplicateCheckParams,
+  EmployeeDuplicateCheckResult,
+  EmployeeDuplicateFieldMatch,
   HrDashboardStats,
   HrFilterCondition,
   HrEmploymentChangeParams,
@@ -78,6 +81,255 @@ export class HrCrudRepository {
       .get(id) as HrRecord | undefined;
 
     return row ?? null;
+  }
+
+  checkEmployeeDuplicates(
+    params: EmployeeDuplicateCheckParams,
+    scope: { enterpriseId?: number | null; departmentId?: number | null } = {},
+  ): EmployeeDuplicateCheckResult {
+    const employeeNumber = normalizeDuplicateText(params.employeeNumber);
+    const lastName = normalizeDuplicateText(params.lastName);
+    const firstName = normalizeDuplicateText(params.firstName);
+    const middleName = normalizeDuplicateText(params.middleName);
+    const birthDate = normalizeDuplicateText(params.birthDate);
+    const phone = normalizePhoneComparable(params.phone);
+    const email = normalizeDuplicateText(params.email);
+    const contractNumber = normalizeDuplicateText(params.contractNumber);
+    const effectiveEnterpriseId = scope.enterpriseId ?? params.enterpriseId ?? null;
+    const effectiveDepartmentId = scope.departmentId ?? null;
+
+    const hasIdentity = Boolean(lastName && firstName);
+    if (
+      !employeeNumber &&
+      !hasIdentity &&
+      !phone &&
+      !email &&
+      !contractNumber
+    ) {
+      return { matches: [], hasBlockingMatches: false };
+    }
+
+    const scopeConditions: string[] = [];
+    const queryParams: Record<string, unknown> = {};
+    if (effectiveEnterpriseId) {
+      scopeConditions.push("employees.enterprise_id = @scopeEnterpriseId");
+      queryParams.scopeEnterpriseId = effectiveEnterpriseId;
+    }
+    if (effectiveDepartmentId) {
+      scopeConditions.push("employees.department_id = @scopeDepartmentId");
+      queryParams.scopeDepartmentId = effectiveDepartmentId;
+    }
+
+    const matchConditions: string[] = [];
+    if (employeeNumber && effectiveEnterpriseId) {
+      matchConditions.push(
+        "LOWER(TRIM(COALESCE(employees.employee_number, ''))) = @employeeNumber",
+      );
+      queryParams.employeeNumber = employeeNumber;
+    }
+    if (hasIdentity) {
+      const identityParts = [
+        "LOWER(TRIM(COALESCE(employees.last_name, ''))) = @lastName",
+        "LOWER(TRIM(COALESCE(employees.first_name, ''))) = @firstName",
+        "LOWER(TRIM(COALESCE(employees.middle_name, ''))) = @middleName",
+      ];
+      queryParams.lastName = lastName;
+      queryParams.firstName = firstName;
+      queryParams.middleName = middleName;
+      if (birthDate) {
+        identityParts.push(
+          "TRIM(COALESCE(employees.birth_date, '')) = @birthDate",
+        );
+        queryParams.birthDate = birthDate;
+      }
+      matchConditions.push(`(${identityParts.join(" AND ")})`);
+    }
+    if (phone) {
+      matchConditions.push(
+        `${phoneComparableSql("employees.phone")} = @phone`,
+      );
+      queryParams.phone = phone;
+    }
+    if (email) {
+      matchConditions.push(
+        "LOWER(TRIM(COALESCE(employees.email, ''))) = @email",
+      );
+      queryParams.email = email;
+    }
+    if (contractNumber && effectiveEnterpriseId) {
+      matchConditions.push(
+        "LOWER(TRIM(COALESCE(employees.contract_number, ''))) = @contractNumber",
+      );
+      queryParams.contractNumber = contractNumber;
+    }
+
+    if (matchConditions.length === 0) {
+      return { matches: [], hasBlockingMatches: false };
+    }
+
+    const where = [
+      ...scopeConditions,
+      `(${matchConditions.join(" OR ")})`,
+    ].filter(Boolean);
+
+    const rows = this.database
+      .prepare(
+        `SELECT
+           employees.id,
+           employees.enterprise_id,
+           employees.employee_number,
+           employees.last_name,
+           employees.first_name,
+           employees.middle_name,
+           employees.birth_date,
+           employees.phone,
+           employees.email,
+           employees.contract_number,
+           employees.lifecycle_status,
+           enterprise.name AS enterprise_name,
+           department.name AS department_name
+         FROM employees
+         LEFT JOIN enterprises AS enterprise
+           ON enterprise.id = employees.enterprise_id
+         LEFT JOIN departments AS department
+           ON department.id = employees.department_id
+         WHERE ${where.join(" AND ")}
+         ORDER BY
+           CASE WHEN employees.lifecycle_status = 'active' THEN 0 ELSE 1 END,
+           employees.last_name,
+           employees.first_name,
+           employees.id
+         LIMIT 25`,
+      )
+      .all(queryParams) as Array<Record<string, unknown>>;
+
+    const matches = rows
+      .map((row) => {
+        const fields: EmployeeDuplicateFieldMatch[] = [];
+        const rowEmployeeNumber = normalizeDuplicateText(row.employee_number);
+        const rowLastName = normalizeDuplicateText(row.last_name);
+        const rowFirstName = normalizeDuplicateText(row.first_name);
+        const rowMiddleName = normalizeDuplicateText(row.middle_name);
+        const rowBirthDate = normalizeDuplicateText(row.birth_date);
+        const rowPhone = normalizePhoneComparable(row.phone);
+        const rowEmail = normalizeDuplicateText(row.email);
+        const rowContractNumber = normalizeDuplicateText(row.contract_number);
+        const rowEnterpriseId = nullablePositiveNumber(row.enterprise_id);
+
+        if (
+          employeeNumber &&
+          effectiveEnterpriseId &&
+          rowEnterpriseId === effectiveEnterpriseId &&
+          rowEmployeeNumber === employeeNumber
+        ) {
+          fields.push({
+            field: "employee_number",
+            label: "Табельный номер",
+            value: String(row.employee_number ?? ""),
+            blocking: true,
+          });
+        }
+
+        const sameIdentity =
+          hasIdentity &&
+          rowLastName === lastName &&
+          rowFirstName === firstName &&
+          rowMiddleName === middleName;
+        if (sameIdentity) {
+          const identityBlocking = Boolean(
+            birthDate && rowBirthDate && rowBirthDate === birthDate,
+          );
+          if (!birthDate || identityBlocking) {
+            fields.push({
+              field: "identity",
+              label: identityBlocking
+                ? "ФИО и дата рождения"
+                : "ФИО",
+              value: [
+                row.last_name,
+                row.first_name,
+                row.middle_name,
+                row.birth_date ? `(${String(row.birth_date)})` : null,
+              ]
+                .filter(Boolean)
+                .join(" "),
+              blocking: identityBlocking,
+            });
+          }
+        }
+
+        if (phone && rowPhone && rowPhone === phone) {
+          fields.push({
+            field: "phone",
+            label: "Телефон",
+            value: String(row.phone ?? ""),
+            blocking: false,
+          });
+        }
+
+        if (email && rowEmail && rowEmail === email) {
+          fields.push({
+            field: "email",
+            label: "Email",
+            value: String(row.email ?? ""),
+            blocking: false,
+          });
+        }
+
+        if (
+          contractNumber &&
+          effectiveEnterpriseId &&
+          rowEnterpriseId === effectiveEnterpriseId &&
+          rowContractNumber === contractNumber
+        ) {
+          fields.push({
+            field: "contract_number",
+            label: "Номер трудового договора",
+            value: String(row.contract_number ?? ""),
+            blocking: false,
+          });
+        }
+
+        if (fields.length === 0) return null;
+        const employeeName = [
+          row.last_name,
+          row.first_name,
+          row.middle_name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+
+        return {
+          employeeId: Number(row.id),
+          employeeName: employeeName || `Сотрудник #${String(row.id)}`,
+          employeeNumber: row.employee_number
+            ? String(row.employee_number)
+            : null,
+          enterpriseId: rowEnterpriseId,
+          enterpriseName: row.enterprise_name
+            ? String(row.enterprise_name)
+            : null,
+          departmentName: row.department_name
+            ? String(row.department_name)
+            : null,
+          lifecycleStatus: row.lifecycle_status
+            ? String(row.lifecycle_status)
+            : null,
+          blocking: fields.some((field) => field.blocking),
+          fields,
+        };
+      })
+      .filter(
+        (
+          match,
+        ): match is NonNullable<typeof match> => Boolean(match),
+      );
+
+    return {
+      matches,
+      hasBlockingMatches: matches.some((match) => match.blocking),
+    };
   }
 
   create(config: HrCrudEntityConfig, data: HrRecord): HrRecord {
@@ -775,6 +1027,33 @@ export class HrCrudRepository {
       | undefined;
     return Number(result ?? 0);
   }
+}
+
+function normalizeDuplicateText(value: unknown): string {
+  return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizePhoneComparable(value: unknown): string {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function phoneComparableSql(column: string): string {
+  return `REPLACE(
+    REPLACE(
+      REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE(TRIM(COALESCE(${column}, '')), ' ', ''),
+            '-', ''
+          ),
+          '(', ''
+        ),
+        ')', ''
+      ),
+      '+', ''
+    ),
+    '.', ''
+  )`;
 }
 
 function normalizeFilterCondition(filter: HrFilterInput): HrFilterCondition {
