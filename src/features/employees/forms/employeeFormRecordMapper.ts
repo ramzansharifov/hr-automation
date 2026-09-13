@@ -36,7 +36,6 @@ export function mapEmployeeRecordToFormValues(record: HrRecord | null | undefine
     department_id: valueToString(record.department_id),
     position_id: valueToString(record.position_id),
     hire_date: valueToString(record.hire_date),
-    status: valueToString(record.status) || employeeDefaultValues.status,
     salary: valueToString(record.salary) || employeeDefaultValues.salary,
     employment_type: valueToString(record.employment_type) || employeeDefaultValues.employment_type,
     contract_number: valueToString(record.contract_number),
