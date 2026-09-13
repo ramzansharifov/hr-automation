@@ -78,19 +78,14 @@ export class HrCrudService {
         );
       }
 
-      const registeredAt = new Date().toISOString();
-      data.status = "pending_assignment";
-      data.lifecycle_status = "pending_assignment";
-      data.employment_started_at = null;
-      data.registered_at = registeredAt;
+      const hireDate = assertCompleteEmployeeCreation(data);
+      data.status = "active";
+      data.lifecycle_status = "active";
+      data.employment_started_at = hireDate;
+      data.hire_date = hireDate;
+      data.registered_at = new Date().toISOString();
       data.terminated_at = null;
       data.termination_reason = null;
-      // Legacy schema keeps hire_date NOT NULL. Until the table is rebuilt in a
-      // future compatibility migration this value is only a technical placeholder;
-      // employment_started_at and the кадровое событие are the canonical start date.
-      if (!String(data.hire_date ?? "").trim()) {
-        data.hire_date = registeredAt.slice(0, 10);
-      }
     }
     if (params.entity === "vacations") {
       data.status = "planned";
@@ -311,6 +306,25 @@ export class HrCrudService {
       );
     }
   }
+}
+
+function assertCompleteEmployeeCreation(record: HrRecord): string {
+  if (!nullablePositiveNumber(record.enterprise_id)) {
+    throw new Error("Выберите предприятие сотрудника");
+  }
+  if (!nullablePositiveNumber(record.department_id)) {
+    throw new Error("Выберите отдел сотрудника");
+  }
+  if (!nullablePositiveNumber(record.position_id)) {
+    throw new Error("Выберите должность сотрудника");
+  }
+
+  const hireDate = stringValue(record.hire_date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(hireDate)) {
+    throw new Error("Укажите корректную дату приёма на работу");
+  }
+
+  return hireDate;
 }
 
 function employeeDuplicateParamsFromRecord(
