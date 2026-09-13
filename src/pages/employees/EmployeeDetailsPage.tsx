@@ -441,7 +441,7 @@ function employeeStatusLabel(
   const status = String(value ?? "");
   if (status === "terminated") return "Уволен";
   if (status === "pending_assignment" || status === "draft") {
-    return "Ожидает оформления";
+    return "Требует дооформления";
   }
   return humanizeStatus(value, t);
 }
