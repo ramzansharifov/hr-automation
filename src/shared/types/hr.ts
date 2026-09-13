@@ -158,6 +158,23 @@ export interface HrTerminationParams {
   reason: string;
 }
 
+export interface HrRehireParams {
+  employeeId: number;
+  enterpriseId: number;
+  departmentId: number;
+  positionId: number;
+  effectiveAt: string;
+  salary: number;
+  reason: string;
+  employeeNumber?: string;
+  employmentType?: string;
+  contractNumber?: string;
+  contractDate?: string;
+  contractEndDate?: string;
+  probationEndDate?: string;
+  workplace?: string;
+}
+
 export interface HrHireDateCorrectionParams {
   employeeId: number;
   hireDate: string;
@@ -383,16 +400,25 @@ export type EmployeeImportField =
   | "last_name"
   | "first_name"
   | "middle_name"
+  | "birth_date"
   | "email"
   | "phone"
   | "employee_number"
   | "enterprise"
   | "department"
-  | "position";
+  | "position"
+  | "hire_date"
+  | "salary"
+  | "contract_number";
 
 export type EmployeeImportColumnMap = Partial<Record<EmployeeImportField, string>>;
 
 export interface EmployeeImportError {
+  row: number;
+  message: string;
+}
+
+export interface EmployeeImportWarning {
   row: number;
   message: string;
 }
@@ -402,7 +428,9 @@ export interface EmployeeImportPreview {
   totalRows: number;
   validRows: number;
   duplicateRows: number;
+  warningRows: number;
   errors: EmployeeImportError[];
+  warnings: EmployeeImportWarning[];
 }
 
 export interface PreviewEmployeeImportParams {
@@ -419,6 +447,7 @@ export interface EmployeeImportResult {
   importedRows: number;
   skippedRows: number;
   errors: EmployeeImportError[];
+  warnings: EmployeeImportWarning[];
 }
 
 export interface ExportDataParams {
@@ -443,6 +472,7 @@ export interface HrApi {
   changeEmployment(params: HrEmploymentChangeParams): Promise<HrRecord>;
   changeLeadership(params: HrLeadershipChangeParams): Promise<{ success: true }>;
   terminateEmployee(params: HrTerminationParams): Promise<HrRecord>;
+  rehireEmployee(params: HrRehireParams): Promise<HrRecord>;
   correctHireDate(params: HrHireDateCorrectionParams): Promise<HrRecord>;
   delete(params: HrDeleteParams): Promise<{ success: true }>;
   dashboard(): Promise<HrDashboardStats>;
