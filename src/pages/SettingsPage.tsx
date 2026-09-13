@@ -25,7 +25,6 @@ import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { BackupInfo } from "../shared/types/hr";
 import {
   ActionButton,
-  Button,
   ChoiceButton,
   ConfirmDialog,
   LoadingState,
