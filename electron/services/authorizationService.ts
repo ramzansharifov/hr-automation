@@ -89,6 +89,29 @@ export class AuthorizationService {
     return { ...session, scopeType: permissionScope };
   }
 
+  requireAnyPermission(permissionCodes: string[]): AuthSession {
+    const session = this.authenticationService.requireSession();
+    const rank: Record<AuthSession["scopeType"], number> = {
+      self: 0,
+      department: 1,
+      enterprise: 2,
+      global: 3,
+    };
+
+    const scopeType = permissionCodes
+      .map((code) => session.permissionScopes[code])
+      .filter(
+        (scope): scope is AuthSession["scopeType"] => Boolean(scope),
+      )
+      .sort((left, right) => rank[right] - rank[left])[0];
+
+    if (!scopeType) {
+      throw new Error("Недостаточно прав для выполнения действия");
+    }
+
+    return { ...session, scopeType };
+  }
+
   requireGlobalPermission(permissionCode: string): AuthSession {
     const session = this.requirePermission(permissionCode);
     if (session.scopeType !== "global") {
