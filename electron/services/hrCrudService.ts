@@ -10,11 +10,13 @@ import type {
   HrListParams,
   HrListResult,
   HrRecord,
+  HrRehireParams,
   HrTerminationParams,
   HrUpdateParams,
 } from "../../src/shared/types/hr";
 import { getHrCrudEntityConfig } from "../admin/hrCrudEntities";
 import { HrCrudRepository } from "../repositories/hrCrudRepository";
+import { EmployeeEmploymentService } from "./employeeEmploymentService";
 
 const vacationTransitions: Record<string, string[]> = {
   planned: ["planned", "approved", "rejected"],
@@ -33,7 +35,11 @@ const vacationDecisionFields = [
 ] as const;
 
 export class HrCrudService {
-  constructor(private readonly repository: HrCrudRepository) {}
+  private readonly employmentService: EmployeeEmploymentService;
+
+  constructor(private readonly repository: HrCrudRepository) {
+    this.employmentService = new EmployeeEmploymentService(repository);
+  }
 
   list(params: HrListParams): HrListResult {
     return this.repository.list(getHrCrudEntityConfig(params.entity), params);
@@ -50,7 +56,7 @@ export class HrCrudService {
     params: EmployeeDuplicateCheckParams,
     scope: { enterpriseId?: number | null; departmentId?: number | null } = {},
   ): EmployeeDuplicateCheckResult {
-    return this.repository.checkEmployeeDuplicates(params, scope);
+    return this.employmentService.checkDuplicates(params, scope);
   }
 
   create(params: HrCreateParams): HrRecord {
@@ -60,32 +66,7 @@ export class HrCrudService {
 
     const data = this.prepareData(params.entity, params.data, "create");
     if (params.entity === "employees") {
-      const duplicateResult = this.repository.checkEmployeeDuplicates(
-        employeeDuplicateParamsFromRecord(data),
-        {
-          enterpriseId: nullablePositiveNumber(data.enterprise_id),
-          departmentId: null,
-        },
-      );
-      const blockingMatch = duplicateResult.matches.find((match) => match.blocking);
-      if (blockingMatch) {
-        const fields = blockingMatch.fields
-          .filter((field) => field.blocking)
-          .map((field) => field.label)
-          .join(", ");
-        throw new Error(
-          `Найден дубликат сотрудника «${blockingMatch.employeeName}». Совпадает: ${fields}`,
-        );
-      }
-
-      const hireDate = assertCompleteEmployeeCreation(data);
-      data.status = "active";
-      data.lifecycle_status = "active";
-      data.employment_started_at = hireDate;
-      data.hire_date = hireDate;
-      data.registered_at = new Date().toISOString();
-      data.terminated_at = null;
-      data.termination_reason = null;
+      return this.employmentService.createHiredEmployee(data);
     }
     if (params.entity === "vacations") {
       data.status = "planned";
@@ -193,6 +174,10 @@ export class HrCrudService {
   terminateEmployee(params: HrTerminationParams): HrRecord {
     assertReasonAndDate(params.reason, params.effectiveAt);
     return this.repository.terminateEmployee(params);
+  }
+
+  rehireEmployee(params: HrRehireParams): HrRecord {
+    return this.employmentService.rehireEmployee(params);
   }
 
   correctHireDate(params: HrHireDateCorrectionParams): HrRecord {
@@ -306,50 +291,6 @@ export class HrCrudService {
       );
     }
   }
-}
-
-function assertCompleteEmployeeCreation(record: HrRecord): string {
-  if (!nullablePositiveNumber(record.enterprise_id)) {
-    throw new Error("Выберите предприятие сотрудника");
-  }
-  if (!nullablePositiveNumber(record.department_id)) {
-    throw new Error("Выберите отдел сотрудника");
-  }
-  if (!nullablePositiveNumber(record.position_id)) {
-    throw new Error("Выберите должность сотрудника");
-  }
-
-  const hireDate = stringValue(record.hire_date);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(hireDate)) {
-    throw new Error("Укажите корректную дату приёма на работу");
-  }
-
-  return hireDate;
-}
-
-function employeeDuplicateParamsFromRecord(
-  record: HrRecord,
-): EmployeeDuplicateCheckParams {
-  return {
-    enterpriseId: nullablePositiveNumber(record.enterprise_id),
-    employeeNumber: stringValue(record.employee_number),
-    lastName: stringValue(record.last_name),
-    firstName: stringValue(record.first_name),
-    middleName: stringValue(record.middle_name),
-    birthDate: stringValue(record.birth_date),
-    phone: stringValue(record.phone),
-    email: stringValue(record.email),
-    contractNumber: stringValue(record.contract_number),
-  };
-}
-
-function stringValue(value: unknown): string {
-  return String(value ?? "").trim();
-}
-
-function nullablePositiveNumber(value: unknown): number | null {
-  const numberValue = Number(value);
-  return Number.isInteger(numberValue) && numberValue > 0 ? numberValue : null;
 }
 
 function assertReasonAndDate(reason: string, date: string): void {
