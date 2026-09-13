@@ -255,12 +255,9 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         </aside>
       </section>
 
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Удалить роль"
+      <DeleteConfirmDialog
         description="Удалить роль можно только после того, как она снята со всех пользователей."
-        isLoading={isSaving}
-        onConfirm={() => void confirmDeleteRole()}
+        onConfirm={confirmDeleteRole}
         onOpenChange={(open) => !open && setDeleteRole(null)}
         open={Boolean(deleteRole)}
         title={`Удалить роль «${deleteRole?.name ?? ""}»?`}
