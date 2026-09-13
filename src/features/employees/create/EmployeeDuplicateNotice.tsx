@@ -101,9 +101,19 @@ function DuplicateMatchCard({
               : "border-amber-500/25 bg-amber-500/10 text-amber-600",
           ].join(" ")}
         >
-          {match.blocking ? "Дубликат" : "Проверить"}
+          {match.blocking
+            ? match.lifecycleStatus === "terminated"
+              ? "Ранее уволен"
+              : "Дубликат"
+            : "Проверить"}
         </span>
       </div>
+
+      {match.blocking && match.lifecycleStatus === "terminated" && (
+        <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">
+          Не создавайте новую карточку: откройте существующего сотрудника и используйте действие «Принять повторно».
+        </p>
+      )}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {match.fields.map((field) => (
