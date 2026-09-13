@@ -333,6 +333,11 @@ function stringValue(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function nullablePositiveNumber(value: unknown): number | null {
+  const numberValue = Number(value);
+  return Number.isInteger(numberValue) && numberValue > 0 ? numberValue : null;
+}
+
 function assertReasonAndDate(reason: string, date: string): void {
   if (!reason.trim()) throw new Error("Укажите основание кадрового действия");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
