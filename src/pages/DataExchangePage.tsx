@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FiDownload, FiFile, FiPlay, FiUpload } from "react-icons/fi";
+import { FiDownload, FiFile, FiUpload } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
@@ -11,7 +11,13 @@ import type {
   EmployeeImportPreview,
   EmployeeImportSelection,
 } from "../shared/types/hr";
-import { Button, EmptyState, PageHeader, Select, type SelectOption } from "../shared/ui";
+import {
+  ActionButton,
+  EmptyState,
+  PageHeader,
+  Select,
+  type SelectOption,
+} from "../shared/ui";
 
 const importFields = [
   { key: "last_name", label: "Фамилия", required: true, aliases: ["фамилия", "last name", "lastname", "last_name"] },
@@ -136,9 +142,13 @@ export function DataExchangePage(): JSX.Element {
 
           {hasPermission("data_exchange.import") ? (
             <div className="mt-5 grid gap-5">
-              <Button disabled={busy} leftIcon={<FiUpload />} onClick={() => void selectImportFile()}>
+              <ActionButton
+                action="import"
+                disabled={busy}
+                onClick={() => void selectImportFile()}
+              >
                 Выбрать CSV / XLSX
-              </Button>
+              </ActionButton>
 
               {selection && (
                 <>
@@ -169,12 +179,20 @@ export function DataExchangePage(): JSX.Element {
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-3">
-                    <Button disabled={busy} leftIcon={<FiPlay />} onClick={() => void previewImport()} variant="secondary">
+                    <ActionButton
+                      action="view"
+                      disabled={busy}
+                      onClick={() => void previewImport()}
+                    >
                       Проверить / Dry run
-                    </Button>
-                    <Button disabled={busy || !preview || preview.validRows === 0} leftIcon={<FiUpload />} onClick={() => void applyImport()}>
+                    </ActionButton>
+                    <ActionButton
+                      action="confirm"
+                      disabled={busy || !preview || preview.validRows === 0}
+                      onClick={() => void applyImport()}
+                    >
                       Импортировать {preview?.validRows ?? ""}
-                    </Button>
+                    </ActionButton>
                   </div>
                 </>
               )}
@@ -263,9 +281,13 @@ export function DataExchangePage(): JSX.Element {
                   Администратор предприятия выгружает только своё предприятие, администратор отдела — только свой отдел. Глобальная роль получает полный набор данных.
                 </p>
               </div>
-              <Button disabled={busy} leftIcon={<FiDownload />} onClick={() => void exportData()}>
+              <ActionButton
+                action="export"
+                disabled={busy}
+                onClick={() => void exportData()}
+              >
                 Экспортировать
-              </Button>
+              </ActionButton>
             </div>
           ) : (
             <EmptyState description="У текущей роли нет разрешения на расширенный экспорт." title="Экспорт недоступен" />

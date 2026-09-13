@@ -4,7 +4,6 @@ import {
   FiBriefcase,
   FiCalendar,
   FiGrid,
-  FiRefreshCw,
   FiUsers,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -19,7 +18,7 @@ import { getAppLocale } from "../shared/i18n";
 import { formatDate, humanizeStatus } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrDashboardStats, HrListResult } from "../shared/types/hr";
-import { Button, PageHeader } from "../shared/ui";
+import { ActionButton, PageHeader } from "../shared/ui";
 import { StatCard } from "../shared/ui/StatCard";
 
 const initialStats: HrDashboardStats = {
@@ -141,13 +140,13 @@ export function DashboardPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            leftIcon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadDashboard()}
-            variant="secondary"
           >
             {t("common.actions.refresh")}
-          </Button>
+          </ActionButton>
         }
         description={pageDescription}
         eyebrow={scopedAdminRole ? "Локальное администрирование" : "HR Control Center"}

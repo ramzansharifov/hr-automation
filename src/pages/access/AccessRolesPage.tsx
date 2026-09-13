@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  FiArrowRight,
-  FiEdit2,
-  FiPlus,
-  FiRefreshCw,
-  FiShield,
-  FiTrash2,
-  FiUsers,
-} from "react-icons/fi";
+import { FiPlus, FiShield, FiUsers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -15,11 +7,11 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AccessRoleSummary } from "../../shared/types/access";
 import {
-  Button,
-  ConfirmDialog,
+  ActionButton,
   DataTable,
-  IconButton,
+  DeleteConfirmDialog,
   PageHeader,
+  RecordActions,
   type DataTableColumn,
 } from "../../shared/ui";
 import { AccessMetric, getErrorMessage } from "./AccessControlShared";
@@ -32,7 +24,6 @@ export function AccessRolesPage(): JSX.Element {
   const canDelete = hasPermission("roles.delete");
   const [roles, setRoles] = useState<AccessRoleSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [deleteRole, setDeleteRole] = useState<AccessRoleSummary | null>(null);
 
   const loadData = useCallback(async () => {
@@ -52,7 +43,6 @@ export function AccessRolesPage(): JSX.Element {
 
   async function confirmDeleteRole(): Promise<void> {
     if (!deleteRole || !canDelete) return;
-    setIsSaving(true);
     try {
       await hrApiClient.deleteAccessRole(deleteRole.id);
       setDeleteRole(null);
@@ -60,41 +50,25 @@ export function AccessRolesPage(): JSX.Element {
       await loadData();
     } catch (error) {
       toast.error(getErrorMessage(error, "Не удалось удалить роль"));
-    } finally {
-      setIsSaving(false);
     }
   }
 
-  function renderRoleActions(role: AccessRoleSummary): JSX.Element {
+  function renderRoleActions(role: AccessRoleSummary): JSX.Element | null {
     return (
-      <div
-        className="flex items-center justify-center gap-2"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <IconButton
-          icon={<FiArrowRight />}
-          label="Открыть роль"
-          onClick={() => navigate(`/roles/${role.id}`)}
-          size="sm"
-        />
-        {!role.isSystem && canEdit && (
-          <IconButton
-            icon={<FiEdit2 />}
-            label="Редактировать"
-            onClick={() => navigate(`/roles/${role.id}/edit`)}
-            size="sm"
-          />
-        )}
-        {!role.isSystem && canDelete && (
-          <IconButton
-            icon={<FiTrash2 />}
-            label="Удалить"
-            onClick={() => setDeleteRole(role)}
-            size="sm"
-            tone="danger"
-          />
-        )}
-      </div>
+      <RecordActions
+        deleteLabel="Удалить роль"
+        editLabel="Редактировать роль"
+        onDelete={
+          !role.isSystem && canDelete ? () => setDeleteRole(role) : undefined
+        }
+        onEdit={
+          !role.isSystem && canEdit
+            ? () => navigate(`/roles/${role.id}/edit`)
+            : undefined
+        }
+        onView={() => navigate(`/roles/${role.id}`)}
+        viewLabel="Открыть роль"
+      />
     );
   }
 
@@ -166,13 +140,12 @@ export function AccessRolesPage(): JSX.Element {
       <PageHeader
         actions={
           canCreate ? (
-            <Button
-              leftIcon={<FiPlus />}
+            <ActionButton
+              action="create"
               onClick={() => navigate("/roles/new")}
-              variant="primary"
             >
               Создать роль
-            </Button>
+            </ActionButton>
           ) : undefined
         }
         icon={<FiShield />}
@@ -210,22 +183,17 @@ export function AccessRolesPage(): JSX.Element {
         onRowClick={(role) => navigate(`/roles/${role.id}`)}
         rows={roles}
         toolbar={
-          <Button
-            leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadData()}
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
       />
 
-      <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Удалить"
+      <DeleteConfirmDialog
         description="Роль можно удалить только после того, как она снята со всех пользователей."
-        isLoading={isSaving}
-        onConfirm={() => void confirmDeleteRole()}
+        onConfirm={confirmDeleteRole}
         onOpenChange={(open) => !open && setDeleteRole(null)}
         open={Boolean(deleteRole)}
         title={`Удалить роль «${deleteRole?.name ?? ""}»?`}

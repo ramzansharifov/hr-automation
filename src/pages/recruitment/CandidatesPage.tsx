@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  FiCheckCircle,
-  FiEdit2,
-  FiRefreshCw,
-  FiTrash2,
-  FiUserPlus,
-} from "react-icons/fi";
+import { FiUserPlus } from "react-icons/fi";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -30,12 +24,12 @@ import type {
   SaveCandidateParams,
 } from "../../shared/types/hr";
 import {
-  Button,
-  ConfirmDialog,
+  ActionButton,
   DataTable,
+  DeleteConfirmDialog,
   Dialog,
-  IconButton,
   Input,
+  RecordActions,
   Select,
   type DataTableColumn,
   type SelectOption,
@@ -402,12 +396,23 @@ export function CandidatesPage(): JSX.Element {
           )}
 
           <div className="flex flex-wrap justify-end gap-3">
-            <Button onClick={() => setIsDialogOpen(false)} type="button" variant="secondary">Закрыть</Button>
+            <ActionButton
+              action="close"
+              onClick={() => setIsDialogOpen(false)}
+              type="button"
+            />
             {canHire && form.id && form.status === "offer" && !form.employeeId && (
-              <Button leftIcon={<FiCheckCircle />} onClick={openHire} type="button">Принять на работу</Button>
+              <ActionButton action="hire" onClick={openHire} type="button" />
             )}
             {!form.employeeId && ((form.id && canEdit) || (!form.id && canCreate)) && (
-              <Button disabled={isSaving || form.skills.length === 0} type="submit">Сохранить кандидата</Button>
+              <ActionButton
+                action="save"
+                disabled={form.skills.length === 0}
+                loading={isSaving}
+                type="submit"
+              >
+                Сохранить кандидата
+              </ActionButton>
             )}
           </div>
         </form>
@@ -432,20 +437,25 @@ export function CandidatesPage(): JSX.Element {
               <HireField label="Место работы" value={hireForm.workplace} onChange={(workplace) => setHireForm((v) => ({ ...v, workplace }))} />
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button onClick={() => setHireOpen(false)} type="button" variant="secondary">Отмена</Button>
-              <Button disabled={isSaving} type="submit">Создать сотрудника</Button>
+              <ActionButton
+                action="cancel"
+                onClick={() => setHireOpen(false)}
+                type="button"
+              />
+              <ActionButton action="hire" loading={isSaving} type="submit">
+                Создать сотрудника
+              </ActionButton>
             </div>
           </form>
         </Dialog>
       )}
 
       {canDelete && (
-        <ConfirmDialog
-          cancelLabel="Отмена"
+        <DeleteConfirmDialog
           confirmLabel="Удалить ошибочную запись"
           description="Удаление предназначено только для ошибочно созданных кандидатов. Принятого кандидата удалить нельзя."
           isLoading={isSaving}
-          onConfirm={() => void deleteCandidate()}
+          onConfirm={deleteCandidate}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           open={Boolean(deleteTarget)}
           title="Удалить кандидата?"
@@ -585,28 +595,16 @@ function CandidatesTable({
             header: "Действия",
             align: "center" as const,
             render: (candidate: HrRecord) => (
-              <div
-                className="flex items-center justify-center gap-2"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {canEdit && (
-                  <IconButton
-                    icon={<FiEdit2 />}
-                    label="Редактировать кандидата"
-                    onClick={() => onOpen(candidate)}
-                    size="sm"
-                  />
-                )}
-                {canDelete && !candidate.employee_id && (
-                  <IconButton
-                    icon={<FiTrash2 />}
-                    label="Удалить кандидата"
-                    onClick={() => onDelete(candidate)}
-                    size="sm"
-                    tone="danger"
-                  />
-                )}
-              </div>
+              <RecordActions
+                deleteLabel="Удалить кандидата"
+                editLabel="Редактировать кандидата"
+                onDelete={
+                  canDelete && !candidate.employee_id
+                    ? () => onDelete(candidate)
+                    : undefined
+                }
+                onEdit={canEdit ? () => onOpen(candidate) : undefined}
+              />
             ),
           },
         ]
@@ -633,14 +631,12 @@ function CandidatesTable({
       rows={candidates}
       toolbar={
         <div className="ml-auto">
-          <Button
-            leftIcon={<FiRefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={onRefresh}
             type="button"
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         </div>
       }
     />

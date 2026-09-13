@@ -588,3 +588,27 @@
     var(--color-surface-muted)
   );
 }
+
+
+/* Standardized inline record actions */
+.app-record-actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.app-record-actions .app-icon-button {
+  box-shadow: none;
+}
+
+
+/* Standardized form/dialog footer actions */
+.app-form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}

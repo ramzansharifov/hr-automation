@@ -1,5 +1,5 @@
 import type { SelectOption } from "../../../shared/ui";
-import { Input, Select, Textarea } from "../../../shared/ui";
+import { Input, Select, Textarea, Toggle } from "../../../shared/ui";
 
 interface TextFieldProps {
   disabled?: boolean;
@@ -96,27 +96,13 @@ export function RelatedToggleField({
   onCheckedChange,
 }: ToggleFieldProps): JSX.Element {
   return (
-    <button
-      aria-checked={checked}
-      className="app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition hover:bg-[var(--color-surface-hover)]"
-      onClick={() => onCheckedChange(!checked)}
-      role="switch"
-      type="button"
-    >
+    <div className="app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border px-4 py-3">
       <span className="app-text text-sm font-bold">{label}</span>
-      <span
-        className={[
-          "relative h-7 w-12 rounded-full transition",
-          checked ? "bg-[var(--accent)]" : "bg-[var(--color-border)]",
-        ].join(" ")}
-      >
-        <span
-          className={[
-            "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
-            checked ? "translate-x-6" : "translate-x-1",
-          ].join(" ")}
-        />
-      </span>
-    </button>
+      <Toggle
+        ariaLabel={label}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+      />
+    </div>
   );
 }

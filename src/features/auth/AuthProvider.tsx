@@ -4,7 +4,7 @@ import { FiKey, FiLock, FiLogIn } from "react-icons/fi";
 import { HRLogo } from "../../app/brand/HRLogo";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AuthSession, AuthState } from "../../shared/types/access";
-import { Button, Input, LoadingState } from "../../shared/ui";
+import { ActionButton, Input, LoadingState } from "../../shared/ui";
 import { AuthContext } from "./AuthContext";
 
 const initialState: AuthState = {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           title="Не удалось открыть систему"
           description={error}
         >
-          <Button onClick={() => void refreshState()}>Повторить</Button>
+          <ActionButton action="refresh" onClick={() => void refreshState()}>Повторить</ActionButton>
         </AuthCard>
       </AuthShell>
     );
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           title="Системный администратор не создан"
           description="Не удалось найти встроенную учётную запись superadmin. Перезапустите приложение, чтобы повторно применить миграции базы данных."
         >
-          <Button onClick={() => void refreshState()}>Проверить снова</Button>
+          <ActionButton action="refresh" onClick={() => void refreshState()}>Проверить снова</ActionButton>
         </AuthCard>
       </AuthShell>
     );
@@ -170,13 +170,12 @@ function LoginScreen({
             />
           </AuthField>
           <AuthError message={error} />
-          <Button
-            disabled={isSaving || !username || !password}
-            leftIcon={<FiLogIn />}
+          <ActionButton
+            action="login"
+            disabled={!username || !password}
+            loading={isSaving}
             type="submit"
-          >
-            Войти
-          </Button>
+          />
         </form>
       </AuthCard>
     </AuthShell>
@@ -254,13 +253,14 @@ function ChangePasswordScreen({
             />
           </AuthField>
           <AuthError message={error} />
-          <Button
-            disabled={isSaving || !currentPassword || !newPassword}
-            leftIcon={<FiKey />}
+          <ActionButton
+            action="save"
+            disabled={!currentPassword || !newPassword}
+            loading={isSaving}
             type="submit"
           >
             Сохранить новый пароль
-          </Button>
+          </ActionButton>
         </form>
       </AuthCard>
     </AuthShell>

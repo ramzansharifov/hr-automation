@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  FiBriefcase,
-  FiEdit2,
-  FiRefreshCw,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiBriefcase } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -16,10 +11,10 @@ import {
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import {
-  Button,
-  ConfirmDialog,
+  ActionButton,
   DataTable,
-  IconButton,
+  DeleteConfirmDialog,
+  RecordActions,
   useStoredViewMode,
   type DataTableColumn,
 } from "../../shared/ui";
@@ -33,7 +28,6 @@ export function VacanciesPage(): JSX.Element {
   const [viewMode, setViewMode] = useStoredViewMode("vacancies");
   const [vacancies, setVacancies] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HrRecord | null>(null);
 
   const loadData = useCallback(async (): Promise<void> => {
@@ -53,7 +47,6 @@ export function VacanciesPage(): JSX.Element {
 
   async function deleteVacancy(): Promise<void> {
     if (!deleteTarget || !canDelete) return;
-    setIsDeleting(true);
     try {
       await hrApiClient.deleteVacancy(Number(deleteTarget.id));
       setDeleteTarget(null);
@@ -61,8 +54,6 @@ export function VacanciesPage(): JSX.Element {
       toast.success("Вакансия удалена");
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось удалить вакансию"));
-    } finally {
-      setIsDeleting(false);
     }
   }
 
@@ -70,27 +61,18 @@ export function VacanciesPage(): JSX.Element {
     navigate(`/vacancies/${String(vacancy.id)}`);
   }
 
-  function renderActions(vacancy: HrRecord): JSX.Element {
+  function renderActions(vacancy: HrRecord): JSX.Element | null {
     return (
-      <>
-        {canEdit && (
-          <IconButton
-            icon={<FiEdit2 />}
-            label="Редактировать вакансию"
-            onClick={() => navigate(`/vacancies/${String(vacancy.id)}/edit`)}
-            size="sm"
-          />
-        )}
-        {canDelete && (
-          <IconButton
-            icon={<FiTrash2 />}
-            label="Удалить вакансию"
-            onClick={() => setDeleteTarget(vacancy)}
-            size="sm"
-            tone="danger"
-          />
-        )}
-      </>
+      <RecordActions
+        deleteLabel="Удалить вакансию"
+        editLabel="Редактировать вакансию"
+        onDelete={canDelete ? () => setDeleteTarget(vacancy) : undefined}
+        onEdit={
+          canEdit
+            ? () => navigate(`/vacancies/${String(vacancy.id)}/edit`)
+            : undefined
+        }
+      />
     );
   }
 
@@ -232,29 +214,20 @@ export function VacanciesPage(): JSX.Element {
         onViewModeChange={setViewMode}
         rows={vacancies}
         toolbar={
-          <Button
-            leftIcon={
-              <FiRefreshCw
-                className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-              />
-            }
+          <ActionButton
+            action="refresh"
+            loading={isLoading}
             onClick={() => void loadData()}
             type="button"
-            variant="secondary"
-          >
-            Обновить
-          </Button>
+          />
         }
         viewMode={viewMode}
       />
 
       {canDelete && (
-        <ConfirmDialog
-          cancelLabel="Отмена"
-          confirmLabel="Удалить"
+        <DeleteConfirmDialog
           description="Вакансия и её профиль навыков будут удалены. Вакансию с кандидатами удалить нельзя."
-          isLoading={isDeleting}
-          onConfirm={() => void deleteVacancy()}
+          onConfirm={deleteVacancy}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           open={Boolean(deleteTarget)}
           title="Удалить вакансию?"

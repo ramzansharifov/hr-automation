@@ -1,16 +1,13 @@
 import type { KeyboardEvent, MouseEvent } from "react";
 import {
-  FiArrowUpRight,
   FiAward,
   FiBriefcase,
-  FiEdit2,
   FiMail,
   FiPhone,
-  FiTrash2,
 } from "react-icons/fi";
 
 import type { HrRecord } from "../../shared/types/hr";
-import { Button, IconButton } from "../../shared/ui";
+import { ActionButton, RecordActions } from "../../shared/ui";
 import { RecruitmentBadge } from "./RecruitmentUi";
 
 interface CandidateSummaryCardProps {
@@ -177,25 +174,21 @@ export function CandidateSummaryCard({
         className="app-border-soft mt-5 flex flex-wrap items-center justify-end gap-2 border-t pt-4"
         onClick={stop}
       >
-        <Button
-          leftIcon={<FiArrowUpRight className="h-4 w-4" />}
-          onClick={onOpen}
-          type="button"
-          variant="secondary"
-        >
+        <ActionButton action="open" onClick={onOpen} type="button">
           Открыть
-        </Button>
-        {canManage && onEdit && (
-          <IconButton icon={<FiEdit2 />} label="Редактировать кандидата" onClick={onEdit} />
-        )}
-        {canManage && onDelete && !candidate.employee_id && (
-          <IconButton
-            icon={<FiTrash2 />}
-            label="Удалить кандидата"
-            onClick={onDelete}
-            tone="danger"
-          />
-        )}
+        </ActionButton>
+        <RecordActions
+          deleteLabel="Удалить кандидата"
+          editLabel="Редактировать кандидата"
+          onDelete={
+            canManage && onDelete && !candidate.employee_id
+              ? onDelete
+              : undefined
+          }
+          onEdit={canManage ? onEdit : undefined}
+          size="md"
+          stopPropagation={false}
+        />
       </div>
     </article>
   );

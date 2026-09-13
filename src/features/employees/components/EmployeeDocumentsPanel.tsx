@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  FiExternalLink,
-  FiFileText,
-  FiPlus,
-  FiRefreshCw,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiFileText } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../auth/AuthContext";
@@ -13,7 +7,9 @@ import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { DocumentTypeRecord } from "../../../shared/types/documentTypes";
 import type { EmployeeDocumentSummary } from "../../../shared/types/hr";
 import {
-  Button,
+  ActionButton,
+  ActionIconButton,
+  DeleteReasonDialog,
   EmptyState,
   Input,
   LoadingState,
@@ -32,6 +28,7 @@ export function EmployeeDocumentsPanel({
   const canAdd = hasPermission("documents.add");
   const canDelete = hasPermission("documents.delete");
   const [documents, setDocuments] = useState<EmployeeDocumentSummary[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<EmployeeDocumentSummary | null>(null);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeRecord[]>([]);
   const [documentType, setDocumentType] = useState("");
   const [title, setTitle] = useState("");
@@ -114,14 +111,15 @@ export function EmployeeDocumentsPanel({
     }
   }
 
-  async function deleteDocument(document: EmployeeDocumentSummary): Promise<void> {
-    const reason = window.prompt(
-      `Укажите основание удаления документа «${document.title}»:`,
-    )?.trim();
-    if (!reason) return;
+  async function deleteDocument(reason: string): Promise<void> {
+    if (!deleteTarget) return;
     try {
-      await hrApiClient.deleteEmployeeDocument({ id: document.id, reason });
+      await hrApiClient.deleteEmployeeDocument({
+        id: deleteTarget.id,
+        reason,
+      });
       toast.success("Документ удалён, операция сохранена в журнале");
+      setDeleteTarget(null);
       await load();
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось удалить документ"));
@@ -143,14 +141,12 @@ export function EmployeeDocumentsPanel({
               </span>
               <h2 className="app-text text-lg font-black">Добавить документ</h2>
             </div>
-            <Button
-              leftIcon={<FiRefreshCw className="h-4 w-4" />}
+            <ActionButton
+              action="refresh"
+              loading={loading}
               onClick={() => void load()}
               size="sm"
-              variant="secondary"
-            >
-              Обновить
-            </Button>
+            />
           </div>
 
           {typeOptions.length === 0 ? (
@@ -191,14 +187,14 @@ export function EmployeeDocumentsPanel({
                 />
               </Field>
               <div className="lg:col-span-2 flex justify-end">
-                <Button
-                  disabled={saving}
-                  leftIcon={<FiPlus className="h-4 w-4" />}
+                <ActionButton
+                  action="create"
+                  loading={saving}
                   onClick={() => void addDocument()}
                   type="button"
                 >
                   Выбрать файл и добавить
-                </Button>
+                </ActionButton>
               </div>
             </div>
           )}
@@ -257,23 +253,20 @@ export function EmployeeDocumentsPanel({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          leftIcon={<FiExternalLink className="h-4 w-4" />}
+                        <ActionButton
+                          action="open"
                           onClick={() => void openDocument(document.id)}
                           size="sm"
-                          variant="secondary"
                         >
                           Открыть
-                        </Button>
+                        </ActionButton>
                         {canDelete && (
-                          <Button
-                            leftIcon={<FiTrash2 className="h-4 w-4" />}
-                            onClick={() => void deleteDocument(document)}
+                          <ActionIconButton
+                            action="delete"
+                            label={`Удалить документ «${document.title}»`}
+                            onClick={() => setDeleteTarget(document)}
                             size="sm"
-                            variant="ghost"
-                          >
-                            Удалить
-                          </Button>
+                          />
                         )}
                       </div>
                     </td>
@@ -284,6 +277,24 @@ export function EmployeeDocumentsPanel({
           </div>
         )}
       </section>
+
+      {canDelete && (
+        <DeleteReasonDialog
+          description={
+            deleteTarget
+              ? `Документ «${deleteTarget.title}» будет удалён из активной карточки сотрудника. Операция и указанное основание сохранятся в журнале действий.`
+              : ""
+          }
+          onConfirm={deleteDocument}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          open={Boolean(deleteTarget)}
+          reasonLabel="Основание удаления"
+          reasonPlaceholder="Например: документ добавлен ошибочно или заменён актуальной версией"
+          title="Удалить документ?"
+        />
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { Button } from "../../shared/ui";
+import { ActionButton } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import { getUserFacingErrorMessage } from "../../shared/lib/userFacingErrors";
@@ -245,27 +245,35 @@ export function EmployeeCreatePage(): JSX.Element {
       </div>
 
       <footer className="app-surface-muted flex flex-col gap-3 p-5 sm:flex-row sm:justify-end sm:p-6">
-        <Button type="button" onClick={() => navigate("/employees")} variant="ghost">
+        <ActionButton
+          action="cancel"
+          onClick={() => navigate("/employees")}
+          type="button"
+        >
           {t("employeesCreate.actions.cancel")}
-        </Button>
+        </ActionButton>
         {activeStep > 0 && (
-          <Button type="button" onClick={handleBack} variant="secondary">
+          <ActionButton action="back" onClick={handleBack} type="button">
             {t("employeesCreate.actions.back")}
-          </Button>
+          </ActionButton>
         )}
         {activeStep < employeeCreateSteps.length - 1 ? (
-          <Button type="button" onClick={() => void handleNext()} variant="primary">
-            {t("employeesCreate.actions.next")}
-          </Button>
-        ) : (
-          <Button
-            disabled={isSubmitting}
+          <ActionButton
+            action="next"
+            onClick={() => void handleNext()}
             type="button"
+          >
+            {t("employeesCreate.actions.next")}
+          </ActionButton>
+        ) : (
+          <ActionButton
+            action="create"
+            loading={isSubmitting}
             onClick={() => void handleFinalCreate()}
-            variant="primary"
+            type="button"
           >
             {t("employeesCreate.actions.create")}
-          </Button>
+          </ActionButton>
         )}
       </footer>
     </div>

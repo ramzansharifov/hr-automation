@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
-  FiArrowLeft,
   FiBriefcase,
   FiChevronRight,
-  FiEdit2,
   FiLayers,
   FiMail,
   FiPhone,
-  FiPlus,
-  FiTrash2,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
@@ -29,10 +25,10 @@ import type {
   HrRecord,
 } from "../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   EmptyState,
-  IconButton,
   LoadingState,
+  RecordActions,
 } from "../shared/ui";
 
 type OrganizationDetailsMode = "enterprise" | "department";
@@ -328,8 +324,9 @@ export function OrganizationDetailsPage(): JSX.Element {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiArrowLeft />}
+            <ActionButton
+              action="back"
+              context="inverse"
               onClick={() =>
                 navigate(
                   mode === "enterprise"
@@ -337,17 +334,15 @@ export function OrganizationDetailsPage(): JSX.Element {
                     : `/enterprises/${enterpriseId}/departments`,
                 )
               }
-              variant="inverseGhost"
-            >
-              Назад
-            </Button>
+            />
             {mode === "enterprise" && canViewDepartments && (
-              <Button
+              <ActionButton
+                action="open"
+                context="inverse"
                 onClick={() => navigate(`/enterprises/${enterpriseId}/departments`)}
-                variant="inverse"
               >
                 Открыть отделы
-              </Button>
+              </ActionButton>
             )}
           </div>
         </div>
@@ -419,14 +414,13 @@ export function OrganizationDetailsPage(): JSX.Element {
           <SectionHeader
             actions={
               canCreateDepartment ? (
-                <Button
-                  leftIcon={<FiPlus />}
+                <ActionButton
+                  action="create"
                   onClick={openCreateDepartment}
                   size="sm"
-                  variant="primary"
                 >
                   Добавить отдел
-                </Button>
+                </ActionButton>
               ) : undefined
             }
             icon={<FiLayers />}
@@ -461,14 +455,21 @@ export function OrganizationDetailsPage(): JSX.Element {
                         </div>
                       </Link>
                       {(canEditDepartment || canDeleteDepartment) && (
-                        <div className="flex shrink-0 gap-2">
-                          {canEditDepartment && (
-                            <IconButton icon={<FiEdit2 />} label="Редактировать отдел" onClick={() => openEditDepartment(item)} size="sm" />
-                          )}
-                          {canDeleteDepartment && (
-                            <IconButton icon={<FiTrash2 />} label="Удалить отдел" onClick={() => openDeleteDepartment(item)} size="sm" tone="danger" />
-                          )}
-                        </div>
+                        <RecordActions
+                          className="shrink-0"
+                          deleteLabel="Удалить отдел"
+                          editLabel="Редактировать отдел"
+                          onDelete={
+                            canDeleteDepartment
+                              ? () => openDeleteDepartment(item)
+                              : undefined
+                          }
+                          onEdit={
+                            canEditDepartment
+                              ? () => openEditDepartment(item)
+                              : undefined
+                          }
+                        />
                       )}
                     </div>
                   </article>
@@ -484,14 +485,13 @@ export function OrganizationDetailsPage(): JSX.Element {
           <SectionHeader
             actions={
               canCreatePosition ? (
-                <Button
-                  leftIcon={<FiPlus />}
+                <ActionButton
+                  action="create"
                   onClick={openCreatePosition}
                   size="sm"
-                  variant="primary"
                 >
                   Добавить должность
-                </Button>
+                </ActionButton>
               ) : undefined
             }
             icon={<FiBriefcase />}
@@ -520,14 +520,21 @@ export function OrganizationDetailsPage(): JSX.Element {
                         </div>
                       </div>
                       {(canEditPosition || canDeletePosition) && (
-                        <div className="flex shrink-0 gap-2">
-                          {canEditPosition && (
-                            <IconButton icon={<FiEdit2 />} label="Редактировать должность" onClick={() => openEditPosition(item)} size="sm" />
-                          )}
-                          {canDeletePosition && (
-                            <IconButton icon={<FiTrash2 />} label="Удалить должность" onClick={() => openDeletePosition(item)} size="sm" tone="danger" />
-                          )}
-                        </div>
+                        <RecordActions
+                          className="shrink-0"
+                          deleteLabel="Удалить должность"
+                          editLabel="Редактировать должность"
+                          onDelete={
+                            canDeletePosition
+                              ? () => openDeletePosition(item)
+                              : undefined
+                          }
+                          onEdit={
+                            canEditPosition
+                              ? () => openEditPosition(item)
+                              : undefined
+                          }
+                        />
                       )}
                     </div>
                   </article>
@@ -701,9 +708,7 @@ function LeaderCard({
           <p className="app-text mt-2 font-black">{leaderName}</p>
         </div>
         {canManage && (
-          <Button onClick={onManage} size="sm" variant="secondary">
-            Управлять
-          </Button>
+          <ActionButton action="manage" onClick={onManage} size="sm" />
         )}
       </div>
       {employeeId && canViewEmployee && (

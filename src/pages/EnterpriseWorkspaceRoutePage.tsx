@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  FiEdit2,
   FiGrid,
   FiLayers,
   FiMail,
@@ -18,7 +17,7 @@ import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   EmptyState,
   LoadingState,
   PageHeader,
@@ -108,28 +107,25 @@ function EnterpriseAdminWorkspace(): JSX.Element {
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
-            <Button
-              leftIcon={<FiUserCheck />}
+            <ActionButton
+              action="manage"
               onClick={() => navigate(enterpriseDetailsPath)}
-              variant="secondary"
             >
               Руководитель и структура
-            </Button>
-            <Button
-              leftIcon={<FiGrid />}
+            </ActionButton>
+            <ActionButton
+              action="open"
               onClick={() => navigate("/management/departments")}
-              variant="secondary"
             >
               Отделы
-            </Button>
+            </ActionButton>
             {canEdit && (
-              <Button
-                leftIcon={<FiEdit2 />}
+              <ActionButton
+                action="edit"
                 onClick={() => setIsEditOpen(true)}
-                variant="primary"
               >
                 Редактировать предприятие
-              </Button>
+              </ActionButton>
             )}
           </div>
         }

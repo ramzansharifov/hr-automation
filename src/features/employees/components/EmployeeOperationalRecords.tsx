@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  FiCalendar,
-  FiEdit2,
-  FiExternalLink,
-  FiPlus,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiCalendar } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { formatDate, humanizeStatus } from "../../../shared/lib/format";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../../shared/types/hr";
-import { Button, EmptyState, IconButton, LoadingState } from "../../../shared/ui";
+import {
+  ActionButton,
+  ActionLink,
+  EmptyState,
+  LoadingState,
+  RecordActions,
+} from "../../../shared/ui";
 import { HrEntityDeleteDialog } from "../../hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../../hr-entities/components/HrEntityDialog";
 
@@ -26,7 +25,7 @@ interface EmployeeOperationalPanelProps {
   onBeforeAction?: (record?: HrRecord | null) => Promise<void>;
 }
 
-interface RecordActions {
+interface VacationCardActions {
   onDelete?: () => void;
   onEdit?: () => void;
 }
@@ -153,17 +152,16 @@ export function EmployeeVacationsPanel({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              className="app-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition"
+            <ActionLink
+              action="open"
               to={`/vacations?employee=${employeeId}`}
             >
-              <FiExternalLink className="h-4 w-4" />
               Открыть общий реестр
-            </Link>
+            </ActionLink>
             {canCreate && (
-              <Button leftIcon={<FiPlus className="h-4 w-4" />} onClick={() => void openCreate()}>
+              <ActionButton action="create" onClick={() => void openCreate()}>
                 Оформить отпуск
-              </Button>
+              </ActionButton>
             )}
           </div>
         </div>
@@ -243,7 +241,7 @@ function VacationCard({
   record,
   statusLabel,
 }: {
-  actions?: RecordActions;
+  actions?: VacationCardActions;
   locale: string;
   record: HrRecord;
   statusLabel: string;
@@ -267,7 +265,16 @@ function VacationCard({
             {formatDate(record.starts_at, locale)} — {formatDate(record.ends_at, locale)}
           </p>
         </div>
-        {actions && <RecordActionsButtons actions={actions} />}
+        {actions && (
+          <RecordActions
+            className="shrink-0"
+            deleteLabel="Удалить отпуск"
+            editLabel="Редактировать отпуск"
+            onDelete={actions.onDelete}
+            onEdit={actions.onEdit}
+            size="md"
+          />
+        )}
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -295,19 +302,6 @@ function VacationCard({
         </div>
       )}
     </article>
-  );
-}
-
-function RecordActionsButtons({ actions }: { actions: RecordActions }): JSX.Element {
-  return (
-    <div className="flex shrink-0 gap-2">
-      {actions.onEdit && (
-        <IconButton icon={<FiEdit2 />} label="Редактировать отпуск" onClick={actions.onEdit} />
-      )}
-      {actions.onDelete && (
-        <IconButton icon={<FiTrash2 />} label="Удалить отпуск" onClick={actions.onDelete} tone="danger" />
-      )}
-    </div>
   );
 }
 

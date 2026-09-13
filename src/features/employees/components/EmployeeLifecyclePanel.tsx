@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   FiArrowUpRight,
-  FiCalendar,
   FiClock,
   FiDollarSign,
   FiEdit3,
-  FiPlus,
   FiUserX,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -14,8 +12,9 @@ import { formatCurrency, formatDate } from "../../../shared/lib/format";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   Dialog,
+  FormActions,
   Input,
   SearchableSelect,
   Select,
@@ -267,27 +266,26 @@ export function EmployeeLifecyclePanel({
           {(canChangeEmployment || canTerminate) && (
             <div className="flex flex-wrap gap-2">
               {canChangeEmployment && !isPending && (
-                <Button
-                  leftIcon={<FiCalendar />}
+                <ActionButton
+                  action="edit"
                   onClick={() => setCorrectionOpen(true)}
-                  variant="secondary"
                 >
                   Исправить дату приёма
-                </Button>
+                </ActionButton>
               )}
               {(isActive || isPending) && canChangeEmployment && (
-                <Button leftIcon={<FiPlus />} onClick={() => setCareerOpen(true)}>
+                <ActionButton
+                  action={isPending ? "hire" : "edit"}
+                  onClick={() => setCareerOpen(true)}
+                >
                   {isPending ? "Оформить на работу" : "Кадровое изменение"}
-                </Button>
+                </ActionButton>
               )}
               {isActive && canTerminate && (
-                <Button
-                  leftIcon={<FiUserX />}
+                <ActionButton
+                  action="terminate"
                   onClick={() => setTerminationOpen(true)}
-                  variant="secondary"
-                >
-                  Уволить
-                </Button>
+                />
               )}
             </div>
           )}
@@ -410,7 +408,11 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <DialogActions onCancel={() => setCareerOpen(false)} saving={saving} />
+              <FormActions
+              loading={saving}
+              onCancel={() => setCareerOpen(false)}
+              submitLabel="Сохранить"
+            />
             </form>
           </Dialog>
 
@@ -441,7 +443,11 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <DialogActions onCancel={() => setCorrectionOpen(false)} saving={saving} />
+              <FormActions
+              loading={saving}
+              onCancel={() => setCorrectionOpen(false)}
+              submitLabel="Сохранить"
+            />
             </form>
           </Dialog>
         </>
@@ -482,31 +488,15 @@ export function EmployeeLifecyclePanel({
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
               Сотрудник не удаляется: он переходит в завершённый кадровый статус, а данные остаются доступны в истории.
             </div>
-            <DialogActions onCancel={() => setTerminationOpen(false)} saving={saving} destructive />
+            <FormActions
+              loading={saving}
+              onCancel={() => setTerminationOpen(false)}
+              submitAction="terminate"
+              submitLabel="Подтвердить увольнение"
+            />
           </form>
         </Dialog>
       )}
-    </div>
-  );
-}
-
-function DialogActions({
-  destructive = false,
-  onCancel,
-  saving,
-}: {
-  destructive?: boolean;
-  onCancel: () => void;
-  saving: boolean;
-}): JSX.Element {
-  return (
-    <div className="flex justify-end gap-3">
-      <Button type="button" variant="secondary" onClick={onCancel}>
-        Отмена
-      </Button>
-      <Button disabled={saving} type="submit" variant={destructive ? "secondary" : "primary"}>
-        {destructive ? "Подтвердить увольнение" : "Сохранить"}
-      </Button>
     </div>
   );
 }

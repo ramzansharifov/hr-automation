@@ -6,8 +6,8 @@ import type {
   AccessUserStatus,
 } from "../../shared/types/access";
 import {
-  Button,
   Dialog,
+  FormActions,
   Input,
   SearchableSelect,
   Select,
@@ -278,14 +278,14 @@ export function UserDialog({
           </p>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Отмена
-          </Button>
-          <Button disabled={isSaving} onClick={onSave}>
-            Сохранить пользователя
-          </Button>
-        </div>
+        <FormActions
+          className="pt-2"
+          loading={isSaving}
+          onCancel={() => onOpenChange(false)}
+          onSubmit={onSave}
+          submitLabel="Сохранить пользователя"
+          submitType="button"
+        />
       </div>
     </Dialog>
   );

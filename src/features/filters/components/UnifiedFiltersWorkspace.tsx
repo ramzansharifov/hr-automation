@@ -5,8 +5,6 @@ import {
   FiClipboard,
   FiFilter,
   FiLayers,
-  FiRotateCcw,
-  FiSearch,
   FiUsers,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -14,7 +12,7 @@ import { toast } from "react-toastify";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrFilterCondition, HrRecord } from "../../../shared/types/hr";
 import {
-  Button,
+  ActionButton,
   EmptyState,
   Input,
   LoadingState,
@@ -273,8 +271,8 @@ export function UnifiedFiltersWorkspace(): JSX.Element {
           )}
 
           <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
-            <Button leftIcon={<FiRotateCcw className="h-4 w-4" />} onClick={clearFilters} type="button" variant="secondary">Очистить</Button>
-            <Button leftIcon={<FiSearch className="h-4 w-4" />} type="submit" variant="primary">Применить фильтры</Button>
+            <ActionButton action="reset" onClick={clearFilters} type="button">Очистить</ActionButton>
+            <ActionButton action="search" type="submit">Применить фильтры</ActionButton>
           </div>
         </form>
       </section>

@@ -5,7 +5,7 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import type { HrRecord } from "../../../shared/types/hr";
-import { Button, Dialog } from "../../../shared/ui";
+import { Dialog, FormActions } from "../../../shared/ui";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import { getUserFacingErrorMessage } from "../../../shared/lib/userFacingErrors";
 import {
@@ -128,19 +128,13 @@ export function EmployeeSectionEditDialog({
           : t("employeesDetails.edit.description")
       }
       footer={
-        <div className="flex flex-wrap justify-end gap-3">
-          <Button
-            disabled={isSubmitting}
-            type="button"
-            variant="secondary"
-            onClick={() => onOpenChange(false)}
-          >
-            {t("common.actions.cancel")}
-          </Button>
-          <Button disabled={isSubmitting} form={formId} type="submit" variant="primary">
-            {t("common.actions.save")}
-          </Button>
-        </div>
+        <FormActions
+          cancelLabel={t("common.actions.cancel")}
+          form={formId}
+          loading={isSubmitting}
+          onCancel={() => onOpenChange(false)}
+          submitLabel={t("common.actions.save")}
+        />
       }
       onOpenChange={onOpenChange}
       open={open}

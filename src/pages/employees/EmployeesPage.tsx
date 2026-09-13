@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiDownload, FiPlus, FiUsers } from "react-icons/fi";
+import { FiUsers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import type { HrFilterCondition, HrRecord } from "../../shared/types/hr";
-import { Button, LoadingState, PageHeader, useStoredViewMode } from "../../shared/ui";
+import {
+  ActionButton,
+  LoadingState,
+  PageHeader,
+  useStoredViewMode,
+} from "../../shared/ui";
 import { useAuth } from "../../features/auth/AuthContext";
 import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
@@ -147,22 +152,20 @@ export function EmployeesPage(): JSX.Element {
           canCreateEmployees || canExportEmployees ? (
             <div className="flex flex-wrap items-center justify-end gap-3">
               {canExportEmployees && (
-                <Button
-                  leftIcon={<FiDownload />}
+                <ActionButton
+                  action="export"
                   onClick={() => void exportEmployees()}
-                  variant="secondary"
                 >
                   Экспорт CSV
-                </Button>
+                </ActionButton>
               )}
               {canCreateEmployees && (
-                <Button
-                  leftIcon={<FiPlus />}
+                <ActionButton
+                  action="create"
                   onClick={() => navigate("/employees/new")}
-                  variant="primary"
                 >
                   Добавить сотрудника
-                </Button>
+                </ActionButton>
               )}
             </div>
           ) : undefined
