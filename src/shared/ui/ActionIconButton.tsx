@@ -2,8 +2,7 @@ import {
   forwardRef,
   type ComponentPropsWithoutRef,
 } from "react";
-
-import { cn } from "../lib/cn";
+import { FiLoader } from "react-icons/fi";
 import { IconButton } from "./IconButton";
 import {
   actionDefinitions,
@@ -77,11 +76,7 @@ export const ActionIconButton = forwardRef<
         aria-busy={loading || undefined}
         className={className}
         disabled={disabled || loading}
-        icon={
-          <Icon
-            className={cn(action === "refresh" && loading && "animate-spin")}
-          />
-        }
+        icon={loading ? <FiLoader className="animate-spin" /> : <Icon />}
         label={label || definition.defaultLabel}
         ref={ref}
         tone={toneByAction[action]}
