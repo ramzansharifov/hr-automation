@@ -61,6 +61,8 @@ export function humanizeStatus(value: unknown, t?: TranslateStatus): string {
     completed: 'Завершён',
     paid: 'Выплачено',
     pending: 'Ожидает',
+    pending_assignment: 'Требует дооформления',
+    draft: 'Требует дооформления',
     male: 'Мужской',
     female: 'Женский',
   }
