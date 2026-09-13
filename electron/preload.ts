@@ -15,6 +15,7 @@ import type {
   HrHireDateCorrectionParams,
   HrLeadershipChangeParams,
   HrListParams,
+  HrRehireParams,
   HrTerminationParams,
   PreviewEmployeeImportParams,
   RecruitmentListParams,
@@ -82,6 +83,8 @@ const hrApi: ExtendedHrApi = {
     ipcRenderer.invoke("hr:changeLeadership", params),
   terminateEmployee: (params: HrTerminationParams) =>
     ipcRenderer.invoke("hr:terminateEmployee", params),
+  rehireEmployee: (params: HrRehireParams) =>
+    ipcRenderer.invoke("hr:rehireEmployee", params),
   correctHireDate: (params: HrHireDateCorrectionParams) =>
     ipcRenderer.invoke("hr:correctHireDate", params),
   delete: (params: HrDeleteParams) =>
