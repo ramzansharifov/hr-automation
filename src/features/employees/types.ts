@@ -17,7 +17,6 @@ export interface EmployeeFormValues {
   department_id: string
   position_id: string
   hire_date: string
-  status: string
   salary: string
   employment_type: string
   contract_number: string
@@ -46,7 +45,6 @@ export const employeeDefaultValues: EmployeeFormValues = {
   department_id: '',
   position_id: '',
   hire_date: '',
-  status: 'active',
   salary: '0',
   employment_type: 'full_time',
   contract_number: '',
