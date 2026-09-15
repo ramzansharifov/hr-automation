@@ -119,6 +119,13 @@ export function VacancyDetailsPage(): JSX.Element {
 
   function openCandidateCreate(): void {
     if (!canCreateCandidate || !profile) return;
+    if (
+      profile.vacancy.status !== "open" ||
+      Number(profile.vacancy.is_archived ?? 0) === 1
+    ) {
+      toast.info("Добавлять кандидатов можно только в открытую вакансию");
+      return;
+    }
     setCandidateDraft({
       lastName: "",
       firstName: "",
@@ -140,7 +147,7 @@ export function VacancyDetailsPage(): JSX.Element {
     if (!candidateDraft || !canCreateCandidate) return;
     setIsSaving(true);
     try {
-      await hrApiClient.saveCandidate({
+      const saved = await hrApiClient.saveCandidate({
         vacancyId,
         lastName: candidateDraft.lastName,
         firstName: candidateDraft.firstName,
@@ -148,15 +155,14 @@ export function VacancyDetailsPage(): JSX.Element {
         phone: candidateDraft.phone || undefined,
         email: candidateDraft.email || undefined,
         source: candidateDraft.source || undefined,
-        status: "new",
         skillScores: candidateDraft.skills.map((skill) => ({
           vacancySkillId: skill.vacancySkillId,
           score: skill.score,
         })),
       });
       setCandidateDraft(null);
-      await loadData();
-      toast.success("Кандидат добавлен к вакансии");
+      toast.success("Кандидат добавлен к вакансии на этапе «Новый»");
+      navigate("/candidates/" + String(saved.candidate.id));
     } catch (error) {
       toast.error(errorMessage(error, "Не удалось добавить кандидата"));
     } finally {
@@ -250,7 +256,9 @@ export function VacancyDetailsPage(): JSX.Element {
                 Список автоматически отсортирован от наиболее подходящего кандидата к наименее подходящему.
               </p>
             </div>
-            {canCreateCandidate && (
+            {canCreateCandidate &&
+              vacancy.status === "open" &&
+              Number(vacancy.is_archived ?? 0) !== 1 && (
               <ActionButton action="create" onClick={openCandidateCreate} type="button">
                 Добавить кандидата
               </ActionButton>
@@ -275,7 +283,7 @@ export function VacancyDetailsPage(): JSX.Element {
                   candidate={candidate}
                   isBest={index === 0 && Number(candidate.match_percentage ?? 0) > 0}
                   key={String(candidate.id)}
-                  onOpen={() => navigate(`/candidates?candidate=${String(candidate.id)}`)}
+                  onOpen={() => navigate("/candidates/" + String(candidate.id))}
                   rank={index + 1}
                   showStructure={false}
                 />
