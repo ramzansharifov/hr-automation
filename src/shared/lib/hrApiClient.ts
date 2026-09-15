@@ -1,5 +1,6 @@
 import type {
   AddEmployeeDocumentParams,
+  AdvanceCandidateParams,
   ApplyEmployeeImportParams,
   AuditListParams,
   DeleteEmployeeDocumentParams,
@@ -17,6 +18,7 @@ import type {
   HrTerminationParams,
   PreviewEmployeeImportParams,
   RecruitmentListParams,
+  RejectCandidateParams,
   SaveCandidateParams,
   SaveVacancyParams,
   HrUpdateParams,
@@ -197,6 +199,10 @@ export const hrApiClient = {
   getCandidate: (id: number) => getHrApi().getCandidate(id),
   saveCandidate: (params: SaveCandidateParams) =>
     notifyAuthSessionChanged(getHrApi().saveCandidate(params)),
+  advanceCandidate: (params: AdvanceCandidateParams) =>
+    notifyAuthSessionChanged(getHrApi().advanceCandidate(params)),
+  rejectCandidate: (params: RejectCandidateParams) =>
+    notifyAuthSessionChanged(getHrApi().rejectCandidate(params)),
   hireCandidate: (params: HireCandidateParams) =>
     notifyAuthSessionChanged(getHrApi().hireCandidate(params)),
   deleteCandidate: (id: number) =>
