@@ -140,10 +140,28 @@ export class RecruitmentRepository {
         ? this.updateVacancy(params)
         : this.insertVacancy(params);
       this.syncVacancySkills(vacancyId, params.skills);
-      if (params.status === "closed") {
+      const hiredCount = Number(
+        this.database
+          .prepare(
+            "SELECT COUNT(*) FROM candidates WHERE vacancy_id = ? AND employee_id IS NOT NULL",
+          )
+          .pluck()
+          .get(vacancyId) ?? 0,
+      );
+      const capacityFilled = hiredCount >= params.openingsCount;
+      if (capacityFilled && params.status !== "closed") {
+        this.database
+          .prepare(
+            "UPDATE vacancies SET status = 'closed', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          )
+          .run(vacancyId);
+      }
+      if (params.status === "closed" || capacityFilled) {
         this.rejectActiveCandidatesForVacancy(
           vacancyId,
-          "Вакансия закрыта работодателем",
+          capacityFilled
+            ? "Вакансия закрыта: все доступные места заполнены"
+            : "Вакансия закрыта работодателем",
         );
       }
       return vacancyId;
