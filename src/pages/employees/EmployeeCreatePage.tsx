@@ -65,7 +65,7 @@ export function EmployeeCreatePage(): JSX.Element {
     genderOptions,
     isRelationsLoading,
     positions,
-  } = useEmployeeFormOptions();
+  } = useEmployeeFormOptions(!isCandidateHire);
   const {
     clearErrors,
     control,
@@ -86,13 +86,57 @@ export function EmployeeCreatePage(): JSX.Element {
   const enterpriseId = watch("enterprise_id");
   const departmentId = watch("department_id");
 
+  const formEnterprises = useMemo(() => {
+    if (!isCandidateHire || !candidateRecord) return enterprises;
+    const value = idValue(candidateRecord.enterprise_id);
+    if (!value || enterprises.some((item) => item.value === value)) return enterprises;
+    return [
+      ...enterprises,
+      {
+        value,
+        label: textValue(candidateRecord.enterprise_name) || `Предприятие #${value}`,
+      },
+    ];
+  }, [candidateRecord, enterprises, isCandidateHire]);
+
+  const formDepartments = useMemo(() => {
+    if (!isCandidateHire || !candidateRecord) return departments;
+    const value = idValue(candidateRecord.department_id);
+    if (!value || departments.some((item) => item.value === value)) return departments;
+    return [
+      ...departments,
+      {
+        value,
+        label: textValue(candidateRecord.department_name) || `Отдел #${value}`,
+        enterpriseId: idValue(candidateRecord.enterprise_id),
+      },
+    ];
+  }, [candidateRecord, departments, isCandidateHire]);
+
+  const formPositions = useMemo(() => {
+    if (!isCandidateHire || !candidateRecord) return positions;
+    const value = idValue(candidateRecord.position_id);
+    if (!value || positions.some((item) => item.value === value)) return positions;
+    return [
+      ...positions,
+      {
+        value,
+        label: textValue(candidateRecord.position_name) || `Должность #${value}`,
+        departmentId: idValue(candidateRecord.department_id),
+      },
+    ];
+  }, [candidateRecord, isCandidateHire, positions]);
+
   const availableDepartments = useMemo(
-    () => departments.filter((department) => department.enterpriseId === enterpriseId),
-    [departments, enterpriseId],
+    () =>
+      formDepartments.filter(
+        (department) => department.enterpriseId === enterpriseId,
+      ),
+    [enterpriseId, formDepartments],
   );
   const availablePositions = useMemo(
-    () => positions.filter((position) => position.departmentId === departmentId),
-    [departmentId, positions],
+    () => formPositions.filter((position) => position.departmentId === departmentId),
+    [departmentId, formPositions],
   );
 
   useEffect(() => {
@@ -154,14 +198,25 @@ export function EmployeeCreatePage(): JSX.Element {
   }, [candidateId, isCandidateHire, navigate, reset]);
 
   useEffect(() => {
-    if (isRelationsLoading || getValues("enterprise_id") || enterprises.length !== 1) {
+    if (
+      isRelationsLoading ||
+      isCandidateHire ||
+      getValues("enterprise_id") ||
+      formEnterprises.length !== 1
+    ) {
       return;
     }
-    setValue("enterprise_id", enterprises[0].value, { shouldValidate: true });
-  }, [enterprises, getValues, isRelationsLoading, setValue]);
+    setValue("enterprise_id", formEnterprises[0].value, { shouldValidate: true });
+  }, [
+    formEnterprises,
+    getValues,
+    isCandidateHire,
+    isRelationsLoading,
+    setValue,
+  ]);
 
   useEffect(() => {
-    if (isRelationsLoading) return;
+    if (isRelationsLoading || isCandidateHire) return;
     const currentDepartmentId = getValues("department_id");
     if (
       currentDepartmentId &&
@@ -170,10 +225,16 @@ export function EmployeeCreatePage(): JSX.Element {
       setValue("department_id", "", { shouldValidate: true });
       setValue("position_id", "", { shouldValidate: true });
     }
-  }, [availableDepartments, getValues, isRelationsLoading, setValue]);
+  }, [
+    availableDepartments,
+    getValues,
+    isCandidateHire,
+    isRelationsLoading,
+    setValue,
+  ]);
 
   useEffect(() => {
-    if (isRelationsLoading) return;
+    if (isRelationsLoading || isCandidateHire) return;
     const currentPositionId = getValues("position_id");
     if (
       currentPositionId &&
@@ -181,7 +242,13 @@ export function EmployeeCreatePage(): JSX.Element {
     ) {
       setValue("position_id", "", { shouldValidate: true });
     }
-  }, [availablePositions, getValues, isRelationsLoading, setValue]);
+  }, [
+    availablePositions,
+    getValues,
+    isCandidateHire,
+    isRelationsLoading,
+    setValue,
+  ]);
 
   async function handleNext(allowWarnings = false): Promise<void> {
     if (
@@ -450,11 +517,17 @@ export function EmployeeCreatePage(): JSX.Element {
   }, [clearErrors, currentDuplicateSignature, duplicateState]);
 
   const enterpriseName =
-    enterprises.find((item) => item.value === normalizedReviewValues.enterprise_id)?.label ?? "";
+    formEnterprises.find(
+      (item) => item.value === normalizedReviewValues.enterprise_id,
+    )?.label ?? "";
   const departmentName =
-    departments.find((item) => item.value === normalizedReviewValues.department_id)?.label ?? "";
+    formDepartments.find(
+      (item) => item.value === normalizedReviewValues.department_id,
+    )?.label ?? "";
   const positionName =
-    positions.find((item) => item.value === normalizedReviewValues.position_id)?.label ?? "";
+    formPositions.find(
+      (item) => item.value === normalizedReviewValues.position_id,
+    )?.label ?? "";
 
   if (isCandidateLoading) {
     return <LoadingState label="Подготовка стандартной формы сотрудника..." />;
@@ -518,7 +591,7 @@ export function EmployeeCreatePage(): JSX.Element {
             control={control}
             departments={availableDepartments}
             enterpriseId={enterpriseId}
-            enterprises={enterprises}
+            enterprises={formEnterprises}
             employmentTypeLocked={isCandidateHire}
             errors={errors}
             isRelationsLoading={isRelationsLoading}
