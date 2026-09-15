@@ -205,6 +205,8 @@ table tbody tr:active {
 /* Sidebar navigation */
 nav a {
   isolation: isolate;
+  overflow: hidden;
+  position: relative;
 }
 
 nav a > svg {
@@ -228,7 +230,7 @@ nav a[data-active="true"]::after {
   pointer-events: none;
   position: absolute;
   transform: translateX(-115%);
-  z-index: -1;
+  z-index: 0;
 }
 
 .app-account-chip {
@@ -460,4 +462,52 @@ nav a[data-active="true"]::after {
 .app-stat-card:hover .app-accent-soft {
   transform: rotate(-4deg) scale(1.08);
   box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+
+/* Shared hover surfaces and tabs */
+.app-hover-muted,
+.app-tab-trigger,
+.app-link-accent {
+  transition:
+    color var(--motion-base) ease,
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    transform var(--motion-base) var(--motion-ease-out),
+    box-shadow var(--motion-base) ease !important;
+}
+
+.app-hover-muted:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.app-hover-muted:active {
+  transform: translateY(0) scale(0.992);
+}
+
+.app-tab-trigger:hover {
+  transform: translateY(-1px);
+}
+
+.app-tab-trigger[data-state="active"] {
+  animation: app-motion-tab-active 240ms var(--motion-ease-spring) both;
+}
+
+.app-link-accent:hover {
+  transform: translateX(2px);
+}
+
+.app-accent-soft {
+  transition:
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    transform var(--motion-base) var(--motion-ease-out);
+}
+
+@keyframes app-motion-tab-active {
+  0% { scale: 0.97; }
+  70% { scale: 1.025; }
+  100% { scale: 1; }
 }
