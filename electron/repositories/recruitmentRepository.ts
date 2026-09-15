@@ -173,8 +173,11 @@ export class RecruitmentRepository {
            vacancies.openings_count AS vacancy_openings_count,
            vacancies.is_archived AS vacancy_is_archived,
            positions.name AS vacancy_title,
+           positions.id AS position_id,
            positions.name AS position_name,
+           departments.id AS department_id,
            departments.name AS department_name,
+           enterprises.id AS enterprise_id,
            enterprises.name AS enterprise_name,
            COALESCE(
              (SELECT ROUND(
@@ -237,8 +240,11 @@ export class RecruitmentRepository {
            vacancies.openings_count AS vacancy_openings_count,
            vacancies.is_archived AS vacancy_is_archived,
            positions.name AS vacancy_title,
+           positions.id AS position_id,
            positions.name AS position_name,
+           departments.id AS department_id,
            departments.name AS department_name,
+           enterprises.id AS enterprise_id,
            enterprises.name AS enterprise_name
          FROM candidates
          JOIN vacancies ON vacancies.id = candidates.vacancy_id
