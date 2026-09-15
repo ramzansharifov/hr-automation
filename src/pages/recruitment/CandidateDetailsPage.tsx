@@ -810,9 +810,11 @@ function CandidateWorkflow({
   const reached = new Set(
     history
       .map((item) => candidateStatus(item.new_status))
-      .filter((item) => activeCandidateStages.includes(item as never)),
+      .filter((item) => activeCandidateStages.some((stage) => stage === item)),
   );
-  const currentActiveIndex = activeCandidateStages.indexOf(status as never);
+  const currentActiveIndex = activeCandidateStages.findIndex(
+    (stage) => stage === status,
+  );
 
   return (
     <section className="app-surface app-border rounded-[24px] border p-5">
@@ -1049,7 +1051,7 @@ function vacancyStatusLabel(value: unknown): string {
     paused: "Приостановлена",
     closed: "Закрыта",
   };
-  return labels[text(value)] ?? text(value) || "—";
+  return labels[text(value)] ?? (text(value) || "—");
 }
 
 function genderLabel(value: unknown): string {
