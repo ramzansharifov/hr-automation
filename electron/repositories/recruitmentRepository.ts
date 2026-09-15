@@ -174,10 +174,26 @@ export class RecruitmentRepository {
   }
 
   deleteVacancy(id: number): void {
-    // The database owns the historical deletion invariant: migration 029 turns
-    // DELETE into archival when candidates already reference the vacancy, while
-    // an unused erroneous vacancy is removed physically.
-    this.database.prepare("DELETE FROM vacancies WHERE id = ?").run(id);
+    const remove = this.database.transaction(() => {
+      // The database owns the historical deletion invariant: migration 029 turns
+      // DELETE into archival when candidates already reference the vacancy, while
+      // an unused erroneous vacancy is removed physically.
+      this.database.prepare("DELETE FROM vacancies WHERE id = ?").run(id);
+
+      const archived = this.database
+        .prepare(
+          "SELECT is_archived FROM vacancies WHERE id = ? LIMIT 1",
+        )
+        .pluck()
+        .get(id);
+      if (Number(archived ?? 0) === 1) {
+        this.rejectActiveCandidatesForVacancy(
+          id,
+          "Вакансия архивирована. Процесс подбора завершён",
+        );
+      }
+    });
+    remove();
   }
 
   listCandidates(params: RecruitmentListParams): HrRecord[] {
