@@ -306,6 +306,9 @@ export interface HireCandidateParams {
   hireDate: string;
   salary: number;
   employeeNumber?: string;
+  lastName?: string;
+  firstName?: string;
+  middleName?: string;
   birthDate?: string;
   gender?: string;
   phone?: string;

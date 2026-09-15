@@ -73,6 +73,7 @@ function App(): JSX.Element {
             <Route path="vacancies/:id/edit" element={<RequirePermission anyOf={["vacancies.edit"]}><VacancyFormPage /></RequirePermission>} />
             <Route path="candidates" element={<RequirePermission anyOf={["candidates.view"]}><CandidatesPage /></RequirePermission>} />
             <Route path="candidates/:id" element={<RequirePermission anyOf={["candidates.view"]}><CandidateDetailsPage /></RequirePermission>} />
+            <Route path="candidates/:candidateId/hire" element={<RequirePermission anyOf={["candidates.hire"]}><EmployeeCreatePage /></RequirePermission>} />
             <Route path="vacations" element={<RequirePermission anyOf={["vacations.view"]}><VacationsPage /></RequirePermission>} />
             <Route path="vacation-types" element={<RequirePermission anyOf={["vacation_types.view"]}><VacationTypesPage /></RequirePermission>} />
             <Route path="document-types" element={<RequirePermission anyOf={["document_types.view"]}><DocumentTypesPage /></RequirePermission>} />

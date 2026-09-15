@@ -34,7 +34,9 @@ export interface EmployeeCompanyFormSectionProps extends EmployeeFormSectionComm
   departments: SelectOption[];
   enterpriseId?: string;
   enterprises?: SelectOption[];
+  assignmentLocked?: boolean;
   includeAssignmentFields?: boolean;
+  employmentTypeLocked?: boolean;
   isRelationsLoading: boolean;
   onEnterpriseChange?: (enterpriseId: string) => void;
   positions: SelectOption[];
@@ -165,10 +167,12 @@ export function EmployeeAddressFormSection({
 }
 
 export function EmployeeCompanyFormSection({
+  assignmentLocked = false,
   control,
   departments,
   enterpriseId = "",
   enterprises = [],
+  employmentTypeLocked = false,
   errors,
   includeAssignmentFields = true,
   isRelationsLoading,
@@ -200,7 +204,7 @@ export function EmployeeCompanyFormSection({
         <>
           {hasEnterpriseSelector && (
             <StandaloneSelectField
-              disabled={isRelationsLoading}
+              disabled={isRelationsLoading || assignmentLocked}
               label="Предприятие"
               onValueChange={onEnterpriseChange!}
               options={enterprises}
@@ -215,7 +219,11 @@ export function EmployeeCompanyFormSection({
           )}
           <SelectField
             control={control}
-            disabled={isRelationsLoading || (hasEnterpriseSelector && !enterpriseId)}
+            disabled={
+              isRelationsLoading ||
+              assignmentLocked ||
+              (hasEnterpriseSelector && !enterpriseId)
+            }
             error={getError("department_id", errors, t)}
             label={t("forms.fields.departmentId")}
             name="department_id"
@@ -233,6 +241,7 @@ export function EmployeeCompanyFormSection({
             control={control}
             disabled={
               isRelationsLoading ||
+              assignmentLocked ||
               (hasEnterpriseSelector && !selectedDepartmentId)
             }
             error={getError("position_id", errors, t)}
@@ -268,6 +277,7 @@ export function EmployeeCompanyFormSection({
 
       <SelectField
         control={control}
+        disabled={employmentTypeLocked}
         error={getError("employment_type", errors, t)}
         label="Тип занятости"
         name="employment_type"
