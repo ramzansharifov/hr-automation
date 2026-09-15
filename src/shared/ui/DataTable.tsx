@@ -305,6 +305,11 @@ export function DataTable<T>({
                       column.className ?? '',
                     ].join(' ')}
                     key={column.key}
+                    onClick={
+                      column.key === 'actions'
+                        ? (event) => event.stopPropagation()
+                        : undefined
+                    }
                   >
                     {column.render(row, globalIndex)}
                   </td>
