@@ -434,3 +434,30 @@ nav a[data-active="true"]::after {
     transform: none !important;
   }
 }
+
+
+/* Dashboard metric cards */
+.app-stat-card,
+.app-route-motion article.app-surface {
+  transition:
+    border-color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    transform var(--motion-base) var(--motion-ease-out);
+}
+
+.app-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.app-stat-card .app-accent-soft,
+.app-route-motion article.app-surface > .flex .app-accent-soft {
+  transition:
+    transform 220ms var(--motion-ease-spring),
+    box-shadow 220ms ease;
+}
+
+.app-stat-card:hover .app-accent-soft {
+  transform: rotate(-4deg) scale(1.08);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 12%, transparent);
+}
