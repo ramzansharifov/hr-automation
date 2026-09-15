@@ -209,6 +209,11 @@ nav a {
   position: relative;
 }
 
+nav a > * {
+  position: relative;
+  z-index: 1;
+}
+
 nav a > svg {
   transition: transform 200ms var(--motion-ease-spring);
 }
