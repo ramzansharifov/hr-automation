@@ -6,14 +6,15 @@ import {
   type Resolver,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import type {
   EmployeeDuplicateCheckParams,
   EmployeeDuplicateCheckResult,
+  HrRecord,
 } from "../../shared/types/hr";
-import { ActionButton } from "../../shared/ui";
+import { ActionButton, LoadingState } from "../../shared/ui";
 import { getAppLocale } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import { getUserFacingErrorMessage } from "../../shared/lib/userFacingErrors";
@@ -44,6 +45,12 @@ export function EmployeeCreatePage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
+  const { candidateId: candidateIdParam } = useParams<{ candidateId?: string }>();
+  const candidateId = Number(candidateIdParam);
+  const isCandidateHire =
+    Number.isInteger(candidateId) && candidateId > 0;
+  const [candidateRecord, setCandidateRecord] = useState<HrRecord | null>(null);
+  const [isCandidateLoading, setIsCandidateLoading] = useState(isCandidateHire);
   const [activeStep, setActiveStep] = useState(0);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +74,7 @@ export function EmployeeCreatePage(): JSX.Element {
     getValues,
     handleSubmit,
     register,
+    reset,
     setError,
     setValue,
     trigger,
@@ -89,6 +97,57 @@ export function EmployeeCreatePage(): JSX.Element {
   );
 
   useEffect(() => {
+    if (!isCandidateHire) {
+      setCandidateRecord(null);
+      setIsCandidateLoading(false);
+      return;
+    }
+
+    let active = true;
+    setIsCandidateLoading(true);
+    void hrApiClient
+      .getCandidate(candidateId)
+      .then((profile) => {
+        if (!active) return;
+        if (!profile) throw new Error("Кандидат не найден");
+
+        const candidate = profile.candidate;
+        if (candidate.employee_id || candidate.status === "hired") {
+          throw new Error("Кандидат уже принят на работу");
+        }
+        if (candidate.status !== "offer") {
+          throw new Error("Оформить сотрудника можно только для кандидата на этапе «Оффер»");
+        }
+        if (
+          candidate.vacancy_status !== "open" ||
+          Number(candidate.vacancy_is_archived ?? 0) === 1
+        ) {
+          throw new Error("Вакансия кандидата должна быть открыта");
+        }
+
+        setCandidateRecord(candidate);
+        reset(employeeDefaultsFromCandidate(candidate));
+      })
+      .catch((error) => {
+        if (!active) return;
+        toast.error(
+          getUserFacingErrorMessage(
+            error,
+            "Не удалось подготовить оформление кандидата",
+          ),
+        );
+        navigate(`/candidates/${candidateId}`, { replace: true });
+      })
+      .finally(() => {
+        if (active) setIsCandidateLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [candidateId, isCandidateHire, navigate, reset]);
+
+  useEffect(() => {
     if (isRelationsLoading || getValues("enterprise_id") || enterprises.length !== 1) {
       return;
     }
@@ -96,6 +155,7 @@ export function EmployeeCreatePage(): JSX.Element {
   }, [enterprises, getValues, isRelationsLoading, setValue]);
 
   useEffect(() => {
+    if (isRelationsLoading) return;
     const currentDepartmentId = getValues("department_id");
     if (
       currentDepartmentId &&
@@ -104,9 +164,10 @@ export function EmployeeCreatePage(): JSX.Element {
       setValue("department_id", "", { shouldValidate: true });
       setValue("position_id", "", { shouldValidate: true });
     }
-  }, [availableDepartments, getValues, setValue]);
+  }, [availableDepartments, getValues, isRelationsLoading, setValue]);
 
   useEffect(() => {
+    if (isRelationsLoading) return;
     const currentPositionId = getValues("position_id");
     if (
       currentPositionId &&
@@ -114,7 +175,7 @@ export function EmployeeCreatePage(): JSX.Element {
     ) {
       setValue("position_id", "", { shouldValidate: true });
     }
-  }, [availablePositions, getValues, setValue]);
+  }, [availablePositions, getValues, isRelationsLoading, setValue]);
 
   async function handleNext(allowWarnings = false): Promise<void> {
     if (
@@ -143,7 +204,7 @@ export function EmployeeCreatePage(): JSX.Element {
 
   function handleBack(): void {
     if (activeStep === 0) {
-      navigate("/employees");
+      navigate(isCandidateHire ? `/candidates/${candidateId}` : "/employees");
       return;
     }
     setActiveStep((current) => Math.max(current - 1, 0));
@@ -196,12 +257,41 @@ export function EmployeeCreatePage(): JSX.Element {
     setIsSubmitting(true);
     try {
       const normalizedValues = normalizeEmployeeFormValues(values);
-      const created = await hrApiClient.create({
-        entity: "employees",
-        data: mapEmployeeFormValuesToRecord(normalizedValues),
-      });
+      const created = isCandidateHire
+        ? await hrApiClient.hireCandidate({
+            candidateId,
+            hireDate: normalizedValues.hire_date,
+            salary: Number(normalizedValues.salary || 0),
+            employeeNumber: optionalValue(normalizedValues.employee_number),
+            lastName: normalizedValues.last_name,
+            firstName: normalizedValues.first_name,
+            middleName: normalizedValues.middle_name,
+            birthDate: normalizedValues.birth_date,
+            gender: normalizedValues.gender,
+            phone: normalizedValues.phone,
+            email: normalizedValues.email,
+            addressCountry: normalizedValues.address_country,
+            addressCity: normalizedValues.address_city,
+            addressStreet: normalizedValues.address_street,
+            addressHouse: normalizedValues.address_house,
+            addressApartment: normalizedValues.address_apartment,
+            address: normalizedValues.address,
+            contractNumber: normalizedValues.contract_number,
+            contractDate: normalizedValues.contract_date,
+            contractEndDate: normalizedValues.contract_end_date,
+            probationEndDate: normalizedValues.probation_end_date,
+            workplace: normalizedValues.workplace,
+          })
+        : await hrApiClient.create({
+            entity: "employees",
+            data: mapEmployeeFormValuesToRecord(normalizedValues),
+          });
       const id = Number(created.id);
-      toast.success(t("employeesCreate.toasts.created"));
+      toast.success(
+        isCandidateHire
+          ? "Кандидат принят на работу и зарегистрирован как сотрудник"
+          : t("employeesCreate.toasts.created"),
+      );
       navigate(Number.isFinite(id) ? `/employees/${id}` : "/employees");
     } catch (error) {
       toast.error(
@@ -360,8 +450,21 @@ export function EmployeeCreatePage(): JSX.Element {
   const positionName =
     positions.find((item) => item.value === normalizedReviewValues.position_id)?.label ?? "";
 
+  if (isCandidateLoading) {
+    return <LoadingState label="Подготовка стандартной формы сотрудника..." />;
+  }
+
   return (
     <div className="app-surface app-border mx-auto max-w-6xl overflow-hidden rounded-[28px] border">
+      {isCandidateHire && candidateRecord && (
+        <section className="app-accent-soft app-border-soft border-b px-5 py-4 sm:px-7">
+          <p className="app-text font-black">Оформление кандидата как сотрудника</p>
+          <p className="app-muted mt-1 text-sm">
+            Известные данные кандидата и назначение из вакансии уже заполнены.
+            Проверьте их, дополните кадровые сведения и завершите стандартную форму.
+          </p>
+        </section>
+      )}
       <section className="app-surface-muted app-border-soft border-b p-5 sm:p-7">
         <EmployeeCreateProgress activeStep={activeStep} t={t} />
       </section>
@@ -405,10 +508,12 @@ export function EmployeeCreatePage(): JSX.Element {
 
         {activeStep === 2 && (
           <EmployeeCompanyFormSection
+            assignmentLocked={isCandidateHire}
             control={control}
             departments={availableDepartments}
             enterpriseId={enterpriseId}
             enterprises={enterprises}
+            employmentTypeLocked={isCandidateHire}
             errors={errors}
             isRelationsLoading={isRelationsLoading}
             onEnterpriseChange={handleEnterpriseChange}
@@ -434,7 +539,9 @@ export function EmployeeCreatePage(): JSX.Element {
       <footer className="app-surface-muted flex flex-col gap-3 p-5 sm:flex-row sm:justify-end sm:p-6">
         <ActionButton
           action="cancel"
-          onClick={() => navigate("/employees")}
+          onClick={() =>
+            navigate(isCandidateHire ? `/candidates/${candidateId}` : "/employees")
+          }
           type="button"
         >
           {t("employeesCreate.actions.cancel")}
@@ -506,4 +613,44 @@ function employeeDuplicateSignature(
 
 function normalizeComparable(value: unknown): string {
   return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function employeeDefaultsFromCandidate(candidate: HrRecord): EmployeeFormValues {
+  return {
+    ...employeeDefaultValues,
+    enterprise_id: idValue(candidate.enterprise_id),
+    last_name: textValue(candidate.last_name),
+    first_name: textValue(candidate.first_name),
+    middle_name: textValue(candidate.middle_name),
+    birth_date: textValue(candidate.birth_date),
+    gender: textValue(candidate.gender),
+    phone: textValue(candidate.phone),
+    email: textValue(candidate.email),
+    address_country: textValue(candidate.address_country),
+    address_city: textValue(candidate.address_city),
+    address_street: textValue(candidate.address_street),
+    address_house: textValue(candidate.address_house),
+    address_apartment: textValue(candidate.address_apartment),
+    address: textValue(candidate.address),
+    department_id: idValue(candidate.department_id),
+    position_id: idValue(candidate.position_id),
+    employment_type:
+      textValue(candidate.vacancy_employment_type) ||
+      textValue(candidate.employment_type) ||
+      employeeDefaultValues.employment_type,
+  };
+}
+
+function idValue(value: unknown): string {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? String(id) : "";
+}
+
+function textValue(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function optionalValue(value: string): string | undefined {
+  const normalized = value.trim();
+  return normalized || undefined;
 }
