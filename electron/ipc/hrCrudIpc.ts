@@ -434,6 +434,47 @@ export function registerHrCrudIpcHandlers(): void {
     );
     return saved;
   });
+  ipcMain.handle("recruitment:advanceCandidate", (event, raw: unknown) => {
+    assertTrustedSender(event);
+    const params = ipcValidation.advanceCandidate(raw);
+    const existing = recruitmentService.getCandidate(params.candidateId);
+    if (!existing) throw new Error("Кандидат не найден");
+    authorizationService.assertCanManageCandidate(existing.candidate, "edit");
+    const saved = recruitmentService.advanceCandidate(params);
+    auditService.record(
+      authenticationService.requireSession(),
+      "candidate.advance",
+      "candidates",
+      params.candidateId,
+      existing.candidate,
+      saved.candidate,
+      {
+        fromStatus: existing.candidate.status,
+        toStatus: saved.candidate.status,
+        reason: params.reason ?? null,
+      },
+    );
+    return saved;
+  });
+  ipcMain.handle("recruitment:rejectCandidate", (event, raw: unknown) => {
+    assertTrustedSender(event);
+    const params = ipcValidation.rejectCandidate(raw);
+    const existing = recruitmentService.getCandidate(params.candidateId);
+    if (!existing) throw new Error("Кандидат не найден");
+    authorizationService.assertCanManageCandidate(existing.candidate, "edit");
+    const saved = recruitmentService.rejectCandidate(params);
+    auditService.record(
+      authenticationService.requireSession(),
+      "candidate.reject",
+      "candidates",
+      params.candidateId,
+      existing.candidate,
+      saved.candidate,
+      { reason: params.reason },
+    );
+    return saved;
+  });
+
   ipcMain.handle("recruitment:hireCandidate", (event, raw: unknown) => {
     assertTrustedSender(event);
     const params = ipcValidation.hireCandidate(raw);
