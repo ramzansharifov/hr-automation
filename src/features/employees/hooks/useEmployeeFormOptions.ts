@@ -18,7 +18,7 @@ interface EmployeeFormOptions {
   statusOptions: SelectOption[];
 }
 
-export function useEmployeeFormOptions(): EmployeeFormOptions {
+export function useEmployeeFormOptions(loadRelations = true): EmployeeFormOptions {
   const { t } = useTranslation();
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [enterprises, setEnterprises] = useState<SelectOption[]>([]);
@@ -42,6 +42,14 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
   );
 
   useEffect(() => {
+    if (!loadRelations) {
+      setDepartments([]);
+      setEnterprises([]);
+      setPositions([]);
+      setIsRelationsLoading(false);
+      return;
+    }
+
     let isActive = true;
     setIsRelationsLoading(true);
     loadEmployeeRelationOptions()
@@ -61,7 +69,7 @@ export function useEmployeeFormOptions(): EmployeeFormOptions {
     return () => {
       isActive = false;
     };
-  }, [t]);
+  }, [loadRelations, t]);
 
   return {
     departments,
