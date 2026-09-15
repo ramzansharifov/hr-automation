@@ -47,8 +47,7 @@ export function EmployeeCreatePage(): JSX.Element {
   const navigate = useNavigate();
   const { candidateId: candidateIdParam } = useParams<{ candidateId?: string }>();
   const candidateId = Number(candidateIdParam);
-  const isCandidateHire =
-    Number.isInteger(candidateId) && candidateId > 0;
+  const isCandidateHire = candidateIdParam !== undefined;
   const [candidateRecord, setCandidateRecord] = useState<HrRecord | null>(null);
   const [isCandidateLoading, setIsCandidateLoading] = useState(isCandidateHire);
   const [activeStep, setActiveStep] = useState(0);
@@ -100,6 +99,13 @@ export function EmployeeCreatePage(): JSX.Element {
     if (!isCandidateHire) {
       setCandidateRecord(null);
       setIsCandidateLoading(false);
+      return;
+    }
+
+    if (!Number.isInteger(candidateId) || candidateId <= 0) {
+      toast.error("Некорректный идентификатор кандидата");
+      setIsCandidateLoading(false);
+      navigate("/candidates", { replace: true });
       return;
     }
 
