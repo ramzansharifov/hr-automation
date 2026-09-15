@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  AdvanceCandidateParams,
   EmployeeDuplicateCheckParams,
   HireCandidateParams,
   HrCreateParams,
@@ -12,6 +13,7 @@ import type {
   HrTerminationParams,
   HrUpdateParams,
   RecruitmentListParams,
+  RejectCandidateParams,
   SaveCandidateParams,
   SaveVacancyParams,
 } from "../../src/shared/types/hr";
