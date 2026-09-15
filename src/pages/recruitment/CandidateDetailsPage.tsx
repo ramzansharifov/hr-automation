@@ -12,7 +12,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
-import { CandidateHireDialog } from "../../features/recruitment/CandidateHireDialog";
 import {
   activeCandidateStages,
   candidateStatus,
@@ -94,7 +93,6 @@ export function CandidateDetailsPage(): JSX.Element {
   const [advanceReason, setAdvanceReason] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [hireOpen, setHireOpen] = useState(false);
 
   const loadProfile = useCallback(async (): Promise<void> => {
     if (!Number.isInteger(candidateId) || candidateId <= 0) {
@@ -443,7 +441,7 @@ export function CandidateDetailsPage(): JSX.Element {
             {canHireCandidate && (
               <ActionButton
                 action="hire"
-                onClick={() => setHireOpen(true)}
+                onClick={() => navigate(`/candidates/${candidateId}/hire`)}
                 type="button"
               >
                 Принять на работу
@@ -788,14 +786,6 @@ export function CandidateDetailsPage(): JSX.Element {
         </form>
       </Dialog>
 
-      {canHire && (
-        <CandidateHireDialog
-          candidate={candidate}
-          onHired={() => void loadProfile()}
-          onOpenChange={setHireOpen}
-          open={hireOpen}
-        />
-      )}
     </div>
   );
 }
