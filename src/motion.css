@@ -1,0 +1,436 @@
+/*
+ * Application-wide motion system.
+ *
+ * Motion is intentionally subtle: it clarifies navigation, state changes and
+ * interaction without turning the HR workspace into a decorative demo.
+ */
+
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 280ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Route content gets a small secondary stagger after the Framer Motion page transition. */
+.app-route-motion .app-page-header {
+  animation: app-motion-rise var(--motion-slow) var(--motion-ease-out) both;
+}
+
+.app-route-motion > * > :is(section, article):not(.app-page-header) {
+  animation: app-motion-rise 320ms var(--motion-ease-out) both;
+}
+
+.app-route-motion > * > :is(section, article):nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.app-route-motion > * > :is(section, article):nth-child(3) {
+  animation-delay: 65ms;
+}
+
+.app-route-motion > * > :is(section, article):nth-child(4) {
+  animation-delay: 90ms;
+}
+
+.app-page-header__icon {
+  animation: app-motion-icon-pop 380ms var(--motion-ease-spring) both;
+  transition:
+    transform var(--motion-base) var(--motion-ease-out),
+    box-shadow var(--motion-base) ease,
+    background-color var(--motion-base) ease;
+}
+
+.app-page-header:hover .app-page-header__icon {
+  transform: translateY(-1px) rotate(-2deg) scale(1.04);
+}
+
+/* Buttons feel tactile without changing layout. */
+.app-button,
+.app-icon-button,
+.app-choice-button {
+  will-change: transform;
+}
+
+.app-button {
+  transition:
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    transform var(--motion-fast) var(--motion-ease-out) !important;
+}
+
+.app-button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.app-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.975) !important;
+  transition-duration: 70ms !important;
+}
+
+.app-button__icon {
+  transition: transform var(--motion-base) var(--motion-ease-spring);
+}
+
+.app-button:hover:not(:disabled) .app-button__icon {
+  transform: translateY(-0.5px) scale(1.08);
+}
+
+.app-button:active:not(:disabled) .app-button__icon {
+  transform: scale(0.94);
+}
+
+.app-icon-button {
+  transition:
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    transform var(--motion-fast) var(--motion-ease-out) !important;
+}
+
+.app-icon-button > svg {
+  transition: transform var(--motion-base) var(--motion-ease-spring);
+}
+
+.app-icon-button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.035);
+}
+
+.app-icon-button:hover:not(:disabled) > svg {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+.app-icon-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.app-choice-button {
+  transition:
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    transform var(--motion-fast) var(--motion-ease-out) !important;
+}
+
+.app-choice-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.app-choice-button:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* Form controls: focus is animated, select chevrons communicate open state. */
+.app-input {
+  transition:
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    color var(--motion-base) ease,
+    transform var(--motion-base) var(--motion-ease-out) !important;
+}
+
+.app-input:focus,
+.app-input:focus-within {
+  transform: translateY(-1px);
+}
+
+.app-input svg {
+  transition: transform var(--motion-base) var(--motion-ease-out);
+}
+
+.app-input[data-state="open"] svg {
+  transform: rotate(180deg);
+}
+
+/* Switch thumb gets a slightly springier snap. */
+.app-toggle__thumb {
+  transition: transform 210ms var(--motion-ease-spring) !important;
+}
+
+.app-toggle:hover:not(:disabled) .app-toggle__thumb {
+  scale: 1.06;
+}
+
+/* Dialogs */
+.app-dialog-overlay[data-state="open"] {
+  animation: app-motion-overlay-in 180ms ease-out both;
+}
+
+.app-dialog-overlay[data-state="closed"] {
+  animation: app-motion-overlay-out 130ms ease-in both;
+}
+
+.app-dialog-content[data-state="open"] {
+  animation: app-motion-dialog-in 240ms var(--motion-ease-out) both;
+  transform-origin: center;
+}
+
+.app-dialog-content[data-state="closed"] {
+  animation: app-motion-dialog-out 140ms ease-in both;
+}
+
+/* Radix select/dropdown/popover surfaces all expose data-side + data-state. */
+.app-surface[data-side][data-state="open"] {
+  animation: app-motion-popover-in 170ms var(--motion-ease-out) both;
+}
+
+.app-surface[data-side][data-state="closed"] {
+  animation: app-motion-popover-out 110ms ease-in both;
+}
+
+/* Tables and list-like content. */
+table tbody tr {
+  transition:
+    background-color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    transform var(--motion-base) var(--motion-ease-out) !important;
+}
+
+table tbody tr:hover {
+  transform: translateX(2px);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 52%, transparent);
+}
+
+table tbody tr:active {
+  transform: translateX(1px) scale(0.998);
+}
+
+/* Sidebar navigation */
+nav a {
+  isolation: isolate;
+}
+
+nav a > svg {
+  transition: transform 200ms var(--motion-ease-spring);
+}
+
+nav a:hover > svg {
+  transform: scale(1.12) rotate(-3deg);
+}
+
+nav a[data-active="true"]::after {
+  animation: app-motion-nav-sheen 640ms var(--motion-ease-out) both;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.16) 46%,
+    transparent 72%
+  );
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-115%);
+  z-index: -1;
+}
+
+.app-account-chip {
+  transition:
+    border-color var(--motion-base) ease,
+    transform var(--motion-base) var(--motion-ease-out),
+    box-shadow var(--motion-base) ease;
+}
+
+.app-account-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* Loading state */
+.app-loading-state {
+  animation: app-motion-fade-in 180ms ease-out both;
+}
+
+.app-loading-orbit {
+  animation: app-motion-spin 1.05s linear infinite;
+  border: 2px solid color-mix(in srgb, var(--accent) 16%, var(--color-border));
+  border-top-color: var(--accent);
+  border-radius: 999px;
+  height: 30px;
+  width: 30px;
+}
+
+.app-loading-dot {
+  animation: app-motion-dot 900ms ease-in-out infinite;
+  background: var(--accent);
+  border-radius: 999px;
+  height: 5px;
+  width: 5px;
+}
+
+.app-loading-dot:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.app-loading-dot:nth-child(3) {
+  animation-delay: 220ms;
+}
+
+/* Toasts and focusable status surfaces */
+.Toastify__toast {
+  transition:
+    transform var(--motion-base) var(--motion-ease-out),
+    box-shadow var(--motion-base) ease !important;
+}
+
+.Toastify__toast:hover {
+  transform: translateY(-2px);
+}
+
+/* Small feedback for clickable cards that already advertise pointer behavior. */
+.app-route-motion .cursor-pointer {
+  transition:
+    transform var(--motion-base) var(--motion-ease-out),
+    box-shadow var(--motion-base) ease,
+    border-color var(--motion-base) ease;
+}
+
+.app-route-motion .cursor-pointer:hover {
+  transform: translateY(-2px);
+}
+
+.app-route-motion .cursor-pointer:active {
+  transform: translateY(0) scale(0.99);
+}
+
+@keyframes app-motion-rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes app-motion-icon-pop {
+  0% {
+    opacity: 0;
+    scale: 0.84;
+    rotate: -5deg;
+  }
+  65% {
+    opacity: 1;
+    scale: 1.06;
+    rotate: 1deg;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes app-motion-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes app-motion-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes app-motion-dialog-in {
+  from {
+    opacity: 0;
+    scale: 0.955;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes app-motion-dialog-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.975;
+  }
+}
+
+@keyframes app-motion-popover-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 -3px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes app-motion-popover-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.985;
+  }
+}
+
+@keyframes app-motion-nav-sheen {
+  from { transform: translateX(-115%); }
+  to { transform: translateX(115%); }
+}
+
+@keyframes app-motion-spin {
+  to { rotate: 360deg; }
+}
+
+@keyframes app-motion-dot {
+  0%, 100% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1);
+  }
+}
+
+@keyframes app-motion-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .app-button:hover:not(:disabled),
+  .app-icon-button:hover:not(:disabled),
+  .app-choice-button:hover:not(:disabled),
+  .app-input:focus,
+  .app-input:focus-within,
+  table tbody tr:hover,
+  .app-account-chip:hover,
+  .app-route-motion .cursor-pointer:hover {
+    transform: none !important;
+  }
+}
