@@ -9,6 +9,7 @@ import './index.css'
 import './modern.css'
 import './serious.css'
 import './controls.css'
+import './motion.css'
 import 'react-toastify/dist/ReactToastify.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
