@@ -1,3 +1,4 @@
+export { AnimatedNumber } from './AnimatedNumber'
 export { ActionButton, type ActionButtonProps } from './ActionButton'
 export { ActionIconButton, type ActionIconButtonProps } from './ActionIconButton'
 export { ActionLink, type ActionLinkProps } from './ActionLink'
