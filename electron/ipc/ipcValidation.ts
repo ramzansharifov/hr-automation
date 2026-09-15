@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  AdvanceCandidateParams,
   EmployeeDuplicateCheckParams,
   HireCandidateParams,
   HrCreateParams,
@@ -12,6 +13,7 @@ import type {
   HrTerminationParams,
   HrUpdateParams,
   RecruitmentListParams,
+  RejectCandidateParams,
   SaveCandidateParams,
   SaveVacancyParams,
 } from "../../src/shared/types/hr";
@@ -199,18 +201,34 @@ export const ipcValidation = {
         lastName: z.string().max(200),
         firstName: z.string().max(200),
         middleName: z.string().max(200).optional(),
+        birthDate: dateSchema.optional().or(z.literal("")),
+        gender: z.string().max(100).optional(),
         phone: z.string().max(100).optional(),
         email: z.string().max(320).optional(),
-        status: z.enum([
-          "new",
-          "screening",
-          "interview",
-          "offer",
-          "hired",
-          "rejected",
-        ]),
+        addressCountry: z.string().max(200).optional(),
+        addressCity: z.string().max(200).optional(),
+        addressStreet: z.string().max(300).optional(),
+        addressHouse: z.string().max(100).optional(),
+        addressApartment: z.string().max(100).optional(),
+        address: z.string().max(1000).optional(),
         source: z.string().max(500).optional(),
         skillScores: z.array(candidateScoreSchema).max(200),
+      })
+      .parse(value);
+  },
+  advanceCandidate(value: unknown): AdvanceCandidateParams {
+    return z
+      .object({
+        candidateId: positiveId,
+        reason: z.string().max(2000).optional(),
+      })
+      .parse(value);
+  },
+  rejectCandidate(value: unknown): RejectCandidateParams {
+    return z
+      .object({
+        candidateId: positiveId,
+        reason: z.string().trim().min(1).max(2000),
       })
       .parse(value);
   },
@@ -221,6 +239,16 @@ export const ipcValidation = {
         hireDate: dateSchema,
         salary: z.number().nonnegative(),
         employeeNumber: z.string().max(100).optional(),
+        birthDate: dateSchema.optional().or(z.literal("")),
+        gender: z.string().max(100).optional(),
+        phone: z.string().max(100).optional(),
+        email: z.string().max(320).optional(),
+        addressCountry: z.string().max(200).optional(),
+        addressCity: z.string().max(200).optional(),
+        addressStreet: z.string().max(300).optional(),
+        addressHouse: z.string().max(100).optional(),
+        addressApartment: z.string().max(100).optional(),
+        address: z.string().max(1000).optional(),
         contractNumber: z.string().max(200).optional(),
         contractDate: dateSchema.optional().or(z.literal("")),
         contractEndDate: dateSchema.optional().or(z.literal("")),

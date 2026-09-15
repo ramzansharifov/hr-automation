@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
   AddEmployeeDocumentParams,
+  AdvanceCandidateParams,
   ApplyEmployeeImportParams,
   AuditListParams,
   EmployeeDuplicateCheckParams,
@@ -19,6 +20,7 @@ import type {
   HrTerminationParams,
   PreviewEmployeeImportParams,
   RecruitmentListParams,
+  RejectCandidateParams,
   SaveCandidateParams,
   SaveVacancyParams,
   HrUpdateParams,
@@ -103,6 +105,10 @@ const hrApi: ExtendedHrApi = {
   getCandidate: (id: number) => ipcRenderer.invoke("recruitment:getCandidate", id),
   saveCandidate: (params: SaveCandidateParams) =>
     ipcRenderer.invoke("recruitment:saveCandidate", params),
+  advanceCandidate: (params: AdvanceCandidateParams) =>
+    ipcRenderer.invoke("recruitment:advanceCandidate", params),
+  rejectCandidate: (params: RejectCandidateParams) =>
+    ipcRenderer.invoke("recruitment:rejectCandidate", params),
   hireCandidate: (params: HireCandidateParams) =>
     ipcRenderer.invoke("recruitment:hireCandidate", params),
   deleteCandidate: (id: number) =>

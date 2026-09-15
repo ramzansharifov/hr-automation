@@ -747,5 +747,177 @@ class HrCoreIntegrationTests(unittest.TestCase):
         )
 
 
+    def test_candidate_lifecycle_is_sequential_and_keeps_history(self):
+        organization = seed_organization(self.connection)
+        vacancy_id = self.connection.execute(
+            """
+            INSERT INTO vacancies (
+              position_id, title, status, employment_type, openings_count
+            ) VALUES (?, 'Candidate Workflow', 'open', 'full_time', 1)
+            """,
+            (organization[2],),
+        ).lastrowid
+
+        candidate_id = self.connection.execute(
+            """
+            INSERT INTO candidates (
+              vacancy_id, last_name, first_name, birth_date, phone
+            ) VALUES (?, 'Workflow', 'Candidate', '1998-04-15', '+992900000000')
+            """,
+            (vacancy_id,),
+        ).lastrowid
+
+        initial_history = self.connection.execute(
+            """
+            SELECT previous_status, new_status, reason
+            FROM candidate_status_history
+            WHERE candidate_id = ?
+            ORDER BY id
+            """,
+            (candidate_id,),
+        ).fetchall()
+        self.assertEqual(
+            initial_history,
+            [(None, "new", "Кандидат зарегистрирован")],
+        )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "Недопустимый переход"):
+            self.connection.execute(
+                "UPDATE candidates SET status = 'offer' WHERE id = ?",
+                (candidate_id,),
+            )
+
+        for next_status in ("screening", "interview", "offer", "rejected"):
+            self.connection.execute(
+                "UPDATE candidates SET status = ? WHERE id = ?",
+                (next_status, candidate_id),
+            )
+
+        statuses = [
+            row[0]
+            for row in self.connection.execute(
+                """
+                SELECT new_status
+                FROM candidate_status_history
+                WHERE candidate_id = ?
+                ORDER BY id
+                """,
+                (candidate_id,),
+            ).fetchall()
+        ]
+        self.assertEqual(
+            statuses,
+            ["new", "screening", "interview", "offer", "rejected"],
+        )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "Недопустимый переход"):
+            self.connection.execute(
+                "UPDATE candidates SET status = 'interview' WHERE id = ?",
+                (candidate_id,),
+            )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "истор"):
+            self.connection.execute(
+                "DELETE FROM candidates WHERE id = ?",
+                (candidate_id,),
+            )
+
+    def test_candidate_hire_cannot_exceed_vacancy_capacity(self):
+        organization = seed_organization(self.connection)
+        vacancy_id = self.connection.execute(
+            """
+            INSERT INTO vacancies (
+              position_id, title, status, employment_type, openings_count
+            ) VALUES (?, 'Single Opening', 'open', 'full_time', 1)
+            """,
+            (organization[2],),
+        ).lastrowid
+
+        candidate_ids = []
+        for suffix in ("One", "Two"):
+            candidate_id = self.connection.execute(
+                """
+                INSERT INTO candidates (vacancy_id, last_name, first_name)
+                VALUES (?, 'Capacity', ?)
+                """,
+                (vacancy_id, suffix),
+            ).lastrowid
+            for next_status in ("screening", "interview", "offer"):
+                self.connection.execute(
+                    "UPDATE candidates SET status = ? WHERE id = ?",
+                    (next_status, candidate_id),
+                )
+            candidate_ids.append(candidate_id)
+
+        first_employee_id = seed_active_employee(
+            self.connection,
+            organization,
+            last_name="CapacityOne",
+        )
+        self.connection.execute(
+            """
+            UPDATE candidates
+            SET status = 'hired', employee_id = ?
+            WHERE id = ?
+            """,
+            (first_employee_id, candidate_ids[0]),
+        )
+
+        second_employee_id = seed_active_employee(
+            self.connection,
+            organization,
+            last_name="CapacityTwo",
+        )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "места"):
+            self.connection.execute(
+                """
+                UPDATE candidates
+                SET status = 'hired', employee_id = ?
+                WHERE id = ?
+                """,
+                (second_employee_id, candidate_ids[1]),
+            )
+
+        second_candidate = self.connection.execute(
+            "SELECT status, employee_id FROM candidates WHERE id = ?",
+            (candidate_ids[1],),
+        ).fetchone()
+        self.assertEqual(second_candidate, ("offer", None))
+
+    def test_candidate_profile_fields_are_available_for_employee_handoff(self):
+        candidate_columns = {
+            row[1]
+            for row in self.connection.execute(
+                "PRAGMA table_info(candidates)"
+            ).fetchall()
+        }
+        self.assertTrue(
+            {
+                "birth_date",
+                "gender",
+                "address_country",
+                "address_city",
+                "address_street",
+                "address_house",
+                "address_apartment",
+                "address",
+                "employee_id",
+            }.issubset(candidate_columns)
+        )
+
+        with open(
+            "src/shared/types/hr.ts",
+            "r",
+            encoding="utf-8",
+        ) as source_file:
+            shared_types = source_file.read()
+        save_candidate_block = shared_types.split(
+            "export interface SaveCandidateParams", 1
+        )[1].split("export interface CandidateProfile", 1)[0]
+        self.assertNotIn("status:", save_candidate_block)
+        self.assertIn("advanceCandidate(params:", shared_types)
+        self.assertIn("rejectCandidate(params:", shared_types)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,9 +1,11 @@
 import type Database from "better-sqlite3";
 
 import type {
+  AdvanceCandidateParams,
   CandidateProfile,
   HireCandidateParams,
   RecruitmentListParams,
+  RejectCandidateParams,
   SaveCandidateParams,
   SaveVacancyParams,
   VacancyProfile,
@@ -90,6 +92,13 @@ export class RecruitmentRepository {
            vacancies.employment_type,
            vacancies.openings_count,
            vacancies.is_archived,
+           (SELECT COUNT(*)
+            FROM candidates
+            WHERE candidates.vacancy_id = vacancies.id) AS candidates_count,
+           (SELECT COUNT(*)
+            FROM candidates
+            WHERE candidates.vacancy_id = vacancies.id
+              AND candidates.employee_id IS NOT NULL) AS hired_count,
            vacancies.archived_at,
            vacancies.archive_reason,
            vacancies.created_at,
@@ -131,6 +140,30 @@ export class RecruitmentRepository {
         ? this.updateVacancy(params)
         : this.insertVacancy(params);
       this.syncVacancySkills(vacancyId, params.skills);
+      const hiredCount = Number(
+        this.database
+          .prepare(
+            "SELECT COUNT(*) FROM candidates WHERE vacancy_id = ? AND employee_id IS NOT NULL",
+          )
+          .pluck()
+          .get(vacancyId) ?? 0,
+      );
+      const capacityFilled = hiredCount >= params.openingsCount;
+      if (capacityFilled && params.status !== "closed") {
+        this.database
+          .prepare(
+            "UPDATE vacancies SET status = 'closed', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          )
+          .run(vacancyId);
+      }
+      if (params.status === "closed" || capacityFilled) {
+        this.rejectActiveCandidatesForVacancy(
+          vacancyId,
+          capacityFilled
+            ? "Вакансия закрыта: все доступные места заполнены"
+            : "Вакансия закрыта работодателем",
+        );
+      }
       return vacancyId;
     });
 
@@ -141,10 +174,26 @@ export class RecruitmentRepository {
   }
 
   deleteVacancy(id: number): void {
-    // The database owns the historical deletion invariant: migration 029 turns
-    // DELETE into archival when candidates already reference the vacancy, while
-    // an unused erroneous vacancy is removed physically.
-    this.database.prepare("DELETE FROM vacancies WHERE id = ?").run(id);
+    const remove = this.database.transaction(() => {
+      // The database owns the historical deletion invariant: migration 029 turns
+      // DELETE into archival when candidates already reference the vacancy, while
+      // an unused erroneous vacancy is removed physically.
+      this.database.prepare("DELETE FROM vacancies WHERE id = ?").run(id);
+
+      const archived = this.database
+        .prepare(
+          "SELECT is_archived FROM vacancies WHERE id = ? LIMIT 1",
+        )
+        .pluck()
+        .get(id);
+      if (Number(archived ?? 0) === 1) {
+        this.rejectActiveCandidatesForVacancy(
+          id,
+          "Вакансия архивирована. Процесс подбора завершён",
+        );
+      }
+    });
+    remove();
   }
 
   listCandidates(params: RecruitmentListParams): HrRecord[] {
@@ -153,9 +202,16 @@ export class RecruitmentRepository {
       .prepare(
         `SELECT
            candidates.*,
+           vacancies.status AS vacancy_status,
+           vacancies.employment_type AS vacancy_employment_type,
+           vacancies.openings_count AS vacancy_openings_count,
+           vacancies.is_archived AS vacancy_is_archived,
            positions.name AS vacancy_title,
+           positions.id AS position_id,
            positions.name AS position_name,
+           departments.id AS department_id,
            departments.name AS department_name,
+           enterprises.id AS enterprise_id,
            enterprises.name AS enterprise_name,
            COALESCE(
              (SELECT ROUND(
@@ -213,9 +269,16 @@ export class RecruitmentRepository {
       .prepare(
         `SELECT
            candidates.*,
+           vacancies.status AS vacancy_status,
+           vacancies.employment_type AS vacancy_employment_type,
+           vacancies.openings_count AS vacancy_openings_count,
+           vacancies.is_archived AS vacancy_is_archived,
            positions.name AS vacancy_title,
+           positions.id AS position_id,
            positions.name AS position_name,
+           departments.id AS department_id,
            departments.name AS department_name,
+           enterprises.id AS enterprise_id,
            enterprises.name AS enterprise_name
          FROM candidates
          JOIN vacancies ON vacancies.id = candidates.vacancy_id
@@ -281,6 +344,82 @@ export class RecruitmentRepository {
     return profile;
   }
 
+  advanceCandidate(params: AdvanceCandidateParams): CandidateProfile {
+    const advance = this.database.transaction(() => {
+      const profile = this.getCandidate(params.candidateId);
+      if (!profile) throw new Error("Кандидат не найден");
+
+      const candidate = profile.candidate;
+      if (Number(candidate.vacancy_is_archived) === 1) {
+        throw new Error("Нельзя продолжить подбор по архивной вакансии");
+      }
+      if (String(candidate.vacancy_status) !== "open") {
+        throw new Error("Продвигать кандидата можно только по открытой вакансии");
+      }
+      if (candidate.employee_id || candidate.status === "hired") {
+        throw new Error("Кандидат уже принят на работу");
+      }
+      if (candidate.status === "rejected") {
+        throw new Error("Отклонённый кандидат уже завершил процесс подбора");
+      }
+
+      const nextStatus = nextCandidateStatus(String(candidate.status ?? ""));
+      if (!nextStatus) {
+        throw new Error(
+          candidate.status === "offer"
+            ? "Кандидат уже на этапе «Оффер». Используйте действие «Принять на работу» или «Отклонить»"
+            : "Для текущего этапа нет следующего шага",
+        );
+      }
+
+      this.database
+        .prepare(
+          `UPDATE candidates
+           SET status = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+        )
+        .run(nextStatus, params.candidateId);
+      this.updateLatestStatusReason(
+        params.candidateId,
+        params.reason?.trim() ||
+          `Переход: ${candidateStatusName(String(candidate.status))} → ${candidateStatusName(nextStatus)}`,
+      );
+    });
+
+    advance();
+    const profile = this.getCandidate(params.candidateId);
+    if (!profile) throw new Error("Кандидат не найден после изменения этапа");
+    return profile;
+  }
+
+  rejectCandidate(params: RejectCandidateParams): CandidateProfile {
+    const reject = this.database.transaction(() => {
+      const profile = this.getCandidate(params.candidateId);
+      if (!profile) throw new Error("Кандидат не найден");
+      const candidate = profile.candidate;
+      if (candidate.employee_id || candidate.status === "hired") {
+        throw new Error("Принятого кандидата нельзя отклонить");
+      }
+      if (candidate.status === "rejected") {
+        throw new Error("Кандидат уже отклонён");
+      }
+
+      this.database
+        .prepare(
+          `UPDATE candidates
+           SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+        )
+        .run(params.candidateId);
+      this.updateLatestStatusReason(params.candidateId, params.reason.trim());
+    });
+
+    reject();
+    const profile = this.getCandidate(params.candidateId);
+    if (!profile) throw new Error("Кандидат не найден после отклонения");
+    return profile;
+  }
+
   hireCandidate(
     params: HireCandidateParams,
     createEmployee: (candidate: HrRecord) => HrRecord,
@@ -293,6 +432,7 @@ export class RecruitmentRepository {
                   vacancy.employment_type,
                   vacancy.openings_count,
                   vacancy.is_archived,
+                  vacancy.status AS vacancy_status,
                   position.department_id,
                   department.enterprise_id
            FROM candidates AS candidate
@@ -309,8 +449,24 @@ export class RecruitmentRepository {
       if (candidate.employee_id) {
         throw new Error("Для этого кандидата сотрудник уже создан");
       }
-      if (candidate.status === "rejected") {
-        throw new Error("Отклонённого кандидата сначала верните в активный этап подбора");
+      if (candidate.status !== "offer") {
+        throw new Error("Принять на работу можно только кандидата на этапе «Оффер»");
+      }
+      if (candidate.vacancy_status !== "open") {
+        throw new Error("Принимать кандидата можно только по открытой вакансии");
+      }
+
+      const hiredCountBefore = Number(
+        this.database
+          .prepare(
+            `SELECT COUNT(*) FROM candidates
+             WHERE vacancy_id = ? AND employee_id IS NOT NULL`,
+          )
+          .pluck()
+          .get(candidate.vacancy_id) ?? 0,
+      );
+      if (hiredCountBefore >= Number(candidate.openings_count ?? 1)) {
+        throw new Error("Все места по вакансии уже заполнены");
       }
 
       const enterpriseId = Number(candidate.enterprise_id);
@@ -324,9 +480,35 @@ export class RecruitmentRepository {
         throw new Error("Созданный сотрудник не найден");
       }
 
-      // Candidate contact data is historical recruitment data. It is preserved
-      // after hire instead of being cleared merely to satisfy an e-mail uniqueness
-      // workaround.
+      // Keep the historical candidate card complete as well: values entered
+      // during hiring fill only fields that were still unknown for the candidate.
+      this.database
+        .prepare(
+          `UPDATE candidates
+           SET birth_date = COALESCE(NULLIF(TRIM(birth_date), ''), @birthDate),
+               gender = COALESCE(NULLIF(TRIM(gender), ''), @gender),
+               phone = COALESCE(NULLIF(TRIM(phone), ''), @phone),
+               email = COALESCE(NULLIF(TRIM(email), ''), @email),
+               address_country = COALESCE(NULLIF(TRIM(address_country), ''), @addressCountry),
+               address_city = COALESCE(NULLIF(TRIM(address_city), ''), @addressCity),
+               address_street = COALESCE(NULLIF(TRIM(address_street), ''), @addressStreet),
+               address_house = COALESCE(NULLIF(TRIM(address_house), ''), @addressHouse),
+               address_apartment = COALESCE(NULLIF(TRIM(address_apartment), ''), @addressApartment)
+           WHERE id = @candidateId`,
+        )
+        .run({
+          addressApartment: nullableText(params.addressApartment),
+          addressCity: nullableText(params.addressCity),
+          addressCountry: nullableText(params.addressCountry),
+          addressHouse: nullableText(params.addressHouse),
+          addressStreet: nullableText(params.addressStreet),
+          birthDate: nullableText(params.birthDate),
+          candidateId: params.candidateId,
+          email: nullableText(params.email)?.toLowerCase() ?? null,
+          gender: nullableText(params.gender),
+          phone: nullableText(params.phone),
+        });
+
       this.database
         .prepare(
           `UPDATE candidates
@@ -334,6 +516,10 @@ export class RecruitmentRepository {
            WHERE id = ?`,
         )
         .run(employeeId, params.candidateId);
+      this.updateLatestStatusReason(
+        params.candidateId,
+        "Кандидат принят на работу",
+      );
 
       const hiredCount = Number(
         this.database
@@ -352,6 +538,10 @@ export class RecruitmentRepository {
              WHERE id = ?`,
           )
           .run(candidate.vacancy_id);
+        this.rejectActiveCandidatesForVacancy(
+          Number(candidate.vacancy_id),
+          "Вакансия закрыта: все доступные места заполнены",
+        );
       }
 
       return employee;
@@ -361,12 +551,35 @@ export class RecruitmentRepository {
   }
 
   deleteCandidate(id: number): void {
-    const employeeId = this.database
-      .prepare("SELECT employee_id FROM candidates WHERE id = ?")
-      .pluck()
-      .get(id) as number | null | undefined;
-    if (employeeId) {
-      throw new Error("Принятого кандидата нельзя удалить. Его история сохранена в системе");
+    const candidate = this.database
+      .prepare(
+        `SELECT id, status, employee_id,
+                EXISTS (
+                  SELECT 1
+                  FROM candidate_status_history
+                  WHERE candidate_id = candidates.id
+                    AND previous_status IS NOT NULL
+                ) AS has_progress_history
+         FROM candidates
+         WHERE id = ? LIMIT 1`,
+      )
+      .get(id) as
+      | {
+          id: number;
+          status: string;
+          employee_id: number | null;
+          has_progress_history: number;
+        }
+      | undefined;
+    if (!candidate) throw new Error("Кандидат не найден");
+    if (
+      candidate.employee_id ||
+      candidate.status !== "new" ||
+      candidate.has_progress_history
+    ) {
+      throw new Error(
+        "Удалить можно только ошибочно созданного нового кандидата без истории подбора",
+      );
     }
     this.database.prepare("DELETE FROM candidates WHERE id = ?").run(id);
   }
@@ -391,6 +604,19 @@ export class RecruitmentRepository {
 
   private updateVacancy(params: SaveVacancyParams): number {
     const id = params.id!;
+    const hiredCount = Number(
+      this.database
+        .prepare(
+          "SELECT COUNT(*) FROM candidates WHERE vacancy_id = ? AND employee_id IS NOT NULL",
+        )
+        .pluck()
+        .get(id) ?? 0,
+    );
+    if (params.openingsCount < hiredCount) {
+      throw new Error(
+        `Количество мест не может быть меньше уже принятых сотрудников (${hiredCount})`,
+      );
+    }
     const positionName = this.getPositionName(params.positionId);
     const result = this.database
       .prepare(
@@ -485,19 +711,29 @@ export class RecruitmentRepository {
     const result = this.database
       .prepare(
         `INSERT INTO candidates (
-           vacancy_id, last_name, first_name, middle_name, phone, email,
-           status, source
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           vacancy_id, last_name, first_name, middle_name,
+           birth_date, gender, phone, email,
+           address_country, address_city, address_street,
+           address_house, address_apartment, address,
+           source
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         params.vacancyId,
         params.lastName.trim(),
         params.firstName.trim(),
-        params.middleName?.trim() || null,
-        params.phone?.trim() || null,
-        params.email?.trim().toLowerCase() || null,
-        params.status,
-        params.source?.trim() || null,
+        nullableText(params.middleName),
+        nullableText(params.birthDate),
+        nullableText(params.gender),
+        nullableText(params.phone),
+        nullableText(params.email)?.toLowerCase() ?? null,
+        nullableText(params.addressCountry),
+        nullableText(params.addressCity),
+        nullableText(params.addressStreet),
+        nullableText(params.addressHouse),
+        nullableText(params.addressApartment),
+        nullableText(params.address),
+        nullableText(params.source),
       );
     return Number(result.lastInsertRowid);
   }
@@ -507,23 +743,98 @@ export class RecruitmentRepository {
     const result = this.database
       .prepare(
         `UPDATE candidates
-         SET vacancy_id = ?, last_name = ?, first_name = ?, middle_name = ?,
-             phone = ?, email = ?, status = ?, source = ?,
-             updated_at = CURRENT_TIMESTAMP
+         SET last_name = ?, first_name = ?, middle_name = ?,
+             birth_date = ?, gender = ?, phone = ?, email = ?,
+             address_country = ?, address_city = ?, address_street = ?,
+             address_house = ?, address_apartment = ?, address = ?,
+             source = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
       )
       .run(
-        params.vacancyId,
         params.lastName.trim(),
         params.firstName.trim(),
-        params.middleName?.trim() || null,
-        params.phone?.trim() || null,
-        params.email?.trim().toLowerCase() || null,
-        params.status,
-        params.source?.trim() || null,
+        nullableText(params.middleName),
+        nullableText(params.birthDate),
+        nullableText(params.gender),
+        nullableText(params.phone),
+        nullableText(params.email)?.toLowerCase() ?? null,
+        nullableText(params.addressCountry),
+        nullableText(params.addressCity),
+        nullableText(params.addressStreet),
+        nullableText(params.addressHouse),
+        nullableText(params.addressApartment),
+        nullableText(params.address),
+        nullableText(params.source),
         id,
       );
     if (result.changes === 0) throw new Error("Кандидат не найден");
     return id;
   }
+
+  private updateLatestStatusReason(candidateId: number, reason: string): void {
+    this.database
+      .prepare(
+        `UPDATE candidate_status_history
+         SET reason = ?
+         WHERE id = (
+           SELECT id
+           FROM candidate_status_history
+           WHERE candidate_id = ?
+           ORDER BY id DESC
+           LIMIT 1
+         )`,
+      )
+      .run(reason, candidateId);
+  }
+
+  private rejectActiveCandidatesForVacancy(
+    vacancyId: number,
+    reason: string,
+  ): void {
+    const activeCandidates = this.database
+      .prepare(
+        `SELECT id
+         FROM candidates
+         WHERE vacancy_id = ?
+           AND employee_id IS NULL
+           AND status IN ('new', 'screening', 'interview', 'offer')`,
+      )
+      .all(vacancyId) as Array<{ id: number }>;
+
+    const reject = this.database.prepare(
+      `UPDATE candidates
+       SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+    );
+    activeCandidates.forEach(({ id }) => {
+      reject.run(id);
+      this.updateLatestStatusReason(id, reason);
+    });
+  }
+}
+
+function nextCandidateStatus(status: string): string | null {
+  const transitions: Record<string, string> = {
+    new: "screening",
+    screening: "interview",
+    interview: "offer",
+  };
+  return transitions[status] ?? null;
+}
+
+function candidateStatusName(status: string): string {
+  const labels: Record<string, string> = {
+    new: "Новый",
+    screening: "Первичный отбор",
+    interview: "Собеседование",
+    offer: "Оффер",
+    hired: "Принят на работу",
+    rejected: "Отклонён",
+  };
+  return labels[status] ?? status;
+}
+
+function nullableText(value: unknown): string | null {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
 }

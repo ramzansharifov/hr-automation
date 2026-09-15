@@ -1,7 +1,9 @@
 import type {
+  AdvanceCandidateParams,
   HireCandidateParams,
   HrRecord,
   RecruitmentListParams,
+  RejectCandidateParams,
   SaveCandidateParams,
   SaveVacancyParams,
 } from "../../src/shared/types/hr";
@@ -71,31 +73,55 @@ export class RecruitmentService {
       throw new Error("Укажите имя и фамилию кандидата");
     }
     assertId(params.vacancyId, "вакансии");
+    assertOptionalDate(params.birthDate, "дату рождения");
+
+    const vacancy = this.repository.getVacancy(params.vacancyId);
+    if (!vacancy) throw new Error("Вакансия не найдена");
 
     const existing = params.id
       ? this.repository.getCandidate(assertId(params.id, "кандидата"))
       : null;
     if (params.id && !existing) throw new Error("Кандидат не найден");
 
-    const isAlreadyHired = Boolean(existing?.candidate.employee_id);
-    if (params.status === "hired" && !isAlreadyHired) {
-      throw new Error(
-        "Для приёма кандидата используйте действие «Принять на работу»",
-      );
-    }
-    if (isAlreadyHired && params.status !== "hired") {
-      throw new Error("Принятого сотрудника нельзя вернуть на этап подбора");
-    }
-    if (
-      isAlreadyHired &&
-      Number(existing?.candidate.vacancy_id) !== params.vacancyId
-    ) {
-      throw new Error("Нельзя изменить вакансию уже принятого кандидата");
+    if (!existing) {
+      if (
+        Number(vacancy.vacancy.is_archived) === 1 ||
+        String(vacancy.vacancy.status) !== "open"
+      ) {
+        throw new Error("Добавлять кандидатов можно только в открытую вакансию");
+      }
+      if (
+        Number(vacancy.vacancy.hired_count ?? 0) >=
+        Number(vacancy.vacancy.openings_count ?? 1)
+      ) {
+        throw new Error("Все места по вакансии уже заполнены");
+      }
+    } else {
+      if (Number(existing.candidate.vacancy_id) !== params.vacancyId) {
+        throw new Error("Вакансию кандидата нельзя изменить после регистрации");
+      }
+      if (
+        existing.candidate.employee_id ||
+        existing.candidate.status === "hired"
+      ) {
+        throw new Error(
+          "Данные принятого кандидата сохранены как история. Изменяйте данные в карточке сотрудника",
+        );
+      }
+      if (existing.candidate.status === "rejected") {
+        throw new Error("Отклонённый кандидат сохранён как завершённая история подбора");
+      }
     }
 
+    const vacancySkillIds = new Set(
+      vacancy.skills.map((skill) => Number(skill.id)),
+    );
     const skillIds = new Set<number>();
     params.skillScores.forEach((skill) => {
       assertId(skill.vacancySkillId, "навыка");
+      if (!vacancySkillIds.has(skill.vacancySkillId)) {
+        throw new Error("Один из оцениваемых навыков не принадлежит вакансии кандидата");
+      }
       if (skillIds.has(skill.vacancySkillId)) {
         throw new Error("Оценка одного навыка указана несколько раз");
       }
@@ -106,6 +132,28 @@ export class RecruitmentService {
     return this.repository.saveCandidate(params);
   }
 
+  advanceCandidate(params: AdvanceCandidateParams) {
+    assertId(params.candidateId, "кандидата");
+    if (params.reason && params.reason.length > 2000) {
+      throw new Error("Комментарий к переходу слишком длинный");
+    }
+    return this.repository.advanceCandidate(params);
+  }
+
+  rejectCandidate(params: RejectCandidateParams) {
+    assertId(params.candidateId, "кандидата");
+    if (!params.reason.trim()) {
+      throw new Error("Укажите причину отклонения кандидата");
+    }
+    if (params.reason.length > 2000) {
+      throw new Error("Причина отклонения слишком длинная");
+    }
+    return this.repository.rejectCandidate({
+      candidateId: params.candidateId,
+      reason: params.reason.trim(),
+    });
+  }
+
   hireCandidate(params: HireCandidateParams) {
     assertId(params.candidateId, "кандидата");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(params.hireDate)) {
@@ -114,6 +162,10 @@ export class RecruitmentService {
     if (!Number.isFinite(params.salary) || params.salary < 0) {
       throw new Error("Укажите корректный оклад");
     }
+    assertOptionalDate(params.birthDate, "дату рождения");
+    assertOptionalDate(params.contractDate, "дату договора");
+    assertOptionalDate(params.contractEndDate, "дату окончания договора");
+    assertOptionalDate(params.probationEndDate, "дату окончания испытательного срока");
 
     const profile = this.repository.getCandidate(params.candidateId);
     if (!profile) throw new Error("Кандидат не найден");
@@ -144,6 +196,15 @@ function employeeRecordFromCandidate(
   candidate: HrRecord,
   params: HireCandidateParams,
 ): HrRecord {
+  const addressCountry = firstText(candidate.address_country, params.addressCountry);
+  const addressCity = firstText(candidate.address_city, params.addressCity);
+  const addressStreet = firstText(candidate.address_street, params.addressStreet);
+  const addressHouse = firstText(candidate.address_house, params.addressHouse);
+  const addressApartment = firstText(
+    candidate.address_apartment,
+    params.addressApartment,
+  );
+
   return {
     enterprise_id: Number(candidate.enterprise_id),
     department_id: Number(candidate.department_id),
@@ -152,17 +213,69 @@ function employeeRecordFromCandidate(
     last_name: String(candidate.last_name ?? "").trim(),
     first_name: String(candidate.first_name ?? "").trim(),
     middle_name: String(candidate.middle_name ?? "").trim() || null,
-    phone: String(candidate.phone ?? "").trim() || null,
-    email: String(candidate.email ?? "").trim() || null,
+    birth_date: firstText(candidate.birth_date, params.birthDate),
+    gender: firstText(candidate.gender, params.gender),
+    phone: firstText(candidate.phone, params.phone),
+    email: firstText(candidate.email, params.email)?.toLowerCase() ?? null,
+    address_country: addressCountry,
+    address_city: addressCity,
+    address_street: addressStreet,
+    address_house: addressHouse,
+    address_apartment: addressApartment,
+    address:
+      firstText(candidate.address, params.address) ??
+      buildAddress(
+        addressCountry,
+        addressCity,
+        addressStreet,
+        addressHouse,
+        addressApartment,
+      ),
     hire_date: params.hireDate,
     salary: params.salary,
-    employment_type: String(candidate.employment_type ?? "full_time"),
+    employment_type: String(
+      candidate.vacancy_employment_type ??
+        candidate.employment_type ??
+        "full_time",
+    ),
     contract_number: params.contractNumber?.trim() || null,
     contract_date: params.contractDate || null,
     contract_end_date: params.contractEndDate || null,
     probation_end_date: params.probationEndDate || null,
     workplace: params.workplace?.trim() || null,
   };
+}
+
+function firstText(primary: unknown, fallback: unknown): string | null {
+  const primaryValue = String(primary ?? "").trim();
+  if (primaryValue) return primaryValue;
+  const fallbackValue = String(fallback ?? "").trim();
+  return fallbackValue || null;
+}
+
+function buildAddress(
+  country: string | null,
+  city: string | null,
+  street: string | null,
+  house: string | null,
+  apartment: string | null,
+): string | null {
+  const locality = [country, city].filter(Boolean).join(", ");
+  const streetLine = [
+    street,
+    house ? `д. ${house}` : null,
+    apartment ? `кв. ${apartment}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  return [locality, streetLine].filter(Boolean).join(", ") || null;
+}
+
+function assertOptionalDate(value: unknown, label: string): void {
+  const normalized = String(value ?? "").trim();
+  if (normalized && !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error(`Укажите корректную ${label}`);
+  }
 }
 
 function assertId(value: number, label: string): number {

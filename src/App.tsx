@@ -35,6 +35,7 @@ import { AccessRolesPage } from "./pages/access/AccessRolesPage";
 import { EmployeeCreatePage } from "./pages/employees/EmployeeCreatePage";
 import { EmployeeDetailsPage } from "./pages/employees/EmployeeDetailsPage";
 import { EmployeesPage } from "./pages/employees/EmployeesPage";
+import { CandidateDetailsPage } from "./pages/recruitment/CandidateDetailsPage";
 import { CandidatesPage } from "./pages/recruitment/CandidatesPage";
 import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
 import { VacancyDetailsPage } from "./pages/recruitment/VacancyDetailsPage";
@@ -71,6 +72,7 @@ function App(): JSX.Element {
             <Route path="vacancies/:id" element={<RequirePermission anyOf={["vacancies.view"]}><VacancyDetailsPage /></RequirePermission>} />
             <Route path="vacancies/:id/edit" element={<RequirePermission anyOf={["vacancies.edit"]}><VacancyFormPage /></RequirePermission>} />
             <Route path="candidates" element={<RequirePermission anyOf={["candidates.view"]}><CandidatesPage /></RequirePermission>} />
+            <Route path="candidates/:id" element={<RequirePermission anyOf={["candidates.view"]}><CandidateDetailsPage /></RequirePermission>} />
             <Route path="vacations" element={<RequirePermission anyOf={["vacations.view"]}><VacationsPage /></RequirePermission>} />
             <Route path="vacation-types" element={<RequirePermission anyOf={["vacation_types.view"]}><VacationTypesPage /></RequirePermission>} />
             <Route path="document-types" element={<RequirePermission anyOf={["document_types.view"]}><DocumentTypesPage /></RequirePermission>} />

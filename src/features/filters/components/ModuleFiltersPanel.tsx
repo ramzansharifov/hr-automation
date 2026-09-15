@@ -73,7 +73,7 @@ const candidateStatusOptions: SelectOption[] = [
   { value: "screening", label: "Первичный отбор" },
   { value: "interview", label: "Собеседование" },
   { value: "offer", label: "Оффер" },
-  { value: "hired", label: "Принят" },
+  { value: "hired", label: "Принят на работу" },
   { value: "rejected", label: "Отклонён" },
 ];
 
