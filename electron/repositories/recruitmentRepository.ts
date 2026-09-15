@@ -464,9 +464,35 @@ export class RecruitmentRepository {
         throw new Error("Созданный сотрудник не найден");
       }
 
-      // Candidate contact data is historical recruitment data. It is preserved
-      // after hire instead of being cleared merely to satisfy an e-mail uniqueness
-      // workaround.
+      // Keep the historical candidate card complete as well: values entered
+      // during hiring fill only fields that were still unknown for the candidate.
+      this.database
+        .prepare(
+          `UPDATE candidates
+           SET birth_date = COALESCE(NULLIF(TRIM(birth_date), ''), @birthDate),
+               gender = COALESCE(NULLIF(TRIM(gender), ''), @gender),
+               phone = COALESCE(NULLIF(TRIM(phone), ''), @phone),
+               email = COALESCE(NULLIF(TRIM(email), ''), @email),
+               address_country = COALESCE(NULLIF(TRIM(address_country), ''), @addressCountry),
+               address_city = COALESCE(NULLIF(TRIM(address_city), ''), @addressCity),
+               address_street = COALESCE(NULLIF(TRIM(address_street), ''), @addressStreet),
+               address_house = COALESCE(NULLIF(TRIM(address_house), ''), @addressHouse),
+               address_apartment = COALESCE(NULLIF(TRIM(address_apartment), ''), @addressApartment)
+           WHERE id = @candidateId`,
+        )
+        .run({
+          addressApartment: nullableText(params.addressApartment),
+          addressCity: nullableText(params.addressCity),
+          addressCountry: nullableText(params.addressCountry),
+          addressHouse: nullableText(params.addressHouse),
+          addressStreet: nullableText(params.addressStreet),
+          birthDate: nullableText(params.birthDate),
+          candidateId: params.candidateId,
+          email: nullableText(params.email)?.toLowerCase() ?? null,
+          gender: nullableText(params.gender),
+          phone: nullableText(params.phone),
+        });
+
       this.database
         .prepare(
           `UPDATE candidates
