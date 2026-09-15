@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import { FiSearch } from "react-icons/fi";
 
@@ -98,6 +99,7 @@ export function FormField({
 }
 
 export function MatchBar({ value }: { value: number }): JSX.Element {
+  const reduceMotion = useReducedMotion();
   const safeValue = Math.max(0, Math.min(100, Math.round(value)));
 
   return (
@@ -107,9 +109,14 @@ export function MatchBar({ value }: { value: number }): JSX.Element {
         <span className="app-text text-sm font-black">{safeValue}%</span>
       </div>
       <div className="app-surface-muted h-2 overflow-hidden rounded-full">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[var(--accent-border)] to-[var(--accent-hover)] transition-[width]"
-          style={{ width: `${safeValue}%` }}
+        <motion.div
+          animate={{ width: `${safeValue}%` }}
+          className="h-full rounded-full bg-gradient-to-r from-[var(--accent-border)] to-[var(--accent-hover)]"
+          initial={reduceMotion ? false : { width: 0 }}
+          transition={{
+            duration: reduceMotion ? 0 : 0.55,
+            ease: [0.22, 1, 0.36, 1],
+          }}
         />
       </div>
     </div>
