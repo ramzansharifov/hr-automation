@@ -8,6 +8,7 @@ import {
 
 import type { HrRecord } from "../../shared/types/hr";
 import { ActionButton, RecordActions } from "../../shared/ui";
+import { candidateStatusLabel, candidateStatusTone } from "./candidateWorkflow";
 import { RecruitmentBadge } from "./RecruitmentUi";
 
 interface CandidateSummaryCardProps {
@@ -245,25 +246,6 @@ function candidateInitials(candidate: HrRecord): string {
     .map((value) => String(value ?? "").trim())
     .filter(Boolean);
   return parts.length > 0 ? parts.map((part) => part[0]?.toUpperCase()).join("").slice(0, 2) : "К";
-}
-
-function candidateStatusLabel(value: string): string {
-  const labels: Record<string, string> = {
-    new: "Новый",
-    screening: "Первичный отбор",
-    interview: "Собеседование",
-    offer: "Оффер",
-    hired: "Принят",
-    rejected: "Отклонён",
-  };
-  return labels[value] ?? value;
-}
-
-function candidateStatusTone(value: string): "accent" | "neutral" | "success" | "warning" {
-  if (value === "hired") return "success";
-  if (value === "offer") return "warning";
-  if (value === "new" || value === "interview") return "accent";
-  return "neutral";
 }
 
 function clampPercentage(value: number): number {
