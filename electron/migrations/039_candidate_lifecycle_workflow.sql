@@ -78,12 +78,12 @@ END;
 DROP TRIGGER IF EXISTS candidates_open_vacancy_insert_guard;
 CREATE TRIGGER candidates_open_vacancy_insert_guard
 BEFORE INSERT ON candidates
-WHEN NOT EXISTS (
+WHEN EXISTS (
   SELECT 1
   FROM vacancies
   WHERE id = NEW.vacancy_id
-    AND status = 'open'
     AND is_archived = 0
+    AND status <> 'open'
 )
 BEGIN
   SELECT RAISE(ABORT, 'Добавлять кандидатов можно только в открытую вакансию');
