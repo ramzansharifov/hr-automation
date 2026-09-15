@@ -256,15 +256,30 @@ export interface CandidateSkillScoreInput {
   score: number;
 }
 
+export type CandidateStatus =
+  | "new"
+  | "screening"
+  | "interview"
+  | "offer"
+  | "hired"
+  | "rejected";
+
 export interface SaveCandidateParams {
   id?: number;
   vacancyId: number;
   lastName: string;
   firstName: string;
   middleName?: string;
+  birthDate?: string;
+  gender?: string;
   phone?: string;
   email?: string;
-  status: "new" | "screening" | "interview" | "offer" | "hired" | "rejected";
+  addressCountry?: string;
+  addressCity?: string;
+  addressStreet?: string;
+  addressHouse?: string;
+  addressApartment?: string;
+  address?: string;
   source?: string;
   skillScores: CandidateSkillScoreInput[];
 }
@@ -276,11 +291,31 @@ export interface CandidateProfile {
   statusHistory: HrRecord[];
 }
 
+export interface AdvanceCandidateParams {
+  candidateId: number;
+  reason?: string;
+}
+
+export interface RejectCandidateParams {
+  candidateId: number;
+  reason: string;
+}
+
 export interface HireCandidateParams {
   candidateId: number;
   hireDate: string;
   salary: number;
   employeeNumber?: string;
+  birthDate?: string;
+  gender?: string;
+  phone?: string;
+  email?: string;
+  addressCountry?: string;
+  addressCity?: string;
+  addressStreet?: string;
+  addressHouse?: string;
+  addressApartment?: string;
+  address?: string;
   contractNumber?: string;
   contractDate?: string;
   contractEndDate?: string;
@@ -483,6 +518,8 @@ export interface HrApi {
   listCandidates(params: RecruitmentListParams): Promise<HrRecord[]>;
   getCandidate(id: number): Promise<CandidateProfile | null>;
   saveCandidate(params: SaveCandidateParams): Promise<CandidateProfile>;
+  advanceCandidate(params: AdvanceCandidateParams): Promise<CandidateProfile>;
+  rejectCandidate(params: RejectCandidateParams): Promise<CandidateProfile>;
   hireCandidate(params: HireCandidateParams): Promise<HrRecord>;
   deleteCandidate(id: number): Promise<{ success: true }>;
   listEmployeeVacations(employeeId: number): Promise<HrRecord[]>;
