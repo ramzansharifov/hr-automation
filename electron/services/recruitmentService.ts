@@ -90,6 +90,12 @@ export class RecruitmentService {
       ) {
         throw new Error("Добавлять кандидатов можно только в открытую вакансию");
       }
+      if (
+        Number(vacancy.vacancy.hired_count ?? 0) >=
+        Number(vacancy.vacancy.openings_count ?? 1)
+      ) {
+        throw new Error("Все места по вакансии уже заполнены");
+      }
     } else {
       if (Number(existing.candidate.vacancy_id) !== params.vacancyId) {
         throw new Error("Вакансию кандидата нельзя изменить после регистрации");
@@ -107,9 +113,15 @@ export class RecruitmentService {
       }
     }
 
+    const vacancySkillIds = new Set(
+      vacancy.skills.map((skill) => Number(skill.id)),
+    );
     const skillIds = new Set<number>();
     params.skillScores.forEach((skill) => {
       assertId(skill.vacancySkillId, "навыка");
+      if (!vacancySkillIds.has(skill.vacancySkillId)) {
+        throw new Error("Один из оцениваемых навыков не принадлежит вакансии кандидата");
+      }
       if (skillIds.has(skill.vacancySkillId)) {
         throw new Error("Оценка одного навыка указана несколько раз");
       }
