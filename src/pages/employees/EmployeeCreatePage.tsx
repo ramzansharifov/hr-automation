@@ -365,7 +365,13 @@ export function EmployeeCreatePage(): JSX.Element {
           ? "Кандидат принят на работу и зарегистрирован как сотрудник"
           : t("employeesCreate.toasts.created"),
       );
-      navigate(Number.isFinite(id) ? `/employees/${id}` : "/employees");
+      navigate(
+        isCandidateHire
+          ? `/candidates/${candidateId}`
+          : Number.isFinite(id)
+            ? `/employees/${id}`
+            : "/employees",
+      );
     } catch (error) {
       toast.error(
         getUserFacingErrorMessage(
