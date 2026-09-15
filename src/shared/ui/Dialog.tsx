@@ -36,10 +36,10 @@ export function Dialog({
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm" />
+        <RadixDialog.Overlay className="app-dialog-overlay fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm" />
         <RadixDialog.Content
           className={[
-            "app-surface app-border fixed left-1/2 top-1/2 z-50 flex max-h-[min(90dvh,900px)] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border shadow-2xl",
+            "app-dialog-content app-surface app-border fixed left-1/2 top-1/2 z-50 flex max-h-[min(90dvh,900px)] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border shadow-2xl",
             dialogWidthBySize[size],
           ].join(" ")}
         >
