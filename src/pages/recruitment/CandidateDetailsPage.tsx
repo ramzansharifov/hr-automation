@@ -175,7 +175,7 @@ export function CandidateDetailsPage(): JSX.Element {
     if (!editForm || !canEdit) return;
     setIsSaving(true);
     try {
-      const currentCandidate = profile.candidate;
+      const currentCandidate = profile!.candidate;
       const saved = await hrApiClient.saveCandidate({
         id: candidateId,
         vacancyId: Number(currentCandidate.vacancy_id),
