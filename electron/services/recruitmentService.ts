@@ -162,6 +162,12 @@ export class RecruitmentService {
     if (!Number.isFinite(params.salary) || params.salary < 0) {
       throw new Error("Укажите корректный оклад");
     }
+    if (params.lastName !== undefined && !params.lastName.trim()) {
+      throw new Error("Укажите фамилию сотрудника");
+    }
+    if (params.firstName !== undefined && !params.firstName.trim()) {
+      throw new Error("Укажите имя сотрудника");
+    }
     assertOptionalDate(params.birthDate, "дату рождения");
     assertOptionalDate(params.contractDate, "дату договора");
     assertOptionalDate(params.contractEndDate, "дату окончания договора");
@@ -196,13 +202,13 @@ function employeeRecordFromCandidate(
   candidate: HrRecord,
   params: HireCandidateParams,
 ): HrRecord {
-  const addressCountry = firstText(candidate.address_country, params.addressCountry);
-  const addressCity = firstText(candidate.address_city, params.addressCity);
-  const addressStreet = firstText(candidate.address_street, params.addressStreet);
-  const addressHouse = firstText(candidate.address_house, params.addressHouse);
-  const addressApartment = firstText(
-    candidate.address_apartment,
+  const addressCountry = submittedText(params.addressCountry, candidate.address_country);
+  const addressCity = submittedText(params.addressCity, candidate.address_city);
+  const addressStreet = submittedText(params.addressStreet, candidate.address_street);
+  const addressHouse = submittedText(params.addressHouse, candidate.address_house);
+  const addressApartment = submittedText(
     params.addressApartment,
+    candidate.address_apartment,
   );
 
   return {
@@ -210,20 +216,25 @@ function employeeRecordFromCandidate(
     department_id: Number(candidate.department_id),
     position_id: Number(candidate.position_id),
     employee_number: params.employeeNumber?.trim() || null,
-    last_name: String(candidate.last_name ?? "").trim(),
-    first_name: String(candidate.first_name ?? "").trim(),
-    middle_name: String(candidate.middle_name ?? "").trim() || null,
-    birth_date: firstText(candidate.birth_date, params.birthDate),
-    gender: firstText(candidate.gender, params.gender),
-    phone: firstText(candidate.phone, params.phone),
-    email: firstText(candidate.email, params.email)?.toLowerCase() ?? null,
+    last_name:
+      submittedText(params.lastName, candidate.last_name) ??
+      String(candidate.last_name ?? "").trim(),
+    first_name:
+      submittedText(params.firstName, candidate.first_name) ??
+      String(candidate.first_name ?? "").trim(),
+    middle_name: submittedText(params.middleName, candidate.middle_name),
+    birth_date: submittedText(params.birthDate, candidate.birth_date),
+    gender: submittedText(params.gender, candidate.gender),
+    phone: submittedText(params.phone, candidate.phone),
+    email:
+      submittedText(params.email, candidate.email)?.toLowerCase() ?? null,
     address_country: addressCountry,
     address_city: addressCity,
     address_street: addressStreet,
     address_house: addressHouse,
     address_apartment: addressApartment,
     address:
-      firstText(candidate.address, params.address) ??
+      submittedText(params.address, candidate.address) ??
       buildAddress(
         addressCountry,
         addressCity,
@@ -246,9 +257,14 @@ function employeeRecordFromCandidate(
   };
 }
 
-function firstText(primary: unknown, fallback: unknown): string | null {
-  const primaryValue = String(primary ?? "").trim();
-  if (primaryValue) return primaryValue;
+function submittedText(
+  submitted: unknown,
+  fallback: unknown,
+): string | null {
+  if (submitted !== undefined) {
+    const submittedValue = String(submitted ?? "").trim();
+    return submittedValue || null;
+  }
   const fallbackValue = String(fallback ?? "").trim();
   return fallbackValue || null;
 }
