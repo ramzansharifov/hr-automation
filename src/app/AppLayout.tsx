@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -158,6 +158,8 @@ function SidebarSection({
 
 export function AppLayout(): JSX.Element {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const location = useLocation();
+  const reduceMotion = useReducedMotion();
   const { t } = useTranslation();
   const { hasPermission, logout, session } = useAuth();
   const leadershipRole = getLeadershipRole(session.roles);
@@ -345,7 +347,33 @@ export function AppLayout(): JSX.Element {
           </header>
 
           <main className="mx-auto min-w-0 max-w-[1680px] px-6 py-6 lg:px-8 lg:py-7">
-            <Outlet />
+            <AnimatePresence initial={false} mode="wait">
+              <motion.div
+                animate={
+                  reduceMotion
+                    ? { opacity: 1 }
+                    : { opacity: 1, y: 0, filter: "blur(0px)" }
+                }
+                className="app-route-motion"
+                exit={
+                  reduceMotion
+                    ? { opacity: 1 }
+                    : { opacity: 0, y: -5, filter: "blur(2px)" }
+                }
+                initial={
+                  reduceMotion
+                    ? { opacity: 1 }
+                    : { opacity: 0, y: 10, filter: "blur(3px)" }
+                }
+                key={location.pathname}
+                transition={{
+                  duration: reduceMotion ? 0 : 0.24,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>
