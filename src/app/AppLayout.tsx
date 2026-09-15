@@ -81,6 +81,7 @@ function SidebarItem({
   const link = (
     <NavLink
       aria-label={title}
+      data-active={isActive}
       className={
         isCollapsed ? collapsedLinkClass(isActive) : expandedLinkClass(isActive)
       }
@@ -322,7 +323,7 @@ export function AppLayout(): JSX.Element {
               {canSearch ? <GlobalSearch /> : <div />}
 
               <div className="flex shrink-0 items-center gap-2">
-                <div className="app-surface app-border flex min-w-0 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-none">
+                <div className="app-account-chip app-surface app-border flex min-w-0 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-none">
                   <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
                     <FiUser className="h-[18px] w-[18px]" />
                   </span>
