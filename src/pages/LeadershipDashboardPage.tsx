@@ -22,7 +22,7 @@ import type {
   HrListResult,
   HrRecord,
 } from "../shared/types/hr";
-import { ActionButton, PageHeader } from "../shared/ui";
+import { ActionButton, AnimatedNumber, PageHeader } from "../shared/ui";
 
 const initialStats: HrDashboardStats = {
   employeesTotal: 0,
@@ -354,7 +354,9 @@ function MetricCard({
         <p className="app-muted truncate text-[10px] font-black uppercase tracking-wide">
           {label}
         </p>
-        <p className="app-text mt-0.5 text-xl font-black">{value}</p>
+        <p className="app-text mt-0.5 text-xl font-black">
+          <AnimatedNumber value={value} />
+        </p>
       </div>
     </article>
   );
