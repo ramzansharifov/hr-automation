@@ -480,33 +480,41 @@ export class RecruitmentRepository {
         throw new Error("Созданный сотрудник не найден");
       }
 
-      // Keep the historical candidate card complete as well: values entered
-      // during hiring fill only fields that were still unknown for the candidate.
+      // The accepted form is the final personal-data snapshot for both records.
+      // Keep the completed candidate history aligned with the employee that was created.
       this.database
         .prepare(
           `UPDATE candidates
-           SET birth_date = COALESCE(NULLIF(TRIM(birth_date), ''), @birthDate),
-               gender = COALESCE(NULLIF(TRIM(gender), ''), @gender),
-               phone = COALESCE(NULLIF(TRIM(phone), ''), @phone),
-               email = COALESCE(NULLIF(TRIM(email), ''), @email),
-               address_country = COALESCE(NULLIF(TRIM(address_country), ''), @addressCountry),
-               address_city = COALESCE(NULLIF(TRIM(address_city), ''), @addressCity),
-               address_street = COALESCE(NULLIF(TRIM(address_street), ''), @addressStreet),
-               address_house = COALESCE(NULLIF(TRIM(address_house), ''), @addressHouse),
-               address_apartment = COALESCE(NULLIF(TRIM(address_apartment), ''), @addressApartment)
+           SET last_name = @lastName,
+               first_name = @firstName,
+               middle_name = @middleName,
+               birth_date = @birthDate,
+               gender = @gender,
+               phone = @phone,
+               email = @email,
+               address_country = @addressCountry,
+               address_city = @addressCity,
+               address_street = @addressStreet,
+               address_house = @addressHouse,
+               address_apartment = @addressApartment,
+               address = @address
            WHERE id = @candidateId`,
         )
         .run({
-          addressApartment: nullableText(params.addressApartment),
-          addressCity: nullableText(params.addressCity),
-          addressCountry: nullableText(params.addressCountry),
-          addressHouse: nullableText(params.addressHouse),
-          addressStreet: nullableText(params.addressStreet),
-          birthDate: nullableText(params.birthDate),
+          address: nullableText(employee.address),
+          addressApartment: nullableText(employee.address_apartment),
+          addressCity: nullableText(employee.address_city),
+          addressCountry: nullableText(employee.address_country),
+          addressHouse: nullableText(employee.address_house),
+          addressStreet: nullableText(employee.address_street),
+          birthDate: nullableText(employee.birth_date),
           candidateId: params.candidateId,
-          email: nullableText(params.email)?.toLowerCase() ?? null,
-          gender: nullableText(params.gender),
-          phone: nullableText(params.phone),
+          email: nullableText(employee.email)?.toLowerCase() ?? null,
+          firstName: String(employee.first_name ?? "").trim(),
+          gender: nullableText(employee.gender),
+          lastName: String(employee.last_name ?? "").trim(),
+          middleName: nullableText(employee.middle_name),
+          phone: nullableText(employee.phone),
         });
 
       this.database
