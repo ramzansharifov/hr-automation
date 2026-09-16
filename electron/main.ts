@@ -366,7 +366,17 @@ function createWindow(): void {
             e2eEnterpriseId > 0 &&
             e2eDepartmentId > 0 &&
             e2eEmployeeId > 0 &&
-            foreignDepartmentId > 0
+            foreignDepartmentId > 0 &&
+            foreignEmployeeId > 0 &&
+            otherEnterpriseId > 0 &&
+            otherDepartmentId > 0 &&
+            otherEmployeeId > 0 &&
+            ownVacancyId > 0 &&
+            foreignVacancyId > 0 &&
+            otherVacancyId > 0 &&
+            ownCandidateId > 0 &&
+            foreignCandidateId > 0 &&
+            otherCandidateId > 0
           ) {
             const customRole = await window.hrApi.saveAccessRole({
               name: 'E2E Department Editor',
@@ -377,7 +387,11 @@ function createWindow(): void {
               permissionCodes: [
                 'positions.create',
                 'positions.edit',
-                'employee_education.create'
+                'employee_education.create',
+                'employees.view',
+                'vacancies.view',
+                'candidates.view',
+                'analytics.view'
               ]
             })
 
@@ -394,7 +408,10 @@ function createWindow(): void {
               customRole?.permissionCodes?.includes('employees.view') &&
               customRole?.permissionCodes?.includes('employee_education.view') &&
               customRole?.permissionCodes?.includes('employee_education.create') &&
-              !customRole?.permissionCodes?.includes('employee_education.edit')
+              !customRole?.permissionCodes?.includes('employee_education.edit') &&
+              customRole?.permissionCodes?.includes('vacancies.view') &&
+              customRole?.permissionCodes?.includes('candidates.view') &&
+              customRole?.permissionCodes?.includes('analytics.view')
 
             if (!customRoleScopeReady) {
               throw new Error('Custom role scope or dependency normalization is invalid')
@@ -420,6 +437,10 @@ function createWindow(): void {
               customUser?.effectivePermissionCodes?.includes('positions.create') &&
               customUser?.effectivePermissionCodes?.includes('positions.edit') &&
               customUser?.effectivePermissionCodes?.includes('employee_education.create') &&
+              customUser?.effectivePermissionCodes?.includes('employees.view') &&
+              customUser?.effectivePermissionCodes?.includes('vacancies.view') &&
+              customUser?.effectivePermissionCodes?.includes('candidates.view') &&
+              customUser?.effectivePermissionCodes?.includes('analytics.view') &&
               !customUser?.effectivePermissionCodes?.includes('positions.delete') &&
               accountEmployee?.status === 'active' &&
               accountEmployee?.lifecycle_status === 'active' &&
@@ -440,6 +461,46 @@ function createWindow(): void {
               )
             }
 
+            const enterpriseRole = await window.hrApi.saveAccessRole({
+              name: 'E2E Enterprise Analyst',
+              description: 'Enterprise tenant isolation smoke role',
+              scopeType: 'enterprise',
+              enterpriseId: e2eEnterpriseId,
+              departmentId: null,
+              permissionCodes: [
+                'employees.view',
+                'vacancies.view',
+                'candidates.view',
+                'analytics.view'
+              ]
+            })
+            const enterprisePassword = ['E2E', 'Enterprise', '2026!'].join('-')
+            await window.hrApi.saveAccessUser({
+              employeeId: foreignEmployeeId,
+              username: 'e2e.enterprise.analyst',
+              status: 'active',
+              roleIds: [Number(enterpriseRole.id)],
+              password: enterprisePassword,
+              mustChangePassword: false
+            })
+
+            const accessRoles = await window.hrApi.listAccessRoles()
+            const employeeRole = accessRoles.find(
+              (role) => role.systemKey === 'employee'
+            )
+            if (!employeeRole) {
+              throw new Error('Built-in employee role is missing')
+            }
+            const selfPassword = ['E2E', 'Self', '2026!'].join('-')
+            await window.hrApi.saveAccessUser({
+              employeeId: otherEmployeeId,
+              username: 'e2e.self.employee',
+              status: 'active',
+              roleIds: [Number(employeeRole.id)],
+              password: selfPassword,
+              mustChangePassword: false
+            })
+
             await window.hrApi.logout()
             const customSession = await window.hrApi.login({
               username: 'e2e.department.editor',
@@ -456,7 +517,11 @@ function createWindow(): void {
               customScopes['positions.edit'] === 'department' &&
               typeof customScopes['positions.delete'] === 'undefined' &&
               customScopes['employee_education.create'] === 'department' &&
-              typeof customScopes['employee_education.edit'] === 'undefined'
+              typeof customScopes['employee_education.edit'] === 'undefined' &&
+              customScopes['employees.view'] === 'department' &&
+              customScopes['vacancies.view'] === 'department' &&
+              customScopes['candidates.view'] === 'department' &&
+              customScopes['analytics.view'] === 'department'
 
             const visiblePositions = await window.hrApi.list({
               entity: 'positions',
@@ -470,6 +535,64 @@ function createWindow(): void {
               visiblePositions.items.length > 0 &&
               visiblePositions.items.every(
                 (item) => Number(item.department_id) === e2eDepartmentId
+              )
+
+            const visibleEmployees = await window.hrApi.list({
+              entity: 'employees',
+              page: 1,
+              pageSize: 100,
+              orderBy: 'last_name',
+              orderDirection: 'asc'
+            })
+            const visibleVacancies = await window.hrApi.listVacancies({})
+            const visibleCandidates = await window.hrApi.listCandidates({})
+            let foreignEmployeeReadDenied = false
+            let foreignVacancyReadDenied = false
+            let foreignCandidateReadDenied = false
+            try {
+              await window.hrApi.getById({
+                entity: 'employees',
+                id: foreignEmployeeId
+              })
+            } catch {
+              foreignEmployeeReadDenied = true
+            }
+            try {
+              await window.hrApi.getVacancy(foreignVacancyId)
+            } catch {
+              foreignVacancyReadDenied = true
+            }
+            try {
+              await window.hrApi.getCandidate(foreignCandidateId)
+            } catch {
+              foreignCandidateReadDenied = true
+            }
+            const departmentAnalytics = await window.hrApi.getAnalytics()
+            departmentTenantIsolationReady =
+              Array.isArray(visibleEmployees?.items) &&
+              visibleEmployees.items.length === 1 &&
+              visibleEmployees.items.every(
+                (item) => Number(item.department_id) === e2eDepartmentId
+              ) &&
+              Array.isArray(visibleVacancies) &&
+              visibleVacancies.length === 1 &&
+              Number(visibleVacancies[0]?.id) === ownVacancyId &&
+              Array.isArray(visibleCandidates) &&
+              visibleCandidates.length === 1 &&
+              Number(visibleCandidates[0]?.id) === ownCandidateId &&
+              foreignEmployeeReadDenied &&
+              foreignVacancyReadDenied &&
+              foreignCandidateReadDenied &&
+              departmentAnalytics?.scope?.type === 'department' &&
+              Number(departmentAnalytics?.scope?.departmentId) === e2eDepartmentId &&
+              departmentAnalytics?.activeEmployees === 1 &&
+              departmentAnalytics?.openVacancies === 1 &&
+              departmentAnalytics?.candidatesInProcess === 1 &&
+              departmentAnalytics?.headcountByDepartment?.every(
+                (item) => item.label === 'E2E Department'
+              ) &&
+              departmentAnalytics?.headcountByEnterprise?.every(
+                (item) => item.label === 'E2E Enterprise'
               )
 
             const createdPosition = await window.hrApi.create({
@@ -557,6 +680,94 @@ function createWindow(): void {
             } catch {
               customRoleEducationEditDenied = true
             }
+
+            await window.hrApi.logout()
+            const enterpriseSession = await window.hrApi.login({
+              username: 'e2e.enterprise.analyst',
+              password: enterprisePassword
+            })
+            const enterpriseEmployees = await window.hrApi.list({
+              entity: 'employees',
+              page: 1,
+              pageSize: 100,
+              orderBy: 'last_name',
+              orderDirection: 'asc'
+            })
+            const enterpriseVacancies = await window.hrApi.listVacancies({})
+            const enterpriseCandidates = await window.hrApi.listCandidates({})
+            let otherEnterpriseEmployeeDenied = false
+            let otherEnterpriseVacancyDenied = false
+            let otherEnterpriseCandidateDenied = false
+            try {
+              await window.hrApi.getById({
+                entity: 'employees',
+                id: otherEmployeeId
+              })
+            } catch {
+              otherEnterpriseEmployeeDenied = true
+            }
+            try {
+              await window.hrApi.getVacancy(otherVacancyId)
+            } catch {
+              otherEnterpriseVacancyDenied = true
+            }
+            try {
+              await window.hrApi.getCandidate(otherCandidateId)
+            } catch {
+              otherEnterpriseCandidateDenied = true
+            }
+            const enterpriseAnalytics = await window.hrApi.getAnalytics()
+            enterpriseTenantIsolationReady =
+              enterpriseSession?.scopeType === 'enterprise' &&
+              Number(enterpriseSession?.enterpriseId) === e2eEnterpriseId &&
+              enterpriseSession?.permissionScopes?.['analytics.view'] === 'enterprise' &&
+              Array.isArray(enterpriseEmployees?.items) &&
+              enterpriseEmployees.items.length === 2 &&
+              enterpriseEmployees.items.every(
+                (item) => Number(item.enterprise_id) === e2eEnterpriseId
+              ) &&
+              Array.isArray(enterpriseVacancies) &&
+              enterpriseVacancies.length === 2 &&
+              enterpriseVacancies.every(
+                (item) => Number(item.enterprise_id) === e2eEnterpriseId
+              ) &&
+              Array.isArray(enterpriseCandidates) &&
+              enterpriseCandidates.length === 2 &&
+              enterpriseCandidates.every(
+                (item) => Number(item.enterprise_id) === e2eEnterpriseId
+              ) &&
+              otherEnterpriseEmployeeDenied &&
+              otherEnterpriseVacancyDenied &&
+              otherEnterpriseCandidateDenied &&
+              enterpriseAnalytics?.scope?.type === 'enterprise' &&
+              Number(enterpriseAnalytics?.scope?.enterpriseId) === e2eEnterpriseId &&
+              enterpriseAnalytics?.activeEmployees === 2 &&
+              enterpriseAnalytics?.openVacancies === 2 &&
+              enterpriseAnalytics?.candidatesInProcess === 2 &&
+              enterpriseAnalytics?.headcountByEnterprise?.length === 1 &&
+              enterpriseAnalytics?.headcountByEnterprise?.[0]?.label === 'E2E Enterprise'
+
+            await window.hrApi.logout()
+            const selfSession = await window.hrApi.login({
+              username: 'e2e.self.employee',
+              password: selfPassword
+            })
+            const selfDashboard = await window.hrApi.dashboard()
+            let selfAnalyticsDenied = false
+            try {
+              await window.hrApi.getAnalytics()
+            } catch {
+              selfAnalyticsDenied = true
+            }
+            selfScopeIsolationReady =
+              selfSession?.scopeType === 'self' &&
+              selfSession?.permissionScopes?.['dashboard.view'] === 'self' &&
+              selfDashboard?.employeesTotal === 1 &&
+              selfDashboard?.departmentsTotal === 0 &&
+              selfDashboard?.positionsTotal === 0 &&
+              selfDashboard?.openVacancies === 0 &&
+              selfDashboard?.candidatesOnOffer === 0 &&
+              selfAnalyticsDenied
           }
 
           return {
@@ -584,7 +795,10 @@ function createWindow(): void {
             customRoleForeignScopeDenied,
             customRoleDepartmentEditDenied,
             customRoleEducationReady,
-            customRoleEducationEditDenied
+            customRoleEducationEditDenied,
+            departmentTenantIsolationReady,
+            enterpriseTenantIsolationReady,
+            selfScopeIsolationReady
           }
         })()`)
 
@@ -609,7 +823,10 @@ function createWindow(): void {
           !result?.customRoleForeignScopeDenied ||
           !result?.customRoleDepartmentEditDenied ||
           !result?.customRoleEducationReady ||
-          !result?.customRoleEducationEditDenied
+          !result?.customRoleEducationEditDenied ||
+          !result?.departmentTenantIsolationReady ||
+          !result?.enterpriseTenantIsolationReady ||
+          !result?.selfScopeIsolationReady
         ) {
           throw new Error(`Renderer HR core smoke check failed: ${JSON.stringify(result)}`)
         }
