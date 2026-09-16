@@ -10,12 +10,12 @@
     "preview": "vite preview",
     "build:check": "tsc && vite build",
     "test": "npm run test:integration",
-    "test:integration": "python3 tests/hr_core_integration.py && python3 tests/rbac_integration.py && npm run test:presentation-seed",
+    "test:integration": "python3 tests/hr_core_integration.py && python3 tests/rbac_integration.py",
     "test:e2e": "node tests/electron-smoke.mjs",
     "db:reset": "node scripts/reset-local-db.mjs",
     "postinstall": "electron-builder install-app-deps",
-    "db:seed:presentation": "node scripts/seed-presentation-db.mjs",
-    "test:presentation-seed": "node scripts/seed-presentation-db.mjs --verify"
+    "db:seed:presentation": "electron scripts/seed-presentation-db.mjs",
+    "test:presentation-seed": "electron scripts/seed-presentation-db.mjs --verify"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
