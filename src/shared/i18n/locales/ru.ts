@@ -330,6 +330,7 @@ export const ru = {
       options: {
         ru: "Русский",
         en: "English",
+        tg: "Тоҷикӣ",
       },
     },
     system: {
