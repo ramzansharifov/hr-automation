@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiKey, FiLock, FiLogIn } from "react-icons/fi";
+import { FiCheck, FiKey, FiLock, FiLogIn } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
 import { HRLogo } from "../../app/brand/HRLogo";
+import { supportedLanguages, useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AuthSession, AuthState } from "../../shared/types/access";
 import { ActionButton, Input, LoadingState } from "../../shared/ui";
@@ -13,6 +15,7 @@ const initialState: AuthState = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
+  const text = useAppText();
   const [authState, setAuthState] = useState<AuthState>(initialState);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,11 +26,11 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       setAuthState(await hrApiClient.getAuthState());
     } catch (loadError) {
-      setError(getErrorMessage(loadError, "Не удалось проверить состояние входа"));
+      setError(getErrorMessage(loadError, text("Не удалось проверить состояние входа", "Failed to check sign-in state")));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void refreshState();
@@ -36,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   if (isLoading) {
     return (
       <AuthShell>
-        <LoadingState label="Проверка доступа..." />
+        <LoadingState label={text("Проверка доступа...", "Checking access...")} />
       </AuthShell>
     );
   }
@@ -46,10 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       <AuthShell>
         <AuthCard
           icon={<FiLock />}
-          title="Не удалось открыть систему"
+          title={text("Не удалось открыть систему", "Unable to open the system")}
           description={error}
         >
-          <ActionButton action="refresh" onClick={() => void refreshState()}>Повторить</ActionButton>
+          <ActionButton action="refresh" onClick={() => void refreshState()}>{text("Повторить", "Retry")}</ActionButton>
         </AuthCard>
       </AuthShell>
     );
@@ -60,10 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       <AuthShell>
         <AuthCard
           icon={<FiLock />}
-          title="Системный администратор не создан"
-          description="Не удалось найти встроенную учётную запись superadmin. Перезапустите приложение, чтобы повторно применить миграции базы данных."
+          title={text("Системный администратор не создан", "System administrator is not initialized")}
+          description={text(
+            "Не удалось найти встроенную учётную запись superadmin. Перезапустите приложение, чтобы повторно применить миграции базы данных.",
+            "The built-in superadmin account could not be found. Restart the application to reapply database migrations.",
+          )}
         >
-          <ActionButton action="refresh" onClick={() => void refreshState()}>Проверить снова</ActionButton>
+          <ActionButton action="refresh" onClick={() => void refreshState()}>{text("Проверить снова", "Check again")}</ActionButton>
         </AuthCard>
       </AuthShell>
     );
@@ -118,6 +124,7 @@ function LoginScreen({
 }: {
   onAuthenticated: (session: AuthSession) => void;
 }): JSX.Element {
+  const text = useAppText();
   const [username, setUsername] = useState("superadmin");
   const [password, setPassword] = useState("superadmin");
   const [error, setError] = useState("");
@@ -129,7 +136,7 @@ function LoginScreen({
     try {
       onAuthenticated(await hrApiClient.login({ username, password }));
     } catch (loginError) {
-      setError(getErrorMessage(loginError, "Не удалось войти"));
+      setError(getErrorMessage(loginError, text("Не удалось войти", "Failed to sign in")));
     } finally {
       setIsSaving(false);
     }
@@ -139,8 +146,11 @@ function LoginScreen({
     <AuthShell>
       <AuthCard
         icon={<FiLogIn />}
-        title="Вход в HR Automation"
-        description="Системный администратор не является сотрудником. Для входа используйте готовую учётную запись superadmin."
+        title={text("Вход в HR Automation", "Sign in to HR Automation")}
+        description={text(
+          "Системный администратор не является сотрудником. Для входа используйте готовую учётную запись superadmin.",
+          "The system administrator is not an employee. Use the built-in superadmin account to sign in.",
+        )}
       >
         <form
           className="grid gap-4"
@@ -150,10 +160,10 @@ function LoginScreen({
           }}
         >
           <div className="app-surface-muted app-border rounded-2xl border px-4 py-3 text-sm font-semibold">
-            <span className="app-muted">Логин и пароль по умолчанию:</span>{" "}
+            <span className="app-muted">{text("Логин и пароль по умолчанию:", "Default username and password:")}</span>{" "}
             <span className="app-text font-black">superadmin / superadmin</span>
           </div>
-          <AuthField label="Логин">
+          <AuthField label={text("Логин", "Username")}>
             <Input
               autoComplete="username"
               autoFocus
@@ -161,7 +171,7 @@ function LoginScreen({
               value={username}
             />
           </AuthField>
-          <AuthField label="Пароль">
+          <AuthField label={text("Пароль", "Password")}>
             <Input
               autoComplete="current-password"
               onChange={(event) => setPassword(event.target.value)}
@@ -189,6 +199,7 @@ function ChangePasswordScreen({
   onChanged: (session: AuthSession) => void;
   session: AuthSession;
 }): JSX.Element {
+  const text = useAppText();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -198,7 +209,7 @@ function ChangePasswordScreen({
   async function submit(): Promise<void> {
     setError("");
     if (newPassword !== confirmPassword) {
-      setError("Новые пароли не совпадают");
+      setError(text("Новые пароли не совпадают", "The new passwords do not match"));
       return;
     }
     setIsSaving(true);
@@ -207,7 +218,7 @@ function ChangePasswordScreen({
         await hrApiClient.changeOwnPassword({ currentPassword, newPassword }),
       );
     } catch (changeError) {
-      setError(getErrorMessage(changeError, "Не удалось изменить пароль"));
+      setError(getErrorMessage(changeError, text("Не удалось изменить пароль", "Failed to change password")));
     } finally {
       setIsSaving(false);
     }
@@ -217,8 +228,11 @@ function ChangePasswordScreen({
     <AuthShell>
       <AuthCard
         icon={<FiKey />}
-        title="Смените временный пароль"
-        description={`Пользователь @${session.username} должен установить постоянный пароль перед началом работы.`}
+        title={text("Смените временный пароль", "Change your temporary password")}
+        description={text(
+          `Пользователь @${session.username} должен установить постоянный пароль перед началом работы.`,
+          `User @${session.username} must set a permanent password before continuing.`,
+        )}
       >
         <form
           className="grid gap-4"
@@ -227,7 +241,7 @@ function ChangePasswordScreen({
             void submit();
           }}
         >
-          <AuthField label="Текущий временный пароль">
+          <AuthField label={text("Текущий временный пароль", "Current temporary password")}>
             <Input
               autoComplete="current-password"
               onChange={(event) => setCurrentPassword(event.target.value)}
@@ -235,16 +249,16 @@ function ChangePasswordScreen({
               value={currentPassword}
             />
           </AuthField>
-          <AuthField label="Новый пароль">
+          <AuthField label={text("Новый пароль", "New password")}>
             <Input
               autoComplete="new-password"
               onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="Минимум 8 символов, буква и цифра"
+              placeholder={text("Минимум 8 символов, буква и цифра", "At least 8 characters, including a letter and a number")}
               type="password"
               value={newPassword}
             />
           </AuthField>
-          <AuthField label="Повторите новый пароль">
+          <AuthField label={text("Повторите новый пароль", "Confirm new password")}>
             <Input
               autoComplete="new-password"
               onChange={(event) => setConfirmPassword(event.target.value)}
@@ -259,7 +273,7 @@ function ChangePasswordScreen({
             loading={isSaving}
             type="submit"
           >
-            Сохранить новый пароль
+            {text("Сохранить новый пароль", "Save new password")}
           </ActionButton>
         </form>
       </AuthCard>
@@ -268,9 +282,34 @@ function ChangePasswordScreen({
 }
 
 function AuthShell({ children }: { children: ReactNode }): JSX.Element {
+  const { i18n, t } = useTranslation();
+  const currentLanguage = (i18n.resolvedLanguage ?? i18n.language).split("-")[0];
+
   return (
     <main className="app-page flex min-h-screen items-center justify-center overflow-hidden px-5 py-10">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_15%,color-mix(in_srgb,var(--accent)_10%,transparent),transparent_34%),radial-gradient(circle_at_85%_80%,color-mix(in_srgb,var(--accent-border)_10%,transparent),transparent_36%)]" />
+      <div className="absolute right-5 top-5 z-20 flex gap-2">
+        {supportedLanguages.map((language) => {
+          const selected = currentLanguage === language.id;
+          return (
+            <button
+              aria-pressed={selected}
+              className={[
+                "app-border flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition",
+                selected
+                  ? "app-accent-soft app-accent-text"
+                  : "app-surface app-muted hover:text-[var(--color-text)]",
+              ].join(" ")}
+              key={language.id}
+              onClick={() => void i18n.changeLanguage(language.id)}
+              type="button"
+            >
+              {selected ? <FiCheck className="h-3.5 w-3.5" /> : null}
+              {t(language.labelKey)}
+            </button>
+          );
+        })}
+      </div>
       <div className="relative z-10 w-full max-w-xl">{children}</div>
     </main>
   );
