@@ -262,6 +262,34 @@ export const en = {
           "Appearance and language settings apply without restarting the application.",
       },
     },
+    administration: {
+      eyebrow: "Administration",
+      title: "System tools",
+      backups: {
+        title: "Backups",
+        create: "Create backup",
+        loading: "Loading backups...",
+        empty: "No backups yet.",
+        listUnavailable:
+          "Backup list access is disabled. Only the permitted operations above are available.",
+        created: "Backup created: {{name}}",
+        loadError: "Failed to load backups",
+        createError: "Failed to create backup",
+        restoreError: "Failed to restore backup",
+        folderError: "Failed to open the backups folder",
+        restored: "Database restored. The application will restart.",
+        restoreTitle: "Restore backup?",
+        restoreConfirm: "Restore database",
+        restoreDescription:
+          "The current database will be replaced with backup “{{name}}”. The application will restart automatically after restoration.",
+      },
+      export: {
+        title: "Export",
+        employees: "Export employees",
+        success: "Employee register exported",
+        error: "Failed to export employees",
+      },
+    },
   },
 
   employeesPage: {
