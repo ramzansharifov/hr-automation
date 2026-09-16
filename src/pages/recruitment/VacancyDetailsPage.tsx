@@ -431,7 +431,7 @@ function SkillGroup({ title, skills }: { title: string; skills: HrRecord[] }): J
     <div className="app-surface-muted app-border rounded-2xl border p-4">
       <p className="app-text text-sm font-black">{title}</p>
       {skills.length === 0 ? (
-        <p className="app-muted mt-3 text-sm">Не указаны</p>
+        <p className="app-muted mt-3 text-sm">{text("Не указаны", "Not specified")}</p>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
           {skills.map((skill) => (
@@ -445,24 +445,26 @@ function SkillGroup({ title, skills }: { title: string; skills: HrRecord[] }): J
   );
 }
 
-const vacancyStatusOptions = [
-  { value: "open", label: "Открыта" },
-  { value: "draft", label: "Черновик" },
-  { value: "paused", label: "Приостановлена" },
-  { value: "closed", label: "Закрыта" },
-];
-const employmentTypeOptions = [
-  { value: "full_time", label: "Полная занятость" },
-  { value: "part_time", label: "Частичная занятость" },
-  { value: "temporary", label: "Временная работа" },
-  { value: "internship", label: "Стажировка" },
-];
-
 function vacancyStatusLabel(value: string): string {
-  return vacancyStatusOptions.find((item) => item.value === value)?.label ?? value;
+  const labels: Record<string, [string, string]> = {
+    open: ["Открыта", "Open"],
+    draft: ["Черновик", "Draft"],
+    paused: ["Приостановлена", "Paused"],
+    closed: ["Закрыта", "Closed"],
+  };
+  const label = labels[value];
+  return label ? appText(label[0], label[1]) : value;
 }
+
 function employmentTypeLabel(value: string): string {
-  return employmentTypeOptions.find((item) => item.value === value)?.label ?? value;
+  const labels: Record<string, [string, string]> = {
+    full_time: ["Полная занятость", "Full-time"],
+    part_time: ["Частичная занятость", "Part-time"],
+    temporary: ["Временная работа", "Temporary"],
+    internship: ["Стажировка", "Internship"],
+  };
+  const label = labels[value];
+  return label ? appText(label[0], label[1]) : value;
 }
 function errorMessage(error: unknown, fallback: string): string {
   const parts = error instanceof Error ? error.message.split("Error: ") : [];
