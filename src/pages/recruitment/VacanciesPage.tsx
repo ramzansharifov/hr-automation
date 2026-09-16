@@ -8,6 +8,7 @@ import {
   RecruitmentBadge,
   RecruitmentPageHeader,
 } from "../../features/recruitment/RecruitmentUi";
+import { appText, useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import {
@@ -20,6 +21,7 @@ import {
 } from "../../shared/ui";
 
 export function VacanciesPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("vacancies.create");
@@ -35,11 +37,11 @@ export function VacanciesPage(): JSX.Element {
     try {
       setVacancies(await hrApiClient.listVacancies({}));
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить вакансии"));
+      toast.error(errorMessage(error, text("Не удалось загрузить вакансии", "Failed to load vacancies")));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void loadData();
@@ -51,9 +53,9 @@ export function VacanciesPage(): JSX.Element {
       await hrApiClient.deleteVacancy(Number(deleteTarget.id));
       setDeleteTarget(null);
       await loadData();
-      toast.success("Вакансия удалена");
+      toast.success(text("Вакансия удалена", "Vacancy deleted"));
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось удалить вакансию"));
+      toast.error(errorMessage(error, text("Не удалось удалить вакансию", "Failed to delete vacancy")));
     }
   }
 
@@ -64,8 +66,8 @@ export function VacanciesPage(): JSX.Element {
   function renderActions(vacancy: HrRecord): JSX.Element | null {
     return (
       <RecordActions
-        deleteLabel="Удалить вакансию"
-        editLabel="Редактировать вакансию"
+        deleteLabel={text("Удалить вакансию", "Delete vacancy")}
+        editLabel={text("Редактировать вакансию", "Edit vacancy")}
         onDelete={canDelete ? () => setDeleteTarget(vacancy) : undefined}
         onEdit={
           canEdit
@@ -80,16 +82,16 @@ export function VacanciesPage(): JSX.Element {
   const columns: DataTableColumn<HrRecord>[] = [
     {
       key: "position",
-      header: "Должность",
+      header: text("Должность", "Position"),
       render: (vacancy) => (
         <span className="app-text font-black">
-          {String(vacancy.position_name ?? "Должность не указана")}
+          {String(vacancy.position_name ?? text("Должность не указана", "Position not specified"))}
         </span>
       ),
     },
     {
       key: "structure",
-      header: "Структура",
+      header: text("Структура", "Structure"),
       render: (vacancy) => (
         <span className="app-text-soft">
           {[vacancy.enterprise_name, vacancy.department_name]
@@ -100,7 +102,7 @@ export function VacanciesPage(): JSX.Element {
     },
     {
       key: "status",
-      header: "Статус",
+      header: text("Статус", "Status"),
       render: (vacancy) => (
         <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
           {vacancyStatusLabel(String(vacancy.status))}
@@ -109,7 +111,7 @@ export function VacanciesPage(): JSX.Element {
     },
     {
       key: "employment",
-      header: "Занятость",
+      header: text("Занятость", "Employment"),
       render: (vacancy) => (
         <span className="app-text-soft">
           {employmentTypeLabel(String(vacancy.employment_type))}
@@ -118,7 +120,7 @@ export function VacanciesPage(): JSX.Element {
     },
     {
       key: "openings",
-      header: "Мест",
+      header: text("Мест", "Openings"),
       align: "center",
       render: (vacancy) => (
         <span className="app-text font-black">{String(vacancy.openings_count ?? 1)}</span>
@@ -126,7 +128,7 @@ export function VacanciesPage(): JSX.Element {
     },
     {
       key: "candidates",
-      header: "Кандидатов",
+      header: text("Кандидатов", "Candidates"),
       align: "center",
       render: (vacancy) => (
         <span className="app-text font-black">{String(vacancy.candidates_count ?? 0)}</span>
@@ -134,7 +136,7 @@ export function VacanciesPage(): JSX.Element {
     },
     {
       key: "skills",
-      header: "Навыков",
+      header: text("Навыков", "Skills"),
       align: "center",
       render: (vacancy) => (
         <span className="app-text-soft">{String(vacancy.skills_count ?? 0)}</span>
@@ -144,7 +146,7 @@ export function VacanciesPage(): JSX.Element {
       ? [
           {
             key: "actions",
-            header: "Действия",
+            header: text("Действия", "Actions"),
             align: "center" as const,
             render: (vacancy: HrRecord) => (
               <div
@@ -162,33 +164,33 @@ export function VacanciesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
-        actionLabel={canCreate ? "Создать вакансию" : undefined}
-        description="Открытые должности, формат занятости и требования по hard и soft skills."
+        actionLabel={canCreate ? text("Создать вакансию", "Create vacancy") : undefined}
+        description={text("Открытые должности, формат занятости и требования по hard и soft skills.", "Open positions, employment formats, and hard/soft skill requirements.")}
         icon={<FiBriefcase className="h-6 w-6" />}
         onAction={canCreate ? () => navigate("/vacancies/new") : undefined}
-        title="Вакансии"
+        title={text("Вакансии", "Vacancies")}
       />
 
       <DataTable
-        ariaLabel="Реестр вакансий"
+        ariaLabel={text("Реестр вакансий", "Vacancy registry")}
         card={{
           leading: () => <FiBriefcase className="h-5 w-5" />,
-          title: (vacancy) => String(vacancy.position_name ?? "Должность не указана"),
+          title: (vacancy) => String(vacancy.position_name ?? text("Должность не указана", "Position not specified")),
           meta: (vacancy) => (
             <>
               <span className="app-text-soft">
-                <span className="app-muted">Структура: </span>
+                <span className="app-muted">{text("Структура:", "Structure:")} </span>
                 {[vacancy.enterprise_name, vacancy.department_name].filter(Boolean).join(" · ") || "—"}
               </span>
               <RecruitmentBadge tone={vacancy.status === "open" ? "success" : "neutral"}>
                 {vacancyStatusLabel(String(vacancy.status))}
               </RecruitmentBadge>
               <span className="app-text-soft">
-                <span className="app-muted">Занятость: </span>
+                <span className="app-muted">{text("Занятость:", "Employment:")} </span>
                 {employmentTypeLabel(String(vacancy.employment_type))}
               </span>
               <span className="app-text-soft">
-                <span className="app-muted">Кандидатов: </span>
+                <span className="app-muted">{text("Кандидатов:", "Candidates:")} </span>
                 {String(vacancy.candidates_count ?? 0)}
               </span>
             </>
@@ -198,18 +200,18 @@ export function VacanciesPage(): JSX.Element {
         columns={columns}
         emptyDescription={
           canCreate
-            ? "Создайте первую вакансию, выбрав предприятие, отдел и должность."
+            ? text("Создайте первую вакансию, выбрав предприятие, отдел и должность.", "Create the first vacancy by selecting an enterprise, department, and position.")
             : "В доступной области пока нет вакансий."
         }
-        emptyTitle="Вакансий пока нет"
+        emptyTitle={text("Вакансий пока нет", "No vacancies yet")}
         footer={
           <>
-            Всего: <span className="app-text font-black">{vacancies.length}</span>
+            {text("Всего:", "Total:")} <span className="app-text font-black">{vacancies.length}</span>
           </>
         }
         getRowKey={(vacancy) => String(vacancy.id)}
         isLoading={isLoading}
-        loadingLabel="Загрузка вакансий..."
+        loadingLabel={text("Загрузка вакансий...", "Loading vacancies...")}
         onRowClick={openVacancy}
         onViewModeChange={setViewMode}
         rows={vacancies}
@@ -226,37 +228,37 @@ export function VacanciesPage(): JSX.Element {
 
       {canDelete && (
         <DeleteConfirmDialog
-          description="Вакансия и её профиль навыков будут удалены. Вакансию с кандидатами удалить нельзя."
+          description={text("Вакансия и её профиль навыков будут удалены. Вакансию с кандидатами удалить нельзя.", "The vacancy and its skill profile will be deleted. A vacancy with candidates cannot be deleted.")}
           onConfirm={deleteVacancy}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           open={Boolean(deleteTarget)}
-          title="Удалить вакансию?"
+          title={text("Удалить вакансию?", "Delete vacancy?")}
         />
       )}
     </div>
   );
 }
 
-const vacancyStatusOptions = [
-  { value: "open", label: "Открыта" },
-  { value: "draft", label: "Черновик" },
-  { value: "paused", label: "Приостановлена" },
-  { value: "closed", label: "Закрыта" },
-];
-
-const employmentTypeOptions = [
-  { value: "full_time", label: "Полная занятость" },
-  { value: "part_time", label: "Частичная занятость" },
-  { value: "temporary", label: "Временная работа" },
-  { value: "internship", label: "Стажировка" },
-];
-
 function vacancyStatusLabel(value: string): string {
-  return vacancyStatusOptions.find((item) => item.value === value)?.label ?? value;
+  const labels: Record<string, [string, string]> = {
+    open: ["Открыта", "Open"],
+    draft: ["Черновик", "Draft"],
+    paused: ["Приостановлена", "Paused"],
+    closed: ["Закрыта", "Closed"],
+  };
+  const label = labels[value];
+  return label ? appText(label[0], label[1]) : value;
 }
 
 function employmentTypeLabel(value: string): string {
-  return employmentTypeOptions.find((item) => item.value === value)?.label ?? value;
+  const labels: Record<string, [string, string]> = {
+    full_time: ["Полная занятость", "Full-time"],
+    part_time: ["Частичная занятость", "Part-time"],
+    temporary: ["Временная работа", "Temporary"],
+    internship: ["Стажировка", "Internship"],
+  };
+  const label = labels[value];
+  return label ? appText(label[0], label[1]) : value;
 }
 
 function errorMessage(error: unknown, fallback: string): string {
