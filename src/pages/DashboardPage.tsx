@@ -14,7 +14,7 @@ import { AttentionQueueSection } from "../features/attention/AttentionQueueSecti
 import { useAuth } from "../features/auth/AuthContext";
 import { useBusinessContext } from "../features/business-context/useBusinessContext";
 import { getScopedAdminRole } from "../shared/access/scopedAdmin";
-import { getAppLocale } from "../shared/i18n";
+import { getAppLocale, useAppText } from "../shared/i18n";
 import { formatDate, humanizeStatus } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrDashboardStats, HrListResult } from "../shared/types/hr";
@@ -43,6 +43,7 @@ const emptyList: HrListResult = {
 };
 
 export function DashboardPage(): JSX.Element {
+  const text = useAppText();
   const { i18n, t } = useTranslation();
   const { session } = useAuth();
   const { state: businessContext } = useBusinessContext();
@@ -104,7 +105,7 @@ export function DashboardPage(): JSX.Element {
 
       const results = await Promise.allSettled(tasks);
       if (results.some((result) => result.status === "rejected")) {
-        toast.warning("Часть дополнительных данных главной страницы недоступна по текущим правам");
+        toast.warning(text("Часть дополнительных данных главной страницы недоступна по текущим правам", "Some additional dashboard data is unavailable with the current permissions"));
       }
     } catch (error) {
       toast.error(
@@ -113,7 +114,7 @@ export function DashboardPage(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [canViewEmployees, canViewVacations, t]);
+  }, [canViewEmployees, canViewVacations, t, text]);
 
   useEffect(() => {
     void loadDashboard();
@@ -125,16 +126,25 @@ export function DashboardPage(): JSX.Element {
 
   const pageTitle =
     scopedAdminRole === "enterprise_admin"
-      ? "Обзор предприятия"
+      ? text("Обзор предприятия", "Enterprise overview")
       : scopedAdminRole === "department_admin"
-        ? "Обзор отдела"
+        ? text("Обзор отдела", "Department overview")
         : t("dashboard.hero.title");
   const pageDescription =
     scopedAdminRole === "enterprise_admin"
-      ? `Сводка кадровых процессов ${session.enterpriseName || "вашего предприятия"}. Все показатели и действия ограничены этим предприятием.`
+      ? text(
+          `Сводка кадровых процессов ${session.enterpriseName || "вашего предприятия"}. Все показатели и действия ограничены этим предприятием.`,
+          `HR process summary for ${session.enterpriseName || "your enterprise"}. All metrics and actions are limited to this enterprise.`,
+        )
       : scopedAdminRole === "department_admin"
-        ? `Сводка кадровых процессов ${session.departmentName || "вашего отдела"}. Все показатели и действия ограничены этим подразделением.`
-        : "Сводка кадровых процессов и ситуаций, которые требуют внимания.";
+        ? text(
+            `Сводка кадровых процессов ${session.departmentName || "вашего отдела"}. Все показатели и действия ограничены этим подразделением.`,
+            `HR process summary for ${session.departmentName || "your department"}. All metrics and actions are limited to this department.`,
+          )
+        : text(
+            "Сводка кадровых процессов и ситуаций, которые требуют внимания.",
+            "Summary of HR processes and situations that require attention.",
+          );
 
   return (
     <div className="space-y-6">
@@ -149,7 +159,7 @@ export function DashboardPage(): JSX.Element {
           </ActionButton>
         }
         description={pageDescription}
-        eyebrow={scopedAdminRole ? "Локальное администрирование" : "HR Control Center"}
+        eyebrow={scopedAdminRole ? text("Локальное администрирование", "Local administration") : "HR Control Center"}
         icon={<FiGrid />}
         title={pageTitle}
       />
@@ -157,19 +167,19 @@ export function DashboardPage(): JSX.Element {
       {canViewAttention ? <AttentionQueueSection /> : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Сотрудники" value={stats.employeesTotal} icon={FiUsers} />
+        <StatCard title={text("Сотрудники", "Employees")} value={stats.employeesTotal} icon={FiUsers} />
         {scopedAdminRole === "department_admin" ? (
-          <StatCard title="Должности" value={stats.positionsTotal} icon={FiBriefcase} />
+          <StatCard title={text("Должности", "Positions")} value={stats.positionsTotal} icon={FiBriefcase} />
         ) : (
-          <StatCard title="Отделы" value={stats.departmentsTotal} icon={FiGrid} />
+          <StatCard title={text("Отделы", "Departments")} value={stats.departmentsTotal} icon={FiGrid} />
         )}
-        <StatCard title="Ближайшие отпуска · 30 дней" value={stats.upcomingVacations} icon={FiCalendar} />
-        <StatCard title="Открытые вакансии" value={stats.openVacancies} icon={FiBriefcase} />
+        <StatCard title={text("Ближайшие отпуска · 30 дней", "Upcoming vacations · 30 days")} value={stats.upcomingVacations} icon={FiCalendar} />
+        <StatCard title={text("Открытые вакансии", "Open vacancies")} value={stats.openVacancies} icon={FiBriefcase} />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
         {canViewEmployees && (
-          <DashboardListCard linkLabel="Все сотрудники" linkTo="/employees" title="Последние приёмы">
+          <DashboardListCard linkLabel={text("Все сотрудники", "All employees")} linkTo="/employees" title={text("Последние приёмы", "Latest hires")}>
             {employees.items.map((employee) => (
               <Link
                 className="app-surface-muted app-border app-hover-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 transition"
@@ -185,7 +195,7 @@ export function DashboardPage(): JSX.Element {
                   <p className="app-muted mt-1 text-sm font-medium">
                     {[employee.enterprise_name, employee.department_name, employee.position_name]
                       .filter(Boolean)
-                      .join(" · ") || "Назначение не заполнено"}
+                      .join(" · ") || text("Назначение не заполнено", "Assignment not completed")}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
@@ -196,12 +206,12 @@ export function DashboardPage(): JSX.Element {
                 </div>
               </Link>
             ))}
-            {!isLoading && employees.items.length === 0 && <EmptyDashboardRow />}
+            {!isLoading && employees.items.length === 0 && <EmptyDashboardRow text={text} />}
           </DashboardListCard>
         )}
 
         {canViewVacations && (
-          <DashboardListCard linkLabel="Реестр отпусков" linkTo="/vacations" title="Ближайшие отпуска">
+          <DashboardListCard linkLabel={text("Реестр отпусков", "Vacation registry")} linkTo="/vacations" title={text("Ближайшие отпуска", "Upcoming vacations")}>
             {vacations.items.map((vacation) => (
               <Link
                 className="app-surface-muted app-border app-hover-muted flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 transition"
@@ -211,7 +221,7 @@ export function DashboardPage(): JSX.Element {
                 <div className="min-w-0">
                   <p className="app-text truncate font-black">{String(vacation.employee_name ?? "—")}</p>
                   <p className="app-muted mt-1 line-clamp-2 text-sm font-medium">
-                    {String(vacation.vacation_type_name ?? "Отпуск")} · {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
+                    {String(vacation.vacation_type_name ?? text("Отпуск", "Vacation"))} · {formatDate(vacation.starts_at, locale)} — {formatDate(vacation.ends_at, locale)}
                   </p>
                 </div>
                 <span className="app-accent-soft shrink-0 rounded-full border px-3 py-1 text-xs font-black">
@@ -219,7 +229,7 @@ export function DashboardPage(): JSX.Element {
                 </span>
               </Link>
             ))}
-            {!isLoading && vacations.items.length === 0 && <EmptyDashboardRow />}
+            {!isLoading && vacations.items.length === 0 && <EmptyDashboardRow text={text} />}
           </DashboardListCard>
         )}
       </section>
@@ -249,10 +259,14 @@ function DashboardListCard({
   );
 }
 
-function EmptyDashboardRow(): JSX.Element {
+function EmptyDashboardRow({
+  text,
+}: {
+  text: (ru: string, en: string) => string;
+}): JSX.Element {
   return (
     <div className="app-surface-muted app-muted rounded-2xl p-6 text-center text-sm font-medium">
-      Записей нет
+      {text("Записей нет", "No records")}
     </div>
   );
 }
