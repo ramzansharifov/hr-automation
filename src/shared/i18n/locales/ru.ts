@@ -143,6 +143,7 @@ export const ru = {
       completed: "Завершён",
       paid: "Выплачено",
       pending: "Ожидает",
+      terminated: "Уволен",
       male: "Мужской",
       female: "Женский",
     },
