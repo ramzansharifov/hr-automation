@@ -752,10 +752,15 @@ function createWindow(): void {
               username: 'e2e.self.employee',
               password: selfPassword
             })
-            const selfDashboard = await window.hrApi.dashboard()
+            let selfDashboardDenied = false
             let selfAnalyticsDenied = false
             let selfEnterpriseRegistryDenied = false
             let selfDepartmentRegistryDenied = false
+            try {
+              await window.hrApi.dashboard()
+            } catch {
+              selfDashboardDenied = true
+            }
             try {
               await window.hrApi.getAnalytics()
             } catch {
@@ -779,12 +784,9 @@ function createWindow(): void {
             }
             selfScopeIsolationReady =
               selfSession?.scopeType === 'self' &&
-              selfSession?.permissionScopes?.['dashboard.view'] === 'self' &&
-              selfDashboard?.employeesTotal === 1 &&
-              selfDashboard?.departmentsTotal === 0 &&
-              selfDashboard?.positionsTotal === 0 &&
-              selfDashboard?.openVacancies === 0 &&
-              selfDashboard?.candidatesOnOffer === 0 &&
+              typeof selfSession?.permissionScopes?.['dashboard.view'] === 'undefined' &&
+              typeof selfSession?.permissionScopes?.['analytics.view'] === 'undefined' &&
+              selfDashboardDenied &&
               selfAnalyticsDenied &&
               selfEnterpriseRegistryDenied &&
               selfDepartmentRegistryDenied
