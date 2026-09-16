@@ -1,5 +1,6 @@
+import { useCallback } from 'react'
 import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
+import { initReactI18next, useTranslation } from 'react-i18next'
 import { en } from './locales/en'
 import { ru } from './locales/ru'
 
@@ -39,6 +40,21 @@ export function getAppLocale(language: string | null | undefined): string {
 
   const languageConfig = supportedLanguages.find((item) => item.id === normalizedLanguage)
   return languageConfig?.locale ?? 'ru-RU'
+}
+
+export function useAppLocale(): string {
+  const { i18n: instance } = useTranslation()
+  return getAppLocale(instance.resolvedLanguage ?? instance.language)
+}
+
+export function useAppText(): (ru: string, en: string) => string {
+  const { i18n: instance } = useTranslation()
+  const language = (instance.resolvedLanguage ?? instance.language).split('-')[0]
+
+  return useCallback(
+    (ru: string, en: string) => (language === 'en' ? en : ru),
+    [language],
+  )
 }
 
 function getStoredLanguage(): AppLanguage {
