@@ -328,7 +328,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
             Зависимые разрешения добавляются автоматически. В списке доступны только действия, которые можно безопасно делегировать в вашей области.
           </p>
           {isDirty && (
-            <p className="mt-4 text-xs font-black text-amber-600 dark:text-amber-300">
+            <p className="mt-4 text-xs font-black text-amber-800 dark:text-amber-300">
               Есть несохранённые изменения
             </p>
           )}
