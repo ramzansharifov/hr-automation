@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface DeleteConfirmDialogProps {
@@ -11,7 +12,7 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({
-  confirmLabel = "Удалить",
+  confirmLabel,
   description,
   isLoading = false,
   onConfirm,
@@ -19,14 +20,16 @@ export function DeleteConfirmDialog({
   open,
   title,
 }: DeleteConfirmDialogProps): JSX.Element {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel ?? t("common.actions.delete");
   return (
     <ConfirmDialog
-      cancelLabel="Отмена"
-      confirmLabel={confirmLabel}
+      cancelLabel={t("common.actions.cancel")}
+      confirmLabel={resolvedConfirmLabel}
       confirmVariant="danger"
       description={description}
       isLoading={isLoading}
-      loadingLabel="Удаление..."
+      loadingLabel={t("common.loading.deleting")}
       onConfirm={onConfirm}
       onOpenChange={onOpenChange}
       open={open}
