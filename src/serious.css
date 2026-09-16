@@ -437,6 +437,73 @@ main article.app-surface-muted:hover {
   border-color: color-mix(in srgb, var(--accent) 24%, var(--color-border));
 }
 
+/* Account status badges: compact, semantic and readable in both themes. */
+.app-status-badge {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  gap: 7px;
+  line-height: 1;
+  min-height: 26px;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.app-status-badge__dot {
+  border-radius: 999px;
+  display: block;
+  height: 7px;
+  width: 7px;
+}
+
+.app-status-badge--active {
+  background: #ecfdf3;
+  border-color: #abefc6;
+  color: #067647;
+}
+
+.app-status-badge--active .app-status-badge__dot {
+  background: #12b76a;
+  box-shadow: 0 0 0 3px rgba(18, 183, 106, 0.12);
+}
+
+.app-status-badge--blocked {
+  background: #fff1f3;
+  border-color: #fecdd6;
+  color: #b42318;
+}
+
+.app-status-badge--blocked .app-status-badge__dot {
+  background: #f04438;
+  box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12);
+}
+
+:root[data-theme="dark"] .app-status-badge--active {
+  background: rgba(5, 150, 105, 0.14);
+  border-color: rgba(52, 211, 153, 0.34);
+  color: #a7f3d0;
+}
+
+:root[data-theme="dark"] .app-status-badge--active .app-status-badge__dot {
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.14);
+}
+
+:root[data-theme="dark"] .app-status-badge--blocked {
+  background: rgba(225, 29, 72, 0.14);
+  border-color: rgba(251, 113, 133, 0.34);
+  color: #fecdd3;
+}
+
+:root[data-theme="dark"] .app-status-badge--blocked .app-status-badge__dot {
+  background: #fb7185;
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.14);
+}
+
 /* Dialogs */
 [role="dialog"] {
   background: var(--color-surface) !important;
