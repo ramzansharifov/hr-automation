@@ -4,7 +4,6 @@ import {
   FiBarChart2,
   FiBriefcase,
   FiCalendar,
-  FiClock,
   FiLayers,
   FiShield,
   FiTrendingDown,
