@@ -8,6 +8,7 @@ import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntit
 import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
 import { getLeadershipRole } from "../shared/access/leadership";
 import { getScopedAdminRole } from "../shared/access/scopedAdmin";
+import { useAppLocale, useAppText } from "../shared/i18n";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { HrRecord } from "../shared/types/hr";
@@ -21,6 +22,8 @@ import {
 } from "../shared/ui";
 
 export function VacationsPage(): JSX.Element {
+  const text = useAppText();
+  const locale = useAppLocale();
   const { hasPermission, session } = useAuth();
   const leadershipRole = getLeadershipRole(session.roles);
   const scopedAdminRole = getScopedAdminRole(session.roles);
@@ -63,11 +66,11 @@ export function VacationsPage(): JSX.Element {
       } while (page <= totalPages);
       setRecords(loaded);
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить реестр отпусков"));
+      toast.error(errorMessage(error, text("Не удалось загрузить реестр отпусков", "Failed to load vacation registry")));
     } finally {
       setIsLoading(false);
     }
-  }, [employeeFilter]);
+  }, [employeeFilter, text]);
 
   useEffect(() => {
     void loadData();
@@ -118,14 +121,14 @@ export function VacationsPage(): JSX.Element {
     const recordCanDelete = String(record.status ?? "planned") === "planned";
     const editLabel =
       canEdit && canApprove
-        ? "Редактировать или согласовать отпуск"
+        ? text("Редактировать или согласовать отпуск", "Edit or approve vacation")
         : canApprove
-          ? "Согласовать отпуск"
-          : "Редактировать отпуск";
+          ? text("Согласовать отпуск", "Approve vacation")
+          : text("Редактировать отпуск", "Edit vacation");
 
     return (
       <RecordActions
-        deleteLabel="Удалить отпуск"
+        deleteLabel={text("Удалить отпуск", "Delete vacation")}
         editLabel={editLabel}
         onDelete={
           canDelete && recordCanDelete ? () => openDelete(record) : undefined
@@ -150,52 +153,67 @@ export function VacationsPage(): JSX.Element {
   const hasDepartmentScope =
     leadershipRole === "department_head" || scopedAdminRole === "department_admin";
   const pageTitle = hasEnterpriseScope
-    ? "Отпуска предприятия"
+    ? text("Отпуска предприятия", "Enterprise vacations")
     : hasDepartmentScope
-      ? "Отпуска отдела"
-      : "Отпуска";
+      ? text("Отпуска отдела", "Department vacations")
+      : text("Отпуска", "Vacations");
   const pageDescription =
     leadershipRole === "enterprise_director"
-      ? `Отпуска сотрудников ${session.enterpriseName || "вашего предприятия"}. Данные автоматически ограничены предприятием, которым вы руководите.`
+      ? text(
+          `Отпуска сотрудников ${session.enterpriseName || "вашего предприятия"}. Данные автоматически ограничены предприятием, которым вы руководите.`,
+          `Employee vacations for ${session.enterpriseName || "your enterprise"}. Data is automatically limited to the enterprise you lead.`,
+        )
       : leadershipRole === "department_head"
-        ? `Отпуска сотрудников ${session.departmentName || "вашего отдела"}. Данные автоматически ограничены вашим подразделением.`
+        ? text(
+            `Отпуска сотрудников ${session.departmentName || "вашего отдела"}. Данные автоматически ограничены вашим подразделением.`,
+            `Employee vacations for ${session.departmentName || "your department"}. Data is automatically limited to your department.`,
+          )
         : scopedAdminRole === "enterprise_admin"
-          ? `Оформление, согласование и контроль отпусков ${session.enterpriseName || "вашего предприятия"}. Все операции автоматически ограничены этим предприятием.`
+          ? text(
+              `Оформление, согласование и контроль отпусков ${session.enterpriseName || "вашего предприятия"}. Все операции автоматически ограничены этим предприятием.`,
+              `Create, approve, and manage vacations for ${session.enterpriseName || "your enterprise"}. All operations are automatically limited to this enterprise.`,
+            )
           : scopedAdminRole === "department_admin"
-            ? `Оформление, согласование и контроль отпусков ${session.departmentName || "вашего отдела"}. Все операции автоматически ограничены этим подразделением.`
-            : "Оформление, согласование и контроль отпусков сотрудников.";
+            ? text(
+                `Оформление, согласование и контроль отпусков ${session.departmentName || "вашего отдела"}. Все операции автоматически ограничены этим подразделением.`,
+                `Create, approve, and manage vacations for ${session.departmentName || "your department"}. All operations are automatically limited to this department.`,
+              )
+            : text(
+                "Оформление, согласование и контроль отпусков сотрудников.",
+                "Create, approve, and manage employee vacations.",
+              );
 
   const columns: DataTableColumn<HrRecord>[] = [
     {
       key: "employee",
-      header: "Сотрудник",
+      header: text("Сотрудник", "Employee"),
       render: (record) => (
         <span className="app-text font-black">
-          {String(record.employee_name ?? "Сотрудник")}
+          {String(record.employee_name ?? text("Сотрудник", "Employee"))}
         </span>
       ),
     },
     {
       key: "type",
-      header: "Вид отпуска",
+      header: text("Вид отпуска", "Vacation type"),
       render: (record) => (
         <span className="app-accent-text font-bold">
-          {String(record.vacation_type_name ?? "Отпуск")}
+          {String(record.vacation_type_name ?? text("Отпуск", "Vacation"))}
         </span>
       ),
     },
     {
       key: "period",
-      header: "Период",
+      header: text("Период", "Period"),
       render: (record) => (
         <span className="app-text-soft whitespace-nowrap">
-          {formatDate(record.starts_at)} — {formatDate(record.ends_at)}
+          {formatDate(record.starts_at, locale)} — {formatDate(record.ends_at, locale)}
         </span>
       ),
     },
     {
       key: "days",
-      header: "Дней",
+      header: text("Дней", "Days"),
       align: "center",
       render: (record) => (
         <span className="app-text font-black">{String(record.days_count ?? "—")}</span>
@@ -203,28 +221,28 @@ export function VacationsPage(): JSX.Element {
     },
     {
       key: "paid",
-      header: "Оплата",
+      header: text("Оплата", "Payment"),
       render: (record) => (
         <span className="app-surface-muted app-border rounded-full border px-3 py-1 text-xs font-black">
-          {Number(record.is_paid) === 1 ? "Оплачиваемый" : "Неоплачиваемый"}
+          {Number(record.is_paid) === 1 ? text("Оплачиваемый", "Paid") : text("Неоплачиваемый", "Unpaid")}
         </span>
       ),
     },
     {
       key: "status",
-      header: "Статус",
+      header: text("Статус", "Status"),
       render: (record) => <StatusBadge status={String(record.status ?? "planned")} />,
     },
     {
       key: "approval",
-      header: "Согласование",
+      header: text("Согласование", "Approval"),
       render: (record) => (
         <div className="min-w-[150px]">
           <p className="app-text-soft text-sm font-semibold">
             {record.approved_by_name ? String(record.approved_by_name) : "—"}
           </p>
           <p className="app-muted mt-1 text-xs">
-            {record.approved_at ? formatDate(record.approved_at) : "Не согласован"}
+            {record.approved_at ? formatDate(record.approved_at, locale) : text("Не согласован", "Not approved")}
           </p>
         </div>
       ),
@@ -233,7 +251,7 @@ export function VacationsPage(): JSX.Element {
       ? [
           {
             key: "actions",
-            header: "Действия",
+            header: text("Действия", "Actions"),
             align: "center" as const,
             render: (record: HrRecord) => (
               <div className="flex items-center justify-center gap-2">
@@ -253,7 +271,7 @@ export function VacationsPage(): JSX.Element {
         actions={
           canCreate ? (
             <ActionButton action="create" onClick={openCreate}>
-              Оформить отпуск
+              {text("Оформить отпуск", "Create vacation")}
             </ActionButton>
           ) : undefined
         }
@@ -261,32 +279,32 @@ export function VacationsPage(): JSX.Element {
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <MetricCard icon={<FiCalendar />} label="Всего записей" value={records.length} />
-        <MetricCard icon={<FiUser />} label="Ожидают решения" value={plannedCount} />
+        <MetricCard icon={<FiCalendar />} label={text("Всего записей", "Total records")} value={records.length} />
+        <MetricCard icon={<FiUser />} label={text("Ожидают решения", "Awaiting decision")} value={plannedCount} />
         <MetricCard
           icon={<FiCalendar />}
-          label="Согласованы / впереди"
+          label={text("Согласованы / впереди", "Approved / upcoming")}
           value={`${approvedCount} / ${upcomingCount}`}
         />
       </section>
 
       <DataTable
-        ariaLabel="Реестр отпусков"
+        ariaLabel={text("Реестр отпусков", "Vacation registry")}
         card={{
           leading: () => <FiCalendar className="h-5 w-5" />,
-          title: (record) => String(record.employee_name ?? "Сотрудник"),
+          title: (record) => String(record.employee_name ?? text("Сотрудник", "Employee")),
           meta: (record) => (
             <>
               <span className="app-text-soft">
-                <span className="app-muted">Вид: </span>
-                {String(record.vacation_type_name ?? "Отпуск")}
+                <span className="app-muted">{text("Вид:", "Type:")} </span>
+                {String(record.vacation_type_name ?? text("Отпуск", "Vacation"))}
               </span>
               <span className="app-text-soft">
-                <span className="app-muted">Период: </span>
-                {formatDate(record.starts_at)} — {formatDate(record.ends_at)}
+                <span className="app-muted">{text("Период:", "Period:")} </span>
+                {formatDate(record.starts_at, locale)} — {formatDate(record.ends_at, locale)}
               </span>
               <span className="app-text-soft">
-                <span className="app-muted">Дней: </span>
+                <span className="app-muted">{text("Дней:", "Days:")} </span>
                 {String(record.days_count ?? "—")}
               </span>
               <StatusBadge status={String(record.status ?? "planned")} />
@@ -295,19 +313,19 @@ export function VacationsPage(): JSX.Element {
           actions: hasActions ? (record) => renderActions(record) : undefined,
         }}
         columns={columns}
-        emptyDescription="В доступной области данных пока нет записей об отпусках."
-        emptyTitle="Отпусков пока нет"
+        emptyDescription={text("В доступной области данных пока нет записей об отпусках.", "There are no vacation records in the available data scope yet.")}
+        emptyTitle={text("Отпусков пока нет", "No vacations yet")}
         footer={
           <>
-            Всего: <span className="app-text font-black">{records.length}</span>
+            {text("Всего:", "Total:")} <span className="app-text font-black">{records.length}</span>
           </>
         }
         getRowKey={(record) => String(record.id)}
         isLoading={isLoading}
-        loadingLabel="Загрузка отпусков..."
+        loadingLabel={text("Загрузка отпусков...", "Loading vacations...")}
         notice={
           employeeFilter
-            ? `Показаны отпуска выбранного сотрудника · ${records.length}`
+            ? text(`Показаны отпуска выбранного сотрудника · ${records.length}`, `Showing vacations for the selected employee · ${records.length}`)
             : undefined
         }
         onViewModeChange={setViewMode}
@@ -389,19 +407,23 @@ function StatusBadge({ status }: { status: string }): JSX.Element {
           : "border-amber-500/25 bg-amber-500/10 text-amber-600";
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-black ${className}`}>
-      {statusLabel(status)}
+      {statusLabel(status, text)}
     </span>
   );
 }
 
-function statusLabel(value: unknown): string {
-  const labels: Record<string, string> = {
-    planned: "Запланирован",
-    approved: "Согласован",
-    rejected: "Отклонён",
-    completed: "Завершён",
+function statusLabel(
+  value: unknown,
+  text: (ru: string, en: string) => string,
+): string {
+  const labels: Record<string, [string, string]> = {
+    planned: ["Запланирован", "Planned"],
+    approved: ["Согласован", "Approved"],
+    rejected: ["Отклонён", "Rejected"],
+    completed: ["Завершён", "Completed"],
   };
-  return labels[String(value ?? "")] ?? String(value ?? "—");
+  const label = labels[String(value ?? "")];
+  return label ? text(label[0], label[1]) : String(value ?? "—");
 }
 
 function positiveId(value: string | null): number | null {
