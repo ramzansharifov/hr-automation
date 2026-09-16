@@ -148,6 +148,25 @@ export const en = {
     },
   },
 
+  globalSearch: {
+    ariaLabel: "Global search",
+    placeholder: "Search employees, structure, vacancies, and candidates",
+    clear: "Clear search",
+    searching: "Searching...",
+    emptyTitle: "Nothing found",
+    emptyDescription: "Try changing your search",
+    fallbackName: "Unnamed",
+    fallbackStructure: "Organizational structure",
+    kinds: {
+      employee: "Employee",
+      enterprise: "Enterprise",
+      department: "Department",
+      position: "Position",
+      vacancy: "Vacancy",
+      candidate: "Candidate",
+    },
+  },
+
   dashboard: {
     hero: {
       productName: "HR Automation",
