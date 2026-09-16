@@ -294,7 +294,7 @@ export function CandidateDetailsPage(): JSX.Element {
             </RecruitmentBadge>
           </div>
         }
-        title={fullName(candidate)}
+        title={fullName(candidate, tr)}
       />
 
       <CandidateWorkflow
@@ -364,7 +364,7 @@ export function CandidateDetailsPage(): JSX.Element {
             <InfoLine label={tr("Отдел", "Department")} value={text(candidate.department_name)} />
             <InfoLine
               label={tr("Статус вакансии", "Vacancy status")}
-              value={vacancyStatusLabel(candidate.vacancy_status)}
+              value={vacancyStatusLabel(candidate.vacancy_status, tr)}
             />
             <InfoLine
               label={tr("Количество мест", "Openings")}
@@ -1013,11 +1013,14 @@ function calculateMatch(skills: CandidateSkillState[]): number {
   return Math.round((points / skills.length) * 100);
 }
 
-function fullName(candidate: HrRecord): string {
+function fullName(
+  candidate: HrRecord,
+  tr: (ru: string, en: string) => string,
+): string {
   return [candidate.last_name, candidate.first_name, candidate.middle_name]
     .map(text)
     .filter(Boolean)
-    .join(" ") || "Без имени";
+    .join(" ") || tr("Без имени", "Unnamed");
 }
 
 function candidateAddress(
@@ -1032,10 +1035,10 @@ function candidateAddress(
   const street = [
     text(candidate.address_street),
     text(candidate.address_house)
-      ? "д. " + text(candidate.address_house)
+      ? tr("д. " + text(candidate.address_house), "house " + text(candidate.address_house))
       : "",
     text(candidate.address_apartment)
-      ? "кв. " + text(candidate.address_apartment)
+      ? tr("кв. " + text(candidate.address_apartment), "apt. " + text(candidate.address_apartment))
       : "",
   ]
     .filter(Boolean)
@@ -1043,19 +1046,26 @@ function candidateAddress(
   return [locality, street].filter(Boolean).join(", ");
 }
 
-function vacancyStatusLabel(value: unknown): string {
-  const labels: Record<string, string> = {
-    draft: "Черновик",
-    open: "Открыта",
-    paused: "Приостановлена",
-    closed: "Закрыта",
+function vacancyStatusLabel(
+  value: unknown,
+  tr: (ru: string, en: string) => string,
+): string {
+  const labels: Record<string, [string, string]> = {
+    draft: ["Черновик", "Draft"],
+    open: ["Открыта", "Open"],
+    paused: ["Приостановлена", "Paused"],
+    closed: ["Закрыта", "Closed"],
   };
-  return labels[text(value)] ?? (text(value) || "—");
+  const label = labels[text(value)];
+  return label ? tr(label[0], label[1]) : text(value) || "—";
 }
 
-function genderLabel(value: unknown): string {
-  if (value === "male") return "Мужской";
-  if (value === "female") return "Женский";
+function genderLabel(
+  value: unknown,
+  tr: (ru: string, en: string) => string,
+): string {
+  if (value === "male") return tr("Мужской", "Male");
+  if (value === "female") return tr("Женский", "Female");
   return text(value);
 }
 
