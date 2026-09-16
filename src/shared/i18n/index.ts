@@ -3,6 +3,8 @@ import i18n from 'i18next'
 import { initReactI18next, useTranslation } from 'react-i18next'
 import { en } from './locales/en'
 import { ru } from './locales/ru'
+import { tg } from './locales/tg'
+import { translateTajikText } from './tajikText'
 
 export const DEFAULT_LANGUAGE = 'ru'
 export const LANGUAGE_STORAGE_KEY = 'hr-automation-language'
@@ -18,6 +20,11 @@ export const supportedLanguages = [
     labelKey: 'settings.language.options.en',
     locale: 'en-US',
   },
+  {
+    id: 'tg',
+    labelKey: 'settings.language.options.tg',
+    locale: 'tg-TJ',
+  },
 ] as const
 
 export type AppLanguage = (typeof supportedLanguages)[number]['id']
@@ -28,6 +35,9 @@ const resources = {
   },
   en: {
     translation: en,
+  },
+  tg: {
+    translation: tg,
   },
 } as const
 
@@ -47,17 +57,31 @@ export function useAppLocale(): string {
   return getAppLocale(instance.resolvedLanguage ?? instance.language)
 }
 
-export function appText(ru: string, en: string): string {
-  const language = (i18n.resolvedLanguage ?? i18n.language).split('-')[0]
-  return language === 'en' ? en : ru
+export type AppText = (ru: string, en: string, tg?: string) => string
+
+function resolveAppText(
+  language: string,
+  ru: string,
+  en: string,
+  tajik?: string,
+): string {
+  if (language === 'en') return en
+  if (language === 'tg') return tajik ?? translateTajikText(ru)
+  return ru
 }
 
-export function useAppText(): (ru: string, en: string) => string {
+export function appText(ru: string, en: string, tajik?: string): string {
+  const language = (i18n.resolvedLanguage ?? i18n.language).split('-')[0]
+  return resolveAppText(language, ru, en, tajik)
+}
+
+export function useAppText(): AppText {
   const { i18n: instance } = useTranslation()
   const language = (instance.resolvedLanguage ?? instance.language).split('-')[0]
 
   return useCallback(
-    (ru: string, en: string) => (language === 'en' ? en : ru),
+    (ru: string, en: string, tajik?: string) =>
+      resolveAppText(language, ru, en, tajik),
     [language],
   )
 }

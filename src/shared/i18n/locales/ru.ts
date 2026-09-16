@@ -143,6 +143,7 @@ export const ru = {
       completed: "Завершён",
       paid: "Выплачено",
       pending: "Ожидает",
+      terminated: "Уволен",
       male: "Мужской",
       female: "Женский",
     },
@@ -330,6 +331,7 @@ export const ru = {
       options: {
         ru: "Русский",
         en: "English",
+        tg: "Тоҷикӣ",
       },
     },
     system: {

@@ -143,6 +143,7 @@ export const en = {
       completed: "Completed",
       paid: "Paid",
       pending: "Pending",
+      terminated: "Terminated",
       male: "Male",
       female: "Female",
     },
@@ -330,6 +331,7 @@ export const en = {
       options: {
         ru: "Russian",
         en: "English",
+        tg: "Tajik",
       },
     },
     system: {
