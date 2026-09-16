@@ -6,6 +6,9 @@ import type {
   TooltipItem,
 } from "chart.js";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+
+import { getAppLocale } from "../../shared/i18n";
 
 export type AnalyticsChartKind = "bar" | "line" | "doughnut";
 
@@ -27,7 +30,7 @@ interface AnalyticsChartProps {
 }
 
 export function AnalyticsChart({
-  emptyText = "Пока недостаточно данных.",
+  emptyText,
   height = 300,
   horizontal = false,
   icon,
@@ -37,6 +40,9 @@ export function AnalyticsChart({
   title,
   valueSuffix = "",
 }: AnalyticsChartProps): JSX.Element {
+  const { i18n, t } = useTranslation();
+  const locale = getAppLocale(i18n.resolvedLanguage ?? i18n.language);
+  const resolvedEmptyText = emptyText ?? t("analytics.charts.empty");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [themeRevision, setThemeRevision] = useState(0);
   const hasData = series.some((item) => item.values.some((value) => value !== 0));
@@ -70,12 +76,13 @@ export function AnalyticsChart({
         kind,
         theme,
         valueSuffix,
+        locale,
       }),
     };
 
     const chart = new Chart(canvas, config);
     return () => chart.destroy();
-  }, [hasData, horizontal, kind, labels, series, theme, valueSuffix]);
+  }, [hasData, horizontal, kind, labels, locale, series, theme, valueSuffix]);
 
   return (
     <article className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
@@ -96,7 +103,7 @@ export function AnalyticsChart({
           className="app-surface-muted app-border app-muted mt-5 flex items-center justify-center rounded-2xl border border-dashed px-5 text-center text-sm"
           style={{ minHeight: Math.min(height, 220) }}
         >
-          {emptyText}
+          {resolvedEmptyText}
         </div>
       )}
     </article>
@@ -199,11 +206,13 @@ function createChartOptions({
   kind,
   theme,
   valueSuffix,
+  locale,
 }: {
   horizontal: boolean;
   kind: AnalyticsChartKind;
   theme: ChartTheme;
   valueSuffix: string;
+  locale: string;
 }): ChartConfiguration["options"] {
   const tooltip = {
     backgroundColor: theme.background,
@@ -223,7 +232,7 @@ function createChartOptions({
               ? item.raw[1]
               : Number(item.formattedValue.replace(/\s/g, ""));
         const value = Number.isFinite(Number(raw))
-          ? Number(raw).toLocaleString("ru-RU")
+          ? Number(raw).toLocaleString(locale)
           : item.formattedValue;
         return `${label}${value}${valueSuffix}`;
       },
