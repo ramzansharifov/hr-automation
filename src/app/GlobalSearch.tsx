@@ -9,6 +9,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../features/auth/AuthContext";
 import { hrApiClient } from "../shared/lib/hrApiClient";
@@ -32,18 +33,19 @@ interface GlobalSearchResult {
 
 const resultMeta: Record<
   SearchResultKind,
-  { label: string; icon: IconType }
+  { labelKey: string; icon: IconType }
 > = {
-  employee: { label: "Сотрудник", icon: FiUsers },
-  enterprise: { label: "Предприятие", icon: FiLayers },
-  department: { label: "Отдел", icon: FiLayers },
-  position: { label: "Должность", icon: FiBriefcase },
-  vacancy: { label: "Вакансия", icon: FiBriefcase },
-  candidate: { label: "Кандидат", icon: FiClipboard },
+  employee: { labelKey: "globalSearch.kinds.employee", icon: FiUsers },
+  enterprise: { labelKey: "globalSearch.kinds.enterprise", icon: FiLayers },
+  department: { labelKey: "globalSearch.kinds.department", icon: FiLayers },
+  position: { labelKey: "globalSearch.kinds.position", icon: FiBriefcase },
+  vacancy: { labelKey: "globalSearch.kinds.vacancy", icon: FiBriefcase },
+  candidate: { labelKey: "globalSearch.kinds.candidate", icon: FiClipboard },
 };
 
 export function GlobalSearch(): JSX.Element {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -153,7 +155,7 @@ export function GlobalSearch(): JSX.Element {
         nextResults.push({
           id: Number(record.id),
           kind: "employee",
-          title: fullName(record),
+          title: fullName(record, t("globalSearch.fallbackName")),
           subtitle: joinText(record.phone, record.email),
           record,
         });
@@ -163,7 +165,7 @@ export function GlobalSearch(): JSX.Element {
         nextResults.push({
           id: Number(record.id),
           kind: "enterprise",
-          title: String(record.name ?? "Предприятие"),
+          title: String(record.name ?? t("globalSearch.kinds.enterprise")),
           subtitle: joinText(record.legal_name, record.phone),
           record,
         });
@@ -173,8 +175,8 @@ export function GlobalSearch(): JSX.Element {
         nextResults.push({
           id: Number(record.id),
           kind: "department",
-          title: String(record.name ?? "Отдел"),
-          subtitle: String(record.enterprise_name ?? "Организационная структура"),
+          title: String(record.name ?? t("globalSearch.kinds.department")),
+          subtitle: String(record.enterprise_name ?? t("globalSearch.fallbackStructure")),
           record,
         });
       });
@@ -183,8 +185,8 @@ export function GlobalSearch(): JSX.Element {
         nextResults.push({
           id: Number(record.id),
           kind: "position",
-          title: String(record.name ?? "Должность"),
-          subtitle: String(record.department_name ?? "Организационная структура"),
+          title: String(record.name ?? t("globalSearch.kinds.position")),
+          subtitle: String(record.department_name ?? t("globalSearch.fallbackStructure")),
           record,
         });
       });
@@ -193,7 +195,7 @@ export function GlobalSearch(): JSX.Element {
         nextResults.push({
           id: Number(record.id),
           kind: "vacancy",
-          title: String(record.position_name ?? "Вакансия"),
+          title: String(record.position_name ?? t("globalSearch.kinds.vacancy")),
           subtitle: joinText(record.enterprise_name, record.department_name),
           record,
         });
@@ -203,7 +205,7 @@ export function GlobalSearch(): JSX.Element {
         nextResults.push({
           id: Number(record.id),
           kind: "candidate",
-          title: fullName(record),
+          title: fullName(record, t("globalSearch.fallbackName")),
           subtitle: joinText(record.position_name, record.email),
           record,
         });
@@ -290,7 +292,7 @@ export function GlobalSearch(): JSX.Element {
       <div className="relative max-w-2xl">
         <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
         <input
-          aria-label="Глобальный поиск"
+          aria-label={t("globalSearch.ariaLabel")}
           className="app-input app-placeholder h-11 w-full rounded-2xl border pl-11 pr-11 text-sm font-semibold outline-none transition"
           onChange={(event) => {
             setQuery(event.target.value);
@@ -303,12 +305,12 @@ export function GlobalSearch(): JSX.Element {
               void openResult(visibleResults[0]);
             }
           }}
-          placeholder="Поиск сотрудников, структуры, вакансий и кандидатов"
+          placeholder={t("globalSearch.placeholder")}
           value={query}
         />
         {query && (
           <button
-            aria-label="Очистить поиск"
+            aria-label={t("globalSearch.clear")}
             className="app-muted absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
             onClick={clearSearch}
             type="button"
@@ -322,13 +324,17 @@ export function GlobalSearch(): JSX.Element {
         <div className="app-surface app-border absolute left-0 top-[calc(100%+10px)] z-50 max-h-[min(560px,70vh)] w-full max-w-2xl overflow-y-auto rounded-[24px] border p-2 shadow-2xl">
           {isLoading ? (
             <div className="app-muted px-4 py-8 text-center text-sm font-semibold">
-              Поиск...
+              {t("globalSearch.searching")}
             </div>
           ) : visibleResults.length === 0 ? (
             <div className="px-5 py-8 text-center">
               <FiSearch className="app-muted mx-auto h-5 w-5" />
-              <p className="app-text mt-3 text-sm font-black">Ничего не найдено</p>
-              <p className="app-muted mt-1 text-xs">Попробуйте изменить запрос</p>
+              <p className="app-text mt-3 text-sm font-black">
+                {t("globalSearch.emptyTitle")}
+              </p>
+              <p className="app-muted mt-1 text-xs">
+                {t("globalSearch.emptyDescription")}
+              </p>
             </div>
           ) : (
             <div className="grid gap-1">
@@ -350,7 +356,7 @@ export function GlobalSearch(): JSX.Element {
                         {result.title}
                       </span>
                       <span className="app-muted mt-0.5 block truncate text-xs font-semibold">
-                        {meta.label}{result.subtitle ? ` · ${result.subtitle}` : ""}
+                        {t(meta.labelKey)}{result.subtitle ? ` · ${result.subtitle}` : ""}
                       </span>
                     </span>
                   </button>
@@ -364,11 +370,11 @@ export function GlobalSearch(): JSX.Element {
   );
 }
 
-function fullName(record: HrRecord): string {
+function fullName(record: HrRecord, fallback: string): string {
   return [record.last_name, record.first_name, record.middle_name]
     .map((value) => String(value ?? "").trim())
     .filter(Boolean)
-    .join(" ") || "Без имени";
+    .join(" ") || fallback;
 }
 
 function joinText(...values: unknown[]): string {
