@@ -40,7 +40,6 @@ import {
   type EmployeeOption,
   type UserDraft,
 } from "./AccessControlShared";
-import { accessRoleName } from "./accessTranslations";
 
 const emptySystemAdmin: SystemAdminSummary = {
   id: 1,
