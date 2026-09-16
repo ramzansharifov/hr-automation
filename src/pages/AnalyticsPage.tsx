@@ -12,11 +12,14 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import {
   AnalyticsChart,
   type AnalyticsChartSeries,
 } from "../features/analytics/AnalyticsChart";
+import { getAppLocale } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
   AnalyticsSeriesPoint,
@@ -31,6 +34,8 @@ import {
 } from "../shared/ui";
 
 export function AnalyticsPage(): JSX.Element {
+  const { i18n, t } = useTranslation();
+  const locale = getAppLocale(i18n.resolvedLanguage ?? i18n.language);
   const [report, setReport] = useState<HrAnalyticsReport | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -39,20 +44,20 @@ export function AnalyticsPage(): JSX.Element {
     try {
       setReport(await hrApiClient.getAnalytics());
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить аналитику"));
+      toast.error(errorMessage(error, t("analytics.refreshError")));
     } finally {
       if (refresh) setIsRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadReport();
   }, [loadReport]);
 
-  if (!report) return <LoadingState label="Собираем HR-аналитику..." />;
+  if (!report) return <LoadingState label={t("analytics.loading")} />;
 
-  const structureCharts = analyticsStructureCharts(report);
-  const movement = movementChartData(report);
+  const structureCharts = analyticsStructureCharts(report, t);
+  const movement = movementChartData(report, t, locale);
 
   return (
     <div className="grid gap-6">
@@ -66,57 +71,57 @@ export function AnalyticsPage(): JSX.Element {
             Обновить
           </ActionButton>
         }
-        description="Кадровый состав, движение, подбор и отпуска. Все показатели рассчитываются на backend только в области данных текущего разрешения."
+        description={t("analytics.description")}
         eyebrow="HR Analytics"
         icon={<FiBarChart2 />}
-        title="Аналитика"
+        title={t("analytics.title")}
       />
 
-      <ScopeNotice report={report} />
+      <ScopeNotice locale={locale} report={report} t={t} />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={FiUsers}
-          title="Активные сотрудники"
+          title={t("analytics.metrics.activeEmployees")}
           value={report.activeEmployees}
         />
         <StatCard
           icon={FiBriefcase}
-          title="Открытые вакансии"
+          title={t("analytics.metrics.openVacancies")}
           value={report.openVacancies}
         />
         <StatCard
           icon={FiUserCheck}
-          title="Кандидаты в процессе"
+          title={t("analytics.metrics.candidatesInProcess")}
           value={report.candidatesInProcess}
         />
         <StatCard
           icon={FiCalendar}
-          title="Сегодня в отпуске"
+          title={t("analytics.metrics.onLeaveToday")}
           value={report.employeesOnLeaveToday}
         />
       </section>
 
       <AnalyticsSection
-        description="Текущий состав и качество заполнения кадровых данных."
+        description={t("analytics.sections.workforce.description")}
         icon={<FiUsers />}
-        title="Кадровый состав"
+        title={t("analytics.sections.workforce.title")}
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Metric
-            title="Средний возраст"
-            value={formatUnit(report.averageAge, "лет")}
+            title={t("analytics.metrics.averageAge")}
+            value={formatUnit(report.averageAge, t("analytics.units.years"), locale)}
           />
           <Metric
-            title="Средний стаж"
-            value={formatUnit(report.averageTenureYears, "лет")}
+            title={t("analytics.metrics.averageTenure")}
+            value={formatUnit(report.averageTenureYears, t("analytics.units.years"), locale)}
           />
           <Metric
-            title="Требуют дооформления"
+            title={t("analytics.metrics.pendingEmployees")}
             value={report.pendingEmployees}
           />
           <Metric
-            title="Уволенные в базе"
+            title={t("analytics.metrics.terminatedEmployees")}
             value={report.terminatedEmployees}
           />
         </div>
@@ -138,7 +143,7 @@ export function AnalyticsPage(): JSX.Element {
               labels={chart.points.map((point) => point.label)}
               series={[
                 {
-                  label: "Сотрудников",
+                  label: t("analytics.charts.employees"),
                   values: chart.points.map((point) => point.value),
                 },
               ]}
@@ -149,24 +154,24 @@ export function AnalyticsPage(): JSX.Element {
       </AnalyticsSection>
 
       <AnalyticsSection
-        description="Приёмы и увольнения за последние 12 месяцев в текущей области данных."
+        description={t("analytics.sections.movement.description")}
         icon={<FiActivity />}
-        title="Кадровое движение"
+        title={t("analytics.sections.movement.title")}
       >
         <div className="grid gap-4 md:grid-cols-3">
           <MovementMetric
             icon={<FiTrendingUp />}
-            label="Принято за 12 месяцев"
+            label={t("analytics.metrics.hires12m")}
             value={report.hiresLast12Months}
           />
           <MovementMetric
             icon={<FiTrendingDown />}
-            label="Уволено за 12 месяцев"
+            label={t("analytics.metrics.terminations12m")}
             value={report.terminationsLast12Months}
           />
           <MovementMetric
             icon={<FiActivity />}
-            label="Чистое изменение"
+            label={t("analytics.metrics.netChange")}
             signed
             value={report.netChangeLast12Months}
           />
@@ -178,22 +183,22 @@ export function AnalyticsPage(): JSX.Element {
           kind="line"
           labels={movement.labels}
           series={movement.series}
-          title="Динамика приёмов и увольнений"
+          title={t("analytics.charts.movement")}
         />
       </AnalyticsSection>
 
       <AnalyticsSection
-        description="Состояние вакансий и воронки кандидатов без выхода за доступное предприятие или отдел."
+        description={t("analytics.sections.recruitment.description")}
         icon={<FiBriefcase />}
-        title="Подбор"
+        title={t("analytics.sections.recruitment.title")}
       >
         <div className="grid gap-4 md:grid-cols-2">
           <Metric
-            title="Средний time-to-hire"
-            value={formatUnit(report.averageTimeToHireDays, "дн.")}
+            title={t("analytics.metrics.averageTimeToHire")}
+            value={formatUnit(report.averageTimeToHireDays, t("analytics.units.days"), locale)}
           />
           <Metric
-            title="Кандидаты в активной воронке"
+            title={t("analytics.metrics.activePipeline")}
             value={report.candidatesInProcess}
           />
         </div>
@@ -204,38 +209,38 @@ export function AnalyticsPage(): JSX.Element {
             icon={<FiUserCheck />}
             kind="doughnut"
             labels={report.candidatesByStatus.map((point) =>
-              candidateStatusLabel(point.label),
+              candidateStatusLabel(point.label, t),
             )}
             series={[
               {
-                label: "Кандидатов",
+                label: t("analytics.charts.candidates"),
                 values: report.candidatesByStatus.map((point) => point.value),
               },
             ]}
-            title="Кандидаты по этапам"
+            title={t("analytics.charts.candidatesStages")}
           />
           <AnalyticsChart
             height={330}
             icon={<FiBriefcase />}
             kind="doughnut"
             labels={report.vacanciesByStatus.map((point) =>
-              vacancyStatusLabel(point.label),
+              vacancyStatusLabel(point.label, t),
             )}
             series={[
               {
-                label: "Вакансий",
+                label: t("analytics.charts.vacancies"),
                 values: report.vacanciesByStatus.map((point) => point.value),
               },
             ]}
-            title="Вакансии по статусам"
+            title={t("analytics.charts.vacanciesStatuses")}
           />
         </div>
       </AnalyticsSection>
 
       <AnalyticsSection
-        description="Использованные отпускные дни текущего года в доступной области."
+        description={t("analytics.sections.vacations.description")}
         icon={<FiCalendar />}
-        title="Отпуска"
+        title={t("analytics.sections.vacations.title")}
       >
         <AnalyticsChart
           height={chartHeight(report.leaveByType)}
@@ -245,19 +250,27 @@ export function AnalyticsPage(): JSX.Element {
           labels={report.leaveByType.map((point) => point.label)}
           series={[
             {
-              label: "Дней",
+              label: t("analytics.charts.days"),
               values: report.leaveByType.map((point) => point.value),
             },
           ]}
-          title="Отпускные дни по видам"
-          valueSuffix=" дн."
+          title={t("analytics.charts.vacationDays")}
+          valueSuffix={` ${t("analytics.units.days")}`}
         />
       </AnalyticsSection>
     </div>
   );
 }
 
-function ScopeNotice({ report }: { report: HrAnalyticsReport }): JSX.Element {
+function ScopeNotice({
+  locale,
+  report,
+  t,
+}: {
+  locale: string;
+  report: HrAnalyticsReport;
+  t: TFunction;
+}): JSX.Element {
   return (
     <section className="app-surface app-border flex flex-col gap-4 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -265,20 +278,20 @@ function ScopeNotice({ report }: { report: HrAnalyticsReport }): JSX.Element {
           <FiShield className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <p className="app-text font-black">Область данных защищена ролью</p>
+          <p className="app-text font-black">{t("analytics.scope.title")}</p>
           <p className="app-muted mt-1 text-sm leading-6">
-            Backend вернул только агрегаты области:{" "}
-            <span className="app-text font-bold">{report.scope.label}</span>.
-            Выбор фильтров в интерфейсе не может расширить эту область.
+            {t("analytics.scope.description", {
+              scope: localizedScopeLabel(report, t),
+            })}
           </p>
         </div>
       </div>
       <div className="app-surface-muted app-border shrink-0 rounded-xl border px-4 py-3 text-right">
         <p className="app-muted text-[11px] font-black uppercase tracking-wide">
-          Обновлено
+          {t("analytics.scope.updated")}
         </p>
         <p className="app-text mt-1 text-sm font-bold">
-          {formatDateTime(report.generatedAt)}
+          {formatDateTime(report.generatedAt, locale)}
         </p>
       </div>
     </section>
@@ -360,15 +373,16 @@ function MovementMetric({
 
 function analyticsStructureCharts(
   report: HrAnalyticsReport,
+  t: TFunction,
 ): Array<{ title: string; points: AnalyticsSeriesPoint[] }> {
   if (report.scope.type === "global") {
     return [
       {
-        title: "Численность по предприятиям",
+        title: t("analytics.charts.headcountEnterprises"),
         points: report.headcountByEnterprise,
       },
       {
-        title: "Численность по отделам",
+        title: t("analytics.charts.headcountDepartments"),
         points: report.headcountByDepartment,
       },
     ];
@@ -376,24 +390,28 @@ function analyticsStructureCharts(
   if (report.scope.type === "enterprise") {
     return [
       {
-        title: "Численность по отделам",
+        title: t("analytics.charts.headcountDepartments"),
         points: report.headcountByDepartment,
       },
       {
-        title: "Численность по должностям",
+        title: t("analytics.charts.headcountPositions"),
         points: report.headcountByPosition,
       },
     ];
   }
   return [
     {
-      title: "Численность по должностям",
+      title: t("analytics.charts.headcountPositions"),
       points: report.headcountByPosition,
     },
   ];
 }
 
-function movementChartData(report: HrAnalyticsReport): {
+function movementChartData(
+  report: HrAnalyticsReport,
+  t: TFunction,
+  locale: string,
+): {
   labels: string[];
   series: AnalyticsChartSeries[];
 } {
@@ -404,14 +422,14 @@ function movementChartData(report: HrAnalyticsReport): {
   );
 
   return {
-    labels: months.map(formatMonth),
+    labels: months.map((month) => formatMonth(month, locale)),
     series: [
       {
-        label: "Принято",
+        label: t("analytics.charts.hired"),
         values: months.map((month) => hires.get(month) ?? 0),
       },
       {
-        label: "Уволено",
+        label: t("analytics.charts.terminated"),
         values: months.map((month) => terminations.get(month) ?? 0),
       },
     ],
@@ -443,14 +461,18 @@ function chartHeight(points: AnalyticsSeriesPoint[]): number {
   return Math.max(280, Math.min(440, 150 + points.length * 42));
 }
 
-function formatUnit(value: number | null, unit: string): string {
-  return value === null ? "—" : `${value.toLocaleString("ru-RU")} ${unit}`;
+function formatUnit(
+  value: number | null,
+  unit: string,
+  locale: string,
+): string {
+  return value === null ? "—" : `${value.toLocaleString(locale)} ${unit}`;
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -458,36 +480,29 @@ function formatDateTime(value: string): string {
   }).format(date);
 }
 
-function formatMonth(value: string): string {
+function formatMonth(value: string, locale: string): string {
   if (!/^\d{4}-\d{2}$/.test(value)) return value;
   const date = new Date(`${value}-01T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     year: "2-digit",
     timeZone: "UTC",
   }).format(date);
 }
 
-function vacancyStatusLabel(value: string): string {
-  const labels: Record<string, string> = {
-    draft: "Черновик",
-    open: "Открыта",
-    closed: "Закрыта",
-  };
-  return labels[value] ?? value;
+function vacancyStatusLabel(value: string, t: TFunction): string {
+  return t(`analytics.vacancyStatus.${value}`, { defaultValue: value });
 }
 
-function candidateStatusLabel(value: string): string {
-  const labels: Record<string, string> = {
-    new: "Новый",
-    screening: "Первичный отбор",
-    interview: "Собеседование",
-    offer: "Оффер",
-    hired: "Принят на работу",
-    rejected: "Отклонён",
-  };
-  return labels[value] ?? value;
+function candidateStatusLabel(value: string, t: TFunction): string {
+  return t(`analytics.candidateStatus.${value}`, { defaultValue: value });
+}
+
+function localizedScopeLabel(report: HrAnalyticsReport, t: TFunction): string {
+  if (report.scope.type === "global") return t("analytics.scope.global");
+  if (report.scope.type === "self") return t("analytics.scope.self");
+  return report.scope.label;
 }
 
 function errorMessage(error: unknown, fallback: string): string {
