@@ -3,6 +3,7 @@ import {
   type ComponentPropsWithoutRef,
 } from "react";
 import { FiLoader } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 import { IconButton } from "./IconButton";
 import {
   actionDefinitions,
@@ -34,6 +35,7 @@ export const ActionIconButton = forwardRef<
     },
     ref,
   ) => {
+    const { t } = useTranslation();
     const definition = actionDefinitions[action];
     const Icon = definition.icon;
     const tone =
@@ -50,7 +52,7 @@ export const ActionIconButton = forwardRef<
         className={className}
         disabled={disabled || loading}
         icon={loading ? <FiLoader className="animate-spin" /> : <Icon />}
-        label={label || definition.defaultLabel}
+        label={label || t(definition.labelKey, { defaultValue: definition.defaultLabel })}
         ref={ref}
         tone={tone}
       />

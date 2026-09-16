@@ -6,6 +6,7 @@ import {
 } from "react-hook-form";
 import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
+import { appText } from "../../../shared/i18n";
 import { FiBriefcase, FiHome, FiUser } from "react-icons/fi";
 import {
   FieldError,
@@ -43,12 +44,14 @@ export interface EmployeeCompanyFormSectionProps extends EmployeeFormSectionComm
   selectedDepartmentId?: string;
 }
 
-const employmentTypeOptions: SelectOption[] = [
-  { value: "full_time", label: "Полная занятость" },
-  { value: "part_time", label: "Частичная занятость" },
-  { value: "temporary", label: "Временная работа" },
-  { value: "internship", label: "Стажировка" },
-];
+function employmentTypeOptions(): SelectOption[] {
+  return [
+    { value: "full_time", label: appText("Полная занятость", "Full-time") },
+    { value: "part_time", label: appText("Частичная занятость", "Part-time") },
+    { value: "temporary", label: appText("Временная работа", "Temporary") },
+    { value: "internship", label: appText("Стажировка", "Internship") },
+  ];
+}
 
 export function EmployeePersonalFormSection({
   control,
@@ -188,15 +191,21 @@ export function EmployeeCompanyFormSection({
     <FormCard
       description={
         includeAssignmentFields
-          ? "Назначение сотрудника и кадровые условия на момент приёма."
-          : "Договор, тип занятости и внутренние кадровые реквизиты. Назначение и оклад меняются через кадровое действие."
+          ? appText(
+              "Назначение сотрудника и кадровые условия на момент приёма.",
+              "Employee assignment and employment conditions at the time of hire.",
+            )
+          : appText(
+              "Договор, тип занятости и внутренние кадровые реквизиты. Назначение и оклад меняются через кадровое действие.",
+              "Contract, employment type, and internal HR details. Assignment and salary are changed through employment actions.",
+            )
       }
       icon={<FiBriefcase className="h-5 w-5" />}
-      title="Служебные данные"
+      title={appText("Служебные данные", "Employment details")}
     >
       <TextField
         error={getError("employee_number", errors, t)}
-        label="Табельный номер"
+        label={t("forms.fields.employeeNumber")}
         registration={register("employee_number")}
       />
 
@@ -205,13 +214,13 @@ export function EmployeeCompanyFormSection({
           {hasEnterpriseSelector && (
             <StandaloneSelectField
               disabled={isRelationsLoading || assignmentLocked}
-              label="Предприятие"
+              label={t("forms.fields.enterpriseId")}
               onValueChange={onEnterpriseChange!}
               options={enterprises}
               placeholder={
                 isRelationsLoading
                   ? t("forms.placeholders.loadingOptions")
-                  : "Выберите предприятие"
+                  : t("forms.placeholders.selectEnterprise")
               }
               required
               value={enterpriseId}
@@ -232,7 +241,7 @@ export function EmployeeCompanyFormSection({
               isRelationsLoading
                 ? t("forms.placeholders.loadingOptions")
                 : hasEnterpriseSelector && !enterpriseId
-                  ? "Сначала выберите предприятие"
+                  ? appText("Сначала выберите предприятие", "Select enterprise first")
                   : t("forms.placeholders.selectDepartment")
             }
             required
@@ -252,7 +261,7 @@ export function EmployeeCompanyFormSection({
               isRelationsLoading
                 ? t("forms.placeholders.loadingOptions")
                 : hasEnterpriseSelector && !selectedDepartmentId
-                  ? "Сначала выберите отдел"
+                  ? appText("Сначала выберите отдел", "Select department first")
                   : t("forms.placeholders.selectPosition")
             }
             required
@@ -279,38 +288,38 @@ export function EmployeeCompanyFormSection({
         control={control}
         disabled={employmentTypeLocked}
         error={getError("employment_type", errors, t)}
-        label="Тип занятости"
+        label={t("forms.fields.employmentType")}
         name="employment_type"
-        options={employmentTypeOptions}
-        placeholder="Выберите тип занятости"
+        options={employmentTypeOptions()}
+        placeholder={appText("Выберите тип занятости", "Select employment type")}
         required
       />
       <TextField
         error={getError("contract_number", errors, t)}
-        label="Номер трудового договора"
+        label={t("forms.fields.contractNumber")}
         registration={register("contract_number")}
       />
       <TextField
         error={getError("contract_date", errors, t)}
-        label="Дата договора"
+        label={t("forms.fields.contractDate")}
         registration={register("contract_date")}
         type="date"
       />
       <TextField
         error={getError("contract_end_date", errors, t)}
-        label="Срок договора до"
+        label={t("forms.fields.contractEndDate")}
         registration={register("contract_end_date")}
         type="date"
       />
       <TextField
         error={getError("probation_end_date", errors, t)}
-        label="Испытательный срок до"
+        label={t("forms.fields.probationEndDate")}
         registration={register("probation_end_date")}
         type="date"
       />
       <TextField
         error={getError("workplace", errors, t)}
-        label="Место работы"
+        label={t("forms.fields.workplace")}
         registration={register("workplace")}
       />
     </FormCard>
@@ -415,7 +424,7 @@ function StandaloneSelectField({
       <Select
         allowEmpty={!required}
         disabled={disabled}
-        emptyOptionLabel="Не выбрано"
+        emptyOptionLabel={appText("Не выбрано", "Not selected")}
         onValueChange={onValueChange}
         options={options}
         placeholder={placeholder}
@@ -460,7 +469,7 @@ function SelectField({
           <Select
             allowEmpty={allowEmpty}
             disabled={disabled}
-            emptyOptionLabel="Не выбрано"
+            emptyOptionLabel={appText("Не выбрано", "Not selected")}
             invalid={Boolean(error)}
             name={field.name}
             onBlur={field.onBlur}

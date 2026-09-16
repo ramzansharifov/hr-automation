@@ -16,6 +16,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityDeleteDialog } from "../features/hr-entities/components/HrEntityDeleteDialog";
 import { HrEntityDialog } from "../features/hr-entities/components/HrEntityDialog";
 import { DepartmentLeaderDialog } from "../features/organization/DepartmentLeaderDialog";
+import { useAppLocale, useAppText } from "../shared/i18n";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
@@ -35,6 +36,8 @@ type OrganizationDetailsMode = "enterprise" | "department";
 type OrganizationFilters = Record<string, HrFilterValue | HrFilterCondition>;
 
 export function OrganizationDetailsPage(): JSX.Element {
+  const text = useAppText();
+  const locale = useAppLocale();
   const navigate = useNavigate();
   const params = useParams();
   const { hasPermission } = useAuth();
@@ -94,7 +97,7 @@ export function OrganizationDetailsPage(): JSX.Element {
           entity: "enterprises",
           id: enterpriseId,
         });
-        if (!enterpriseRecord) throw new Error("Предприятие не найдено");
+        if (!enterpriseRecord) throw new Error(text("Предприятие не найдено", "Enterprise not found"));
 
         const departmentRecord = departmentId
           ? await hrApiClient.getById({ entity: "departments", id: departmentId })
@@ -103,7 +106,7 @@ export function OrganizationDetailsPage(): JSX.Element {
           departmentId &&
           (!departmentRecord || Number(departmentRecord.enterprise_id) !== enterpriseId)
         ) {
-          throw new Error("Отдел не найден в выбранном предприятии");
+          throw new Error(text("Отдел не найден в выбранном предприятии", "Department not found in the selected enterprise"));
         }
 
         let departmentRows: HrRecord[] = [];
@@ -147,7 +150,7 @@ export function OrganizationDetailsPage(): JSX.Element {
       } catch (error) {
         if (!active) return;
         setHasError(true);
-        toast.error(errorMessage(error, "Не удалось загрузить данные организации"));
+        toast.error(errorMessage(error, text("Не удалось загрузить данные организации", "Failed to load organization data")));
       } finally {
         if (active) setIsLoading(false);
       }
@@ -165,6 +168,7 @@ export function OrganizationDetailsPage(): JSX.Element {
     enterpriseId,
     mode,
     refreshIndex,
+    text,
   ]);
 
   const employeeCountByDepartment = useMemo(
@@ -201,17 +205,17 @@ export function OrganizationDetailsPage(): JSX.Element {
   }
 
   async function saveDepartment(data: HrRecord): Promise<void> {
-    if (!enterpriseId) throw new Error("Предприятие не найдено");
+    if (!enterpriseId) throw new Error(text("Предприятие не найдено", "Enterprise not found"));
     if (departmentDialogMode === "create") {
-      if (!canCreateDepartment) throw new Error("Недостаточно прав для создания отдела");
+      if (!canCreateDepartment) throw new Error(text("Недостаточно прав для создания отдела", "Insufficient permission to create a department"));
       await hrApiClient.create({
         entity: "departments",
         data: { ...data, enterprise_id: enterpriseId },
       });
     } else {
-      if (!canEditDepartment) throw new Error("Недостаточно прав для изменения отдела");
+      if (!canEditDepartment) throw new Error(text("Недостаточно прав для изменения отдела", "Insufficient permission to edit a department"));
       const id = positiveId(editingDepartment?.id);
-      if (!id) throw new Error("Отдел не найден");
+      if (!id) throw new Error(text("Отдел не найден", "Department not found"));
       await hrApiClient.update({
         entity: "departments",
         id,
@@ -222,9 +226,9 @@ export function OrganizationDetailsPage(): JSX.Element {
   }
 
   async function deleteDepartment(): Promise<void> {
-    if (!canDeleteDepartment) throw new Error("Недостаточно прав для удаления отдела");
+    if (!canDeleteDepartment) throw new Error(text("Недостаточно прав для удаления отдела", "Insufficient permission to delete a department"));
     const id = positiveId(deletingDepartment?.id);
-    if (!id) throw new Error("Отдел не найден");
+    if (!id) throw new Error(text("Отдел не найден", "Department not found"));
     await hrApiClient.delete({ entity: "departments", id });
     setDeletingDepartment(null);
     setRefreshIndex((value) => value + 1);
@@ -251,17 +255,17 @@ export function OrganizationDetailsPage(): JSX.Element {
   }
 
   async function savePosition(data: HrRecord): Promise<void> {
-    if (!departmentId) throw new Error("Отдел не найден");
+    if (!departmentId) throw new Error(text("Отдел не найден", "Department not found"));
     if (positionDialogMode === "create") {
-      if (!canCreatePosition) throw new Error("Недостаточно прав для создания должности");
+      if (!canCreatePosition) throw new Error(text("Недостаточно прав для создания должности", "Insufficient permission to create a position"));
       await hrApiClient.create({
         entity: "positions",
         data: { ...data, department_id: departmentId },
       });
     } else {
-      if (!canEditPosition) throw new Error("Недостаточно прав для изменения должности");
+      if (!canEditPosition) throw new Error(text("Недостаточно прав для изменения должности", "Insufficient permission to edit a position"));
       const id = positiveId(editingPosition?.id);
-      if (!id) throw new Error("Должность не найдена");
+      if (!id) throw new Error(text("Должность не найдена", "Position not found"));
       await hrApiClient.update({
         entity: "positions",
         id,
@@ -272,27 +276,27 @@ export function OrganizationDetailsPage(): JSX.Element {
   }
 
   async function deletePosition(): Promise<void> {
-    if (!canDeletePosition) throw new Error("Недостаточно прав для удаления должности");
+    if (!canDeletePosition) throw new Error(text("Недостаточно прав для удаления должности", "Insufficient permission to delete a position"));
     const id = positiveId(deletingPosition?.id);
-    if (!id) throw new Error("Должность не найдена");
+    if (!id) throw new Error(text("Должность не найдена", "Position not found"));
     await hrApiClient.delete({ entity: "positions", id });
     setDeletingPosition(null);
     setRefreshIndex((value) => value + 1);
   }
 
-  if (isLoading) return <LoadingState label="Загрузка карточки организации..." />;
+  if (isLoading) return <LoadingState label={text("Загрузка карточки организации...", "Loading organization profile...")} />;
 
   if (hasError || !enterprise || (mode === "department" && !department)) {
     return (
       <EmptyState
-        description="Вернитесь к организационной структуре и выберите существующую запись."
-        title={mode === "enterprise" ? "Предприятие не найдено" : "Отдел не найден"}
+        description={text("Вернитесь к организационной структуре и выберите существующую запись.", "Return to the organization structure and select an existing record.")}
+        title={mode === "enterprise" ? text("Предприятие не найдено", "Enterprise not found") : text("Отдел не найден", "Department not found")}
       />
     );
   }
 
   const record = mode === "enterprise" ? enterprise : department!;
-  const title = recordName(record);
+  const title = recordName(record, text);
   const activeEmployees = employees.filter((item) => String(item.status) === "active");
   const leaderEmployeeId =
     mode === "enterprise"
@@ -314,13 +318,13 @@ export function OrganizationDetailsPage(): JSX.Element {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-white/70">
-              {mode === "enterprise" ? "Карточка предприятия" : "Карточка отдела"}
+              {mode === "enterprise" ? text("Карточка предприятия", "Enterprise profile") : text("Карточка отдела", "Department profile")}
             </p>
             <h1 className="mt-2 text-2xl font-black sm:text-3xl">{title}</h1>
             <p className="mt-2 text-sm font-semibold text-white/75">
               {mode === "enterprise"
                 ? displayValue(enterprise.legal_name)
-                : `Предприятие: ${recordName(enterprise)}`}
+                : text(`Предприятие: ${recordName(enterprise, text)}`, `Enterprise: ${recordName(enterprise, text)}`)}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -341,7 +345,7 @@ export function OrganizationDetailsPage(): JSX.Element {
                 context="inverse"
                 onClick={() => navigate(`/enterprises/${enterpriseId}/departments`)}
               >
-                Открыть отделы
+                {text("Открыть отделы", "Open departments")}
               </ActionButton>
             )}
           </div>
@@ -351,22 +355,22 @@ export function OrganizationDetailsPage(): JSX.Element {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={<FiLayers />}
-          label="Отделов"
+          label={text("Отделов", "Departments")}
           value={canViewDepartments ? departments.length : "—"}
         />
         <MetricCard
           icon={<FiBriefcase />}
-          label="Должностей"
+          label={text("Должностей", "Positions")}
           value={canViewPositions ? positions.length : "—"}
         />
         <MetricCard
           icon={<FiUsers />}
-          label="Сотрудников"
+          label={text("Сотрудников", "Employees")}
           value={canViewEmployees ? employees.length : "—"}
         />
         <MetricCard
           icon={<FiUserCheck />}
-          label="Активных сотрудников"
+          label={text("Активных сотрудников", "Active employees")}
           value={canViewEmployees ? activeEmployees.length : "—"}
         />
       </section>
@@ -374,37 +378,38 @@ export function OrganizationDetailsPage(): JSX.Element {
       <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
         <InfoPanel
           icon={mode === "enterprise" ? <FiBriefcase /> : <FiLayers />}
-          title={mode === "enterprise" ? "Основная информация" : "Информация об отделе"}
+          title={mode === "enterprise" ? text("Основная информация", "Main information") : text("Информация об отделе", "Department information")}
         >
           {mode === "enterprise" ? (
             <>
-              <InfoRow label="Юридическое название" value={displayValue(enterprise.legal_name)} />
-              <InfoRow label="Форма" value={displayValue(enterprise.legal_form)} />
-              <InfoRow label="Регистрационный номер" value={displayValue(enterprise.registration_number)} />
-              <InfoRow label="Адрес" value={displayValue(enterprise.address)} />
+              <InfoRow label={text("Юридическое название", "Legal name")} value={displayValue(enterprise.legal_name)} />
+              <InfoRow label={text("Форма", "Legal form")} value={displayValue(enterprise.legal_form)} />
+              <InfoRow label={text("Регистрационный номер", "Registration number")} value={displayValue(enterprise.registration_number)} />
+              <InfoRow label={text("Адрес", "Address")} value={displayValue(enterprise.address)} />
             </>
           ) : (
             <>
-              <InfoRow label="Предприятие" value={recordName(enterprise)} />
-              <InfoRow label="Расположение" value={displayValue(department!.location)} />
+              <InfoRow label={text("Предприятие", "Enterprise")} value={recordName(enterprise, text)} />
+              <InfoRow label={text("Расположение", "Location")} value={displayValue(department!.location)} />
               <InfoRow
-                label="Дата создания"
-                value={department!.created_on ? formatDate(department!.created_on) : "—"}
+                label={text("Дата создания", "Creation date")}
+                value={department!.created_on ? formatDate(department!.created_on, locale) : "—"}
               />
-              <InfoRow label="Название" value={recordName(department!)} />
+              <InfoRow label={text("Название", "Name")} value={recordName(department!, text)} />
             </>
           )}
         </InfoPanel>
 
         <div className="space-y-5">
-          <ContactCard record={record} />
+          <ContactCard record={record} text={text} />
           <LeaderCard
             canManage={canAssignLeader}
             canViewEmployee={canViewEmployees}
             employeeId={leaderEmployeeId}
             leaderName={leaderName}
             onManage={() => setIsLeaderDialogOpen(true)}
-            title={mode === "enterprise" ? "Руководитель предприятия" : "Руководитель отдела"}
+            title={mode === "enterprise" ? text("Руководитель предприятия", "Enterprise director") : text("Руководитель отдела", "Department head")}
+            text={text}
           />
         </div>
       </section>
@@ -419,17 +424,17 @@ export function OrganizationDetailsPage(): JSX.Element {
                   onClick={openCreateDepartment}
                   size="sm"
                 >
-                  Добавить отдел
+                  {text("Добавить отдел", "Add department")}
                 </ActionButton>
               ) : undefined
             }
             icon={<FiLayers />}
-            title="Отделы"
+            title={text("Отделы", "Departments")}
           />
           {!canViewDepartments ? (
-            <EmptySection text="Нет доступа к просмотру отделов." />
+            <EmptySection text={text("Нет доступа к просмотру отделов.", "No permission to view departments.")} />
           ) : departments.length === 0 ? (
-            <EmptySection text="В предприятии пока нет отделов." />
+            <EmptySection text={text("В предприятии пока нет отделов.", "There are no departments in this enterprise yet.")} />
           ) : (
             <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
               {departments.map((item) => {
@@ -440,25 +445,25 @@ export function OrganizationDetailsPage(): JSX.Element {
                       <Link className="group min-w-0 flex-1" to={`/enterprises/${enterpriseId}/departments/${id}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="app-text truncate font-black">{recordName(item)}</p>
+                            <p className="app-text truncate font-black">{recordName(item, text)}</p>
                             <p className="app-muted mt-1 truncate text-xs font-semibold">
                               {displayValue(item.director_name) === "—"
-                                ? "Руководитель не назначен"
-                                : `Руководитель: ${displayValue(item.director_name)}`}
+                                ? text("Руководитель не назначен", "Leader not assigned")
+                                : text(`Руководитель: ${displayValue(item.director_name)}`, `Leader: ${displayValue(item.director_name)}`)}
                             </p>
                           </div>
                           <FiChevronRight className="app-muted h-5 w-5 shrink-0" />
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
-                          <MiniBadge label="Сотрудников" value={canViewEmployees ? employeeCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
-                          <MiniBadge label="Должностей" value={canViewPositions ? positionCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
+                          <MiniBadge label={text("Сотрудников", "Employees")} value={canViewEmployees ? employeeCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
+                          <MiniBadge label={text("Должностей", "Positions")} value={canViewPositions ? positionCountByDepartment.get(id ?? -1) ?? 0 : "—"} />
                         </div>
                       </Link>
                       {(canEditDepartment || canDeleteDepartment) && (
                         <RecordActions
                           className="shrink-0"
-                          deleteLabel="Удалить отдел"
-                          editLabel="Редактировать отдел"
+                          deleteLabel={text("Удалить отдел", "Delete department")}
+                          editLabel={text("Редактировать отдел", "Edit department")}
                           onDelete={
                             canDeleteDepartment
                               ? () => openDeleteDepartment(item)
@@ -490,17 +495,17 @@ export function OrganizationDetailsPage(): JSX.Element {
                   onClick={openCreatePosition}
                   size="sm"
                 >
-                  Добавить должность
+                  {text("Добавить должность", "Add position")}
                 </ActionButton>
               ) : undefined
             }
             icon={<FiBriefcase />}
-            title="Должности"
+            title={text("Должности", "Positions")}
           />
           {!canViewPositions ? (
-            <EmptySection text="Нет доступа к просмотру должностей." />
+            <EmptySection text={text("Нет доступа к просмотру должностей.", "No permission to view positions.")} />
           ) : positions.length === 0 ? (
-            <EmptySection text="В отделе пока нет должностей." />
+            <EmptySection text={text("В отделе пока нет должностей.", "There are no positions in this department yet.")} />
           ) : (
             <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
               {positions.map((item) => {
@@ -509,21 +514,21 @@ export function OrganizationDetailsPage(): JSX.Element {
                   <article className="app-surface-muted app-border rounded-2xl border p-4" key={String(item.id)}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
-                        <p className="app-text font-black">{recordName(item)}</p>
+                        <p className="app-text font-black">{recordName(item, text)}</p>
                         <p className="app-muted mt-2 text-xs leading-5">
                           {displayValue(item.responsibilities) === "—"
-                            ? "Обязанности не указаны"
+                            ? text("Обязанности не указаны", "Responsibilities not specified")
                             : String(item.responsibilities)}
                         </p>
                         <div className="mt-4">
-                          <MiniBadge label="Сотрудников" value={canViewEmployees ? employeeCountByPosition.get(id ?? -1) ?? 0 : "—"} />
+                          <MiniBadge label={text("Сотрудников", "Employees")} value={canViewEmployees ? employeeCountByPosition.get(id ?? -1) ?? 0 : "—"} />
                         </div>
                       </div>
                       {(canEditPosition || canDeletePosition) && (
                         <RecordActions
                           className="shrink-0"
-                          deleteLabel="Удалить должность"
-                          editLabel="Редактировать должность"
+                          deleteLabel={text("Удалить должность", "Delete position")}
+                          editLabel={text("Редактировать должность", "Edit position")}
                           onDelete={
                             canDeletePosition
                               ? () => openDeletePosition(item)
@@ -548,16 +553,16 @@ export function OrganizationDetailsPage(): JSX.Element {
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <SectionHeader
           icon={<FiUsers />}
-          title="Сотрудники"
+          title={text("Сотрудники", "Employees")}
         />
         {!canViewEmployees ? (
-          <EmptySection text="Нет доступа к просмотру сотрудников." />
+          <EmptySection text={text("Нет доступа к просмотру сотрудников.", "No permission to view employees.")} />
         ) : employees.length === 0 ? (
-          <EmptySection text="Сотрудники пока не добавлены." />
+          <EmptySection text={text("Сотрудники пока не добавлены.", "No employees have been added yet.")} />
         ) : (
           <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2 xl:grid-cols-3">
             {employees.slice(0, 12).map((item) => (
-              <EmployeeCard employee={item} key={String(item.id)} />
+              <EmployeeCard employee={item} text={text} key={String(item.id)} />
             ))}
           </div>
         )}
@@ -568,10 +573,10 @@ export function OrganizationDetailsPage(): JSX.Element {
           canChangeEmployment={canAssignLeader}
           currentLeaderId={leaderEmployeeId}
           departmentId={departmentId}
-          departmentName={department ? recordName(department) : ""}
+          departmentName={department ? recordName(department, text) : ""}
           departments={departments}
           enterpriseId={enterpriseId}
-          enterpriseName={recordName(enterprise)}
+          enterpriseName={recordName(enterprise, text)}
           mode={mode}
           onOpenChange={setIsLeaderDialogOpen}
           onSaved={() => setRefreshIndex((value) => value + 1)}
@@ -661,12 +666,18 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }): JSX.Ele
   );
 }
 
-function ContactCard({ record }: { record: HrRecord }): JSX.Element {
+function ContactCard({
+  record,
+  text,
+}: {
+  record: HrRecord;
+  text: (ru: string, en: string) => string;
+}): JSX.Element {
   return (
     <article className="app-surface app-border rounded-[24px] border p-5">
-      <p className="app-muted text-[11px] font-black uppercase tracking-wide">Контакты</p>
+      <p className="app-muted text-[11px] font-black uppercase tracking-wide">{text("Контакты", "Contacts")}</p>
       <div className="mt-4 space-y-3">
-        <ContactRow icon={<FiPhone />} label="Телефон" value={displayValue(record.phone)} />
+        <ContactRow icon={<FiPhone />} label={text("Телефон", "Phone")} value={displayValue(record.phone)} />
         <ContactRow icon={<FiMail />} label="Email" value={displayValue(record.email)} />
       </div>
     </article>
@@ -692,6 +703,7 @@ function LeaderCard({
   leaderName,
   onManage,
   title,
+  text,
 }: {
   canManage: boolean;
   canViewEmployee: boolean;
@@ -699,6 +711,7 @@ function LeaderCard({
   leaderName: string;
   onManage: () => void;
   title: string;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   return (
     <article className="app-surface app-border rounded-[24px] border p-5">
@@ -713,7 +726,7 @@ function LeaderCard({
       </div>
       {employeeId && canViewEmployee && (
         <Link className="app-accent-text mt-3 inline-flex text-xs font-black" to={`/employees/${employeeId}`}>
-          Открыть сотрудника
+          {text("Открыть сотрудника", "Open employee")}
         </Link>
       )}
     </article>
@@ -748,7 +761,13 @@ function MiniBadge({ label, value }: { label: string; value: ReactNode }): JSX.E
   );
 }
 
-function EmployeeCard({ employee }: { employee: HrRecord }): JSX.Element {
+function EmployeeCard({
+  employee,
+  text,
+}: {
+  employee: HrRecord;
+  text: (ru: string, en: string) => string;
+}): JSX.Element {
   const id = positiveId(employee.id);
   const name = [employee.last_name, employee.first_name, employee.middle_name]
     .map((value) => String(value ?? "").trim())
@@ -756,7 +775,7 @@ function EmployeeCard({ employee }: { employee: HrRecord }): JSX.Element {
     .join(" ");
   return (
     <Link className="app-surface-muted app-border rounded-2xl border p-4 transition hover:border-[var(--accent-border)]" to={`/employees/${id}`}>
-      <p className="app-text truncate font-black">{name || "Сотрудник"}</p>
+      <p className="app-text truncate font-black">{name || text("Сотрудник", "Employee")}</p>
       <p className="app-muted mt-1 truncate text-xs font-semibold">{displayValue(employee.position_name)}</p>
     </Link>
   );
@@ -800,8 +819,11 @@ function countById(records: HrRecord[], key: string): Map<number, number> {
   return result;
 }
 
-function recordName(record: HrRecord | null): string {
-  return String(record?.name ?? "Без названия");
+function recordName(
+  record: HrRecord | null,
+  text: (ru: string, en: string) => string,
+): string {
+  return String(record?.name ?? text("Без названия", "Untitled"));
 }
 
 function displayValue(value: unknown): string {

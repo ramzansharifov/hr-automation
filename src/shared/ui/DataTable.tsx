@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { FiChevronLeft, FiChevronRight, FiFileText } from 'react-icons/fi'
 
 import { Button } from './Button'
@@ -102,14 +103,14 @@ export function DataTable<T>({
   className = '',
   clientPagination,
   columns,
-  emptyDescription = 'В доступной области пока нет данных.',
-  emptyTitle = 'Данных пока нет',
+  emptyDescription,
+  emptyTitle,
   footer,
   frame = true,
   getRowKey,
   initialPageSize = 10,
   isLoading = false,
-  loadingLabel = 'Загрузка данных...',
+  loadingLabel,
   notice,
   onRowClick,
   onViewModeChange,
@@ -118,6 +119,10 @@ export function DataTable<T>({
   toolbar,
   viewMode,
 }: DataTableProps<T>): JSX.Element {
+  const { t } = useTranslation()
+  const resolvedEmptyDescription = emptyDescription ?? t('common.table.emptyDescription')
+  const resolvedEmptyTitle = emptyTitle ?? t('common.table.noRecords')
+  const resolvedLoadingLabel = loadingLabel ?? t('common.table.loadingData')
   const [storedViewMode, setStoredViewMode] = useStoredViewMode('shared-data-table')
   const resolvedViewMode = viewMode ?? storedViewMode
   const shouldShowViewModeToggle = showViewModeToggle ?? frame
@@ -171,7 +176,7 @@ export function DataTable<T>({
 
   function renderCardTitle(row: T, index: number): ReactNode {
     if (card) return card.title(row, index)
-    return titleColumn ? titleColumn.render(row, index) : 'Запись'
+    return titleColumn ? titleColumn.render(row, index) : t('common.table.record')
   }
 
   function renderCardLeading(row: T, index: number): ReactNode {
@@ -196,11 +201,11 @@ export function DataTable<T>({
 
   const collectionContent = isLoading ? (
     <div className="px-5 py-16">
-      <LoadingState label={loadingLabel} />
+      <LoadingState label={resolvedLoadingLabel} />
     </div>
   ) : rows.length === 0 ? (
     <div className="py-16">
-      <EmptyState title={emptyTitle} description={emptyDescription} />
+      <EmptyState title={resolvedEmptyTitle} description={resolvedEmptyDescription} />
     </div>
   ) : resolvedViewMode === 'cards' ? (
     <div className="min-h-0 flex-1 overflow-auto p-5" aria-label={ariaLabel}>
@@ -327,9 +332,9 @@ export function DataTable<T>({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
         {footer && <div>{footer}</div>}
         <div className="flex items-center gap-2">
-          <span className="app-muted text-sm font-medium">Записей на странице</span>
+          <span className="app-muted text-sm font-medium">{t('common.table.recordsPerPage')}</span>
           <Select
-            ariaLabel="Записей на странице"
+            ariaLabel={t('common.table.recordsPerPage')}
             className="h-10 w-24 rounded-xl"
             onValueChange={handlePageSizeChange}
             options={pageSizeOptions}
@@ -347,7 +352,7 @@ export function DataTable<T>({
           type="button"
           variant="secondary"
         >
-          Назад
+          {t('common.table.previous')}
         </Button>
 
         <div className="flex items-center gap-1">
@@ -404,7 +409,7 @@ export function DataTable<T>({
           type="button"
           variant="secondary"
         >
-          Далее
+          {t('common.table.next')}
         </Button>
       </div>
     </div>

@@ -4,11 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useBusinessContext } from "../business-context/useBusinessContext";
+import { useAppLocale, useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AttentionItem } from "../../shared/types/hr";
 import { ActionButton, EmptyState, LoadingState } from "../../shared/ui";
 
 export function AttentionQueueSection(): JSX.Element {
+  const text = useAppText();
+  const locale = useAppLocale();
   const navigate = useNavigate();
   const { state: businessContext } = useBusinessContext();
   const [items, setItems] = useState<AttentionItem[]>([]);
@@ -19,11 +22,11 @@ export function AttentionQueueSection(): JSX.Element {
     try {
       setItems(await hrApiClient.listAttentionItems());
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить рабочую очередь"));
+      toast.error(errorMessage(error, text("Не удалось загрузить рабочую очередь", "Failed to load attention queue")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void load();
@@ -40,13 +43,13 @@ export function AttentionQueueSection(): JSX.Element {
             <FiAlertCircle className="h-5 w-5" />
           </span>
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 className="app-text text-lg font-black">Требует внимания</h2>
+            <h2 className="app-text text-lg font-black">{text("Требует внимания", "Needs attention")}</h2>
             <div className="app-muted flex flex-wrap items-center gap-2 text-xs font-bold">
-              <span>{items.length} задач</span>
+              <span>{items.length} {text("задач", "tasks")}</span>
               <span>•</span>
-              <span>{critical} критичных</span>
+              <span>{critical} {text("критичных", "critical")}</span>
               <span>•</span>
-              <span>{warnings} требуют внимания</span>
+              <span>{warnings} {text("требуют внимания", "need attention")}</span>
             </div>
           </div>
         </div>
@@ -60,11 +63,11 @@ export function AttentionQueueSection(): JSX.Element {
 
       <div className="p-4 sm:p-5">
         {loading ? (
-          <LoadingState label="Собираем кадровые задачи..." />
+          <LoadingState label={text("Собираем кадровые задачи...", "Collecting HR tasks...")} />
         ) : items.length === 0 ? (
           <EmptyState
-            description="Сейчас нет просроченных сроков, незавершённых назначений и других кадровых ситуаций, требующих действия."
-            title="Рабочая очередь пуста"
+            description={text("Сейчас нет просроченных сроков, незавершённых назначений и других кадровых ситуаций, требующих действия.", "There are currently no overdue deadlines, incomplete assignments, or other HR situations requiring action.")}
+            title={text("Рабочая очередь пуста", "Attention queue is empty")}
           />
         ) : (
           <div className="grid gap-3">
@@ -81,7 +84,7 @@ export function AttentionQueueSection(): JSX.Element {
                   <span className="app-muted mt-1 block text-sm leading-5">{item.description}</span>
                   {item.dueDate ? (
                     <span className="app-muted mt-2 block text-xs font-bold">
-                      Срок: {formatDate(item.dueDate)}
+                      {text("Срок:", "Due:")} {formatDate(item.dueDate, locale)}
                     </span>
                   ) : null}
                 </span>
@@ -101,8 +104,8 @@ function severityClass(severity: AttentionItem["severity"]): string {
   return "bg-blue-500";
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("ru-RU").format(new Date(`${value}T00:00:00`));
+function formatDate(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale).format(new Date(`${value}T00:00:00`));
 }
 
 function errorMessage(error: unknown, fallback: string): string {

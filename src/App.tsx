@@ -40,6 +40,7 @@ import { CandidatesPage } from "./pages/recruitment/CandidatesPage";
 import { VacanciesPage } from "./pages/recruitment/VacanciesPage";
 import { VacancyDetailsPage } from "./pages/recruitment/VacancyDetailsPage";
 import { VacancyFormPage } from "./pages/recruitment/VacancyFormPage";
+import { appText } from "./shared/i18n";
 import { EmptyState } from "./shared/ui";
 
 function AuthenticatedLayout(): JSX.Element {
@@ -112,8 +113,11 @@ function App(): JSX.Element {
             path="no-access"
             element={
               <EmptyState
-                title="Нет доступных разделов"
-                description="Обратитесь к superadmin, чтобы назначить пользователю хотя бы одну роль с разрешениями."
+                title={appText("Нет доступных разделов", "No accessible sections")}
+                description={appText(
+                  "Обратитесь к superadmin, чтобы назначить пользователю хотя бы одну роль с разрешениями.",
+                  "Contact the superadmin to assign the user at least one role with permissions.",
+                )}
               />
             }
           />

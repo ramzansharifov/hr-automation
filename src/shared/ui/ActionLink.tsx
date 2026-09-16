@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Link,
   type LinkProps,
@@ -31,6 +32,7 @@ export function ActionLink({
   size = "md",
   ...props
 }: ActionLinkProps): JSX.Element {
+  const { t } = useTranslation();
   const definition = actionDefinitions[action];
   const Icon = definition.icon;
   const icon = hideIcon ? null : (
@@ -49,7 +51,7 @@ export function ActionLink({
     >
       {definition.iconPosition !== "right" && icon}
       <span className="app-button__label">
-        {children ?? definition.defaultLabel}
+        {children ?? t(definition.labelKey, { defaultValue: definition.defaultLabel })}
       </span>
       {definition.iconPosition === "right" && icon}
     </Link>

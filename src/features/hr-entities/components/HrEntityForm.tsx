@@ -11,6 +11,7 @@ import type {
   HrFilterValue,
   HrRecord,
 } from '../../../shared/types/hr'
+import { appText } from '../../../shared/i18n'
 import { hrApiClient } from '../../../shared/lib/hrApiClient'
 import { FieldError, Input, Select, Textarea, type SelectOption } from '../../../shared/ui'
 import {
@@ -182,8 +183,10 @@ export function HrEntityForm({
         {visibleFields.map((field) => {
           const error = errors[field.name]?.message
           const errorMessage = typeof error === 'string' ? t(error) : undefined
-          const label = t(field.labelKey)
-          const placeholder = field.placeholderKey ? t(field.placeholderKey) : label
+          const label = localizeConfigText(field.labelKey, t)
+          const placeholder = field.placeholderKey
+            ? localizeConfigText(field.placeholderKey, t)
+            : label
           const fieldId = `${entity}-${field.name}`
           const relation = field.type === 'relation' ? field.relation : undefined
 
@@ -220,7 +223,7 @@ export function HrEntityForm({
                       onValueChange={controllerField.onChange}
                       options={(field.options ?? []).map((option) => ({
                         value: option.value,
-                        label: t(option.labelKey),
+                        label: localizeConfigText(option.labelKey, t),
                       }))}
                       placeholder={t('forms.placeholders.select')}
                       value={controllerField.value}
@@ -245,7 +248,7 @@ export function HrEntityForm({
                       placeholder={
                         relationSelects[field.name]?.isLoading
                           ? t('forms.placeholders.loadingOptions')
-                          : t(relation.placeholderKey)
+                          : localizeConfigText(relation.placeholderKey, t)
                       }
                       value={controllerField.value}
                     />
@@ -269,6 +272,40 @@ export function HrEntityForm({
       </div>
     </form>
   )
+}
+
+
+function localizeConfigText(
+  value: string,
+  t: (key: string) => string,
+): string {
+  if (value.includes('.')) return t(value)
+
+  const labels: Record<string, [string, string]> = {
+    "Другое": ["Другое", "Other"],
+    "Полная занятость": ["Полная занятость", "Full-time"],
+    "Частичная занятость": ["Частичная занятость", "Part-time"],
+    "Временная работа": ["Временная работа", "Temporary"],
+    "Стажировка": ["Стажировка", "Internship"],
+    "Категория предприятия": ["Категория предприятия", "Enterprise type"],
+    "Табельный номер": ["Табельный номер", "Employee number"],
+    "Тип занятости": ["Тип занятости", "Employment type"],
+    "Номер трудового договора": ["Номер трудового договора", "Employment contract number"],
+    "Дата договора": ["Дата договора", "Contract date"],
+    "Срок договора до": ["Срок договора до", "Contract end date"],
+    "Испытательный срок до": ["Испытательный срок до", "Probation end date"],
+    "Место работы": ["Место работы", "Workplace"],
+    "Добавить вид отпуска": ["Добавить вид отпуска", "Add vacation type"],
+    "Редактировать вид отпуска": ["Редактировать вид отпуска", "Edit vacation type"],
+    "Предприятие": ["Предприятие", "Enterprise"],
+    "Выберите предприятие": ["Выберите предприятие", "Select enterprise"],
+    "Название": ["Название", "Name"],
+    "Оплачиваемый по умолчанию": ["Оплачиваемый по умолчанию", "Paid by default"],
+    "Активен": ["Активен", "Active"],
+  }
+
+  const label = labels[value]
+  return label ? appText(label[0], label[1]) : value
 }
 
 async function loadRelationRecords(

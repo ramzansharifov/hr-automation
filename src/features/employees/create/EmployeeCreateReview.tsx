@@ -88,35 +88,35 @@ export function EmployeeCreateReview({
       <EmployeeInfoSection
         title={t("employeesDetails.sections.company")}
         items={[
-          { label: "Предприятие", value: valueOrEmpty(enterpriseName, t) },
-          { label: "Отдел", value: valueOrEmpty(departmentName, t) },
-          { label: "Должность", value: valueOrEmpty(positionName, t) },
+          { label: t("forms.fields.enterpriseId"), value: valueOrEmpty(enterpriseName, t) },
+          { label: t("forms.fields.departmentId"), value: valueOrEmpty(departmentName, t) },
+          { label: t("forms.fields.positionId"), value: valueOrEmpty(positionName, t) },
           {
-            label: "Дата приёма",
+            label: t("forms.fields.hireDate"),
             value: formatDate(values.hire_date, locale),
           },
           {
-            label: "Оклад",
+            label: t("forms.fields.salary"),
             value: new Intl.NumberFormat(locale).format(Number(values.salary || 0)),
           },
           {
-            label: "Табельный номер",
+            label: t("forms.fields.employeeNumber", { defaultValue: locale.startsWith("en") ? "Employee number" : "Табельный номер" }),
             value: valueOrEmpty(values.employee_number, t),
           },
           {
-            label: "Тип занятости",
-            value: employmentTypeLabel(values.employment_type),
+            label: t("forms.fields.employmentType", { defaultValue: locale.startsWith("en") ? "Employment type" : "Тип занятости" }),
+            value: employmentTypeLabel(values.employment_type, locale),
           },
           {
-            label: "Номер трудового договора",
+            label: t("forms.fields.contractNumber", { defaultValue: locale.startsWith("en") ? "Employment contract number" : "Номер трудового договора" }),
             value: valueOrEmpty(values.contract_number, t),
           },
           {
-            label: "Дата договора",
+            label: t("forms.fields.contractDate", { defaultValue: locale.startsWith("en") ? "Contract date" : "Дата договора" }),
             value: formatDate(values.contract_date, locale),
           },
           {
-            label: "Срок договора до",
+            label: t("forms.fields.contractEndDate", { defaultValue: locale.startsWith("en") ? "Contract end date" : "Срок договора до" }),
             value: formatDate(values.contract_end_date, locale),
           },
         ]}
@@ -129,12 +129,13 @@ function valueOrEmpty(value: string, t: TFunction): string {
   return value.trim() || t("employeesDetails.emptyValue");
 }
 
-function employmentTypeLabel(value: string): string {
-  const labels: Record<string, string> = {
-    full_time: "Полная занятость",
-    part_time: "Частичная занятость",
-    temporary: "Временная работа",
-    internship: "Стажировка",
+function employmentTypeLabel(value: string, locale: string): string {
+  const labels: Record<string, [string, string]> = {
+    full_time: ["Полная занятость", "Full-time"],
+    part_time: ["Частичная занятость", "Part-time"],
+    temporary: ["Временная работа", "Temporary"],
+    internship: ["Стажировка", "Internship"],
   };
-  return labels[value] ?? (value || "—");
+  const label = labels[value];
+  return label ? (locale.startsWith("en") ? label[1] : label[0]) : value || "—";
 }

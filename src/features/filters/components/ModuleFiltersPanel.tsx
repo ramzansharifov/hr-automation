@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
+import { useAppText } from "../../../shared/i18n";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import {
   ActionButton,
@@ -43,41 +44,38 @@ import {
 
 type FilterModule = "employees" | "enterprises" | "vacancies" | "candidates";
 
-const moduleTabs: Array<{
-  id: FilterModule;
-  label: string;
-  icon: typeof FiUsers;
-}> = [
-  { id: "employees", label: "Сотрудники", icon: FiUsers },
-  { id: "enterprises", label: "Предприятия", icon: FiLayers },
-  { id: "vacancies", label: "Вакансии", icon: FiBriefcase },
-  { id: "candidates", label: "Кандидаты", icon: FiClipboard },
-];
-
-const vacancyStatusOptions: SelectOption[] = [
-  { value: "open", label: "Открыта" },
-  { value: "draft", label: "Черновик" },
-  { value: "paused", label: "Приостановлена" },
-  { value: "closed", label: "Закрыта" },
-];
-
-const employmentTypeOptions: SelectOption[] = [
-  { value: "full_time", label: "Полная занятость" },
-  { value: "part_time", label: "Частичная занятость" },
-  { value: "temporary", label: "Временная работа" },
-  { value: "internship", label: "Стажировка" },
-];
-
-const candidateStatusOptions: SelectOption[] = [
-  { value: "new", label: "Новый" },
-  { value: "screening", label: "Первичный отбор" },
-  { value: "interview", label: "Собеседование" },
-  { value: "offer", label: "Оффер" },
-  { value: "hired", label: "Принят на работу" },
-  { value: "rejected", label: "Отклонён" },
-];
-
 export function ModuleFiltersPanel(): JSX.Element {
+  const text = useAppText();
+  const moduleTabs: Array<{
+    id: FilterModule;
+    label: string;
+    icon: typeof FiUsers;
+  }> = [
+    { id: "employees", label: text("Сотрудники", "Employees"), icon: FiUsers },
+    { id: "enterprises", label: text("Предприятия", "Enterprises"), icon: FiLayers },
+    { id: "vacancies", label: text("Вакансии", "Vacancies"), icon: FiBriefcase },
+    { id: "candidates", label: text("Кандидаты", "Candidates"), icon: FiClipboard },
+  ];
+  const vacancyStatusOptions: SelectOption[] = [
+    { value: "open", label: text("Открыта", "Open") },
+    { value: "draft", label: text("Черновик", "Draft") },
+    { value: "paused", label: text("Приостановлена", "Paused") },
+    { value: "closed", label: text("Закрыта", "Closed") },
+  ];
+  const employmentTypeOptions: SelectOption[] = [
+    { value: "full_time", label: text("Полная занятость", "Full-time") },
+    { value: "part_time", label: text("Частичная занятость", "Part-time") },
+    { value: "temporary", label: text("Временная работа", "Temporary") },
+    { value: "internship", label: text("Стажировка", "Internship") },
+  ];
+  const candidateStatusOptions: SelectOption[] = [
+    { value: "new", label: text("Новый", "New") },
+    { value: "screening", label: text("Первичный отбор", "Screening") },
+    { value: "interview", label: text("Собеседование", "Interview") },
+    { value: "offer", label: text("Оффер", "Offer") },
+    { value: "hired", label: text("Принят на работу", "Hired") },
+    { value: "rejected", label: text("Отклонён", "Rejected") },
+  ];
   const [activeModule, setActiveModule] = useState<FilterModule>("employees");
   const [employeeFilters, setEmployeeFilters] = useState<EmployeeFilterValues>(
     getStoredEmployeeFilterValues,
@@ -115,12 +113,12 @@ export function ModuleFiltersPanel(): JSX.Element {
         );
       })
       .catch(() => {
-        if (isActive) toast.error("Не удалось загрузить список вакансий");
+        if (isActive) toast.error(text("Не удалось загрузить список вакансий", "Failed to load vacancies"));
       });
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [text]);
 
   const activeCounts = useMemo(
     () => ({
@@ -145,7 +143,7 @@ export function ModuleFiltersPanel(): JSX.Element {
       setStoredCandidateFilterValues(candidateFilters);
     }
 
-    toast.success("Фильтры применены");
+    toast.success(text("Фильтры применены", "Filters applied"));
   }
 
   function clearFilters(): void {
@@ -163,7 +161,7 @@ export function ModuleFiltersPanel(): JSX.Element {
       clearStoredCandidateFilterValues();
     }
 
-    toast.success("Фильтры очищены");
+    toast.success(text("Фильтры очищены", "Filters cleared"));
   }
 
   return (
@@ -208,28 +206,28 @@ export function ModuleFiltersPanel(): JSX.Element {
         {activeModule === "employees" && (
           <FilterGrid>
             <FilterInput
-              label="Фамилия"
+              label={text("Фамилия", "Last name")}
               onChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, last_name: value }))
               }
               value={employeeFilters.last_name}
             />
             <FilterInput
-              label="Имя"
+              label={text("Имя", "First name")}
               onChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, first_name: value }))
               }
               value={employeeFilters.first_name}
             />
             <FilterInput
-              label="Отчество"
+              label={text("Отчество", "Middle name")}
               onChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, middle_name: value }))
               }
               value={employeeFilters.middle_name}
             />
             <FilterInput
-              label="Телефон"
+              label={text("Телефон", "Phone")}
               onChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, phone: value }))
               }
@@ -244,7 +242,7 @@ export function ModuleFiltersPanel(): JSX.Element {
             />
             <FilterSelect
               disabled={isRelationsLoading}
-              label="Отдел"
+              label={text("Отдел", "Department")}
               onValueChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, department_id: value }))
               }
@@ -253,7 +251,7 @@ export function ModuleFiltersPanel(): JSX.Element {
             />
             <FilterSelect
               disabled={isRelationsLoading}
-              label="Должность"
+              label={text("Должность", "Position")}
               onValueChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, position_id: value }))
               }
@@ -261,7 +259,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={employeeFilters.position_id}
             />
             <FilterSelect
-              label="Статус"
+              label={text("Статус", "Status")}
               onValueChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, status: value }))
               }
@@ -269,7 +267,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={employeeFilters.status}
             />
             <FilterSelect
-              label="Пол"
+              label={text("Пол", "Gender")}
               onValueChange={(value) =>
                 setEmployeeFilters((current) => ({ ...current, gender: value }))
               }
@@ -282,21 +280,21 @@ export function ModuleFiltersPanel(): JSX.Element {
         {activeModule === "enterprises" && (
           <FilterGrid>
             <FilterInput
-              label="Название"
+              label={text("Название", "Name")}
               onChange={(value) =>
                 setEnterpriseFilters((current) => ({ ...current, name: value }))
               }
               value={enterpriseFilters.name}
             />
             <FilterInput
-              label="Юридическое наименование"
+              label={text("Юридическое наименование", "Legal name")}
               onChange={(value) =>
                 setEnterpriseFilters((current) => ({ ...current, legal_name: value }))
               }
               value={enterpriseFilters.legal_name}
             />
             <FilterInput
-              label="Телефон"
+              label={text("Телефон", "Phone")}
               onChange={(value) =>
                 setEnterpriseFilters((current) => ({ ...current, phone: value }))
               }
@@ -315,7 +313,7 @@ export function ModuleFiltersPanel(): JSX.Element {
         {activeModule === "vacancies" && (
           <FilterGrid>
             <FilterSelect
-              label="Статус"
+              label={text("Статус", "Status")}
               onValueChange={(value) =>
                 setVacancyFilters((current) => ({ ...current, status: value }))
               }
@@ -323,7 +321,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={vacancyFilters.status}
             />
             <FilterSelect
-              label="Формат занятости"
+              label={text("Формат занятости", "Employment type")}
               onValueChange={(value) =>
                 setVacancyFilters((current) => ({
                   ...current,
@@ -334,7 +332,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={vacancyFilters.employment_type}
             />
             <FilterInput
-              label="Предприятие"
+              label={text("Предприятие", "Enterprise")}
               onChange={(value) =>
                 setVacancyFilters((current) => ({
                   ...current,
@@ -344,7 +342,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={vacancyFilters.enterprise_name}
             />
             <FilterInput
-              label="Отдел"
+              label={text("Отдел", "Department")}
               onChange={(value) =>
                 setVacancyFilters((current) => ({
                   ...current,
@@ -354,7 +352,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={vacancyFilters.department_name}
             />
             <FilterInput
-              label="Должность"
+              label={text("Должность", "Position")}
               onChange={(value) =>
                 setVacancyFilters((current) => ({
                   ...current,
@@ -369,7 +367,7 @@ export function ModuleFiltersPanel(): JSX.Element {
         {activeModule === "candidates" && (
           <FilterGrid>
             <FilterSelect
-              label="Статус"
+              label={text("Статус", "Status")}
               onValueChange={(value) =>
                 setCandidateFilters((current) => ({ ...current, status: value }))
               }
@@ -377,7 +375,7 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={candidateFilters.status}
             />
             <FilterSelect
-              label="Вакансия"
+              label={text("Вакансия", "Vacancy")}
               onValueChange={(value) =>
                 setCandidateFilters((current) => ({ ...current, vacancy_id: value }))
               }
@@ -385,14 +383,14 @@ export function ModuleFiltersPanel(): JSX.Element {
               value={candidateFilters.vacancy_id}
             />
             <FilterInput
-              label="Источник"
+              label={text("Источник", "Source")}
               onChange={(value) =>
                 setCandidateFilters((current) => ({ ...current, source: value }))
               }
               value={candidateFilters.source}
             />
             <FilterInput
-              label="Минимальное соответствие, %"
+              label={text("Минимальное соответствие, %", "Minimum match, %")}
               max="100"
               min="0"
               onChange={(value) =>
@@ -406,10 +404,10 @@ export function ModuleFiltersPanel(): JSX.Element {
 
         <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
           <ActionButton action="reset" onClick={clearFilters} type="button">
-            Очистить
+            {text("Очистить", "Clear")}
           </ActionButton>
           <ActionButton action="search" type="submit">
-            Применить
+            {text("Применить", "Apply")}
           </ActionButton>
         </div>
       </form>
@@ -465,6 +463,7 @@ function FilterSelect({
   options: SelectOption[];
   value: string;
 }): JSX.Element {
+  const text = useAppText();
   return (
     <label className="grid gap-2">
       <span className="app-text text-sm font-bold">{label}</span>
@@ -472,10 +471,10 @@ function FilterSelect({
         allowEmpty
         ariaLabel={label}
         disabled={disabled}
-        emptyOptionLabel="Все"
+        emptyOptionLabel={text("Все", "All")}
         onValueChange={onValueChange}
         options={options}
-        placeholder="Все"
+        placeholder={text("Все", "All")}
         value={value}
       />
     </label>

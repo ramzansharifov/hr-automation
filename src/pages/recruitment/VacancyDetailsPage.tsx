@@ -14,6 +14,7 @@ import {
   FormField,
   RecruitmentBadge,
 } from "../../features/recruitment/RecruitmentUi";
+import { appText, useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord, VacancyProfile } from "../../shared/types/hr";
 import {
@@ -44,6 +45,7 @@ interface CandidateDraft {
 }
 
 export function VacancyDetailsPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const { id } = useParams();
   const vacancyId = Number(id);
@@ -67,7 +69,7 @@ export function VacancyDetailsPage(): JSX.Element {
     setIsLoading(true);
     try {
       const vacancyProfile = await hrApiClient.getVacancy(vacancyId);
-      if (!vacancyProfile) throw new Error("Вакансия не найдена");
+      if (!vacancyProfile) throw new Error(text("Вакансия не найдена", "Vacancy not found"));
       setProfile(vacancyProfile);
 
       if (canViewCandidates) {
@@ -81,12 +83,12 @@ export function VacancyDetailsPage(): JSX.Element {
         setCandidates([]);
       }
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить вакансию"));
+      toast.error(errorMessage(error, text("Не удалось загрузить вакансию", "Failed to load vacancy")));
       navigate("/vacancies", { replace: true });
     } finally {
       setIsLoading(false);
     }
-  }, [canViewCandidates, navigate, vacancyId]);
+  }, [canViewCandidates, navigate, text, vacancyId]);
 
   useEffect(() => {
     void loadData();
@@ -123,7 +125,7 @@ export function VacancyDetailsPage(): JSX.Element {
       profile.vacancy.status !== "open" ||
       Number(profile.vacancy.is_archived ?? 0) === 1
     ) {
-      toast.info("Добавлять кандидатов можно только в открытую вакансию");
+      toast.info(text("Добавлять кандидатов можно только в открытую вакансию", "Candidates can only be added to an open vacancy"));
       return;
     }
     setCandidateDraft({
@@ -161,21 +163,21 @@ export function VacancyDetailsPage(): JSX.Element {
         })),
       });
       setCandidateDraft(null);
-      toast.success("Кандидат добавлен к вакансии на этапе «Новый»");
+      toast.success(text("Кандидат добавлен к вакансии на этапе «Новый»", "Candidate added to the vacancy at the New stage"));
       navigate("/candidates/" + String(saved.candidate.id));
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось добавить кандидата"));
+      toast.error(errorMessage(error, text("Не удалось добавить кандидата", "Failed to add candidate")));
     } finally {
       setIsSaving(false);
     }
   }
 
   if (isLoading || !profile) {
-    return <LoadingState label="Загрузка вакансии..." />;
+    return <LoadingState label={text("Загрузка вакансии...", "Loading vacancy...")} />;
   }
 
   const vacancy = profile.vacancy;
-  const title = String(vacancy.position_name ?? "Вакансия");
+  const title = String(vacancy.position_name ?? text("Вакансия", "Vacancy"));
 
   return (
     <div className="space-y-6">
@@ -187,7 +189,7 @@ export function VacancyDetailsPage(): JSX.Element {
               onClick={() => navigate("/vacancies")}
               type="button"
             >
-              К списку
+              {text("К списку", "Back to list")}
             </ActionButton>
             {canEditVacancy && (
               <ActionButton
@@ -195,7 +197,7 @@ export function VacancyDetailsPage(): JSX.Element {
                 onClick={() => navigate(`/vacancies/${vacancyId}/edit`)}
                 type="button"
               >
-                Редактировать
+                {text("Редактировать", "Edit")}
               </ActionButton>
             )}
           </>
@@ -203,9 +205,9 @@ export function VacancyDetailsPage(): JSX.Element {
         description={
           [vacancy.enterprise_name, vacancy.department_name]
             .filter(Boolean)
-            .join(" · ") || "Организационная структура не указана"
+            .join(" · ") || text("Организационная структура не указана", "Organizational structure not specified")
         }
-        eyebrow="Вакансия"
+        eyebrow={text("Вакансия", "Vacancy")}
         icon={<FiBriefcase />}
         meta={
           <div className="flex flex-wrap gap-2">
@@ -216,7 +218,7 @@ export function VacancyDetailsPage(): JSX.Element {
               {employmentTypeLabel(String(vacancy.employment_type))}
             </RecruitmentBadge>
             <RecruitmentBadge tone="accent">
-              {String(vacancy.openings_count ?? 1)} мест
+              {String(vacancy.openings_count ?? 1)} {text("мест", "openings")}
             </RecruitmentBadge>
           </div>
         }
@@ -225,20 +227,20 @@ export function VacancyDetailsPage(): JSX.Element {
 
       {canViewCandidates && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard icon={<FiUsers />} label="Кандидатов" value={String(candidates.length)} />
-          <MetricCard icon={<FiAward />} label="Лучшее соответствие" value={`${Math.round(bestMatch)}%`} />
-          <MetricCard icon={<FiBriefcase />} label="На этапе оффера" value={String(offerCount)} />
-          <MetricCard icon={<FiUserPlus />} label="Принято" value={String(hiredCount)} />
+          <MetricCard icon={<FiUsers />} label={text("Кандидатов", "Candidates")} value={String(candidates.length)} />
+          <MetricCard icon={<FiAward />} label={text("Лучшее соответствие", "Best match")} value={`${Math.round(bestMatch)}%`} />
+          <MetricCard icon={<FiBriefcase />} label={text("На этапе оффера", "At offer stage")} value={String(offerCount)} />
+          <MetricCard icon={<FiUserPlus />} label={text("Принято", "Hired")} value={String(hiredCount)} />
         </div>
       )}
 
       <section className="app-surface app-border rounded-[28px] border p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.14em]">Профиль вакансии</p>
-            <h2 className="app-text mt-1 text-xl font-black">Требования по навыкам</h2>
+            <p className="app-accent-text text-xs font-black uppercase tracking-[0.14em]">{text("Профиль вакансии", "Vacancy profile")}</p>
+            <h2 className="app-text mt-1 text-xl font-black">{text("Требования по навыкам", "Skill requirements")}</h2>
           </div>
-          <p className="app-muted text-sm">Уровень показывает ожидаемое владение навыком по шкале 1–10.</p>
+          <p className="app-muted text-sm">{text("Уровень показывает ожидаемое владение навыком по шкале 1–10.", "The level shows expected proficiency on a 1–10 scale.")}</p>
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <SkillGroup title="Hard skills" skills={hardSkills} />
@@ -250,17 +252,17 @@ export function VacancyDetailsPage(): JSX.Element {
         <section className="app-surface app-border overflow-hidden rounded-[28px] border">
           <div className="app-border-soft flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="app-accent-text text-xs font-black uppercase tracking-[0.14em]">Подбор</p>
-              <h2 className="app-text mt-1 text-2xl font-black">Кандидаты на вакансию</h2>
+              <p className="app-accent-text text-xs font-black uppercase tracking-[0.14em]">{text("Подбор", "Recruitment")}</p>
+              <h2 className="app-text mt-1 text-2xl font-black">{text("Кандидаты на вакансию", "Candidates for this vacancy")}</h2>
               <p className="app-muted mt-1 text-sm">
-                Список автоматически отсортирован от наиболее подходящего кандидата к наименее подходящему.
+                {text("Список автоматически отсортирован от наиболее подходящего кандидата к наименее подходящему.", "The list is automatically sorted from the best-matching candidate to the lowest match.")}
               </p>
             </div>
             {canCreateCandidate &&
               vacancy.status === "open" &&
               Number(vacancy.is_archived ?? 0) !== 1 && (
               <ActionButton action="create" onClick={openCandidateCreate} type="button">
-                Добавить кандидата
+                {text("Добавить кандидата", "Add candidate")}
               </ActionButton>
             )}
           </div>
@@ -268,10 +270,10 @@ export function VacancyDetailsPage(): JSX.Element {
           {rankedCandidates.length === 0 ? (
             <div className="py-16">
               <EmptyState
-                title="Кандидатов пока нет"
+                title={text("Кандидатов пока нет", "No candidates yet")}
                 description={
                   canCreateCandidate
-                    ? "Добавьте первого кандидата и оцените его навыки относительно требований этой вакансии."
+                    ? text("Добавьте первого кандидата и оцените его навыки относительно требований этой вакансии.", "Add the first candidate and score their skills against the vacancy requirements.")
                     : "К этой вакансии пока не добавлены кандидаты."
                 }
               />
@@ -295,7 +297,7 @@ export function VacancyDetailsPage(): JSX.Element {
 
       {candidateDraft && canCreateCandidate && (
         <Dialog
-          description={`Кандидат будет сразу привязан к вакансии «${title}». Оцените навыки по шкале 0–10.`}
+          description={text(`Кандидат будет сразу привязан к вакансии «${title}». Оцените навыки по шкале 0–10.`, `The candidate will be linked directly to vacancy “${title}”. Score skills on a 0–10 scale.`)}
           footer={
             <FormActions
               loading={isSaving}
@@ -311,18 +313,18 @@ export function VacancyDetailsPage(): JSX.Element {
                 !candidateDraft.lastName.trim() ||
                 !candidateDraft.firstName.trim()
               }
-              submitLabel="Добавить кандидата"
+              submitLabel={text("Добавить кандидата", "Add candidate")}
               submitType="button"
             />
           }
           onOpenChange={(open) => !open && setCandidateDraft(null)}
           open
           size="lg"
-          title="Новый кандидат"
+          title={text("Новый кандидат", "New candidate")}
         >
           <form className="grid gap-5" id="vacancy-candidate-form" onSubmit={saveCandidate}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Фамилия">
+              <FormField label={text("Фамилия", "Last name")}>
                 <Input
                   autoFocus
                   onChange={(event) => setCandidateDraft((current) => current ? { ...current, lastName: event.target.value } : current)}
@@ -330,27 +332,27 @@ export function VacancyDetailsPage(): JSX.Element {
                   value={candidateDraft.lastName}
                 />
               </FormField>
-              <FormField label="Имя">
+              <FormField label={text("Имя", "First name")}>
                 <Input
                   onChange={(event) => setCandidateDraft((current) => current ? { ...current, firstName: event.target.value } : current)}
                   required
                   value={candidateDraft.firstName}
                 />
               </FormField>
-              <FormField label="Отчество">
+              <FormField label={text("Отчество", "Middle name")}>
                 <Input
                   onChange={(event) => setCandidateDraft((current) => current ? { ...current, middleName: event.target.value } : current)}
                   value={candidateDraft.middleName}
                 />
               </FormField>
-              <FormField label="Источник">
+              <FormField label={text("Источник", "Source")}>
                 <Input
                   onChange={(event) => setCandidateDraft((current) => current ? { ...current, source: event.target.value } : current)}
-                  placeholder="Сайт, рекомендация, соцсеть"
+                  placeholder={text("Сайт, рекомендация, соцсеть", "Website, referral, social network")}
                   value={candidateDraft.source}
                 />
               </FormField>
-              <FormField label="Телефон">
+              <FormField label={text("Телефон", "Phone")}>
                 <Input
                   onChange={(event) => setCandidateDraft((current) => current ? { ...current, phone: event.target.value } : current)}
                   type="tel"
@@ -382,7 +384,7 @@ export function VacancyDetailsPage(): JSX.Element {
                       <p className="app-muted mt-1 text-xs">Требуется: {skill.requiredLevel}/10</p>
                     </div>
                     <Input
-                      aria-label={`Оценка навыка ${skill.name}`}
+                      aria-label={text(`Оценка навыка ${skill.name}`, `Skill score ${skill.name}`)}
                       max="10"
                       min="0"
                       onChange={(event) => {
@@ -424,11 +426,12 @@ function MetricCard({ icon, label, value }: { icon: JSX.Element; label: string; 
 }
 
 function SkillGroup({ title, skills }: { title: string; skills: HrRecord[] }): JSX.Element {
+  const text = useAppText();
   return (
     <div className="app-surface-muted app-border rounded-2xl border p-4">
       <p className="app-text text-sm font-black">{title}</p>
       {skills.length === 0 ? (
-        <p className="app-muted mt-3 text-sm">Не указаны</p>
+        <p className="app-muted mt-3 text-sm">{text("Не указаны", "Not specified")}</p>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
           {skills.map((skill) => (
@@ -442,24 +445,26 @@ function SkillGroup({ title, skills }: { title: string; skills: HrRecord[] }): J
   );
 }
 
-const vacancyStatusOptions = [
-  { value: "open", label: "Открыта" },
-  { value: "draft", label: "Черновик" },
-  { value: "paused", label: "Приостановлена" },
-  { value: "closed", label: "Закрыта" },
-];
-const employmentTypeOptions = [
-  { value: "full_time", label: "Полная занятость" },
-  { value: "part_time", label: "Частичная занятость" },
-  { value: "temporary", label: "Временная работа" },
-  { value: "internship", label: "Стажировка" },
-];
-
 function vacancyStatusLabel(value: string): string {
-  return vacancyStatusOptions.find((item) => item.value === value)?.label ?? value;
+  const labels: Record<string, [string, string]> = {
+    open: ["Открыта", "Open"],
+    draft: ["Черновик", "Draft"],
+    paused: ["Приостановлена", "Paused"],
+    closed: ["Закрыта", "Closed"],
+  };
+  const label = labels[value];
+  return label ? appText(label[0], label[1]) : value;
 }
+
 function employmentTypeLabel(value: string): string {
-  return employmentTypeOptions.find((item) => item.value === value)?.label ?? value;
+  const labels: Record<string, [string, string]> = {
+    full_time: ["Полная занятость", "Full-time"],
+    part_time: ["Частичная занятость", "Part-time"],
+    temporary: ["Временная работа", "Temporary"],
+    internship: ["Стажировка", "Internship"],
+  };
+  const label = labels[value];
+  return label ? appText(label[0], label[1]) : value;
 }
 function errorMessage(error: unknown, fallback: string): string {
   const parts = error instanceof Error ? error.message.split("Error: ") : [];

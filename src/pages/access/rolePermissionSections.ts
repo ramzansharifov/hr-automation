@@ -243,6 +243,131 @@ export const rolePermissionSections: RolePermissionSectionDefinition[] = [
   },
 ];
 
+type RolePermissionTextFn = (ru: string, en: string) => string;
+
+const sectionEnglish: Record<string, { title: string; description: string }> = {
+  dashboard: {
+    title: "Dashboard",
+    description: "HR summary dashboard and the built-in Needs attention queue.",
+  },
+  directory: {
+    title: "My team",
+    description: "Safe enterprise directory with structure, leaders, and colleagues' work contacts.",
+  },
+  employees: {
+    title: "Employees",
+    description: "Core employee profile and dedicated HR actions. Employee deletion is replaced by controlled termination.",
+  },
+  "employee-education": {
+    title: "Employee education",
+    description: "Independent CRUD permissions for education records in the employee profile.",
+  },
+  "employee-experience": {
+    title: "Employee experience",
+    description: "Independent CRUD permissions for previous employment and professional experience.",
+  },
+  "employment-history": {
+    title: "Employment history",
+    description: "View the system employment-event log. Manual creation, editing, and deletion are prohibited.",
+  },
+  documents: {
+    title: "Employee documents",
+    description: "View, add, and controlled deletion of files in the employee Documents tab.",
+  },
+  enterprises: {
+    title: "Enterprises",
+    description: "Separate permissions for viewing, creating, editing, deleting, and assigning an enterprise director.",
+  },
+  departments: {
+    title: "Departments",
+    description: "Independent department CRUD and a separate permission for assigning a department leader.",
+  },
+  positions: {
+    title: "Positions",
+    description: "Independent position CRUD within accessible departments.",
+  },
+  vacations: {
+    title: "Vacations",
+    description: "Employee vacation planning and approval.",
+  },
+  vacancies: {
+    title: "Vacancies",
+    description: "Vacancies and recruitment requirements.",
+  },
+  candidates: {
+    title: "Candidates",
+    description: "Candidates, evaluations, statuses, and a separate permission to hire a candidate.",
+  },
+  analytics: {
+    title: "Analytics",
+    description: "View HR analytics within the effective data scope.",
+  },
+  filters: {
+    title: "Filters",
+    description: "Advanced registry filters.",
+  },
+  "data-exchange": {
+    title: "Import & export",
+    description: "Independent permissions for importing HR data and exporting accessible data.",
+  },
+  "vacation-types": {
+    title: "Vacation types",
+    description: "Administration of the vacation type directory.",
+  },
+  "document-types": {
+    title: "Document types",
+    description: "Administration of enterprise HR document types.",
+  },
+  users: {
+    title: "Users",
+    description: "Employee accounts and their assigned roles.",
+  },
+  roles: {
+    title: "Roles",
+    description: "Access roles and their permissions.",
+  },
+  audit: {
+    title: "Audit log",
+    description: "Global view of user action audit events.",
+  },
+  profile: {
+    title: "Profile",
+    description: "The employee's own profile.",
+  },
+  settings: {
+    title: "Settings",
+    description: "Personal interface settings and separate global system tools.",
+  },
+};
+
+export function rolePermissionSectionTitle(
+  section: RolePermissionSectionDefinition,
+  text: RolePermissionTextFn,
+): string {
+  return text(section.title, sectionEnglish[section.key]?.title ?? section.title);
+}
+
+export function rolePermissionSectionDescription(
+  section: RolePermissionSectionDefinition,
+  text: RolePermissionTextFn,
+): string {
+  return text(
+    section.description,
+    sectionEnglish[section.key]?.description ?? section.description,
+  );
+}
+
+export function rolePermissionGroupLabel(
+  group: RolePermissionSectionDefinition["group"],
+  text: RolePermissionTextFn,
+): string {
+  if (group === "Основное") return text("Основное", "Main");
+  if (group === "Администрирование") {
+    return text("Администрирование", "Administration");
+  }
+  return text("Профиль и настройки", "Profile & settings");
+}
+
 export {
   legacyPermissionCodes,
   permissionDependencies,

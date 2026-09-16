@@ -5,6 +5,7 @@ import type {
   AccessRoleSummary,
   AccessUserStatus,
 } from "../../shared/types/access";
+import { useAppText } from "../../shared/i18n";
 import {
   Dialog,
   FormActions,
@@ -14,10 +15,13 @@ import {
   Toggle,
 } from "../../shared/ui";
 import {
-  statusOptions,
   type EmployeeOption,
   type UserDraft,
 } from "./accessControlData";
+import {
+  accessRoleName,
+  accessUserStatusLabel,
+} from "./accessTranslations";
 
 export {
   emptyUserDraft,
@@ -49,6 +53,11 @@ export function UserDialog({
   open: boolean;
   roles: AccessRoleSummary[];
 }): JSX.Element {
+  const text = useAppText();
+  const localizedStatusOptions = [
+    { value: "active", label: text("Активен", "Active") },
+    { value: "blocked", label: text("Заблокирован", "Blocked") },
+  ];
   const selectedEmployee = employeeOptions.find(
     (employee) => employee.value === draft.employeeId,
   );
@@ -80,25 +89,25 @@ export function UserDialog({
 
   return (
     <Dialog
-      description="Учётная запись связывается с актуальным сотрудником из кадровой базы. Роли загружаются из текущего конструктора ролей."
+      description={text("Учётная запись связывается с актуальным сотрудником из кадровой базы. Роли загружаются из текущего конструктора ролей.", "The account is linked to a current employee in the HR database. Roles are loaded from the current role builder.")}
       onOpenChange={onOpenChange}
       open={open}
-      title={draft.id ? "Редактировать пользователя" : "Новый пользователь"}
+      title={draft.id ? text("Редактировать пользователя", "Edit user") : text("Новый пользователь", "New user")}
     >
       <div className="grid gap-4">
-        <Field label="Сотрудник">
+        <Field label={text("Сотрудник", "Employee")}>
           <SearchableSelect
-            ariaLabel="Выберите сотрудника"
-            noOptionsLabel="Подходящие сотрудники не найдены"
+            ariaLabel={text("Выберите сотрудника", "Select employee")}
+            noOptionsLabel={text("Подходящие сотрудники не найдены", "No matching employees found")}
             onValueChange={changeEmployee}
             options={employeeOptions}
-            placeholder="Выберите активного сотрудника"
-            searchPlaceholder="Поиск по ФИО, предприятию или отделу..."
+            placeholder={text("Выберите активного сотрудника", "Select an active employee")}
+            searchPlaceholder={text("Поиск по ФИО, предприятию или отделу...", "Search by name, enterprise, or department...")}
             value={draft.employeeId}
           />
         </Field>
         <p className="app-muted -mt-2 text-xs leading-5">
-          Показываются активные сотрудники без другой учётной записи. Список обновляется из кадрового реестра при открытии конструктора.
+          {text("Показываются активные сотрудники без другой учётной записи. Список обновляется из кадрового реестра при открытии конструктора.", "Active employees without another account are shown. The list is refreshed from the employee registry when the builder opens.")}
         </p>
         {selectedEmployee && (
           <div className="app-surface-muted app-border -mt-1 rounded-2xl border px-4 py-3">
@@ -106,13 +115,13 @@ export function UserDialog({
             <p className="app-muted mt-1 text-xs">
               {[selectedEmployee.enterpriseName, selectedEmployee.departmentName]
                 .filter(Boolean)
-                .join(" · ") || "Организационная структура не указана"}
+                .join(" · ") || text("Организационная структура не указана", "Organizational structure is not specified")}
             </p>
           </div>
         )}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Логин">
+          <Field label={text("Логин", "Username")}>
             <Input
               autoComplete="off"
               onChange={(event) =>
@@ -123,12 +132,12 @@ export function UserDialog({
             />
           </Field>
 
-          <Field label="Статус">
+          <Field label={text("Статус", "Status")}>
             <Select
               onValueChange={(status) =>
                 onChange({ ...draft, status: status as AccessUserStatus })
               }
-              options={statusOptions}
+              options={localizedStatusOptions}
               value={draft.status}
             />
           </Field>
@@ -136,7 +145,7 @@ export function UserDialog({
 
         <Field
           label={
-            draft.id ? "Новый пароль — необязательно" : "Временный пароль"
+            draft.id ? text("Новый пароль — необязательно", "New password — optional") : text("Временный пароль", "Temporary password")
           }
         >
           <Input
@@ -144,7 +153,7 @@ export function UserDialog({
             onChange={(event) =>
               onChange({ ...draft, password: event.target.value })
             }
-            placeholder="Минимум 8 символов, буква и цифра"
+            placeholder={text("Минимум 8 символов, буква и цифра", "At least 8 characters, including a letter and a number")}
             type="password"
             value={draft.password}
           />
@@ -153,14 +162,14 @@ export function UserDialog({
         <div className="app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4">
           <span className="min-w-0">
             <span className="app-text block text-sm font-black">
-              Потребовать смену пароля
+              {text("Потребовать смену пароля", "Require password change")}
             </span>
             <span className="app-muted mt-1 block text-xs leading-5">
-              Рекомендуется для всех временных паролей.
+              {text("Рекомендуется для всех временных паролей.", "Recommended for all temporary passwords.")}
             </span>
           </span>
           <Toggle
-            ariaLabel="Потребовать смену пароля"
+            ariaLabel={text("Потребовать смену пароля", "Require password change")}
             checked={draft.mustChangePassword}
             onCheckedChange={(mustChangePassword) =>
               onChange({ ...draft, mustChangePassword })
@@ -171,13 +180,13 @@ export function UserDialog({
         <div>
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="app-text text-sm font-black">Роли пользователя</p>
+              <p className="app-text text-sm font-black">{text("Роли пользователя", "User roles")}</p>
               <p className="app-muted mt-1 text-xs">
-                Данные берутся из актуального списка ролей приложения.
+                {text("Данные берутся из актуального списка ролей приложения.", "Roles are loaded from the current application role list.")}
               </p>
             </div>
             <span className="app-muted shrink-0 text-xs font-bold">
-              {roles.length} ролей
+              {text(`${roles.length} ролей`, `${roles.length} roles`)}
             </span>
           </div>
 
@@ -205,27 +214,30 @@ export function UserDialog({
 
               let description: string;
               if (isBuiltInSuperadmin) {
-                description = "Только для встроенной системной учётной записи";
+                description = text("Только для встроенной системной учётной записи", "Only available to the built-in system account");
               } else if (isLeadershipRole) {
                 description = checked
-                  ? "Назначена автоматически по оргструктуре"
-                  : "Назначается автоматически по оргструктуре";
+                  ? text("Назначена автоматически по оргструктуре", "Assigned automatically from the organization structure")
+                  : text("Назначается автоматически по оргструктуре", "Assigned automatically from the organization structure");
               } else if (isEnterpriseAdmin) {
                 description = !selectedEmployee?.enterpriseName
-                  ? "Доступна сотруднику, который уже относится к предприятию"
+                  ? text("Доступна сотруднику, который уже относится к предприятию", "Available to an employee already assigned to an enterprise")
                   : canToggle
-                    ? `Полное управление в пределах «${selectedEmployee.enterpriseName}»`
-                    : "Недоступна: роль содержит права выше ваших";
+                    ? text(`Полное управление в пределах «${selectedEmployee.enterpriseName}»`, `Full management within “${selectedEmployee.enterpriseName}”`)
+                    : text("Недоступна: роль содержит права выше ваших", "Unavailable: this role contains permissions beyond yours");
               } else if (isDepartmentAdmin) {
                 description = !selectedEmployee?.departmentName
-                  ? "Доступна сотруднику, который уже относится к отделу"
+                  ? text("Доступна сотруднику, который уже относится к отделу", "Available to an employee already assigned to a department")
                   : canToggle
-                    ? `Полное управление в пределах «${selectedEmployee.departmentName}»`
-                    : "Недоступна: роль содержит права выше ваших";
+                    ? text(`Полное управление в пределах «${selectedEmployee.departmentName}»`, `Full management within “${selectedEmployee.departmentName}”`)
+                    : text("Недоступна: роль содержит права выше ваших", "Unavailable: this role contains permissions beyond yours");
               } else if (!canToggle) {
-                description = "Недоступна: роль содержит права выше ваших";
+                description = text("Недоступна: роль содержит права выше ваших", "Unavailable: this role contains permissions beyond yours");
               } else {
-                description = `${role.permissionCodes.length} разрешений${role.isSystem ? " · системная роль" : ""}`;
+                description = text(
+                  `${role.permissionCodes.length} разрешений${role.isSystem ? " · системная роль" : ""}`,
+                  `${role.permissionCodes.length} permissions${role.isSystem ? " · system role" : ""}`,
+                );
               }
 
               return (
@@ -240,14 +252,14 @@ export function UserDialog({
                 >
                   <span className="min-w-0">
                     <span className="app-text block text-sm font-black">
-                      {role.name}
+                      {accessRoleName(role.systemKey, role.name, text)}
                     </span>
                     <span className="app-muted mt-1 block text-xs leading-5">
                       {description}
                     </span>
                   </span>
                   <Toggle
-                    ariaLabel={`Роль ${role.name}`}
+                    ariaLabel={text(`Роль ${role.name}`, `Role ${accessRoleName(role.systemKey, role.name, text)}`)}
                     checked={checked}
                     disabled={disabled}
                     onCheckedChange={(nextChecked) => {
@@ -269,12 +281,12 @@ export function UserDialog({
 
           {roles.length === 0 && (
             <div className="app-surface-muted app-muted mt-3 rounded-2xl p-5 text-center text-sm font-semibold">
-              В приложении пока нет доступных ролей.
+              {text("В приложении пока нет доступных ролей.", "There are no available roles in the application yet.")}
             </div>
           )}
 
           <p className="app-muted mt-3 text-xs leading-5">
-            Руководящие роли определяются фактическим назначением в оргструктуре. Роли администратора предприятия и администратора отдела назначаются вручную, а их область доступа автоматически следует за текущим предприятием или отделом сотрудника.
+            {text("Руководящие роли определяются фактическим назначением в оргструктуре. Роли администратора предприятия и администратора отдела назначаются вручную, а их область доступа автоматически следует за текущим предприятием или отделом сотрудника.", "Leadership roles are determined by actual organizational assignments. Enterprise and department administrator roles are assigned manually, and their data scope automatically follows the employee’s current enterprise or department.")}
           </p>
         </div>
 
@@ -283,7 +295,7 @@ export function UserDialog({
           loading={isSaving}
           onCancel={() => onOpenChange(false)}
           onSubmit={onSave}
-          submitLabel="Сохранить пользователя"
+          submitLabel={text("Сохранить пользователя", "Save user")}
           submitType="button"
         />
       </div>
@@ -320,12 +332,13 @@ export function StatusBadge({
 }: {
   status: AccessUserStatus;
 }): JSX.Element {
+  const text = useAppText();
   const active = status === "active";
-  const label = active ? "Активен" : "Заблокирован";
+  const label = accessUserStatusLabel(status, text);
 
   return (
     <span
-      aria-label={`Статус: ${label}`}
+      aria-label={text(`Статус: ${label}`, `Status: ${label}`)}
       className={[
         "app-status-badge",
         active ? "app-status-badge--active" : "app-status-badge--blocked",

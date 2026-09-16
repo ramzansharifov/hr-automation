@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "react-toastify";
 
+import { useAppText } from "../../../shared/i18n";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrFilterCondition, HrRecord } from "../../../shared/types/hr";
 import {
@@ -26,22 +27,21 @@ interface OperationalRegistryPanelProps {
   registry: OperationalRegistry;
 }
 
-const vacationStatusOptions: SelectOption[] = [
-  { value: "planned", label: "Запланирован" },
-  { value: "approved", label: "Одобрен" },
-  { value: "rejected", label: "Отклонён" },
-  { value: "completed", label: "Завершён" },
-];
-
-const paymentOptions: SelectOption[] = [
-  { value: "1", label: "Оплачиваемый" },
-  { value: "0", label: "Неоплачиваемый" },
-];
-
 export function OperationalRegistryPanel({
   employeeId = "",
   registry,
 }: OperationalRegistryPanelProps): JSX.Element {
+  const text = useAppText();
+  const vacationStatusOptions: SelectOption[] = [
+    { value: "planned", label: text("Запланирован", "Planned") },
+    { value: "approved", label: text("Одобрен", "Approved") },
+    { value: "rejected", label: text("Отклонён", "Rejected") },
+    { value: "completed", label: text("Завершён", "Completed") },
+  ];
+  const paymentOptions: SelectOption[] = [
+    { value: "1", label: text("Оплачиваемый", "Paid") },
+    { value: "0", label: text("Неоплачиваемый", "Unpaid") },
+  ];
   const initialFilters = useMemo(
     () => withEmployee(getStoredVacationFilterValues(), employeeId),
     [employeeId],
@@ -64,7 +64,7 @@ export function OperationalRegistryPanel({
         if (isActive) setEmployeeOptions(options);
       })
       .catch(() => {
-        if (isActive) toast.error("Не удалось загрузить список сотрудников");
+        if (isActive) toast.error(text("Не удалось загрузить список сотрудников", "Failed to load employees"));
       })
       .finally(() => {
         if (isActive) setIsEmployeesLoading(false);
@@ -73,29 +73,29 @@ export function OperationalRegistryPanel({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [text]);
 
   function applyFilters(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     setStoredVacationFilterValues(vacationFilters);
     setAppliedFilters(buildVacationHrFilters(vacationFilters));
-    toast.success("Реестр отпусков обновлён");
+    toast.success(text("Реестр отпусков обновлён", "Vacation registry updated"));
   }
 
   function clearFilters(): void {
     setVacationFilters(emptyVacationFilters);
     clearStoredVacationFilterValues();
     setAppliedFilters(undefined);
-    toast.success("Фильтры очищены");
+    toast.success(text("Фильтры очищены", "Filters cleared"));
   }
 
   return (
     <div className="space-y-6">
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <div className="app-border-soft border-b p-5 sm:p-7">
-          <h2 className="app-text text-xl font-black">Фильтры отпусков</h2>
+          <h2 className="app-text text-xl font-black">{text("Фильтры отпусков", "Vacation filters")}</h2>
           <p className="app-muted mt-2 text-sm font-medium">
-            Найдите отпуск по сотруднику, типу, статусу, признаку оплаты или точным датам.
+            {text("Найдите отпуск по сотруднику, типу, статусу, признаку оплаты или точным датам.", "Find vacations by employee, type, status, payment, or exact dates.")}
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export function OperationalRegistryPanel({
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             <FilterSelect
               disabled={isEmployeesLoading}
-              label="Сотрудник"
+              label={text("Сотрудник", "Employee")}
               onValueChange={(value) =>
                 setVacationFilters((current) => ({
                   ...current,
@@ -114,7 +114,7 @@ export function OperationalRegistryPanel({
               value={vacationFilters.employee_id}
             />
             <FilterInput
-              label="Тип отпуска"
+              label={text("Тип отпуска", "Vacation type")}
               onChange={(value) =>
                 setVacationFilters((current) => ({
                   ...current,
@@ -124,7 +124,7 @@ export function OperationalRegistryPanel({
               value={vacationFilters.vacation_type}
             />
             <FilterSelect
-              label="Статус"
+              label={text("Статус", "Status")}
               onValueChange={(value) =>
                 setVacationFilters((current) => ({
                   ...current,
@@ -135,7 +135,7 @@ export function OperationalRegistryPanel({
               value={vacationFilters.status}
             />
             <FilterSelect
-              label="Оплата"
+              label={text("Оплата", "Payment")}
               onValueChange={(value) =>
                 setVacationFilters((current) => ({
                   ...current,
@@ -146,7 +146,7 @@ export function OperationalRegistryPanel({
               value={vacationFilters.is_paid}
             />
             <FilterInput
-              label="Дата начала"
+              label={text("Дата начала", "Start date")}
               onChange={(value) =>
                 setVacationFilters((current) => ({
                   ...current,
@@ -157,7 +157,7 @@ export function OperationalRegistryPanel({
               value={vacationFilters.starts_at}
             />
             <FilterInput
-              label="Дата окончания"
+              label={text("Дата окончания", "End date")}
               onChange={(value) =>
                 setVacationFilters((current) => ({
                   ...current,
@@ -171,10 +171,10 @@ export function OperationalRegistryPanel({
 
           <div className="app-border-soft mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
             <ActionButton action="reset" onClick={clearFilters} type="button">
-              Очистить
+              {text("Очистить", "Clear")}
             </ActionButton>
             <ActionButton action="search" type="submit">
-              Показать реестр
+              {text("Показать реестр", "Show registry")}
             </ActionButton>
           </div>
         </form>
@@ -227,6 +227,7 @@ function FilterSelect({
   options: SelectOption[];
   value: string;
 }): JSX.Element {
+  const text = useAppText();
   return (
     <label className="grid gap-2">
       <span className="app-text text-sm font-bold">{label}</span>
@@ -234,10 +235,10 @@ function FilterSelect({
         allowEmpty
         ariaLabel={label}
         disabled={disabled}
-        emptyOptionLabel="Все"
+        emptyOptionLabel={text("Все", "All")}
         onValueChange={onValueChange}
         options={options}
-        placeholder="Все"
+        placeholder={text("Все", "All")}
         value={value}
       />
     </label>
@@ -276,6 +277,6 @@ async function loadAllEmployees(): Promise<SelectOption[]> {
       [employee.last_name, employee.first_name, employee.middle_name]
         .map((part) => String(part ?? "").trim())
         .filter(Boolean)
-        .join(" ") || `Сотрудник #${String(employee.id ?? "")}`,
+        .join(" ") || `Employee #${String(employee.id ?? "")}`,
   }));
 }

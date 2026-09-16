@@ -116,7 +116,7 @@ export function EmployeeOverviewCards({
         actionLabel={t("common.actions.edit")}
         icon={<FiUser />}
         onEdit={onEditPersonal}
-        title="Основное"
+        title={t("employeesDetails.sections.personal")}
       >
         <ProfileRow
           label={t("employeesDetails.card.employeeLabel")}
@@ -136,7 +136,7 @@ export function EmployeeOverviewCards({
         actionLabel={t("common.actions.edit")}
         icon={<FiPhone />}
         onEdit={onEditPersonal}
-        title="Контакты"
+        title={t("employeesDetails.sections.contacts")}
       >
         <ProfileRow
           label={t("forms.fields.phone")}
@@ -258,10 +258,10 @@ function composeAddress(employee: HrRecord, t: TFunction): string {
     getString(employee.address_city),
     getString(employee.address_street),
     getString(employee.address_house)
-      ? `дом ${getString(employee.address_house)}`
+      ? `${t("forms.fields.addressHouse")}: ${getString(employee.address_house)}`
       : "",
     getString(employee.address_apartment)
-      ? `кв. ${getString(employee.address_apartment)}`
+      ? `${t("forms.fields.addressApartment")}: ${getString(employee.address_apartment)}`
       : "",
   ].filter(Boolean);
   const detailedAddress = getString(employee.address);

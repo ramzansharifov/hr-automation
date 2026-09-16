@@ -54,7 +54,7 @@ export function EmployeeEducationPanel({
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [records, setRecords] = useState<HrRecord[]>([]);
   const [formValues, setFormValues] = useState<EducationFormValues>(educationDefaults);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -141,7 +141,7 @@ export function EmployeeEducationPanel({
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (editingId ? !canEdit : !canCreate) {
-      toast.error("Недостаточно прав для выполнения действия");
+      toast.error(t("common.errors.actionForbidden", { defaultValue: i18n.language.startsWith("en") ? "Insufficient permission to perform this action" : "Недостаточно прав для выполнения действия" }));
       return;
     }
     const validationError = validateEducation(formValues, t);
@@ -277,7 +277,7 @@ export function EmployeeExperiencePanel({
   employeeId,
   locale,
 }: EmployeeRelatedRecordsProps): JSX.Element {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [records, setRecords] = useState<HrRecord[]>([]);
   const [formValues, setFormValues] = useState<ExperienceFormValues>(experienceDefaults);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -353,7 +353,7 @@ export function EmployeeExperiencePanel({
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (editingId ? !canEdit : !canCreate) {
-      toast.error("Недостаточно прав для выполнения действия");
+      toast.error(t("common.errors.actionForbidden", { defaultValue: i18n.language.startsWith("en") ? "Insufficient permission to perform this action" : "Недостаточно прав для выполнения действия" }));
       return;
     }
     const validationError = validateExperience(formValues, t);

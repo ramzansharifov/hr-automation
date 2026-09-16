@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { TFunction } from "i18next";
 import { FiEye } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { appText } from "../../shared/i18n";
 import type { HrEntityKey, HrRecord } from "../../shared/types/hr";
 import {
   formatCellValue,
@@ -184,6 +185,30 @@ const hrEntityConfigDefinitions: Record<HrEntityKey, HrEntityPageConfigDefinitio
   },
 };
 
+function localizeConfigText(
+  value: string,
+  t: TFunction,
+  locale: string,
+): string {
+  if (value.includes(".")) return t(value);
+  const labels: Record<string, string> = {
+    "Категория": "Category",
+    "Руководитель": "Leader",
+    "Предприятие": "Enterprise",
+    "Отдел": "Department",
+    "Должность": "Position",
+    "Дата приёма": "Hire date",
+    "Виды отпусков": "Vacation types",
+    "Справочник доступных видов отпусков.": "Directory of available vacation types.",
+    "Добавить вид отпуска": "Add vacation type",
+    "Название": "Name",
+    "Оплачиваемый": "Paid",
+    "Активен": "Active",
+    "Согласовал": "Approved by",
+  };
+  return locale.startsWith("en") ? labels[value] ?? value : value;
+}
+
 function createColumnRender(
   column: HrEntityColumnDefinition,
   t: TFunction,
@@ -205,30 +230,34 @@ function createColumnRender(
     return (record) => formatDate(record[column.key], locale);
   }
   if (column.format === "yesNo") {
-    return (record) => Number(record[column.key]) === 1 ? "Да" : "Нет";
+    return (record) => Number(record[column.key]) === 1 ? t("common.answers.yes") : t("common.answers.no");
   }
   if (column.format === "status") {
     return (record) => {
       const value = String(record[column.key] ?? "");
-      const custom: Record<string, string> = {
-        terminated: "Уволен",
-        planned: "Запланирован",
-        approved: "Согласован",
-        rejected: "Отклонён",
-        completed: "Завершён",
+      const custom: Record<string, [string, string]> = {
+        terminated: ["Уволен", "Terminated"],
+        planned: ["Запланирован", "Planned"],
+        approved: ["Согласован", "Approved"],
+        rejected: ["Отклонён", "Rejected"],
+        completed: ["Завершён", "Completed"],
       };
-      return custom[value] ?? humanizeStatus(value, t);
+      const label = custom[value];
+      return label ? appText(label[0], label[1]) : humanizeStatus(value, t);
     };
   }
   return undefined;
 }
 
-function getOrganizationDetailsColumn(entity: HrEntityKey): HrEntityColumn | null {
+function getOrganizationDetailsColumn(
+  entity: HrEntityKey,
+  locale: string,
+): HrEntityColumn | null {
   if (entity !== "enterprises" && entity !== "departments") return null;
 
   return {
     key: "id",
-    label: "Просмотр",
+    label: locale.startsWith("en") ? "View" : "Просмотр",
     className: "w-[88px] text-center",
     render: (record) => {
       const recordId = Number(record.id);
@@ -240,7 +269,10 @@ function getOrganizationDetailsColumn(entity: HrEntityKey): HrEntityColumn | nul
         entity === "enterprises"
           ? `/enterprises/${recordId}`
           : `/enterprises/${enterpriseId}/departments/${recordId}`;
-      const label = entity === "enterprises" ? "Открыть предприятие" : "Открыть отдел";
+      const label =
+        entity === "enterprises"
+          ? locale.startsWith("en") ? "Open enterprise" : "Открыть предприятие"
+          : locale.startsWith("en") ? "Open department" : "Открыть отдел";
 
       return (
         <Link
@@ -265,18 +297,18 @@ export function getEntityConfig(
   const config = hrEntityConfigDefinitions[entity];
   const columns: HrEntityColumn[] = config.columns.map((column) => ({
     key: column.key,
-    label: t(column.labelKey),
+    label: localizeConfigText(column.labelKey, t, locale),
     className: column.className,
     render: createColumnRender(column, t, locale),
   }));
-  const organizationDetailsColumn = getOrganizationDetailsColumn(entity);
+  const organizationDetailsColumn = getOrganizationDetailsColumn(entity, locale);
   if (organizationDetailsColumn) columns.push(organizationDetailsColumn);
 
   return {
     entity: config.entity,
-    title: t(config.titleKey),
-    description: t(config.descriptionKey),
-    createLabel: t(config.createLabelKey),
+    title: localizeConfigText(config.titleKey, t, locale),
+    description: localizeConfigText(config.descriptionKey, t, locale),
+    createLabel: localizeConfigText(config.createLabelKey, t, locale),
     defaultOrderBy: config.defaultOrderBy,
     columns,
   };

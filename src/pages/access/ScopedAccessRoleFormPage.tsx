@@ -16,6 +16,7 @@ import {
   getPermissionRiskLevel,
   normalizePermissionDependencies,
 } from "../../shared/access/permissionRules";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessPermission,
@@ -34,8 +35,17 @@ import {
   Toggle,
 } from "../../shared/ui";
 import { getErrorMessage, groupPermissions } from "./accessControlData";
+import {
+  accessPermissionDescription,
+  accessPermissionName,
+} from "./accessTranslations";
+import {
+  rolePermissionSectionTitle,
+  rolePermissionSections,
+} from "./rolePermissionSections";
 
 export function ScopedAccessRoleFormPage(): JSX.Element {
+  const text = useAppText();
   const { session } = useAuth();
   const navigate = useNavigate();
   const params = useParams();
@@ -84,7 +94,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
           setBaseline(serializeDraft("", "", []));
         }
       } catch (error) {
-        toast.error(getErrorMessage(error, "Не удалось загрузить конструктор роли"));
+        toast.error(getErrorMessage(error, text("Не удалось загрузить конструктор роли", "Failed to load role builder")));
       } finally {
         if (active) setIsLoading(false);
       }
@@ -93,7 +103,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
     return () => {
       active = false;
     };
-  }, [isEditMode, roleId]);
+  }, [isEditMode, roleId, text]);
 
   const role = isEditMode
     ? roles.find((item) => item.id === roleId) ?? null
@@ -114,8 +124,8 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         items.filter((permission) => {
           if (!query) return true;
           return [
-            permission.name,
-            permission.description,
+            accessPermissionName(permission, text),
+            accessPermissionDescription(permission, text),
             permission.code,
             permission.module,
           ]
@@ -125,7 +135,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         }),
       ] as const)
       .filter(([, items]) => items.length > 0);
-  }, [permissions, search]);
+  }, [permissions, search, text]);
 
   const currentSnapshot = serializeDraft(name, description, permissionCodes);
   const isDirty = currentSnapshot !== baseline;
@@ -141,6 +151,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
     role,
     session.enterpriseName,
     session.departmentName,
+    text,
   );
 
   useEffect(() => {
@@ -210,23 +221,23 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         permissionCodes,
       };
       const saved = await hrApiClient.saveAccessRole(params);
-      toast.success(isEditMode ? "Роль обновлена" : "Роль создана");
+      toast.success(isEditMode ? text("Роль обновлена", "Role updated") : text("Роль создана", "Role created"));
       navigate(`/roles/${saved.id}`);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить роль"));
+      toast.error(getErrorMessage(error, text("Не удалось сохранить роль", "Failed to save role")));
     } finally {
       setIsSaving(false);
     }
   }
 
-  if (isLoading) return <LoadingState label="Загрузка конструктора роли..." />;
+  if (isLoading) return <LoadingState label={text("Загрузка конструктора роли...", "Loading role builder...")} />;
 
   if (isEditMode && (!role || !Number.isInteger(roleId) || Number(roleId) < 1)) {
     return (
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <EmptyState
-          description="Роль не существует или находится вне вашей области администрирования."
-          title="Роль недоступна"
+          description={text("Роль не существует или находится вне вашей области администрирования.", "The role does not exist or is outside your administration scope.")}
+          title={text("Роль недоступна", "Role unavailable")}
         />
       </section>
     );
@@ -236,8 +247,8 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
     return (
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <EmptyState
-          description="Системные роли защищены от изменения."
-          title="Системную роль нельзя редактировать"
+          description={text("Системные роли защищены от изменения.", "System roles are protected from modification.")}
+          title={text("Системную роль нельзя редактировать", "System role cannot be edited")}
         />
       </section>
     );
@@ -255,14 +266,14 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
               loading={isSaving}
               onClick={() => void saveRole()}
             >
-              Сохранить роль
+              {text("Сохранить роль", "Save role")}
             </ActionButton>
           </div>
         }
-        description="Разрешения этой роли будут действовать только внутри указанной организационной области. Область задаётся вашим уровнем администрирования и не выбирается вручную."
-        eyebrow="Локальный конструктор доступа"
+        description={text("Разрешения этой роли будут действовать только внутри указанной организационной области. Область задаётся вашим уровнем администрирования и не выбирается вручную.", "This role’s permissions apply only within the specified organization scope. The scope is defined by your administration level and cannot be selected manually.")}
+        eyebrow={text("Локальный конструктор доступа", "Scoped access builder")}
         icon={<FiShield />}
-        title={isEditMode ? `Редактирование · ${role?.name ?? "Роль"}` : "Новая роль"}
+        title={isEditMode ? text(`Редактирование · ${role?.name ?? "Роль"}`, `Edit · ${role?.name ?? "Role"}`) : text("Новая роль", "New role")}
       />
 
       <section className="app-surface app-border flex flex-col gap-4 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -271,12 +282,12 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
             {scope.type === "department" ? <FiBriefcase /> : <FiLayers />}
           </span>
           <div>
-            <p className="app-text text-sm font-black">Область действия роли</p>
+            <p className="app-text text-sm font-black">{text("Область действия роли", "Role scope")}</p>
             <p className="app-text-soft mt-1 text-sm font-semibold">{scope.label}</p>
           </div>
         </div>
         <span className="app-surface-muted app-border rounded-full border px-3 py-1.5 text-xs font-black">
-          Фиксированная область
+          {text("Фиксированная область", "Fixed scope")}
         </span>
       </section>
 
@@ -285,9 +296,9 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
           <div className="flex items-start gap-3">
             <FiLock className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <p className="font-black">Роль содержит недоступные вам разрешения</p>
+              <p className="font-black">{text("Роль содержит недоступные вам разрешения", "The role contains permissions unavailable to you")}</p>
               <p className="mt-1 text-sm leading-6 opacity-85">
-                Сохранение заблокировано, чтобы локальный администратор не мог перераспределить доступ выше собственного уровня.
+                {text("Сохранение заблокировано, чтобы локальный администратор не мог перераспределить доступ выше собственного уровня.", "Saving is blocked so a scoped administrator cannot redistribute access above their own level.")}
               </p>
             </div>
           </div>
@@ -298,21 +309,21 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         <div className="app-surface app-border rounded-[28px] border p-6">
           <div className="grid gap-5">
             <label className="grid gap-2">
-              <span className="app-text text-sm font-black">Название роли</span>
+              <span className="app-text text-sm font-black">{text("Название роли", "Role name")}</span>
               <Input
                 disabled={editorLocked}
                 maxLength={100}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Например, Кадровик предприятия"
+                placeholder={text("Например, Кадровик предприятия", "For example, Enterprise HR specialist")}
                 value={name}
               />
             </label>
             <label className="grid gap-2">
-              <span className="app-text text-sm font-black">Описание</span>
+              <span className="app-text text-sm font-black">{text("Описание", "Description")}</span>
               <Textarea
                 disabled={editorLocked}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="За что отвечает эта роль"
+                placeholder={text("За что отвечает эта роль", "What this role is responsible for")}
                 value={description}
               />
             </label>
@@ -320,16 +331,16 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         </div>
 
         <aside className="app-surface app-border rounded-[28px] border p-6">
-          <p className="app-text font-black">Итог доступа</p>
+          <p className="app-text font-black">{text("Итог доступа", "Access summary")}</p>
           <p className="app-muted mt-2 text-sm leading-6">
-            Выбрано разрешений: <span className="app-text font-black">{permissionCodes.length}</span>
+            {text("Выбрано разрешений:", "Selected permissions:")} <span className="app-text font-black">{permissionCodes.length}</span>
           </p>
           <p className="app-muted mt-3 text-xs leading-5">
-            Зависимые разрешения добавляются автоматически. В списке доступны только действия, которые можно безопасно делегировать в вашей области.
+            {text("Зависимые разрешения добавляются автоматически. В списке доступны только действия, которые можно безопасно делегировать в вашей области.", "Dependent permissions are added automatically. Only actions that can be safely delegated within your scope are available.")}
           </p>
           {isDirty && (
             <p className="mt-4 text-xs font-black text-amber-800 dark:text-amber-300">
-              Есть несохранённые изменения
+              {text("Есть несохранённые изменения", "There are unsaved changes")}
             </p>
           )}
         </aside>
@@ -339,10 +350,10 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         <div className="relative max-w-xl">
           <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
-            aria-label="Поиск разрешений"
+            aria-label={text("Поиск разрешений", "Search permissions")}
             className="pl-10"
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Поиск по действию, модулю или описанию"
+            placeholder={text("Поиск по действию, модулю или описанию", "Search by action, module, or description")}
             value={search}
           />
         </div>
@@ -353,9 +364,12 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
           <section className="app-surface app-border overflow-hidden rounded-[26px] border" key={module}>
             <header className="app-surface-muted app-border-soft flex items-center justify-between border-b px-5 py-4">
               <div>
-                <p className="app-text font-black">{module}</p>
+                <p className="app-text font-black">{permissionModuleTitle(module, items, text)}</p>
                 <p className="app-muted mt-1 text-xs">
-                  {items.filter((permission) => permissionCodes.includes(permission.code)).length} из {items.length} выбрано
+                  {text(
+                    `${items.filter((permission) => permissionCodes.includes(permission.code)).length} из ${items.length} выбрано`,
+                    `${items.filter((permission) => permissionCodes.includes(permission.code)).length} of ${items.length} selected`,
+                  )}
                 </p>
               </div>
             </header>
@@ -370,7 +384,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="app-text text-sm font-black">{permission.name}</p>
+                        <p className="app-text text-sm font-black">{accessPermissionName(permission, text)}</p>
                         {risk && (
                           <span
                             className={[
@@ -381,17 +395,17 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
                             ].join(" ")}
                           >
                             <FiAlertTriangle className="h-3 w-3" />
-                            {risk === "critical" ? "Критичное" : "Повышенное"}
+                            {risk === "critical" ? text("Критичное", "Critical") : text("Повышенное", "Elevated")}
                           </span>
                         )}
                       </div>
                       <p className="app-meta mt-1 text-xs font-medium leading-5">
-                        {permission.description}
+                        {accessPermissionDescription(permission, text)}
                       </p>
                       <p className="app-permission-code mt-1 font-mono">{permission.code}</p>
                     </div>
                     <Toggle
-                      ariaLabel={`Разрешение ${permission.name}`}
+                      ariaLabel={text(`Разрешение ${permission.name}`, `Permission ${accessPermissionName(permission, text)}`)}
                       checked={checked}
                       disabled={editorLocked}
                       onCheckedChange={(nextChecked) =>
@@ -409,39 +423,50 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
       {visibleGroups.length === 0 && (
         <section className="app-surface app-border overflow-hidden rounded-[26px] border">
           <EmptyState
-            description="Попробуйте изменить поисковый запрос."
-            title="Разрешения не найдены"
+            description={text("Попробуйте изменить поисковый запрос.", "Try changing the search query.")}
+            title={text("Разрешения не найдены", "No permissions found")}
           />
         </section>
       )}
 
       <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Добавить разрешение"
-        description="Это действие относится к критичным. Оно всё равно останется ограничено вашим предприятием или отделом."
+        cancelLabel={text("Отмена", "Cancel")}
+        confirmLabel={text("Добавить разрешение", "Add permission")}
+        description={text("Это действие относится к критичным. Оно всё равно останется ограничено вашим предприятием или отделом.", "This is a critical action. It will still remain limited to your enterprise or department.")}
         onConfirm={() => {
           if (pendingCriticalCode) addPermission(pendingCriticalCode);
           setPendingCriticalCode(null);
         }}
         onOpenChange={(open) => !open && setPendingCriticalCode(null)}
         open={Boolean(pendingCriticalCode)}
-        title="Добавить критичное разрешение?"
+        title={text("Добавить критичное разрешение?", "Add critical permission?")}
       />
 
       <ConfirmDialog
-        cancelLabel="Отмена"
-        confirmLabel="Отключить разрешения"
+        cancelLabel={text("Отмена", "Cancel")}
+        confirmLabel={text("Отключить разрешения", "Disable permissions")}
         description={
           pendingRemovalCode
-            ? `Это разрешение требуется для: ${getDependentPermissionCodes(
-                permissionCodes,
-                pendingRemovalCode,
-              )
-                .map(
-                  (dependent) =>
-                    permissionMap.get(dependent)?.name ?? dependent,
+            ? text(
+                `Это разрешение требуется для: ${getDependentPermissionCodes(
+                  permissionCodes,
+                  pendingRemovalCode,
                 )
-                .join(", ")}. Оно будет отключено вместе с зависимыми действиями.`
+                  .map((dependent) => {
+                    const permission = permissionMap.get(dependent);
+                    return permission ? accessPermissionName(permission, text) : dependent;
+                  })
+                  .join(", ")}. Оно будет отключено вместе с зависимыми действиями.`,
+                `This permission is required by: ${getDependentPermissionCodes(
+                  permissionCodes,
+                  pendingRemovalCode,
+                )
+                  .map((dependent) => {
+                    const permission = permissionMap.get(dependent);
+                    return permission ? accessPermissionName(permission, text) : dependent;
+                  })
+                  .join(", ")}. It will be disabled together with dependent actions.`,
+              )
             : ""
         }
         onConfirm={() => {
@@ -450,23 +475,37 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
         }}
         onOpenChange={(open) => !open && setPendingRemovalCode(null)}
         open={Boolean(pendingRemovalCode)}
-        title="Отключить зависимые разрешения?"
+        title={text("Отключить зависимые разрешения?", "Disable dependent permissions?")}
       />
 
       <ConfirmDialog
-        cancelLabel="Остаться"
-        confirmLabel="Покинуть страницу"
-        description="Есть несохранённые изменения роли. Если покинуть страницу сейчас, они будут потеряны."
+        cancelLabel={text("Остаться", "Stay")}
+        confirmLabel={text("Покинуть страницу", "Leave page")}
+        description={text("Есть несохранённые изменения роли. Если покинуть страницу сейчас, они будут потеряны.", "There are unsaved role changes. If you leave now, they will be lost.")}
         onConfirm={() => {
           setLeaveConfirmationOpen(false);
           navigateToRoleList();
         }}
         onOpenChange={setLeaveConfirmationOpen}
         open={leaveConfirmationOpen}
-        title="Покинуть страницу без сохранения?"
+        title={text("Покинуть страницу без сохранения?", "Leave without saving?")}
       />
     </div>
   );
+}
+
+
+function permissionModuleTitle(
+  module: string,
+  items: AccessPermission[],
+  text: (ru: string, en: string) => string,
+): string {
+  const section = rolePermissionSections.find((candidate) =>
+    candidate.permissionCodes.some((code) =>
+      items.some((permission) => permission.code === code),
+    ),
+  );
+  return section ? rolePermissionSectionTitle(section, text) : module;
 }
 
 function serializeDraft(
@@ -486,18 +525,25 @@ function getDisplayedScope(
   role: AccessRoleSummary | null,
   enterpriseName: string,
   departmentName: string,
+  text: (ru: string, en: string) => string,
 ): { type: AccessScopeType; label: string } {
   if (scopeType === "department") {
     return {
       type: "department",
-      label: `Отдел «${role?.departmentName || departmentName || "не указан"}»`,
+      label: text(
+        `Отдел «${role?.departmentName || departmentName || "не указан"}»`,
+        `Department “${role?.departmentName || departmentName || "not specified"}”`,
+      ),
     };
   }
   if (scopeType === "enterprise") {
     return {
       type: "enterprise",
-      label: `Предприятие «${role?.enterpriseName || enterpriseName || "не указано"}»`,
+      label: text(
+        `Предприятие «${role?.enterpriseName || enterpriseName || "не указано"}»`,
+        `Enterprise “${role?.enterpriseName || enterpriseName || "not specified"}”`,
+      ),
     };
   }
-  return { type: "global", label: "Вся система" };
+  return { type: "global", label: text("Вся система", "Entire system") };
 }

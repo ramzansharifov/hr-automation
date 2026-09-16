@@ -4,6 +4,7 @@ import {
   type ReactNode,
 } from "react";
 import { FiLoader } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
 import {
   actionDefinitions,
@@ -39,6 +40,7 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
     },
     ref,
   ) => {
+    const { t } = useTranslation();
     const definition = actionDefinitions[action];
     const Icon = definition.icon;
     const icon = hideIcon
@@ -46,9 +48,17 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
       : loading
         ? <FiLoader className="animate-spin" />
         : <Icon />;
+    const defaultLabel = t(definition.labelKey, {
+      defaultValue: definition.defaultLabel,
+    });
+    const translatedLoadingLabel = definition.loadingLabelKey
+      ? t(definition.loadingLabelKey, {
+          defaultValue: definition.loadingLabel ?? definition.defaultLabel,
+        })
+      : definition.loadingLabel;
     const label = loading
-      ? loadingLabel ?? definition.loadingLabel ?? children ?? definition.defaultLabel
-      : children ?? definition.defaultLabel;
+      ? loadingLabel ?? translatedLoadingLabel ?? children ?? defaultLabel
+      : children ?? defaultLabel;
 
     return (
       <Button

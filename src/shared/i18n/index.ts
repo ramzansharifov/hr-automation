@@ -1,5 +1,7 @@
+import { useCallback } from 'react'
 import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
+import { initReactI18next, useTranslation } from 'react-i18next'
+import { en } from './locales/en'
 import { ru } from './locales/ru'
 
 export const DEFAULT_LANGUAGE = 'ru'
@@ -11,6 +13,11 @@ export const supportedLanguages = [
     labelKey: 'settings.language.options.ru',
     locale: 'ru-RU',
   },
+  {
+    id: 'en',
+    labelKey: 'settings.language.options.en',
+    locale: 'en-US',
+  },
 ] as const
 
 export type AppLanguage = (typeof supportedLanguages)[number]['id']
@@ -18,6 +25,9 @@ export type AppLanguage = (typeof supportedLanguages)[number]['id']
 const resources = {
   ru: {
     translation: ru,
+  },
+  en: {
+    translation: en,
   },
 } as const
 
@@ -30,6 +40,26 @@ export function getAppLocale(language: string | null | undefined): string {
 
   const languageConfig = supportedLanguages.find((item) => item.id === normalizedLanguage)
   return languageConfig?.locale ?? 'ru-RU'
+}
+
+export function useAppLocale(): string {
+  const { i18n: instance } = useTranslation()
+  return getAppLocale(instance.resolvedLanguage ?? instance.language)
+}
+
+export function appText(ru: string, en: string): string {
+  const language = (i18n.resolvedLanguage ?? i18n.language).split('-')[0]
+  return language === 'en' ? en : ru
+}
+
+export function useAppText(): (ru: string, en: string) => string {
+  const { i18n: instance } = useTranslation()
+  const language = (instance.resolvedLanguage ?? instance.language).split('-')[0]
+
+  return useCallback(
+    (ru: string, en: string) => (language === 'en' ? en : ru),
+    [language],
+  )
 }
 
 function getStoredLanguage(): AppLanguage {
@@ -54,7 +84,19 @@ void i18n.use(initReactI18next).init({
   },
 })
 
+function applyDocumentLanguage(language: string): void {
+  if (typeof document === 'undefined') return
+  const normalizedLanguage = language.split('-')[0]
+  if (isAppLanguage(normalizedLanguage)) {
+    document.documentElement.lang = normalizedLanguage
+  }
+}
+
+applyDocumentLanguage(i18n.language)
+
 i18n.on('languageChanged', (language) => {
+  applyDocumentLanguage(language)
+
   if (typeof window === 'undefined') {
     return
   }

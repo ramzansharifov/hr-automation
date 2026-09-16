@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
 import { useBusinessContext } from "../features/business-context/useBusinessContext";
+import { useAppText } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { DocumentTypeRecord } from "../shared/types/documentTypes";
 import {
@@ -20,6 +21,7 @@ import {
 } from "../shared/ui";
 
 export function DocumentTypesPage(): JSX.Element {
+  const text = useAppText();
   const { hasPermission, session } = useAuth();
   const { state: businessContext } = useBusinessContext();
   const canCreate = hasPermission("document_types.create");
@@ -39,11 +41,11 @@ export function DocumentTypesPage(): JSX.Element {
     try {
       setTypes(await hrApiClient.listDocumentTypes());
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить типы документов"));
+      toast.error(errorMessage(error, text("Не удалось загрузить типы документов", "Failed to load document types")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void load();
@@ -67,7 +69,7 @@ export function DocumentTypesPage(): JSX.Element {
 
   async function save(): Promise<void> {
     if (!name.trim()) {
-      toast.error("Укажите название типа документа");
+      toast.error(text("Укажите название типа документа", "Enter a document type name"));
       return;
     }
     setSaving(true);
@@ -82,12 +84,12 @@ export function DocumentTypesPage(): JSX.Element {
         name: name.trim(),
         isActive,
       });
-      toast.success(editing ? "Тип документа обновлён" : "Тип документа добавлен");
+      toast.success(editing ? text("Тип документа обновлён", "Document type updated") : text("Тип документа добавлен", "Document type added"));
       setDialogOpen(false);
       setEditing(null);
       await load();
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось сохранить тип документа"));
+      toast.error(errorMessage(error, text("Не удалось сохранить тип документа", "Failed to save document type")));
     } finally {
       setSaving(false);
     }
@@ -97,11 +99,11 @@ export function DocumentTypesPage(): JSX.Element {
     if (!deleteTarget || !canDelete) return;
     try {
       await hrApiClient.deleteDocumentType(deleteTarget.id);
-      toast.success("Тип документа удалён");
+      toast.success(text("Тип документа удалён", "Document type deleted"));
       setDeleteTarget(null);
       await load();
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось удалить тип документа"));
+      toast.error(errorMessage(error, text("Не удалось удалить тип документа", "Failed to delete document type")));
     }
   }
 
@@ -111,20 +113,20 @@ export function DocumentTypesPage(): JSX.Element {
         actions={
           canCreate ? (
             <ActionButton action="create" onClick={openCreate}>
-              Добавить тип документа
+              {text("Добавить тип документа", "Add document type")}
             </ActionButton>
           ) : undefined
         }
         icon={<FiBookOpen />}
-        title="Типы документов"
+        title={text("Типы документов", "Document types")}
       />
 
       {loading ? (
-        <LoadingState label="Загрузка типов документов..." />
+        <LoadingState label={text("Загрузка типов документов...", "Loading document types...")} />
       ) : types.length === 0 ? (
         <EmptyState
-          description="Добавьте типы документов, которые сотрудники кадровой службы смогут прикреплять к карточкам сотрудников."
-          title="Типов документов пока нет"
+          description={text("Добавьте типы документов, которые сотрудники кадровой службы смогут прикреплять к карточкам сотрудников.", "Add document types that HR staff can attach to employee profiles.")}
+          title={text("Типов документов пока нет", "No document types yet")}
         />
       ) : (
         <section className="app-surface app-border overflow-hidden rounded-[24px] border">
@@ -132,10 +134,10 @@ export function DocumentTypesPage(): JSX.Element {
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead className="app-surface-muted app-muted text-xs font-black uppercase tracking-wide">
                 <tr>
-                  <th className="px-5 py-4">Название</th>
-                  <th className="px-5 py-4">Статус</th>
+                  <th className="px-5 py-4">{text("Название", "Name")}</th>
+                  <th className="px-5 py-4">{text("Статус", "Status")}</th>
                   {(canEdit || canDelete) && (
-                    <th className="px-5 py-4 text-right">Действия</th>
+                    <th className="px-5 py-4 text-right">{text("Действия", "Actions")}</th>
                   )}
                 </tr>
               </thead>
@@ -151,14 +153,14 @@ export function DocumentTypesPage(): JSX.Element {
                             : "app-surface-muted app-border app-muted inline-flex rounded-full border px-3 py-1 text-xs font-black"
                         }
                       >
-                        {type.isActive ? "Активен" : "Отключён"}
+                        {type.isActive ? text("Активен", "Active") : text("Отключён", "Disabled")}
                       </span>
                     </td>
                     {(canEdit || canDelete) && (
                       <td className="px-5 py-4">
                         <RecordActions
-                          deleteLabel="Удалить тип документа"
-                          editLabel="Редактировать тип документа"
+                          deleteLabel={text("Удалить тип документа", "Delete document type")}
+                          editLabel={text("Редактировать тип документа", "Edit document type")}
                           onDelete={canDelete ? () => setDeleteTarget(type) : undefined}
                           onEdit={canEdit ? () => openEdit(type) : undefined}
                         />
@@ -176,7 +178,10 @@ export function DocumentTypesPage(): JSX.Element {
         <DeleteConfirmDialog
           description={
             deleteTarget
-              ? `Тип «${deleteTarget.name}» будет удалён. Если он уже используется, система не позволит выполнить удаление.`
+              ? text(
+                  `Тип «${deleteTarget.name}» будет удалён. Если он уже используется, система не позволит выполнить удаление.`,
+                  `Type “${deleteTarget.name}” will be deleted. If it is already in use, the system will prevent deletion.`,
+                )
               : ""
           }
           onConfirm={remove}
@@ -184,7 +189,7 @@ export function DocumentTypesPage(): JSX.Element {
             if (!open) setDeleteTarget(null);
           }}
           open={Boolean(deleteTarget)}
-          title="Удалить тип документа?"
+          title={text("Удалить тип документа?", "Delete document type?")}
         />
       )}
 
@@ -200,33 +205,33 @@ export function DocumentTypesPage(): JSX.Element {
           <Dialog.Content className="app-surface app-border fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[24px] border p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <Dialog.Title className="app-text text-xl font-black">
-                {editing ? "Редактировать тип документа" : "Новый тип документа"}
+                {editing ? text("Редактировать тип документа", "Edit document type") : text("Новый тип документа", "New document type")}
               </Dialog.Title>
               <Dialog.Close asChild>
-                <ActionIconButton action="close" label="Закрыть" />
+                <ActionIconButton action="close" label={text("Закрыть", "Close")} />
               </Dialog.Close>
             </div>
 
             <div className="mt-6 grid gap-5">
               <label className="grid gap-2">
-                <span className="app-text text-sm font-black">Название</span>
+                <span className="app-text text-sm font-black">{text("Название", "Name")}</span>
                 <Input
                   autoFocus
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Например: Медицинская книжка"
+                  placeholder={text("Например: Медицинская книжка", "For example: Medical certificate")}
                   value={name}
                 />
               </label>
 
               <div className="app-surface-muted app-border flex items-center justify-between gap-4 rounded-2xl border p-4">
                 <div>
-                  <p className="app-text text-sm font-black">Активен</p>
+                  <p className="app-text text-sm font-black">{text("Активен", "Active")}</p>
                   <p className="app-muted mt-1 text-xs leading-5">
-                    Отключённые типы сохраняются в истории, но их нельзя выбрать для нового документа.
+                    {text("Отключённые типы сохраняются в истории, но их нельзя выбрать для нового документа.", "Disabled types remain in history but cannot be selected for new documents.")}
                   </p>
                 </div>
                 <Toggle
-                  ariaLabel="Тип документа активен"
+                  ariaLabel={text("Тип документа активен", "Document type is active")}
                   checked={isActive}
                   onCheckedChange={setIsActive}
                 />

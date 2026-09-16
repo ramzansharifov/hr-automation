@@ -6,6 +6,7 @@ import {
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessRoleSummary,
@@ -34,8 +35,10 @@ import {
   type EmployeeOption,
   type UserDraft,
 } from "./AccessControlShared";
+import { accessRoleName } from "./accessTranslations";
 
 export function ScopedAccessUsersPage(): JSX.Element {
+  const text = useAppText();
   const { hasPermission, session } = useAuth();
   const canCreate = hasPermission("users.create");
   const canEdit = hasPermission("users.edit");
@@ -56,12 +59,24 @@ export function ScopedAccessUsersPage(): JSX.Element {
   const permissionScope = session.permissionScopes["users.view"];
   const scopeTitle =
     permissionScope === "department"
-      ? `Отдел · ${session.departmentName || "не указан"}`
-      : `Предприятие · ${session.enterpriseName || "не указано"}`;
+      ? text(
+          `Отдел · ${session.departmentName || "не указан"}`,
+          `Department · ${session.departmentName || "not specified"}`,
+        )
+      : text(
+          `Предприятие · ${session.enterpriseName || "не указано"}`,
+          `Enterprise · ${session.enterpriseName || "not specified"}`,
+        );
   const scopeDescription =
     permissionScope === "department"
-      ? "Здесь отображаются и управляются только учётные записи сотрудников вашего отдела."
-      : "Здесь отображаются и управляются только учётные записи сотрудников вашего предприятия.";
+      ? text(
+          "Здесь отображаются и управляются только учётные записи сотрудников вашего отдела.",
+          "Only employee accounts from your department are displayed and managed here.",
+        )
+      : text(
+          "Здесь отображаются и управляются только учётные записи сотрудников вашего предприятия.",
+          "Only employee accounts from your enterprise are displayed and managed here.",
+        );
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -75,11 +90,11 @@ export function ScopedAccessUsersPage(): JSX.Element {
       setRoles(accessRoles);
       setEmployees(employeeOptions);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить пользователей"));
+      toast.error(getErrorMessage(error, text("Не удалось загрузить пользователей", "Failed to load users")));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void loadData();
@@ -204,11 +219,11 @@ export function ScopedAccessUsersPage(): JSX.Element {
         mustChangePassword: userDraft.mustChangePassword,
       };
       await hrApiClient.saveAccessUser(params);
-      toast.success(userDraft.id ? "Пользователь обновлён" : "Пользователь создан");
+      toast.success(userDraft.id ? text("Пользователь обновлён", "User updated") : text("Пользователь создан", "User created"));
       setUserDialogOpen(false);
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить пользователя"));
+      toast.error(getErrorMessage(error, text("Не удалось сохранить пользователя", "Failed to save user")));
     } finally {
       setIsSaving(false);
     }
@@ -225,10 +240,10 @@ export function ScopedAccessUsersPage(): JSX.Element {
       });
       setPasswordDialogUser(null);
       setPassword("");
-      toast.success("Временный пароль установлен");
+      toast.success(text("Временный пароль установлен", "Temporary password set"));
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось изменить пароль"));
+      toast.error(getErrorMessage(error, text("Не удалось изменить пароль", "Failed to change password")));
     } finally {
       setIsSaving(false);
     }
@@ -240,10 +255,10 @@ export function ScopedAccessUsersPage(): JSX.Element {
     try {
       await hrApiClient.deleteAccessUser(deleteUser.id);
       setDeleteUser(null);
-      toast.success("Пользователь удалён");
+      toast.success(text("Пользователь удалён", "User deleted"));
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось удалить пользователя"));
+      toast.error(getErrorMessage(error, text("Не удалось удалить пользователя", "Failed to delete user")));
     } finally {
       setIsSaving(false);
     }
@@ -255,8 +270,8 @@ export function ScopedAccessUsersPage(): JSX.Element {
 
     return (
       <RecordActions
-        deleteLabel="Удалить пользователя"
-        editLabel="Редактировать пользователя"
+        deleteLabel={text("Удалить пользователя", "Delete user")}
+        editLabel={text("Редактировать пользователя", "Edit user")}
         onDelete={
           canDelete && !isSelf ? () => setDeleteUser(user) : undefined
         }
@@ -265,7 +280,7 @@ export function ScopedAccessUsersPage(): JSX.Element {
         {canResetPassword && !isSelf && (
           <ActionIconButton
             action="passwordReset"
-            label="Сбросить пароль"
+            label={text("Сбросить пароль", "Reset password")}
             onClick={() => {
               setPassword("");
               setPasswordDialogUser(user);
@@ -280,7 +295,7 @@ export function ScopedAccessUsersPage(): JSX.Element {
   const columns: DataTableColumn<AccessUserSummary>[] = [
     {
       key: "employee",
-      header: "Сотрудник",
+      header: text("Сотрудник", "Employee"),
       render: (user) => (
         <div className="flex min-w-[220px] items-center gap-3">
           <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
@@ -295,21 +310,21 @@ export function ScopedAccessUsersPage(): JSX.Element {
     },
     {
       key: "structure",
-      header: "Оргструктура",
+      header: text("Оргструктура", "Organization"),
       render: (user) => (
         <div className="min-w-[180px]">
           <p className="app-text-soft text-sm font-semibold">
-            {user.departmentName || "Отдел не указан"}
+            {user.departmentName || text("Отдел не указан", "Department not specified")}
           </p>
           <p className="app-muted mt-1 text-xs">
-            {user.enterpriseName || "Предприятие не указано"}
+            {user.enterpriseName || text("Предприятие не указано", "Enterprise not specified")}
           </p>
         </div>
       ),
     },
     {
       key: "roles",
-      header: "Роли",
+      header: text("Роли", "Roles"),
       render: (user) => (
         <div className="flex max-w-[320px] flex-wrap gap-1.5">
           {user.roles.length > 0 ? (
@@ -318,11 +333,11 @@ export function ScopedAccessUsersPage(): JSX.Element {
                 className="app-surface-muted app-border rounded-full border px-2.5 py-1 text-xs font-bold"
                 key={role.id}
               >
-                {role.name}
+                {accessRoleName(role.systemKey, role.name, text)}
               </span>
             ))
           ) : (
-            <span className="app-muted text-xs">Нет ролей</span>
+            <span className="app-muted text-xs">{text("Нет ролей", "No roles")}</span>
           )}
           {user.roles.length > 3 && (
             <span className="app-muted text-xs font-bold">+{user.roles.length - 3}</span>
@@ -332,12 +347,12 @@ export function ScopedAccessUsersPage(): JSX.Element {
     },
     {
       key: "status",
-      header: "Статус",
+      header: text("Статус", "Status"),
       render: (user) => <StatusBadge status={user.status} />,
     },
     {
       key: "actions",
-      header: "Действия",
+      header: text("Действия", "Actions"),
       align: "center",
       render: (user) => renderActions(user),
     },
@@ -355,24 +370,27 @@ export function ScopedAccessUsersPage(): JSX.Element {
               action="create"
               onClick={() => void openCreateUser()}
             >
-              Добавить пользователя
+              {text("Добавить пользователя", "Add user")}
             </ActionButton>
           ) : undefined
         }
-        description={`${scopeDescription} Системные роли администраторов сохраняются отдельно и не могут быть перераспределены локальным администратором.`}
+        description={text(
+          `${scopeDescription} Системные роли администраторов сохраняются отдельно и не могут быть перераспределены локальным администратором.`,
+          `${scopeDescription} System administrator roles are maintained separately and cannot be reassigned by a local administrator.`,
+        )}
         eyebrow={scopeTitle}
         icon={<FiUsers />}
-        title="Пользователи"
+        title={text("Пользователи", "Users")}
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <AccessMetric icon={<FiUsers />} label="В области" value={users.length} />
-        <AccessMetric icon={<FiUserCheck />} label="Активные" value={activeUsers} />
-        <AccessMetric icon={<FiUsers />} label="Заблокированные" value={blockedUsers} />
+        <AccessMetric icon={<FiUsers />} label={text("В области", "In scope")} value={users.length} />
+        <AccessMetric icon={<FiUserCheck />} label={text("Активные", "Active")} value={activeUsers} />
+        <AccessMetric icon={<FiUsers />} label={text("Заблокированные", "Blocked")} value={blockedUsers} />
       </section>
 
       <DataTable
-        ariaLabel="Пользователи области"
+        ariaLabel={text("Пользователи области", "Scoped users")}
         card={{
           leading: () => <FiUserCheck className="h-5 w-5" />,
           title: (user) => user.employeeName,
@@ -382,23 +400,23 @@ export function ScopedAccessUsersPage(): JSX.Element {
               <StatusBadge status={user.status} />
               <span className="app-text-soft">
                 {[user.enterpriseName, user.departmentName].filter(Boolean).join(" · ") ||
-                  "Структура не указана"}
+                  text("Структура не указана", "Structure not specified")}
               </span>
             </>
           ),
           actions: (user) => renderActions(user),
         }}
         columns={columns}
-        emptyDescription="В вашей области пока нет учётных записей сотрудников."
-        emptyTitle="Пользователей пока нет"
+        emptyDescription={text("В вашей области пока нет учётных записей сотрудников.", "There are no employee accounts in your scope yet.")}
+        emptyTitle={text("Пользователей пока нет", "No users yet")}
         footer={
           <>
-            Пользователей: <span className="app-text font-black">{users.length}</span>
+            {text("Пользователей:", "Users:")} <span className="app-text font-black">{users.length}</span>
           </>
         }
         getRowKey={(user) => user.id}
         isLoading={isLoading}
-        loadingLabel="Загрузка пользователей..."
+        loadingLabel={text("Загрузка пользователей...", "Loading users...")}
         rows={users}
         toolbar={
           <ActionButton
@@ -426,7 +444,7 @@ export function ScopedAccessUsersPage(): JSX.Element {
 
       {canResetPassword && (
         <Dialog
-          description="После входа пользователь должен будет сменить временный пароль."
+          description={text("После входа пользователь должен будет сменить временный пароль.", "After signing in, the user will be required to change the temporary password.")}
           onOpenChange={(open) => {
             if (!open) {
               setPasswordDialogUser(null);
@@ -434,13 +452,13 @@ export function ScopedAccessUsersPage(): JSX.Element {
             }
           }}
           open={Boolean(passwordDialogUser)}
-          title={`Сбросить пароль: ${passwordDialogUser?.username ?? ""}`}
+          title={text(`Сбросить пароль: ${passwordDialogUser?.username ?? ""}`, `Reset password: ${passwordDialogUser?.username ?? ""}`)}
         >
-          <Field label="Новый временный пароль">
+          <Field label={text("Новый временный пароль", "New temporary password")}>
             <Input
               autoComplete="new-password"
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Минимум 8 символов, буква и цифра"
+              placeholder={text("Минимум 8 символов, буква и цифра", "At least 8 characters, including a letter and a number")}
               type="password"
               value={password}
             />
@@ -456,7 +474,7 @@ export function ScopedAccessUsersPage(): JSX.Element {
               loading={isSaving}
               onClick={() => void resetPassword()}
             >
-              Установить пароль
+              {text("Установить пароль", "Set password")}
             </ActionButton>
           </div>
         </Dialog>
@@ -464,12 +482,12 @@ export function ScopedAccessUsersPage(): JSX.Element {
 
       {canDelete && (
         <DeleteConfirmDialog
-          description="Учётная запись будет удалена, кадровая карточка сотрудника сохранится."
+          description={text("Учётная запись будет удалена, кадровая карточка сотрудника сохранится.", "The account will be deleted while the employee HR profile is preserved.")}
           isLoading={isSaving}
           onConfirm={confirmDeleteUser}
           onOpenChange={(open) => !open && setDeleteUser(null)}
           open={Boolean(deleteUser)}
-          title={`Удалить пользователя ${deleteUser?.username ?? ""}?`}
+          title={text(`Удалить пользователя ${deleteUser?.username ?? ""}?`, `Delete user ${deleteUser?.username ?? ""}?`)}
         />
       )}
     </div>

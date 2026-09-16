@@ -20,6 +20,7 @@ import {
   getStoredCandidateFilterValues,
   type CandidateFilterValues,
 } from "../../features/filters/moduleFiltersStore";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
 import {
@@ -66,6 +67,7 @@ const emptyCandidate = (): CandidateDraft => ({
 });
 
 export function CandidatesPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canViewVacancies = hasPermission("vacancies.view");
@@ -104,9 +106,9 @@ export function CandidatesPage(): JSX.Element {
         label:
           [vacancy.enterprise_name, vacancy.department_name, vacancy.position_name]
             .filter(Boolean)
-            .join(" · ") || "Вакансия #" + String(vacancy.id),
+            .join(" · ") || text("Вакансия #", "Vacancy #") + String(vacancy.id),
       })),
-    [openVacancies],
+    [openVacancies, text],
   );
 
   const loadData = useCallback(async (): Promise<void> => {
@@ -119,11 +121,11 @@ export function CandidatesPage(): JSX.Element {
       setCandidates(candidateRows);
       setVacancies(vacancyRows);
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить кандидатов"));
+      toast.error(errorMessage(error, text("Не удалось загрузить кандидатов", "Failed to load candidates")));
     } finally {
       setIsLoading(false);
     }
-  }, [canViewVacancies]);
+  }, [canViewVacancies, text]);
 
   useEffect(() => {
     void loadData();
@@ -144,7 +146,7 @@ export function CandidatesPage(): JSX.Element {
   function openCreate(): void {
     if (!canCreate) return;
     if (openVacancies.length === 0) {
-      toast.info("Нет открытых вакансий, в которые можно добавить кандидата");
+      toast.info(text("Нет открытых вакансий, в которые можно добавить кандидата", "There are no open vacancies to add a candidate to"));
       return;
     }
     setDraft(emptyCandidate());
@@ -158,12 +160,12 @@ export function CandidatesPage(): JSX.Element {
 
     try {
       const profile = await hrApiClient.getVacancy(Number(vacancyId));
-      if (!profile) throw new Error("Вакансия не найдена");
+      if (!profile) throw new Error(text("Вакансия не найдена", "Vacancy not found"));
       if (
         profile.vacancy.status !== "open" ||
         Number(profile.vacancy.is_archived ?? 0) === 1
       ) {
-        throw new Error("Добавлять кандидатов можно только в открытую вакансию");
+        throw new Error(text("Добавлять кандидатов можно только в открытую вакансию", "Candidates can only be added to an open vacancy"));
       }
       setDraft((current) =>
         current
@@ -180,7 +182,7 @@ export function CandidatesPage(): JSX.Element {
           : current,
       );
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось загрузить вакансию"));
+      toast.error(errorMessage(error, text("Не удалось загрузить вакансию", "Failed to load vacancy")));
     }
   }
 
@@ -188,7 +190,7 @@ export function CandidatesPage(): JSX.Element {
     event.preventDefault();
     if (!draft || !canCreate) return;
     if (!draft.vacancyId) {
-      toast.error("Выберите вакансию");
+      toast.error(text("Выберите вакансию", "Select a vacancy"));
       return;
     }
 
@@ -209,10 +211,10 @@ export function CandidatesPage(): JSX.Element {
         })),
       });
       setDraft(null);
-      toast.success("Кандидат зарегистрирован на этапе «Новый»");
+      toast.success(text("Кандидат зарегистрирован на этапе «Новый»", "Candidate registered at the New stage"));
       navigate("/candidates/" + String(saved.candidate.id));
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось добавить кандидата"));
+      toast.error(errorMessage(error, text("Не удалось добавить кандидата", "Failed to add candidate")));
     } finally {
       setIsSaving(false);
     }
@@ -225,9 +227,9 @@ export function CandidatesPage(): JSX.Element {
       await hrApiClient.deleteCandidate(Number(deleteTarget.id));
       setDeleteTarget(null);
       await loadData();
-      toast.success("Ошибочная запись кандидата удалена");
+      toast.success(text("Ошибочная запись кандидата удалена", "Incorrect candidate record deleted"));
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось удалить кандидата"));
+      toast.error(errorMessage(error, text("Не удалось удалить кандидата", "Failed to delete candidate")));
     } finally {
       setIsSaving(false);
     }
@@ -236,14 +238,14 @@ export function CandidatesPage(): JSX.Element {
   const columns: DataTableColumn<HrRecord>[] = [
     {
       key: "name",
-      header: "ФИО",
+      header: text("ФИО", "Full name"),
       render: (candidate) => (
-        <span className="app-text font-black">{candidateFullName(candidate)}</span>
+        <span className="app-text font-black">{candidateFullName(candidate, text("Без имени", "Unnamed"))}</span>
       ),
     },
     {
       key: "vacancy",
-      header: "Вакансия / структура",
+      header: text("Вакансия / структура", "Vacancy / structure"),
       render: (candidate) => (
         <div className="min-w-[210px]">
           <p className="app-text font-bold">
@@ -259,7 +261,7 @@ export function CandidatesPage(): JSX.Element {
     },
     {
       key: "contacts",
-      header: "Контакты",
+      header: text("Контакты", "Contacts"),
       render: (candidate) => (
         <div className="min-w-[170px] space-y-1">
           <p className="app-text-soft text-sm">
@@ -273,7 +275,7 @@ export function CandidatesPage(): JSX.Element {
     },
     {
       key: "status",
-      header: "Этап",
+      header: text("Этап", "Stage"),
       render: (candidate) => (
         <RecruitmentBadge tone={candidateStatusTone(candidate.status)}>
           {candidateStatusLabel(candidate.status)}
@@ -282,7 +284,7 @@ export function CandidatesPage(): JSX.Element {
     },
     {
       key: "match",
-      header: "Соответствие",
+      header: text("Соответствие", "Match"),
       render: (candidate) => (
         <div className="min-w-[160px]">
           <MatchBar value={Number(candidate.match_percentage ?? 0)} />
@@ -291,14 +293,14 @@ export function CandidatesPage(): JSX.Element {
     },
     {
       key: "source",
-      header: "Источник",
+      header: text("Источник", "Source"),
       render: (candidate) => (
         <span className="app-text-soft">{String(candidate.source ?? "—")}</span>
       ),
     },
     {
       key: "actions",
-      header: "Действия",
+      header: text("Действия", "Actions"),
       align: "center",
       render: (candidate) => {
         const canDeleteCandidate =
@@ -315,7 +317,7 @@ export function CandidatesPage(): JSX.Element {
               size="sm"
               type="button"
             >
-              Карточка
+              {text("Карточка", "Profile")}
             </ActionButton>
             {canDeleteCandidate && (
               <ActionButton
@@ -324,7 +326,7 @@ export function CandidatesPage(): JSX.Element {
                 size="sm"
                 type="button"
               >
-                Удалить
+                {text("Удалить", "Delete")}
               </ActionButton>
             )}
           </div>
@@ -336,31 +338,31 @@ export function CandidatesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <RecruitmentPageHeader
-        actionLabel={canCreate ? "Добавить кандидата" : undefined}
-        description="Кандидаты проходят последовательные этапы подбора до найма или отказа."
+        actionLabel={canCreate ? text("Добавить кандидата", "Add candidate") : undefined}
+        description={text("Кандидаты проходят последовательные этапы подбора до найма или отказа.", "Candidates move through sequential recruitment stages until they are hired or rejected.")}
         icon={<FiUserPlus className="h-6 w-6" />}
         onAction={canCreate ? openCreate : undefined}
-        title="Кандидаты"
+        title={text("Кандидаты", "Candidates")}
       />
 
       <DataTable
-        ariaLabel="Реестр кандидатов"
+        ariaLabel={text("Реестр кандидатов", "Candidate registry")}
         columns={columns}
         emptyDescription={
           candidates.length > 0
-            ? "Измените или очистите фильтры на странице фильтров."
+            ? text("Измените или очистите фильтры на странице фильтров.", "Change or clear filters on the filters page.")
             : canCreate
-              ? "Добавьте кандидата в открытую вакансию."
+              ? text("Добавьте кандидата в открытую вакансию.", "Add a candidate to an open vacancy.")
               : "В доступной области пока нет кандидатов."
         }
         emptyTitle={
           candidates.length > 0
-            ? "Нет кандидатов по выбранным фильтрам"
-            : "Кандидатов пока нет"
+            ? text("Нет кандидатов по выбранным фильтрам", "No candidates match the selected filters")
+            : text("Кандидатов пока нет", "No candidates yet")
         }
         footer={
           <>
-            Кандидатов:{" "}
+            {text("Кандидатов:", "Candidates:")}{" "}
             <span className="app-text font-black">
               {filteredCandidates.length}
             </span>
@@ -368,7 +370,7 @@ export function CandidatesPage(): JSX.Element {
         }
         getRowKey={(candidate) => String(candidate.id)}
         isLoading={isLoading}
-        loadingLabel="Загрузка кандидатов..."
+        loadingLabel={text("Загрузка кандидатов...", "Loading candidates...")}
         onRowClick={(candidate) =>
           navigate("/candidates/" + String(candidate.id))
         }
@@ -387,7 +389,7 @@ export function CandidatesPage(): JSX.Element {
 
       {draft && canCreate && (
         <Dialog
-          description="После сохранения кандидат появится на этапе «Новый». Этапы меняются только из карточки кандидата."
+          description={text("После сохранения кандидат появится на этапе «Новый». Этапы меняются только из карточки кандидата.", "After saving, the candidate will appear at the New stage. Stages can only be changed from the candidate profile.")}
           footer={
             <FormActions
               loading={isSaving}
@@ -404,25 +406,25 @@ export function CandidatesPage(): JSX.Element {
                 !draft.lastName.trim() ||
                 !draft.firstName.trim()
               }
-              submitLabel="Создать кандидата"
+              submitLabel={text("Создать кандидата", "Create candidate")}
               submitType="button"
             />
           }
           onOpenChange={(open) => !open && setDraft(null)}
           open
           size="lg"
-          title="Новый кандидат"
+          title={text("Новый кандидат", "New candidate")}
         >
           <form
             className="grid gap-5"
             id="candidate-create-form"
             onSubmit={saveCandidate}
           >
-            <FormField label="Вакансия">
+            <FormField label={text("Вакансия", "Vacancy")}>
               <Select
                 onValueChange={(value) => void selectVacancy(value)}
                 options={vacancyOptions}
-                placeholder="Выберите открытую вакансию"
+                placeholder={text("Выберите открытую вакансию", "Select an open vacancy")}
                 value={draft.vacancyId}
               />
             </FormField>
@@ -430,7 +432,7 @@ export function CandidatesPage(): JSX.Element {
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
                 autoFocus
-                label="Фамилия"
+                label={text("Фамилия", "Last name")}
                 onChange={(lastName) =>
                   setDraft((current) =>
                     current ? { ...current, lastName } : current,
@@ -440,7 +442,7 @@ export function CandidatesPage(): JSX.Element {
                 value={draft.lastName}
               />
               <TextField
-                label="Имя"
+                label={text("Имя", "First name")}
                 onChange={(firstName) =>
                   setDraft((current) =>
                     current ? { ...current, firstName } : current,
@@ -450,7 +452,7 @@ export function CandidatesPage(): JSX.Element {
                 value={draft.firstName}
               />
               <TextField
-                label="Отчество"
+                label={text("Отчество", "Middle name")}
                 onChange={(middleName) =>
                   setDraft((current) =>
                     current ? { ...current, middleName } : current,
@@ -459,7 +461,7 @@ export function CandidatesPage(): JSX.Element {
                 value={draft.middleName}
               />
               <TextField
-                label="Дата рождения"
+                label={text("Дата рождения", "Date of birth")}
                 onChange={(birthDate) =>
                   setDraft((current) =>
                     current ? { ...current, birthDate } : current,
@@ -469,7 +471,7 @@ export function CandidatesPage(): JSX.Element {
                 value={draft.birthDate}
               />
               <TextField
-                label="Телефон"
+                label={text("Телефон", "Phone")}
                 onChange={(phone) =>
                   setDraft((current) =>
                     current ? { ...current, phone } : current,
@@ -489,22 +491,22 @@ export function CandidatesPage(): JSX.Element {
                 value={draft.email}
               />
               <TextField
-                label="Источник"
+                label={text("Источник", "Source")}
                 onChange={(source) =>
                   setDraft((current) =>
                     current ? { ...current, source } : current,
                   )
                 }
-                placeholder="Рекомендация, сайт, соцсеть"
+                placeholder={text("Рекомендация, сайт, соцсеть", "Referral, website, social network")}
                 value={draft.source}
               />
             </div>
 
             {draft.vacancyId && (
               <section className="app-surface-muted app-border rounded-2xl border p-4">
-                <h3 className="app-text font-black">Оценка навыков</h3>
+                <h3 className="app-text font-black">{text("Оценка навыков", "Skill assessment")}</h3>
                 <p className="app-muted mt-1 text-xs font-semibold">
-                  0 — навыка нет, 10 — экспертный уровень.
+                  {text("0 — навыка нет, 10 — экспертный уровень.", "0 — no skill, 10 — expert level.")}
                 </p>
                 <div className="mt-4 space-y-3">
                   {draft.skills.map((skill) => (
@@ -515,11 +517,11 @@ export function CandidatesPage(): JSX.Element {
                       <div>
                         <p className="app-text font-bold">{skill.name}</p>
                         <p className="app-muted mt-1 text-xs">
-                          Требуется: {skill.requiredLevel}/10
+                          {text("Требуется:", "Required:")} {skill.requiredLevel}/10
                         </p>
                       </div>
                       <Input
-                        aria-label={"Оценка навыка " + skill.name}
+                        aria-label={text("Оценка навыка " + skill.name, "Skill score " + skill.name)}
                         max="10"
                         min="0"
                         onChange={(event) => {
@@ -552,13 +554,13 @@ export function CandidatesPage(): JSX.Element {
 
       {canDelete && (
         <DeleteConfirmDialog
-          confirmLabel="Удалить ошибочную запись"
-          description="Удалить можно только нового кандидата, который ещё не переходил по этапам. История подбора после первого перехода сохраняется."
+          confirmLabel={text("Удалить ошибочную запись", "Delete incorrect record")}
+          description={text("Удалить можно только нового кандидата, который ещё не переходил по этапам. История подбора после первого перехода сохраняется.", "Only a new candidate who has not advanced through stages can be deleted. Recruitment history is preserved after the first transition.")}
           isLoading={isSaving}
           onConfirm={deleteCandidate}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           open={Boolean(deleteTarget)}
-          title="Удалить кандидата?"
+          title={text("Удалить кандидата?", "Delete candidate?")}
         />
       )}
     </div>
@@ -596,11 +598,11 @@ function TextField({
   );
 }
 
-function candidateFullName(candidate: HrRecord): string {
+function candidateFullName(candidate: HrRecord, fallback: string): string {
   return [candidate.last_name, candidate.first_name, candidate.middle_name]
     .map((value) => String(value ?? "").trim())
     .filter(Boolean)
-    .join(" ") || "Без имени";
+    .join(" ") || fallback;
 }
 
 function errorMessage(error: unknown, fallback: string): string {

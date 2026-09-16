@@ -19,7 +19,7 @@ interface EmployeeFormOptions {
 }
 
 export function useEmployeeFormOptions(loadRelations = true): EmployeeFormOptions {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [enterprises, setEnterprises] = useState<SelectOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
@@ -36,9 +36,9 @@ export function useEmployeeFormOptions(loadRelations = true): EmployeeFormOption
   const statusOptions = useMemo<SelectOption[]>(
     () => [
       { value: "active", label: t("common.status.active") },
-      { value: "terminated", label: "Уволен" },
+      { value: "terminated", label: t("common.status.terminated", { defaultValue: i18n.language.startsWith("en") ? "Terminated" : "Уволен" }) },
     ],
-    [t],
+    [i18n.language, t],
   );
 
   useEffect(() => {

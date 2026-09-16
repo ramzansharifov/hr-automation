@@ -12,6 +12,7 @@ import {
   ENTERPRISE_FILTERS_EVENT,
   getStoredEnterpriseHrFilters,
 } from "../features/filters/moduleFiltersStore";
+import { useAppText } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { AccessScopeType } from "../shared/types/access";
 import type {
@@ -32,6 +33,7 @@ type HierarchyLevel = "enterprises" | "departments" | "positions";
 type StructureAction = "create" | "edit" | "delete";
 
 export function OrganizationHierarchyPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const params = useParams();
   const { hasPermission, session } = useAuth();
@@ -116,7 +118,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
         toast.error(
           error instanceof Error
             ? error.message
-            : "Не удалось загрузить организационную структуру",
+            : text("Не удалось загрузить организационную структуру", "Failed to load organization structure"),
         );
       } finally {
         if (isActive) setIsLoading(false);
@@ -127,7 +129,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
     return () => {
       isActive = false;
     };
-  }, [departmentId, enterpriseId, level]);
+  }, [departmentId, enterpriseId, level, text]);
 
   useEffect(() => {
     function refreshEnterpriseFilters(): void {
@@ -143,22 +145,22 @@ export function OrganizationHierarchyPage(): JSX.Element {
   }, []);
 
   const page = useMemo(
-    () => getPageContent(level, enterprise, department),
-    [department, enterprise, level],
+    () => getPageContent(level, enterprise, department, text),
+    [department, enterprise, level, text],
   );
   const [viewMode, setViewMode] = useStoredViewMode(
     `organization-${page.entity}`,
   );
 
   if (isLoading) {
-    return <LoadingState label="Загрузка организационной структуры..." />;
+    return <LoadingState label={text("Загрузка организационной структуры...", "Loading organization structure...")} />;
   }
 
   if (hasError) {
     return (
       <EmptyState
-        description="Вернитесь к предприятиям и выберите существующую запись."
-        title="Элемент структуры не найден"
+        description={text("Вернитесь к предприятиям и выберите существующую запись.", "Return to enterprises and select an existing record.")}
+        title={text("Элемент структуры не найден", "Structure item not found")}
       />
     );
   }
@@ -166,14 +168,14 @@ export function OrganizationHierarchyPage(): JSX.Element {
   const hierarchyBreadcrumbs =
     enterprise || department ? (
       <nav
-        aria-label="Организационная структура"
+        aria-label={text("Организационная структура", "Organization structure")}
         className="flex flex-wrap items-center gap-2 px-1 text-sm font-bold"
       >
         <Link
           className="app-muted transition hover:text-[var(--accent)]"
           to="/enterprises"
         >
-          Предприятия
+          {text("Предприятия", "Enterprises")}
         </Link>
         {enterprise && (
           <>
@@ -183,11 +185,11 @@ export function OrganizationHierarchyPage(): JSX.Element {
                 className="app-muted transition hover:text-[var(--accent)]"
                 to={`/enterprises/${enterpriseId}/departments`}
               >
-                {recordName(enterprise)}
+                {recordName(enterprise, text)}
               </Link>
             ) : (
               <span aria-current="page" className="app-text">
-                {recordName(enterprise)}
+                {recordName(enterprise, text)}
               </span>
             )}
           </>
@@ -196,7 +198,7 @@ export function OrganizationHierarchyPage(): JSX.Element {
           <>
             <FiChevronRight className="app-muted h-4 w-4" />
             <span aria-current="page" className="app-text">
-              {recordName(department)}
+              {recordName(department, text)}
             </span>
           </>
         )}
@@ -216,9 +218,9 @@ export function OrganizationHierarchyPage(): JSX.Element {
 
   const headerDescription =
     level === "enterprises"
-      ? "Организационная структура предприятий, отделов и должностей."
+      ? text("Организационная структура предприятий, отделов и должностей.", "Organization structure of enterprises, departments, and positions.")
       : level === "departments"
-        ? "Подразделения выбранного предприятия."
+        ? text("Подразделения выбранного предприятия.", "Departments of the selected enterprise.")
         : "Должности выбранного отдела и их место в организационной структуре.";
   const tableClassName = [
     "organization-entity-table",
@@ -290,6 +292,7 @@ function getPageContent(
   level: HierarchyLevel,
   enterprise: HrRecord | null,
   department: HrRecord | null,
+  text: (ru: string, en: string) => string,
 ): {
   createInitialRecord?: HrRecord;
   createLabel: string;
@@ -302,11 +305,11 @@ function getPageContent(
     const id = toId(enterprise?.id)!;
     return {
       createInitialRecord: { enterprise_id: id },
-      createLabel: "Добавить отдел",
+      createLabel: text("Добавить отдел", "Add department"),
       entity: "departments",
       filters: { enterprise_id: id },
       hiddenColumnKeys: ["enterprise_name"],
-      title: `Отделы · ${recordName(enterprise)}`,
+      title: text(`Отделы · ${recordName(enterprise, text)}`, `Departments · ${recordName(enterprise, text)}`),
     };
   }
 
@@ -314,23 +317,26 @@ function getPageContent(
     const id = toId(department?.id)!;
     return {
       createInitialRecord: { department_id: id },
-      createLabel: "Добавить должность",
+      createLabel: text("Добавить должность", "Add position"),
       entity: "positions",
       filters: { department_id: id },
       hiddenColumnKeys: ["department_name"],
-      title: `Должности · ${recordName(department)}`,
+      title: text(`Должности · ${recordName(department, text)}`, `Positions · ${recordName(department, text)}`),
     };
   }
 
   return {
-    createLabel: "Добавить предприятие",
+    createLabel: text("Добавить предприятие", "Add enterprise"),
     entity: "enterprises",
-    title: "Предприятия",
+    title: text("Предприятия", "Enterprises"),
   };
 }
 
-function recordName(record: HrRecord | null): string {
-  return String(record?.name ?? "Без названия");
+function recordName(
+  record: HrRecord | null,
+  text: (ru: string, en: string) => string,
+): string {
+  return String(record?.name ?? text("Без названия", "Untitled"));
 }
 
 function toId(value: unknown): number | null {

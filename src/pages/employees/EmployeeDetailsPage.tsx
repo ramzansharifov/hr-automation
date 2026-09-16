@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { ActionButton, EmptyState, LoadingState } from "../../shared/ui";
-import { getAppLocale } from "../../shared/i18n";
+import { getAppLocale, useAppText } from "../../shared/i18n";
 import { formatCurrency, formatDate, humanizeStatus } from "../../shared/lib/format";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../shared/types/hr";
@@ -38,6 +38,7 @@ import "./EmployeeDetailsPage.css";
 import "./EmployeeTabConsistency.css";
 
 export function EmployeeDetailsPage(): JSX.Element {
+  const text = useAppText();
   const { i18n, t } = useTranslation();
   const { hasEffectivePermission, hasPermission, session } = useAuth();
   const businessContext = useBusinessContext();
@@ -133,7 +134,7 @@ export function EmployeeDetailsPage(): JSX.Element {
       record?.enterprise_id_snapshot ?? employee?.enterprise_id,
     );
     if (!Number.isInteger(enterpriseId) || enterpriseId < 1) {
-      throw new Error("Не удалось определить предприятие сотрудника");
+      throw new Error(text("Не удалось определить предприятие сотрудника", "Unable to determine the employee enterprise"));
     }
     if (businessContext.state?.enterpriseId === enterpriseId) return;
 
@@ -172,7 +173,7 @@ export function EmployeeDetailsPage(): JSX.Element {
     .join(" ");
   const lifecycleStatus = getString(employee.lifecycle_status || employee.status);
   const isPendingAssignment = ["draft", "pending_assignment"].includes(lifecycleStatus);
-  const status = employeeStatusLabel(lifecycleStatus, t);
+  const status = employeeStatusLabel(lifecycleStatus, t, text);
 
   return (
     <motion.div
@@ -209,32 +210,32 @@ export function EmployeeDetailsPage(): JSX.Element {
             aria-label={t("employeesDetails.title")}
           >
             <Tabs.Trigger className={detailsTabTriggerClass} value="card">
-              <FiUser /> Профиль
+              <FiUser /> {text("Профиль", "Profile")}
             </Tabs.Trigger>
             <Tabs.Trigger className={detailsTabTriggerClass} value="work">
-              <FiBriefcase /> Служебная информация
+              <FiBriefcase /> {text("Служебная информация", "Employment")}
             </Tabs.Trigger>
             {canViewEducationOrExperience && (
               <Tabs.Trigger
                 className={detailsTabTriggerClass}
                 value="education-experience"
               >
-                <FiBookOpen /> Образование и опыт
+                <FiBookOpen /> {text("Образование и опыт", "Education & experience")}
               </Tabs.Trigger>
             )}
             {canViewDocuments && (
               <Tabs.Trigger className={detailsTabTriggerClass} value="documents">
-                <FiFileText /> Документы
+                <FiFileText /> {text("Документы", "Documents")}
               </Tabs.Trigger>
             )}
             {canViewVacations && (
               <Tabs.Trigger className={detailsTabTriggerClass} value="vacations">
-                <FiCalendar /> Отпуска
+                <FiCalendar /> {text("Отпуска", "Vacations")}
               </Tabs.Trigger>
             )}
             {canViewEmploymentHistory && (
               <Tabs.Trigger className={detailsTabTriggerClass} value="history">
-                <FiClock /> История
+                <FiClock /> {text("История", "History")}
               </Tabs.Trigger>
             )}
           </Tabs.List>
@@ -259,9 +260,9 @@ export function EmployeeDetailsPage(): JSX.Element {
           <Tabs.Content value="work" className="outline-none">
             <div className="grid items-start gap-5 xl:grid-cols-2">
               <EmployeeInfoPanel
-                eyebrow="Текущая занятость"
+                eyebrow={text("Текущая занятость", "Current employment")}
                 icon={<FiBriefcase />}
-                title="Текущие условия работы"
+                title={text("Текущие условия работы", "Current employment conditions")}
               >
                 <EmployeeInfoField
                   label={t("forms.fields.departmentId")}
@@ -271,7 +272,7 @@ export function EmployeeDetailsPage(): JSX.Element {
                   label={t("forms.fields.positionId")}
                   value={valueOrEmpty(positionName, t)}
                 />
-                <EmployeeInfoField label="Статус" value={status} />
+                <EmployeeInfoField label={text("Статус", "Status")} value={status} />
                 <EmployeeInfoField
                   label={t("forms.fields.hireDate")}
                   value={formatDate(employee.hire_date, locale)}
@@ -281,18 +282,18 @@ export function EmployeeDetailsPage(): JSX.Element {
                   value={formatCurrency(employee.salary, locale)}
                 />
                 <EmployeeInfoField
-                  label="Тип занятости"
-                  value={employmentTypeLabel(employee.employment_type)}
+                  label={t("forms.fields.employmentType")}
+                  value={employmentTypeLabel(employee.employment_type, text)}
                 />
                 {Boolean(employee.terminated_at) && (
                   <EmployeeInfoField
-                    label="Дата увольнения"
+                    label={text("Дата увольнения", "Termination date")}
                     value={formatDate(employee.terminated_at, locale)}
                   />
                 )}
                 {Boolean(employee.termination_reason) && (
                   <EmployeeInfoField
-                    label="Основание увольнения"
+                    label={text("Основание увольнения", "Termination reason")}
                     value={getString(employee.termination_reason)}
                     wide
                   />
@@ -312,32 +313,32 @@ export function EmployeeDetailsPage(): JSX.Element {
                     </ActionButton>
                   ) : undefined
                 }
-                eyebrow="Кадровые реквизиты"
+                eyebrow={text("Кадровые реквизиты", "Employment details")}
                 icon={<FiFileText />}
-                title="Договор и служебные данные"
+                title={text("Договор и служебные данные", "Contract and employment details")}
               >
                 <EmployeeInfoField
-                  label="Табельный номер"
+                  label={t("forms.fields.employeeNumber")}
                   value={valueOrEmpty(getString(employee.employee_number), t)}
                 />
                 <EmployeeInfoField
-                  label="Номер договора"
+                  label={t("forms.fields.contractNumber")}
                   value={valueOrEmpty(getString(employee.contract_number), t)}
                 />
                 <EmployeeInfoField
-                  label="Дата договора"
+                  label={t("forms.fields.contractDate")}
                   value={formatOptionalDate(employee.contract_date, locale, t)}
                 />
                 <EmployeeInfoField
-                  label="Договор действует до"
+                  label={t("forms.fields.contractEndDate")}
                   value={formatOptionalDate(employee.contract_end_date, locale, t)}
                 />
                 <EmployeeInfoField
-                  label="Испытательный срок до"
+                  label={t("forms.fields.probationEndDate")}
                   value={formatOptionalDate(employee.probation_end_date, locale, t)}
                 />
                 <EmployeeInfoField
-                  label="Место работы"
+                  label={t("forms.fields.workplace")}
                   value={valueOrEmpty(getString(employee.workplace), t)}
                 />
               </EmployeeInfoPanel>
@@ -437,23 +438,28 @@ function valueOrEmpty(value: string, t: (key: string) => string): string {
 function employeeStatusLabel(
   value: unknown,
   t: (key: string) => string,
+  text: (ru: string, en: string) => string,
 ): string {
   const status = String(value ?? "");
-  if (status === "terminated") return "Уволен";
+  if (status === "terminated") return text("Уволен", "Terminated");
   if (status === "pending_assignment" || status === "draft") {
-    return "Требует дооформления";
+    return text("Требует дооформления", "Requires completion");
   }
   return humanizeStatus(value, t);
 }
 
-function employmentTypeLabel(value: unknown): string {
-  const labels: Record<string, string> = {
-    full_time: "Полная занятость",
-    part_time: "Частичная занятость",
-    temporary: "Временная работа",
-    internship: "Стажировка",
+function employmentTypeLabel(
+  value: unknown,
+  text: (ru: string, en: string) => string,
+): string {
+  const labels: Record<string, [string, string]> = {
+    full_time: ["Полная занятость", "Full-time"],
+    part_time: ["Частичная занятость", "Part-time"],
+    temporary: ["Временная работа", "Temporary"],
+    internship: ["Стажировка", "Internship"],
   };
-  return labels[String(value ?? "")] ?? "—";
+  const label = labels[String(value ?? "")];
+  return label ? text(label[0], label[1]) : "—";
 }
 
 function formatOptionalDate(

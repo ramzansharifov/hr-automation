@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { AccessRoleSummary } from "../../shared/types/access";
 import {
@@ -15,8 +16,10 @@ import {
   type DataTableColumn,
 } from "../../shared/ui";
 import { AccessMetric, getErrorMessage } from "./AccessControlShared";
+import { accessRoleName } from "./accessTranslations";
 
 export function AccessRolesPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("roles.create");
@@ -31,11 +34,11 @@ export function AccessRolesPage(): JSX.Element {
     try {
       setRoles(await hrApiClient.listAccessRoles());
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить роли"));
+      toast.error(getErrorMessage(error, text("Не удалось загрузить роли", "Failed to load roles")));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void loadData();
@@ -46,18 +49,18 @@ export function AccessRolesPage(): JSX.Element {
     try {
       await hrApiClient.deleteAccessRole(deleteRole.id);
       setDeleteRole(null);
-      toast.success("Роль удалена");
+      toast.success(text("Роль удалена", "Role deleted"));
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось удалить роль"));
+      toast.error(getErrorMessage(error, text("Не удалось удалить роль", "Failed to delete role")));
     }
   }
 
   function renderRoleActions(role: AccessRoleSummary): JSX.Element | null {
     return (
       <RecordActions
-        deleteLabel="Удалить роль"
-        editLabel="Редактировать роль"
+        deleteLabel={text("Удалить роль", "Delete role")}
+        editLabel={text("Редактировать роль", "Edit role")}
         onDelete={
           !role.isSystem && canDelete ? () => setDeleteRole(role) : undefined
         }
@@ -67,7 +70,7 @@ export function AccessRolesPage(): JSX.Element {
             : undefined
         }
         onView={() => navigate(`/roles/${role.id}`)}
-        viewLabel="Открыть роль"
+        viewLabel={text("Открыть роль", "Open role")}
       />
     );
   }
@@ -75,28 +78,28 @@ export function AccessRolesPage(): JSX.Element {
   const columns: DataTableColumn<AccessRoleSummary>[] = [
     {
       key: "role",
-      header: "Роль",
+      header: text("Роль", "Role"),
       render: (role) => (
         <div className="flex min-w-[260px] items-center gap-3">
           <span className="app-accent-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
             <FiShield className="h-5 w-5" />
           </span>
-          <p className="app-text truncate font-black">{role.name}</p>
+          <p className="app-text truncate font-black">{accessRoleName(role.systemKey, role.name, text)}</p>
         </div>
       ),
     },
     {
       key: "scope",
-      header: "Область действия",
+      header: text("Область действия", "Scope"),
       render: (role) => (
         <p className="app-text-soft min-w-[190px] text-sm font-bold">
-          {getRoleScopeLabel(role)}
+          {getRoleScopeLabel(role, text)}
         </p>
       ),
     },
     {
       key: "type",
-      header: "Тип",
+      header: text("Тип", "Type"),
       render: (role) => (
         <span
           className={[
@@ -106,19 +109,19 @@ export function AccessRolesPage(): JSX.Element {
               : "app-surface-muted app-border app-text-soft",
           ].join(" ")}
         >
-          {role.isSystem ? "Системная" : "Пользовательская"}
+          {role.isSystem ? text("Системная", "System") : text("Пользовательская", "Custom")}
         </span>
       ),
     },
     {
       key: "users",
-      header: "Пользователей",
+      header: text("Пользователей", "Users"),
       align: "center",
       render: (role) => <span className="app-text font-black">{role.userCount}</span>,
     },
     {
       key: "permissions",
-      header: "Разрешений",
+      header: text("Разрешений", "Permissions"),
       align: "center",
       render: (role) => (
         <span className="app-text font-black">{role.permissionCodes.length}</span>
@@ -126,7 +129,7 @@ export function AccessRolesPage(): JSX.Element {
     },
     {
       key: "actions",
-      header: "Действия",
+      header: text("Действия", "Actions"),
       align: "center",
       render: (role) => renderRoleActions(role),
     },
@@ -144,42 +147,42 @@ export function AccessRolesPage(): JSX.Element {
               action="create"
               onClick={() => navigate("/roles/new")}
             >
-              Создать роль
+              {text("Создать роль", "Create role")}
             </ActionButton>
           ) : undefined
         }
         icon={<FiShield />}
-        title="Роли"
+        title={text("Роли", "Roles")}
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <AccessMetric icon={<FiShield />} label="Доступно ролей" value={roles.length} />
-        <AccessMetric icon={<FiUsers />} label="Системные" value={systemRoles} />
-        <AccessMetric icon={<FiPlus />} label="Пользовательские" value={customRoles} />
+        <AccessMetric icon={<FiShield />} label={text("Доступно ролей", "Available roles")} value={roles.length} />
+        <AccessMetric icon={<FiUsers />} label={text("Системные", "System")} value={systemRoles} />
+        <AccessMetric icon={<FiPlus />} label={text("Пользовательские", "Custom")} value={customRoles} />
       </section>
 
       <DataTable
-        ariaLabel="Роли доступа"
+        ariaLabel={text("Роли доступа", "Access roles")}
         card={{
           leading: () => <FiShield className="h-5 w-5" />,
-          title: (role) => role.name,
+          title: (role) => accessRoleName(role.systemKey, role.name, text),
           meta: (role) => (
             <>
-              {role.isSystem && <span className="app-accent-text font-black">Системная</span>}
-              <span className="app-text-soft">{getRoleScopeLabel(role)}</span>
-              <span className="app-text-soft"><span className="app-muted">Пользователей: </span>{role.userCount}</span>
-              <span className="app-text-soft"><span className="app-muted">Разрешений: </span>{role.permissionCodes.length}</span>
+              {role.isSystem && <span className="app-accent-text font-black">{text("Системная", "System")}</span>}
+              <span className="app-text-soft">{getRoleScopeLabel(role, text)}</span>
+              <span className="app-text-soft"><span className="app-muted">{text("Пользователей:", "Users:")} </span>{role.userCount}</span>
+              <span className="app-text-soft"><span className="app-muted">{text("Разрешений:", "Permissions:")} </span>{role.permissionCodes.length}</span>
             </>
           ),
           actions: (role) => renderRoleActions(role),
         }}
         columns={columns}
-        emptyDescription="Создайте первую пользовательскую роль или используйте системные роли."
-        emptyTitle="Ролей пока нет"
-        footer={<>Ролей: <span className="app-text font-black">{roles.length}</span></>}
+        emptyDescription={text("Создайте первую пользовательскую роль или используйте системные роли.", "Create the first custom role or use the built-in system roles.")}
+        emptyTitle={text("Ролей пока нет", "No roles yet")}
+        footer={<>{text("Ролей:", "Roles:")} <span className="app-text font-black">{roles.length}</span></>}
         getRowKey={(role) => role.id}
         isLoading={isLoading}
-        loadingLabel="Загрузка ролей..."
+        loadingLabel={text("Загрузка ролей...", "Loading roles...")}
         onRowClick={(role) => navigate(`/roles/${role.id}`)}
         rows={roles}
         toolbar={
@@ -192,23 +195,30 @@ export function AccessRolesPage(): JSX.Element {
       />
 
       <DeleteConfirmDialog
-        description="Роль можно удалить только после того, как она снята со всех пользователей."
+        description={text("Роль можно удалить только после того, как она снята со всех пользователей.", "A role can only be deleted after it has been removed from all users.")}
         onConfirm={confirmDeleteRole}
         onOpenChange={(open) => !open && setDeleteRole(null)}
         open={Boolean(deleteRole)}
-        title={`Удалить роль «${deleteRole?.name ?? ""}»?`}
+        title={text(`Удалить роль «${deleteRole?.name ?? ""}»?`, `Delete role “${deleteRole?.name ?? ""}”?`)}
       />
     </div>
   );
 }
 
-function getRoleScopeLabel(role: AccessRoleSummary): string {
-  if (role.scopeType === "global") return "Вся система";
+function getRoleScopeLabel(
+  role: AccessRoleSummary,
+  text: (ru: string, en: string) => string,
+): string {
+  if (role.scopeType === "global") return text("Вся система", "Entire system");
   if (role.scopeType === "enterprise") {
-    return role.enterpriseName ? `Предприятие · ${role.enterpriseName}` : "Предприятие пользователя";
+    return role.enterpriseName
+      ? text(`Предприятие · ${role.enterpriseName}`, `Enterprise · ${role.enterpriseName}`)
+      : text("Предприятие пользователя", "User enterprise");
   }
   if (role.scopeType === "department") {
-    return role.departmentName ? `Отдел · ${role.departmentName}` : "Отдел пользователя";
+    return role.departmentName
+      ? text(`Отдел · ${role.departmentName}`, `Department · ${role.departmentName}`)
+      : text("Отдел пользователя", "User department");
   }
-  return "Только сам сотрудник";
+  return text("Только сам сотрудник", "Own data only");
 }

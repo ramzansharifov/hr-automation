@@ -23,6 +23,7 @@ import {
   normalizePermissionDependencies,
   permissionDependencies,
 } from "../../shared/access/permissionRules";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessPermission,
@@ -46,6 +47,12 @@ import {
 } from "../../shared/ui";
 import { getErrorMessage } from "./accessControlData";
 import {
+  accessPermissionDescription,
+  accessPermissionName,
+} from "./accessTranslations";
+import {
+  rolePermissionGroupLabel,
+  rolePermissionSectionTitle,
   rolePermissionSections,
   type RolePermissionSectionDefinition,
 } from "./rolePermissionSections";
@@ -67,23 +74,19 @@ interface RoleScopeSelection {
   departmentId: string;
 }
 
-const permissionFilters: Array<{ value: PermissionFilter; label: string }> = [
-  { value: "all", label: "Все" },
-  { value: "selected", label: "Выбранные" },
-  { value: "unselected", label: "Не выбранные" },
-];
+const permissionFilters: PermissionFilter[] = ["all", "selected", "unselected"];
 
 const scopeOptions: Array<{
   value: CustomRoleScopeType;
-  label: string;
   icon: typeof FiGlobe;
 }> = [
-  { value: "global", label: "Вся система", icon: FiGlobe },
-  { value: "enterprise", label: "Предприятие", icon: FiLayers },
-  { value: "department", label: "Отдел", icon: FiGrid },
+  { value: "global", icon: FiGlobe },
+  { value: "enterprise", icon: FiLayers },
+  { value: "department", icon: FiGrid },
 ];
 
 export function AccessRoleFormPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const params = useParams();
   const { session } = useAuth();
@@ -144,13 +147,13 @@ export function AccessRoleFormPage(): JSX.Element {
         setEnterpriseOptions(
           scopeRecords.enterprises.map((record) => ({
             value: String(record.id),
-            label: String(record.name ?? record.legal_name ?? `Предприятие #${record.id}`),
+            label: String(record.name ?? record.legal_name ?? text(`Предприятие #${record.id}`, `Enterprise #${record.id}`)),
           })),
         );
         setDepartmentOptions(
           scopeRecords.departments.map((record) => ({
             value: String(record.id),
-            label: String(record.name ?? `Отдел #${record.id}`),
+            label: String(record.name ?? text(`Отдел #${record.id}`, `Department #${record.id}`)),
             enterpriseId: String(record.enterprise_id ?? ""),
           })),
         );
@@ -190,7 +193,7 @@ export function AccessRoleFormPage(): JSX.Element {
         }
         setBaselineReady(true);
       } catch (error) {
-        toast.error(getErrorMessage(error, "Не удалось загрузить данные роли"));
+        toast.error(getErrorMessage(error, text("Не удалось загрузить данные роли", "Failed to load role data")));
       } finally {
         if (active) setIsLoading(false);
       }
@@ -206,6 +209,7 @@ export function AccessRoleFormPage(): JSX.Element {
     roleId,
     sessionDepartmentId,
     sessionEnterpriseId,
+    text,
   ]);
 
   const role = isEditMode
@@ -311,6 +315,7 @@ export function AccessRoleFormPage(): JSX.Element {
     targetScopeType,
     selectedEnterpriseName,
     selectedDepartmentName,
+    text,
   );
 
   const availableScopeOptions = scopeOptions.filter(
@@ -333,14 +338,20 @@ export function AccessRoleFormPage(): JSX.Element {
             if (permissionFilter === "selected" && !selected) return false;
             if (permissionFilter === "unselected" && selected) return false;
             if (!search) return true;
-            return [permission.name, permission.code, section.title]
+            return [
+              permission.name,
+              accessPermissionName(permission, text),
+              permission.code,
+              section.title,
+              rolePermissionSectionTitle(section, text),
+            ]
               .join(" ")
               .toLocaleLowerCase()
               .includes(search);
           }),
       }))
       .filter((item) => item.permissions.length > 0);
-  }, [permissionCodes, permissionFilter, permissionMap, permissionSearch]);
+  }, [permissionCodes, permissionFilter, permissionMap, permissionSearch, text]);
 
   function changeScope(nextScope: CustomRoleScopeType): void {
     if (isEditMode || nextScope === scopeType) return;
@@ -352,7 +363,7 @@ export function AccessRoleFormPage(): JSX.Element {
         .every((dependency) => canScopePermissionTo(dependency, nextScope)),
     );
     if (compatible.length !== permissionCodes.length) {
-      toast.info("Недоступные для выбранной области разрешения сняты автоматически");
+      toast.info(text("Недоступные для выбранной области разрешения сняты автоматически", "Permissions unavailable in the selected scope were removed automatically"));
     }
     setPermissionCodes(compatible);
     setScopeType(nextScope);
@@ -443,20 +454,20 @@ export function AccessRoleFormPage(): JSX.Element {
 
   async function saveRole(): Promise<void> {
     if (!name.trim()) {
-      toast.error("Укажите название роли");
+      toast.error(text("Укажите название роли", "Enter a role name"));
       return;
     }
     if (!targetScopeReady) {
-      toast.error("Выберите организационную область роли");
+      toast.error(text("Выберите организационную область роли", "Select the role data scope"));
       return;
     }
     const cleanCodes = permissionCodes.filter((code) => delegableCodes.has(code));
     if (cleanCodes.length === 0) {
-      toast.error("Выберите хотя бы одно разрешение");
+      toast.error(text("Выберите хотя бы одно разрешение", "Select at least one permission"));
       return;
     }
     if (editorLocked) {
-      toast.error("Роль содержит разрешения вне доступной области управления");
+      toast.error(text("Роль содержит разрешения вне доступной области управления", "The role contains permissions outside your manageable scope"));
       return;
     }
 
@@ -478,34 +489,39 @@ export function AccessRoleFormPage(): JSX.Element {
           : {}),
       };
       const saved = await hrApiClient.saveAccessRole(payload);
-      toast.success(isEditMode ? "Роль обновлена" : "Роль создана");
+      toast.success(isEditMode ? text("Роль обновлена", "Role updated") : text("Роль создана", "Role created"));
       navigate(`/roles/${saved.id}`);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить роль"));
+      toast.error(getErrorMessage(error, text("Не удалось сохранить роль", "Failed to save role")));
     } finally {
       setIsSaving(false);
     }
   }
 
-  if (isLoading) return <LoadingState label="Загрузка разрешений..." />;
+  if (isLoading) return <LoadingState label={text("Загрузка разрешений...", "Loading permissions...")} />;
   if (isEditMode && (!role || !Number.isInteger(roleId) || Number(roleId) < 1)) {
     return (
       <EmptyState
-        description="Вернитесь к списку ролей и выберите существующую роль."
-        title="Роль не найдена"
+        description={text("Вернитесь к списку ролей и выберите существующую роль.", "Return to the role list and select an existing role.")}
+        title={text("Роль не найдена", "Role not found")}
       />
     );
   }
   if (role?.isSystem) {
     return (
       <EmptyState
-        description="Системные роли защищены от изменения."
-        title="Системную роль нельзя редактировать"
+        description={text("Системные роли защищены от изменения.", "System roles are protected from modification.")}
+        title={text("Системную роль нельзя редактировать", "System roles cannot be edited")}
       />
     );
   }
 
-  const pendingInfo = describePendingChange(pendingChange, permissionMap, permissionCodes);
+  const pendingInfo = describePendingChange(
+    pendingChange,
+    permissionMap,
+    permissionCodes,
+    text,
+  );
 
   return (
     <div className="space-y-6">
@@ -524,18 +540,18 @@ export function AccessRoleFormPage(): JSX.Element {
               loading={isSaving}
               onClick={() => void saveRole()}
             >
-              Сохранить роль
+              {text("Сохранить роль", "Save role")}
             </ActionButton>
           </div>
         }
-        eyebrow="Управление доступом"
+        eyebrow={text("Управление доступом", "Access control")}
         icon={<FiShield />}
-        title={isEditMode ? `Редактирование · ${role?.name ?? "Роль"}` : "Новая роль"}
+        title={isEditMode ? text(`Редактирование · ${role?.name ?? "Роль"}`, `Edit · ${role?.name ?? "Role"}`) : text("Новая роль", "New role")}
       />
 
       {editorLocked && (
-        <Notice icon={<FiLock />} tone="warning" title="Редактирование роли ограничено">
-          Роль содержит разрешения, которые текущий администратор не может делегировать в её области. Сохранение заблокировано для защиты от повышения привилегий.
+        <Notice icon={<FiLock />} tone="warning" title={text("Редактирование роли ограничено", "Role editing is restricted")}>
+          {text("Роль содержит разрешения, которые текущий администратор не может делегировать в её области. Сохранение заблокировано для защиты от повышения привилегий.", "This role contains permissions the current administrator cannot delegate in its scope. Saving is blocked to prevent privilege escalation.")}
         </Notice>
       )}
 
@@ -543,21 +559,21 @@ export function AccessRoleFormPage(): JSX.Element {
         <div className="app-surface app-border rounded-[28px] border p-6">
           <div className="grid gap-5">
             <label className="grid gap-2">
-              <span className="app-text text-sm font-black">Название роли</span>
+              <span className="app-text text-sm font-black">{text("Название роли", "Role name")}</span>
               <Input
                 disabled={editorLocked}
                 maxLength={100}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Например, HR-менеджер"
+                placeholder={text("Например, HR-менеджер", "For example, HR manager")}
                 value={name}
               />
             </label>
             <label className="grid gap-2">
-              <span className="app-text text-sm font-black">Описание</span>
+              <span className="app-text text-sm font-black">{text("Описание", "Description")}</span>
               <Textarea
                 disabled={editorLocked}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Кому предназначена роль и за что отвечает"
+                placeholder={text("Кому предназначена роль и за что отвечает", "Who this role is for and what it is responsible for")}
                 value={description}
               />
             </label>
@@ -599,7 +615,7 @@ export function AccessRoleFormPage(): JSX.Element {
                         >
                           <span className="flex items-center gap-2">
                             <Icon className="h-4 w-4" />
-                            <span className="app-text text-sm font-black">{option.label}</span>
+                            <span className="app-text text-sm font-black">{scopeOptionLabel(option.value, text)}</span>
                           </span>
                         </button>
                       );
@@ -608,17 +624,17 @@ export function AccessRoleFormPage(): JSX.Element {
 
                   {scopeType !== "global" && (
                     <label className="grid gap-2">
-                      <span className="app-text text-xs font-black">Предприятие</span>
+                      <span className="app-text text-xs font-black">{text("Предприятие", "Enterprise")}</span>
                       <SearchableSelect
                         disabled={actorCreateScope !== "global"}
-                        noOptionsLabel="Доступные предприятия не найдены"
+                        noOptionsLabel={text("Доступные предприятия не найдены", "No available enterprises found")}
                         onValueChange={(value) => {
                           setEnterpriseId(value);
                           setDepartmentId("");
                         }}
                         options={enterpriseOptions}
-                        placeholder="Выберите предприятие"
-                        searchPlaceholder="Поиск предприятия"
+                        placeholder={text("Выберите предприятие", "Select enterprise")}
+                        searchPlaceholder={text("Поиск предприятия", "Search enterprise")}
                         value={enterpriseId}
                       />
                     </label>
@@ -626,18 +642,18 @@ export function AccessRoleFormPage(): JSX.Element {
 
                   {scopeType === "department" && (
                     <label className="grid gap-2">
-                      <span className="app-text text-xs font-black">Отдел</span>
+                      <span className="app-text text-xs font-black">{text("Отдел", "Department")}</span>
                       <SearchableSelect
                         disabled={!enterpriseId || actorCreateScope === "department"}
                         noOptionsLabel={
                           enterpriseId
-                            ? "В выбранном предприятии нет доступных отделов"
-                            : "Сначала выберите предприятие"
+                            ? text("В выбранном предприятии нет доступных отделов", "No available departments in the selected enterprise")
+                            : text("Сначала выберите предприятие", "Select an enterprise first")
                         }
                         onValueChange={setDepartmentId}
                         options={enterpriseId ? visibleDepartmentOptions : []}
-                        placeholder={enterpriseId ? "Выберите отдел" : "Сначала выберите предприятие"}
-                        searchPlaceholder="Поиск отдела"
+                        placeholder={enterpriseId ? text("Выберите отдел", "Select department") : text("Сначала выберите предприятие", "Select an enterprise first")}
+                        searchPlaceholder={text("Поиск отдела", "Search department")}
                         value={departmentId}
                       />
                     </label>
@@ -654,14 +670,14 @@ export function AccessRoleFormPage(): JSX.Element {
               <FiSliders />
             </span>
             <div>
-              <p className="app-text font-black">Доступ роли</p>
+              <p className="app-text font-black">{text("Доступ роли", "Role access")}</p>
               <p className="app-muted mt-1 text-xs">{scopeLabel}</p>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <SummaryValue label="Разрешений" value={selectedCount} />
+            <SummaryValue label={text("Разрешений", "Permissions")} value={selectedCount} />
             <SummaryValue
-              label="Разделов"
+              label={text("Разделов", "Sections")}
               value={
                 rolePermissionSections.filter((section) =>
                   section.permissionCodes.some((code) => permissionCodes.includes(code)),
@@ -671,7 +687,7 @@ export function AccessRoleFormPage(): JSX.Element {
           </div>
           {isDirty && (
             <p className="mt-3 text-xs font-black text-amber-800 dark:text-amber-300">
-              Есть несохранённые изменения
+              {text("Есть несохранённые изменения", "There are unsaved changes")}
             </p>
           )}
         </aside>
@@ -682,22 +698,22 @@ export function AccessRoleFormPage(): JSX.Element {
           <div className="relative min-w-0 flex-1 lg:max-w-xl">
             <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
             <Input
-              aria-label="Поиск разрешений"
+              aria-label={text("Поиск разрешений", "Search permissions")}
               className="pl-10"
               onChange={(event) => setPermissionSearch(event.target.value)}
-              placeholder="Поиск по действию или коду"
+              placeholder={text("Поиск по действию или коду", "Search by action or code")}
               value={permissionSearch}
             />
           </div>
           <div className="flex flex-wrap gap-2">
             {permissionFilters.map((filter) => (
               <Button
-                key={filter.value}
-                onClick={() => setPermissionFilter(filter.value)}
+                key={filter}
+                onClick={() => setPermissionFilter(filter)}
                 size="sm"
-                variant={permissionFilter === filter.value ? "primary" : "secondary"}
+                variant={permissionFilter === filter ? "primary" : "secondary"}
               >
-                {filter.label}
+                {permissionFilterLabel(filter, text)}
               </Button>
             ))}
           </div>
@@ -705,13 +721,13 @@ export function AccessRoleFormPage(): JSX.Element {
       </section>
 
       {!targetScopeReady && !isEditMode ? (
-        <Notice icon={<FiLayers />} tone="info" title="Сначала выберите область роли">
-          После выбора предприятия или отдела станут доступны только совместимые с этой областью разрешения.
+        <Notice icon={<FiLayers />} tone="info" title={text("Сначала выберите область роли", "Select the role scope first")}>
+          {text("После выбора предприятия или отдела станут доступны только совместимые с этой областью разрешения.", "After selecting an enterprise or department, only permissions compatible with that scope will be available.")}
         </Notice>
       ) : visibleSections.length === 0 ? (
         <EmptyState
-          description="Измените поисковый запрос или фильтр разрешений."
-          title="Разрешения не найдены"
+          description={text("Измените поисковый запрос или фильтр разрешений.", "Change the search query or permission filter.")}
+          title={text("Разрешения не найдены", "No permissions found")}
         />
       ) : (
         ["Основное", "Администрирование", "Профиль и настройки"].map((group) => {
@@ -722,7 +738,7 @@ export function AccessRoleFormPage(): JSX.Element {
           return (
             <section className="space-y-4" key={group}>
               <p className="app-accent-text px-1 text-xs font-black uppercase tracking-[0.16em]">
-                {group}
+                {rolePermissionGroupLabel(group as RolePermissionSectionDefinition["group"], text)}
               </p>
               <div className="grid gap-4 xl:grid-cols-2">
                 {sections.map(({ section, permissions: sectionPermissions }) => {
@@ -742,7 +758,7 @@ export function AccessRoleFormPage(): JSX.Element {
                     >
                       <header className="app-surface-muted app-border-soft flex items-center justify-between gap-4 border-b p-5">
                         <div className="flex items-center gap-2">
-                          <h2 className="app-text text-lg font-black">{section.title}</h2>
+                          <h2 className="app-text text-lg font-black">{rolePermissionSectionTitle(section, text)}</h2>
                           <span className="app-section-count">
                             {enabled}/{section.permissionCodes.length}
                           </span>
@@ -753,15 +769,23 @@ export function AccessRoleFormPage(): JSX.Element {
                           size="sm"
                           variant="secondary"
                         >
-                          {allEnabled ? "Снять доступные" : "Выбрать доступные"}
+                          {allEnabled
+                            ? text("Снять доступные", "Clear available")
+                            : text("Выбрать доступные", "Select available")}
                         </Button>
                       </header>
                       <div className="divide-y divide-[var(--color-border-soft)]">
                         {sectionPermissions.map((permission) => {
                           const checked = permissionCodes.includes(permission.code);
                           const delegable = delegableCodes.has(permission.code);
-                          const dependencies = (permissionDependencies[permission.code] ?? [])
-                            .map((code) => permissionMap.get(code)?.name ?? code);
+                          const dependencies = (permissionDependencies[permission.code] ?? []).map(
+                            (code) => {
+                              const dependency = permissionMap.get(code);
+                              return dependency
+                                ? accessPermissionName(dependency, text)
+                                : code;
+                            },
+                          );
                           const risk = getPermissionRiskLevel(permission.code);
                           return (
                             <div
@@ -770,18 +794,21 @@ export function AccessRoleFormPage(): JSX.Element {
                             >
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <p className="app-text text-sm font-black">{permission.name}</p>
+                                  <p className="app-text text-sm font-black">{accessPermissionName(permission, text)}</p>
+                                  <p className="app-muted mt-1 text-xs leading-5">
+                                    {accessPermissionDescription(permission, text)}
+                                  </p>
                                   {checked && <FiCheckCircle className="h-4 w-4 text-emerald-500" />}
-                                  {risk && <RiskBadge risk={risk} />}
+                                  {risk && <RiskBadge risk={risk} text={text} />}
                                   {!delegable && (
                                     <span className="app-surface-muted app-border app-meta inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-black">
-                                      <FiLock className="h-3 w-3" /> Недоступно
+                                      <FiLock className="h-3 w-3" /> {text("Недоступно", "Unavailable")}
                                     </span>
                                   )}
                                 </div>
                                 {dependencies.length > 0 && (
                                   <p className="app-permission-dependency mt-2">
-                                    Требует: {dependencies.join(" · ")}
+                                    {text("Требует:", "Requires:")} {dependencies.join(" · ")}
                                   </p>
                                 )}
                                 <code className="app-permission-code mt-2 block font-mono">
@@ -789,7 +816,7 @@ export function AccessRoleFormPage(): JSX.Element {
                                 </code>
                               </div>
                               <Toggle
-                                ariaLabel={permission.name}
+                                ariaLabel={accessPermissionName(permission, text)}
                                 checked={checked}
                                 disabled={editorLocked || !delegable}
                                 onCheckedChange={(checkedValue) =>
@@ -810,7 +837,7 @@ export function AccessRoleFormPage(): JSX.Element {
       )}
 
       <ConfirmDialog
-        cancelLabel="Отмена"
+        cancelLabel={text("Отмена", "Cancel")}
         confirmLabel={pendingInfo.confirmLabel}
         description={pendingInfo.description}
         onConfirm={confirmPending}
@@ -820,6 +847,24 @@ export function AccessRoleFormPage(): JSX.Element {
       />
     </div>
   );
+}
+
+function permissionFilterLabel(
+  filter: PermissionFilter,
+  text: (ru: string, en: string) => string,
+): string {
+  if (filter === "selected") return text("Выбранные", "Selected");
+  if (filter === "unselected") return text("Не выбранные", "Not selected");
+  return text("Все", "All");
+}
+
+function scopeOptionLabel(
+  scope: CustomRoleScopeType,
+  text: (ru: string, en: string) => string,
+): string {
+  if (scope === "enterprise") return text("Предприятие", "Enterprise");
+  if (scope === "department") return text("Отдел", "Department");
+  return text("Вся система", "Entire system");
 }
 
 function addWithDependencies(
@@ -929,12 +974,17 @@ function scopeLabelFor(
   scope: CustomRoleScopeType,
   enterpriseName: string,
   departmentName: string,
+  text: (ru: string, en: string) => string,
 ): string {
-  if (scope === "global") return "вся система";
+  if (scope === "global") return text("вся система", "entire system");
   if (scope === "enterprise") {
-    return enterpriseName ? `предприятие «${enterpriseName}»` : "предприятие не выбрано";
+    return enterpriseName
+      ? text(`предприятие «${enterpriseName}»`, `enterprise “${enterpriseName}”`)
+      : text("предприятие не выбрано", "enterprise not selected");
   }
-  return departmentName ? `отдел «${departmentName}»` : "отдел не выбран";
+  return departmentName
+    ? text(`отдел «${departmentName}»`, `department “${departmentName}”`)
+    : text("отдел не выбран", "department not selected");
 }
 
 function serializeRoleDraft(
@@ -957,31 +1007,65 @@ function describePendingChange(
   pending: PendingPermissionChange,
   permissionMap: Map<string, AccessPermission>,
   selectedCodes: string[],
+  text: (ru: string, en: string) => string,
 ): { title: string; description: string; confirmLabel: string } {
   if (!pending) {
-    return { title: "Подтвердить изменение", description: "", confirmLabel: "Продолжить" };
+    return {
+      title: text("Подтвердить изменение", "Confirm change"),
+      description: "",
+      confirmLabel: text("Продолжить", "Continue"),
+    };
   }
   if (pending.kind === "section") {
     const section = rolePermissionSections.find((item) => item.key === pending.sectionKey);
     return {
-      title: `${pending.checked ? "Включить" : "Снять"} разрешения «${section?.title ?? "раздела"}»?`,
+      title: text(
+        `${pending.checked ? "Включить" : "Снять"} разрешения «${section?.title ?? "раздела"}»?`,
+        `${pending.checked ? "Enable" : "Remove"} permissions for “${section ? rolePermissionSectionTitle(section, text) : "section"}”?`,
+      ),
       description: pending.checked
-        ? "Будут включены доступные разрешения раздела и их обязательные зависимости, включая критические действия."
-        : "Будут сняты разрешения раздела и зависящие от них действия.",
-      confirmLabel: pending.checked ? "Включить" : "Снять",
+        ? text(
+            "Будут включены доступные разрешения раздела и их обязательные зависимости, включая критические действия.",
+            "Available section permissions and their required dependencies, including critical actions, will be enabled.",
+          )
+        : text(
+            "Будут сняты разрешения раздела и зависящие от них действия.",
+            "Section permissions and actions that depend on them will be removed.",
+          ),
+      confirmLabel: pending.checked
+        ? text("Включить", "Enable")
+        : text("Снять", "Remove"),
     };
   }
   const permission = permissionMap.get(pending.code);
-  const dependents = getDependentPermissionCodes(selectedCodes, pending.code)
-    .map((code) => permissionMap.get(code)?.name ?? code);
+  const dependents = getDependentPermissionCodes(selectedCodes, pending.code).map(
+    (code) => {
+      const dependent = permissionMap.get(code);
+      return dependent ? accessPermissionName(dependent, text) : code;
+    },
+  );
+  const permissionLabel = permission
+    ? accessPermissionName(permission, text)
+    : pending.code;
   return {
-    title: `${pending.checked ? "Включить" : "Отключить"} «${permission?.name ?? pending.code}»?`,
+    title: text(
+      `${pending.checked ? "Включить" : "Отключить"} «${permission?.name ?? pending.code}»?`,
+      `${pending.checked ? "Enable" : "Disable"} “${permissionLabel}”?`,
+    ),
     description: pending.checked
-      ? "Это критическое разрешение. Обязательные зависимости будут включены автоматически."
+      ? text(
+          "Это критическое разрешение. Обязательные зависимости будут включены автоматически.",
+          "This is a critical permission. Required dependencies will be enabled automatically.",
+        )
       : dependents.length
-        ? `Вместе с ним будут отключены зависимые действия: ${dependents.join(", ")}.`
-        : "Разрешение будет отключено.",
-    confirmLabel: pending.checked ? "Включить" : "Отключить",
+        ? text(
+            `Вместе с ним будут отключены зависимые действия: ${dependents.join(", ")}.`,
+            `Dependent actions will also be disabled: ${dependents.join(", ")}.`,
+          )
+        : text("Разрешение будет отключено.", "The permission will be disabled."),
+    confirmLabel: pending.checked
+      ? text("Включить", "Enable")
+      : text("Отключить", "Disable"),
   };
 }
 
@@ -1023,7 +1107,13 @@ function positiveId(value: unknown): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-function RiskBadge({ risk }: { risk: "elevated" | "critical" }): JSX.Element {
+function RiskBadge({
+  risk,
+  text,
+}: {
+  risk: "elevated" | "critical";
+  text: (ru: string, en: string) => string;
+}): JSX.Element {
   const critical = risk === "critical";
   return (
     <span
@@ -1035,7 +1125,7 @@ function RiskBadge({ risk }: { risk: "elevated" | "critical" }): JSX.Element {
       ].join(" ")}
     >
       <FiAlertTriangle className="h-3 w-3" />
-      {critical ? "Критическое" : "Повышенный риск"}
+      {critical ? text("Критическое", "Critical") : text("Повышенный риск", "Elevated risk")}
     </span>
   );
 }

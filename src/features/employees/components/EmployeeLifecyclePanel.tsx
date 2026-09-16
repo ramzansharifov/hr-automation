@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
+import { useAppText } from "../../../shared/i18n";
 import { formatCurrency, formatDate } from "../../../shared/lib/format";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../../shared/types/hr";
@@ -44,6 +45,7 @@ export function EmployeeLifecyclePanel({
   locale,
   onEmployeeUpdated,
 }: EmployeeLifecyclePanelProps): JSX.Element {
+  const text = useAppText();
   const [history, setHistory] = useState<HrRecord[]>([]);
   const [enterprises, setEnterprises] = useState<SelectOption[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
@@ -188,7 +190,7 @@ export function EmployeeLifecyclePanel({
     event.preventDefault();
     if (!canChangeEmployment) return;
     if (!career.enterpriseId || !career.departmentId || !career.positionId) {
-      toast.error("Выберите предприятие, отдел и должность");
+      toast.error(text("Выберите предприятие, отдел и должность", "Select an enterprise, department, and position"));
       return;
     }
     setSaving(true);
@@ -210,11 +212,11 @@ export function EmployeeLifecyclePanel({
       setCareer((current) => ({ ...current, reason: "" }));
       toast.success(
         isPending
-          ? "Карточка сотрудника полностью оформлена"
-          : "Кадровое изменение сохранено в журнале",
+          ? text("Карточка сотрудника полностью оформлена", "Employee profile completed")
+          : text("Кадровое изменение сохранено в журнале", "Employment change saved to history"),
       );
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить кадровое изменение"));
+      toast.error(getErrorMessage(error, text("Не удалось сохранить кадровое изменение", "Failed to save employment change")));
     } finally {
       setSaving(false);
     }
@@ -224,7 +226,7 @@ export function EmployeeLifecyclePanel({
     event.preventDefault();
     if (!canChangeEmployment || !isTerminated) return;
     if (!rehire.enterpriseId || !rehire.departmentId || !rehire.positionId) {
-      toast.error("Выберите предприятие, отдел и должность");
+      toast.error(text("Выберите предприятие, отдел и должность", "Select an enterprise, department, and position"));
       return;
     }
 
@@ -250,9 +252,9 @@ export function EmployeeLifecyclePanel({
       await loadData();
       setRehireOpen(false);
       setRehire((current) => ({ ...current, reason: "" }));
-      toast.success("Повторный приём сохранён в кадровом журнале");
+      toast.success(text("Повторный приём сохранён в кадровом журнале", "Rehire saved to employment history"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось повторно принять сотрудника"));
+      toast.error(getErrorMessage(error, text("Не удалось повторно принять сотрудника", "Failed to rehire employee")));
     } finally {
       setSaving(false);
     }
@@ -272,9 +274,9 @@ export function EmployeeLifecyclePanel({
       await loadData();
       setTerminationOpen(false);
       setTermination((current) => ({ ...current, reason: "" }));
-      toast.success("Увольнение зафиксировано в кадровом журнале");
+      toast.success(text("Увольнение зафиксировано в кадровом журнале", "Termination recorded in employment history"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось оформить увольнение"));
+      toast.error(getErrorMessage(error, text("Не удалось оформить увольнение", "Failed to terminate employee")));
     } finally {
       setSaving(false);
     }
@@ -294,9 +296,9 @@ export function EmployeeLifecyclePanel({
       await loadData();
       setCorrectionOpen(false);
       setCorrection((current) => ({ ...current, reason: "" }));
-      toast.success("Дата приёма исправлена вместе с кадровым журналом");
+      toast.success(text("Дата приёма исправлена вместе с кадровым журналом", "Hire date corrected together with employment history"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось исправить дату приёма"));
+      toast.error(getErrorMessage(error, text("Не удалось исправить дату приёма", "Failed to correct hire date")));
     } finally {
       setSaving(false);
     }
@@ -307,32 +309,33 @@ export function EmployeeLifecyclePanel({
       <div className="grid gap-3 md:grid-cols-3">
         <Metric
           icon={<FiClock />}
-          label="Общий стаж"
+          label={text("Общий стаж", "Total tenure")}
           value={
             isPending
-              ? "Не начат"
+              ? text("Не начат", "Not started")
               : totalEmploymentDuration(
                   history,
                   isActive,
                   String(employee.hire_date ?? ""),
                   careerEndDate,
+                  locale,
                 )
           }
         />
         <Metric
           icon={<FiArrowUpRight />}
-          label="На текущей должности"
+          label={text("На текущей должности", "In current position")}
           value={
             isActive
               ? employee.position_id
-                ? durationBetween(currentAssignmentStartedAt)
-                : "Не назначена"
-              : "Работа завершена"
+                ? durationBetween(currentAssignmentStartedAt, undefined, locale)
+                : text("Не назначена", "Not assigned")
+              : text("Работа завершена", "Employment ended")
           }
         />
         <Metric
           icon={<FiDollarSign />}
-          label="Текущий оклад"
+          label={text("Текущий оклад", "Current salary")}
           value={formatCurrency(employee.salary, locale)}
         />
       </div>
@@ -341,10 +344,10 @@ export function EmployeeLifecyclePanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="app-accent-text text-xs font-black uppercase tracking-[0.18em]">
-              Карьера
+              {text("Карьера", "Career")}
             </p>
             <h2 className="app-text mt-1 text-xl font-black">
-              Кадровый журнал
+              {text("Кадровый журнал", "Employment history")}
             </h2>
           </div>
           {(canChangeEmployment || canTerminate) && (
@@ -354,7 +357,7 @@ export function EmployeeLifecyclePanel({
                   action="edit"
                   onClick={() => setCorrectionOpen(true)}
                 >
-                  Исправить дату приёма
+                  {text("Исправить дату приёма", "Correct hire date")}
                 </ActionButton>
               )}
               {(isActive || isPending) && canChangeEmployment && (
@@ -362,7 +365,7 @@ export function EmployeeLifecyclePanel({
                   action={isPending ? "hire" : "edit"}
                   onClick={() => setCareerOpen(true)}
                 >
-                  {isPending ? "Дооформить сотрудника" : "Кадровое изменение"}
+                  {isPending ? text("Дооформить сотрудника", "Complete employee profile") : text("Кадровое изменение", "Employment change")}
                 </ActionButton>
               )}
               {isActive && canTerminate && (
@@ -376,7 +379,7 @@ export function EmployeeLifecyclePanel({
                   action="hire"
                   onClick={() => setRehireOpen(true)}
                 >
-                  Принять повторно
+                  {text("Принять повторно", "Rehire")}
                 </ActionButton>
               )}
             </div>
@@ -384,11 +387,11 @@ export function EmployeeLifecyclePanel({
         </div>
         <div className="mt-5 space-y-3">
           {history.map((item) => (
-            <HistoryItem key={String(item.id)} item={item} locale={locale} />
+            <HistoryItem key={String(item.id)} item={item} locale={locale} text={text} />
           ))}
           {history.length === 0 && (
             <p className="app-muted rounded-2xl border border-dashed p-5 text-sm">
-              Кадровых событий пока нет.
+              {text("Кадровых событий пока нет.", "No employment events yet.")}
             </p>
           )}
         </div>
@@ -399,15 +402,15 @@ export function EmployeeLifecyclePanel({
           <Dialog
             open={careerOpen}
             onOpenChange={setCareerOpen}
-            title={isPending ? "Дооформить сотрудника" : "Кадровое изменение"}
+            title={isPending ? text("Дооформить сотрудника", "Complete employee profile") : text("Кадровое изменение", "Employment change")}
             description={
               isPending
-                ? "Заполните недостающие кадровые данные: предприятие, отдел, должность, дату и основание."
-                : "Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием."
+                ? text("Заполните недостающие кадровые данные: предприятие, отдел, должность, дату и основание.", "Fill in the missing employment data: enterprise, department, position, date, and reason.")
+                : text("Перевод между предприятиями и отделами, смена должности или оклада с обязательной датой и основанием.", "Transfer between enterprises or departments, position or salary changes, with a required date and reason.")
             }
           >
             <form className="grid gap-4" onSubmit={saveCareerChange}>
-              <Field label="Предприятие">
+              <Field label={text("Предприятие", "Enterprise")}>
                 <SearchableSelect
                   options={enterprises}
                   value={career.enterpriseId}
@@ -419,11 +422,11 @@ export function EmployeeLifecyclePanel({
                       positionId: "",
                     }))
                   }
-                  placeholder="Выберите предприятие"
-                  searchPlaceholder="Поиск предприятия"
+                  placeholder={text("Выберите предприятие", "Select enterprise")}
+                  searchPlaceholder={text("Поиск предприятия", "Search enterprise")}
                 />
               </Field>
-              <Field label="Отдел">
+              <Field label={text("Отдел", "Department")}>
                 <SearchableSelect
                   disabled={!career.enterpriseId}
                   options={availableDepartments}
@@ -433,13 +436,13 @@ export function EmployeeLifecyclePanel({
                   }
                   placeholder={
                     career.enterpriseId
-                      ? "Выберите отдел"
-                      : "Сначала выберите предприятие"
+                      ? text("Выберите отдел", "Select department")
+                      : text("Сначала выберите предприятие", "Select enterprise first")
                   }
-                  searchPlaceholder="Поиск отдела"
+                  searchPlaceholder={text("Поиск отдела", "Search department")}
                 />
               </Field>
-              <Field label="Новая должность">
+              <Field label={text("Новая должность", "New position")}>
                 <SearchableSelect
                   disabled={!career.departmentId}
                   options={availablePositions}
@@ -449,26 +452,26 @@ export function EmployeeLifecyclePanel({
                   }
                   placeholder={
                     career.departmentId
-                      ? "Выберите должность"
-                      : "Сначала выберите отдел"
+                      ? text("Выберите должность", "Select position")
+                      : text("Сначала выберите отдел", "Select department first")
                   }
-                  searchPlaceholder="Поиск должности"
+                  searchPlaceholder={text("Поиск должности", "Search position")}
                 />
               </Field>
-              <Field label="Оклад">
+              <Field label={text("Оклад", "Salary")}>
                 <Select
                   value={career.salaryMode}
                   onValueChange={(salaryMode) =>
                     setCareer((value) => ({ ...value, salaryMode }))
                   }
                   options={[
-                    { value: "keep", label: "Оставить без изменений" },
-                    { value: "custom", label: "Указать новый оклад" },
+                    { value: "keep", label: text("Оставить без изменений", "Keep unchanged") },
+                    { value: "custom", label: text("Указать новый оклад", "Set new salary") },
                   ]}
                 />
               </Field>
               {career.salaryMode === "custom" && (
-                <Field label="Новый оклад">
+                <Field label={text("Новый оклад", "New salary")}>
                   <Input
                     min="0"
                     type="number"
@@ -479,7 +482,7 @@ export function EmployeeLifecyclePanel({
                   />
                 </Field>
               )}
-              <Field label="Дата вступления в силу">
+              <Field label={text("Дата вступления в силу", "Effective date")}>
                 <Input
                   required
                   type="date"
@@ -489,10 +492,10 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Основание изменения">
+              <Field label={text("Основание изменения", "Change reason")}>
                 <Textarea
                   required
-                  placeholder="Например: перевод в другое предприятие по приказу №12"
+                  placeholder={text("Например: перевод в другое предприятие по приказу №12", "For example: transfer to another enterprise under order #12")}
                   rows={3}
                   value={career.reason}
                   onChange={(event) =>
@@ -503,7 +506,7 @@ export function EmployeeLifecyclePanel({
               <FormActions
               loading={saving}
               onCancel={() => setCareerOpen(false)}
-              submitLabel="Сохранить"
+              submitLabel={text("Сохранить", "Save")}
             />
             </form>
           </Dialog>
@@ -511,11 +514,11 @@ export function EmployeeLifecyclePanel({
           <Dialog
             open={correctionOpen}
             onOpenChange={setCorrectionOpen}
-            title="Исправить дату приёма"
-            description="Исправление синхронно обновит карточку сотрудника и исходную запись о приёме в кадровом журнале."
+            title={text("Исправить дату приёма", "Correct hire date")}
+            description={text("Исправление синхронно обновит карточку сотрудника и исходную запись о приёме в кадровом журнале.", "The correction will update both the employee profile and the original hire event in employment history.")}
           >
             <form className="grid gap-4" onSubmit={correctHireDate}>
-              <Field label="Дата приёма">
+              <Field label={text("Дата приёма", "Hire date")}>
                 <Input
                   required
                   type="date"
@@ -525,7 +528,7 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Причина исправления">
+              <Field label={text("Причина исправления", "Correction reason")}>
                 <Textarea
                   required
                   rows={3}
@@ -538,7 +541,7 @@ export function EmployeeLifecyclePanel({
               <FormActions
               loading={saving}
               onCancel={() => setCorrectionOpen(false)}
-              submitLabel="Сохранить"
+              submitLabel={text("Сохранить", "Save")}
             />
             </form>
           </Dialog>
@@ -549,11 +552,11 @@ export function EmployeeLifecyclePanel({
         <Dialog
           open={rehireOpen}
           onOpenChange={setRehireOpen}
-          title="Принять сотрудника повторно"
-          description="Будет продолжена существующая карточка сотрудника. Предыдущий период работы и увольнение останутся в кадровой истории."
+          title={text("Принять сотрудника повторно", "Rehire employee")}
+          description={text("Будет продолжена существующая карточка сотрудника. Предыдущий период работы и увольнение останутся в кадровой истории.", "The existing employee profile will be continued. Previous employment and termination remain in employment history.")}
         >
           <form className="grid gap-4" onSubmit={saveRehire}>
-            <Field label="Предприятие">
+            <Field label={text("Предприятие", "Enterprise")}>
               <SearchableSelect
                 options={enterprises}
                 value={rehire.enterpriseId}
@@ -565,11 +568,11 @@ export function EmployeeLifecyclePanel({
                     positionId: "",
                   }))
                 }
-                placeholder="Выберите предприятие"
-                searchPlaceholder="Поиск предприятия"
+                placeholder={text("Выберите предприятие", "Select enterprise")}
+                searchPlaceholder={text("Поиск предприятия", "Search enterprise")}
               />
             </Field>
-            <Field label="Отдел">
+            <Field label={text("Отдел", "Department")}>
               <SearchableSelect
                 disabled={!rehire.enterpriseId}
                 options={rehireDepartments}
@@ -583,13 +586,13 @@ export function EmployeeLifecyclePanel({
                 }
                 placeholder={
                   rehire.enterpriseId
-                    ? "Выберите отдел"
-                    : "Сначала выберите предприятие"
+                    ? text("Выберите отдел", "Select department")
+                    : text("Сначала выберите предприятие", "Select enterprise first")
                 }
-                searchPlaceholder="Поиск отдела"
+                searchPlaceholder={text("Поиск отдела", "Search department")}
               />
             </Field>
-            <Field label="Должность">
+            <Field label={text("Должность", "Position")}>
               <SearchableSelect
                 disabled={!rehire.departmentId}
                 options={rehirePositions}
@@ -599,14 +602,14 @@ export function EmployeeLifecyclePanel({
                 }
                 placeholder={
                   rehire.departmentId
-                    ? "Выберите должность"
-                    : "Сначала выберите отдел"
+                    ? text("Выберите должность", "Select position")
+                    : text("Сначала выберите отдел", "Select department first")
                 }
-                searchPlaceholder="Поиск должности"
+                searchPlaceholder={text("Поиск должности", "Search position")}
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Дата повторного приёма">
+              <Field label={text("Дата повторного приёма", "Rehire date")}>
                 <Input
                   required
                   type="date"
@@ -619,7 +622,7 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Оклад">
+              <Field label={text("Оклад", "Salary")}>
                 <Input
                   min="0"
                   required
@@ -633,7 +636,7 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Табельный номер">
+              <Field label={text("Табельный номер", "Employee number")}>
                 <Input
                   value={rehire.employeeNumber}
                   onChange={(event) =>
@@ -644,21 +647,21 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Тип занятости">
+              <Field label={text("Тип занятости", "Employment type")}>
                 <Select
                   value={rehire.employmentType}
                   onValueChange={(employmentType) =>
                     setRehire((value) => ({ ...value, employmentType }))
                   }
                   options={[
-                    { value: "full_time", label: "Полная занятость" },
-                    { value: "part_time", label: "Частичная занятость" },
-                    { value: "temporary", label: "Временная работа" },
-                    { value: "internship", label: "Стажировка" },
+                    { value: "full_time", label: text("Полная занятость", "Full-time") },
+                    { value: "part_time", label: text("Частичная занятость", "Part-time") },
+                    { value: "temporary", label: text("Временная работа", "Temporary") },
+                    { value: "internship", label: text("Стажировка", "Internship") },
                   ]}
                 />
               </Field>
-              <Field label="Номер договора">
+              <Field label={text("Номер договора", "Contract number")}>
                 <Input
                   value={rehire.contractNumber}
                   onChange={(event) =>
@@ -669,7 +672,7 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Дата договора">
+              <Field label={text("Дата договора", "Contract date")}>
                 <Input
                   type="date"
                   value={rehire.contractDate}
@@ -681,7 +684,7 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Окончание договора">
+              <Field label={text("Окончание договора", "Contract end date")}>
                 <Input
                   type="date"
                   value={rehire.contractEndDate}
@@ -693,7 +696,7 @@ export function EmployeeLifecyclePanel({
                   }
                 />
               </Field>
-              <Field label="Испытательный срок до">
+              <Field label={text("Испытательный срок до", "Probation end date")}>
                 <Input
                   type="date"
                   value={rehire.probationEndDate}
@@ -706,7 +709,7 @@ export function EmployeeLifecyclePanel({
                 />
               </Field>
             </div>
-            <Field label="Место работы">
+            <Field label={text("Место работы", "Workplace")}>
               <Input
                 value={rehire.workplace}
                 onChange={(event) =>
@@ -717,7 +720,7 @@ export function EmployeeLifecyclePanel({
                 }
               />
             </Field>
-            <Field label="Основание повторного приёма">
+            <Field label={text("Основание повторного приёма", "Rehire reason")}>
               <Textarea
                 required
                 rows={3}
@@ -728,14 +731,14 @@ export function EmployeeLifecyclePanel({
                     reason: event.target.value,
                   }))
                 }
-                placeholder="Например: приказ о повторном приёме №15"
+                placeholder={text("Например: приказ о повторном приёме №15", "For example: rehire order #15")}
               />
             </Field>
             <FormActions
               loading={saving}
               onCancel={() => setRehireOpen(false)}
               submitAction="hire"
-              submitLabel="Принять повторно"
+              submitLabel={text("Принять повторно", "Rehire")}
             />
           </form>
         </Dialog>
@@ -745,11 +748,11 @@ export function EmployeeLifecyclePanel({
         <Dialog
           open={terminationOpen}
           onOpenChange={setTerminationOpen}
-          title="Уволить сотрудника"
-          description="Карточка и вся кадровая история останутся в системе. Связанная учётная запись будет заблокирована автоматически."
+          title={text("Уволить сотрудника", "Terminate employee")}
+          description={text("Карточка и вся кадровая история останутся в системе. Связанная учётная запись будет заблокирована автоматически.", "The employee profile and full employment history will remain in the system. The linked account will be blocked automatically.")}
         >
           <form className="grid gap-4" onSubmit={terminate}>
-            <Field label="Дата увольнения">
+            <Field label={text("Дата увольнения", "Termination date")}>
               <Input
                 required
                 type="date"
@@ -762,10 +765,10 @@ export function EmployeeLifecyclePanel({
                 }
               />
             </Field>
-            <Field label="Основание увольнения">
+            <Field label={text("Основание увольнения", "Termination reason")}>
               <Textarea
                 required
-                placeholder="Приказ, заявление или иное основание"
+                placeholder={text("Приказ, заявление или иное основание", "Order, resignation letter, or other reason")}
                 rows={4}
                 value={termination.reason}
                 onChange={(event) =>
@@ -774,13 +777,13 @@ export function EmployeeLifecyclePanel({
               />
             </Field>
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-              Сотрудник не удаляется: он переходит в завершённый кадровый статус, а данные остаются доступны в истории.
+              {text("Сотрудник не удаляется: он переходит в завершённый кадровый статус, а данные остаются доступны в истории.", "The employee is not deleted: their employment status becomes completed and the data remains available in history.")}
             </div>
             <FormActions
               loading={saving}
               onCancel={() => setTerminationOpen(false)}
               submitAction="terminate"
-              submitLabel="Подтвердить увольнение"
+              submitLabel={text("Подтвердить увольнение", "Confirm termination")}
             />
           </form>
         </Dialog>
@@ -829,9 +832,11 @@ function Field({
 function HistoryItem({
   item,
   locale,
+  text,
 }: {
   item: HrRecord;
   locale: string;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   const changeType = String(item.change_type ?? "");
   const terminated = changeType === "terminated";
@@ -848,20 +853,20 @@ function HistoryItem({
     previousDepartment !== nextDepartment;
 
   const title = terminated
-    ? "Увольнение"
+    ? text("Увольнение", "Termination")
     : changeType === "rehired"
-      ? "Повторный приём на работу"
+      ? text("Повторный приём на работу", "Rehire")
       : hired
-        ? "Приём на работу"
+        ? text("Приём на работу", "Hire")
       : changeType === "enterprise_director"
-        ? "Назначение руководителем предприятия"
+        ? text("Назначение руководителем предприятия", "Enterprise director assignment")
         : changeType === "department_leader"
-          ? "Назначение руководителем отдела"
+          ? text("Назначение руководителем отдела", "Department head assignment")
           : enterpriseChanged
-            ? "Перевод между предприятиями"
+            ? text("Перевод между предприятиями", "Transfer between enterprises")
             : departmentChanged
-              ? "Перевод между отделами"
-              : String(item.new_position_name ?? "Кадровое изменение");
+              ? text("Перевод между отделами", "Transfer between departments")
+              : String(item.new_position_name ?? text("Кадровое изменение", "Employment change"));
 
   const enterprise = transitionValue(
     previousEnterprise,
@@ -896,10 +901,10 @@ function HistoryItem({
         </time>
       </div>
       <p className="app-muted mt-2 text-sm">
-        {context.length > 0 ? context.join(" · ") : "Оргструктура не указана"}
+        {context.length > 0 ? context.join(" · ") : text("Оргструктура не указана", "Organization structure not specified")}
       </p>
       <p className="app-muted mt-2 text-xs">
-        {String(item.reason ?? "Кадровое изменение")}
+        {String(item.reason ?? text("Кадровое изменение", "Employment change"))}
       </p>
     </article>
   );
@@ -923,7 +928,8 @@ function totalEmploymentDuration(
   history: HrRecord[],
   isActive: boolean,
   fallbackStart: string,
-  fallbackEnd?: string,
+  fallbackEnd: string | undefined,
+  locale: string,
 ): string {
   const events = [...history].sort((left, right) =>
     String(left.effective_at ?? "").localeCompare(
@@ -958,16 +964,20 @@ function totalEmploymentDuration(
   }
 
   if (totalMs <= 0) {
-    return durationBetween(fallbackStart, fallbackEnd);
+    return durationBetween(fallbackStart, fallbackEnd, locale);
   }
 
   const months = Math.max(0, Math.floor(totalMs / 2629800000));
   const years = Math.floor(months / 12);
   const rest = months % 12;
-  return years ? `${years} г. ${rest} мес.` : `${rest} мес.`;
+  return formatDuration(years, rest, locale);
 }
 
-function durationBetween(startDate: string, endDate?: string): string {
+function durationBetween(
+  startDate: string,
+  endDate: string | undefined,
+  locale: string,
+): string {
   if (!startDate) return "—";
   const start = new Date(`${startDate}T00:00:00`).getTime();
   const end = endDate
@@ -977,7 +987,17 @@ function durationBetween(startDate: string, endDate?: string): string {
   const months = Math.max(0, Math.floor((end - start) / 2629800000));
   const years = Math.floor(months / 12);
   const rest = months % 12;
-  return years ? `${years} г. ${rest} мес.` : `${rest} мес.`;
+  return formatDuration(years, rest, locale);
+}
+
+function formatDuration(years: number, months: number, locale: string): string {
+  return locale.startsWith("en")
+    ? years
+      ? `${years} yr ${months} mo`
+      : `${months} mo`
+    : years
+      ? `${years} г. ${months} мес.`
+      : `${months} мес.`;
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {

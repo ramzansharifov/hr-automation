@@ -15,12 +15,14 @@ import { HrEntityTable } from "../../features/hr-table/HrEntityTable";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import { getLeadershipRole } from "../../shared/access/leadership";
 import { getScopedAdminRole } from "../../shared/access/scopedAdmin";
+import { useAppText } from "../../shared/i18n";
 import {
   EMPLOYEE_FILTERS_EVENT,
   getStoredEmployeeHrFilters,
 } from "../../features/filters/employeeFiltersStore";
 
 export function EmployeesPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const { hasPermission, session } = useAuth();
   const canCreateEmployees = hasPermission("employees.create");
@@ -77,14 +79,14 @@ export function EmployeesPage(): JSX.Element {
         toast.error(
           error instanceof Error
             ? error.message
-            : "Не удалось подготовить список сотрудников",
+            : text("Не удалось подготовить список сотрудников", "Failed to prepare employee list"),
         );
       });
 
     return () => {
       active = false;
     };
-  }, [isLeadershipDirectory, session.employeeId]);
+  }, [isLeadershipDirectory, session.employeeId, text]);
 
   const tableFilters = useMemo(() => {
     if (!isLeadershipDirectory || !Array.isArray(directoryEmployeeIds)) {
@@ -113,35 +115,50 @@ export function EmployeesPage(): JSX.Element {
       if (!result.canceled) {
         toast.success(
           scopedAdminRole === "enterprise_admin"
-            ? "Реестр сотрудников предприятия экспортирован"
+            ? text("Реестр сотрудников предприятия экспортирован", "Enterprise employee registry exported")
             : scopedAdminRole === "department_admin"
-              ? "Реестр сотрудников отдела экспортирован"
-              : "Реестр сотрудников экспортирован",
+              ? text("Реестр сотрудников отдела экспортирован", "Department employee registry exported")
+              : text("Реестр сотрудников экспортирован", "Employee registry exported"),
         );
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Не удалось экспортировать сотрудников",
+        error instanceof Error ? error.message : text("Не удалось экспортировать сотрудников", "Failed to export employees"),
       );
     }
   }
 
   const title =
     leadershipRole === "enterprise_director" || scopedAdminRole === "enterprise_admin"
-      ? "Сотрудники предприятия"
+      ? text("Сотрудники предприятия", "Enterprise employees")
       : leadershipRole === "department_head" || scopedAdminRole === "department_admin"
-        ? "Сотрудники отдела"
-        : "Сотрудники";
+        ? text("Сотрудники отдела", "Department employees")
+        : text("Сотрудники", "Employees");
   const description =
     leadershipRole === "enterprise_director"
-      ? `Сотрудники ${session.enterpriseName || "вашего предприятия"}. Реестр автоматически ограничен предприятием, которым вы руководите, и не включает вашу собственную карточку.`
+      ? text(
+          `Сотрудники ${session.enterpriseName || "вашего предприятия"}. Реестр автоматически ограничен предприятием, которым вы руководите, и не включает вашу собственную карточку.`,
+          `Employees of ${session.enterpriseName || "your enterprise"}. The registry is automatically limited to the enterprise you lead and excludes your own profile.`,
+        )
       : leadershipRole === "department_head"
-        ? `Сотрудники ${session.departmentName || "вашего отдела"}. Реестр автоматически ограничен вашим подразделением и не включает вашу собственную карточку.`
+        ? text(
+            `Сотрудники ${session.departmentName || "вашего отдела"}. Реестр автоматически ограничен вашим подразделением и не включает вашу собственную карточку.`,
+            `Employees of ${session.departmentName || "your department"}. The registry is automatically limited to your department and excludes your own profile.`,
+          )
         : scopedAdminRole === "enterprise_admin"
-          ? `Полный кадровый реестр ${session.enterpriseName || "вашего предприятия"}, включая сотрудников, которым отдел или должность ещё не назначены. Все действия автоматически ограничены этим предприятием.`
+          ? text(
+              `Полный кадровый реестр ${session.enterpriseName || "вашего предприятия"}, включая сотрудников, которым отдел или должность ещё не назначены. Все действия автоматически ограничены этим предприятием.`,
+              `Full HR registry for ${session.enterpriseName || "your enterprise"}, including employees who do not yet have a department or position. All actions are limited to this enterprise.`,
+            )
           : scopedAdminRole === "department_admin"
-            ? `Кадровый реестр ${session.departmentName || "вашего отдела"}. Все действия автоматически ограничены этим подразделением.`
-            : "Единый реестр сотрудников, их должностей, подразделений и кадрового статуса.";
+            ? text(
+                `Кадровый реестр ${session.departmentName || "вашего отдела"}. Все действия автоматически ограничены этим подразделением.`,
+                `HR registry for ${session.departmentName || "your department"}. All actions are limited to this department.`,
+              )
+            : text(
+                "Единый реестр сотрудников, их должностей, подразделений и кадрового статуса.",
+                "Unified registry of employees, positions, departments, and employment status.",
+              );
 
   return (
     <div className="space-y-6">
@@ -156,7 +173,7 @@ export function EmployeesPage(): JSX.Element {
                   action="export"
                   onClick={() => void exportEmployees()}
                 >
-                  Экспорт CSV
+                  {text("Экспорт CSV", "Export CSV")}
                 </ActionButton>
               )}
               {canCreateEmployees && (
@@ -164,7 +181,7 @@ export function EmployeesPage(): JSX.Element {
                   action="create"
                   onClick={() => navigate("/employees/new")}
                 >
-                  Добавить сотрудника
+                  {text("Добавить сотрудника", "Add employee")}
                 </ActionButton>
               )}
             </div>
@@ -175,7 +192,7 @@ export function EmployeesPage(): JSX.Element {
 
       {isLeadershipDirectory && directoryEmployeeIds === null ? (
         <section className="app-surface app-border rounded-[28px] border px-5 py-16">
-          <LoadingState label="Подготовка списка сотрудников..." />
+          <LoadingState label={text("Подготовка списка сотрудников...", "Preparing employee list...")} />
         </section>
       ) : (
         <HrEntityTable

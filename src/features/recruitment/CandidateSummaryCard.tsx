@@ -6,6 +6,7 @@ import {
   FiPhone,
 } from "react-icons/fi";
 
+import { appText, useAppText } from "../../shared/i18n";
 import type { HrRecord } from "../../shared/types/hr";
 import { ActionButton, RecordActions } from "../../shared/ui";
 import { candidateStatusLabel, candidateStatusTone } from "./candidateWorkflow";
@@ -39,6 +40,7 @@ export function CandidateSummaryCard({
   rank,
   showStructure = true,
 }: CandidateSummaryCardProps): JSX.Element {
+  const text = useAppText();
   const name = candidateFullName(candidate);
   const match = clampPercentage(Number(candidate.match_percentage ?? 0));
   const skills = parseSkills(candidate.skills_summary);
@@ -91,7 +93,7 @@ export function CandidateSummaryCard({
                   <RecruitmentBadge tone="success">
                     <span className="inline-flex items-center gap-1.5">
                       <FiAward className="h-3.5 w-3.5" />
-                      Лучший кандидат
+                      {text("Лучший кандидат", "Best candidate")}
                     </span>
                   </RecruitmentBadge>
                 )}
@@ -131,7 +133,7 @@ export function CandidateSummaryCard({
         <div className="app-surface-muted app-border rounded-2xl border p-4 xl:min-h-[132px]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">Соответствие</p>
+              <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">{text("Соответствие", "Match")}</p>
               <p className="app-text mt-1 text-3xl font-black tracking-tight">{match}%</p>
             </div>
             <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${matchTone(match)}`}>
@@ -152,19 +154,19 @@ export function CandidateSummaryCard({
         <div className="app-border-soft mt-5 border-t pt-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="app-text text-sm font-black">Навыки</p>
+              <p className="app-text text-sm font-black">{text("Навыки", "Skills")}</p>
               <p className="app-muted mt-0.5 text-xs font-semibold">
-                Оценка кандидата относительно требуемого уровня
+                {text("Оценка кандидата относительно требуемого уровня", "Candidate score compared with the required level")}
               </p>
             </div>
-            <span className="app-muted text-xs font-bold">Оценено: {skills.length}</span>
+            <span className="app-muted text-xs font-bold">{text("Оценено:", "Scored:")} {skills.length}</span>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {skills.slice(0, 6).map((skill) => <SkillChip key={skill.raw} skill={skill} />)}
             {skills.length > 6 && (
               <span className="app-surface-muted app-border app-text-soft inline-flex min-h-8 items-center rounded-xl border px-3 text-xs font-black">
-                +{skills.length - 6} ещё
+                +{skills.length - 6} {text("ещё", "more")}
               </span>
             )}
           </div>
@@ -176,11 +178,11 @@ export function CandidateSummaryCard({
         onClick={stop}
       >
         <ActionButton action="open" onClick={onOpen} type="button">
-          Открыть
+          {text("Открыть", "Open")}
         </ActionButton>
         <RecordActions
-          deleteLabel="Удалить кандидата"
-          editLabel="Редактировать кандидата"
+          deleteLabel={text("Удалить кандидата", "Delete candidate")}
+          editLabel={text("Редактировать кандидата", "Edit candidate")}
           onDelete={
             canManage && onDelete && !candidate.employee_id
               ? onDelete
@@ -196,11 +198,12 @@ export function CandidateSummaryCard({
 }
 
 function SkillChip({ skill }: { skill: SkillSummary }): JSX.Element {
+  const text = useAppText();
   return (
     <span className={`inline-flex min-h-9 items-center gap-2 rounded-xl border px-3 text-xs font-black ${skillTone(skill)}`}>
       <span>{skill.name}</span>
       {skill.score !== null && skill.required !== null ? (
-        <span className="opacity-80">{skill.score}/10 · треб. {skill.required}</span>
+        <span className="opacity-80">{skill.score}/10 · {text("треб.", "req.")} {skill.required}</span>
       ) : null}
     </span>
   );
@@ -238,14 +241,14 @@ function candidateFullName(candidate: HrRecord): string {
   return [candidate.last_name, candidate.first_name, candidate.middle_name]
     .map((value) => String(value ?? "").trim())
     .filter(Boolean)
-    .join(" ") || "Без имени";
+    .join(" ") || appText("Без имени", "Unnamed");
 }
 
 function candidateInitials(candidate: HrRecord): string {
   const parts = [candidate.first_name, candidate.last_name]
     .map((value) => String(value ?? "").trim())
     .filter(Boolean);
-  return parts.length > 0 ? parts.map((part) => part[0]?.toUpperCase()).join("").slice(0, 2) : "К";
+  return parts.length > 0 ? parts.map((part) => part[0]?.toUpperCase()).join("").slice(0, 2) : appText("К", "C");
 }
 
 function clampPercentage(value: number): number {
@@ -261,9 +264,9 @@ function matchTone(value: number): string {
 }
 
 function matchLabel(value: number): string {
-  if (value >= 90) return "Отличное соответствие требованиям";
-  if (value >= 75) return "Высокое соответствие";
-  if (value >= 55) return "Есть небольшие пробелы";
-  if (value >= 35) return "Требуется дополнительная оценка";
-  return "Есть существенные пробелы";
+  if (value >= 90) return appText("Отличное соответствие требованиям", "Excellent match");
+  if (value >= 75) return appText("Высокое соответствие", "High match");
+  if (value >= 55) return appText("Есть небольшие пробелы", "Minor gaps");
+  if (value >= 35) return appText("Требуется дополнительная оценка", "Additional assessment required");
+  return appText("Есть существенные пробелы", "Significant gaps");
 }
