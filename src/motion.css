@@ -350,12 +350,12 @@ nav a[data-active="true"]::after {
   from {
     opacity: 0;
     scale: 0.955;
-    translate: 0 8px;
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     scale: 1;
-    translate: 0 0;
+    transform: translateY(0);
   }
 }
 
