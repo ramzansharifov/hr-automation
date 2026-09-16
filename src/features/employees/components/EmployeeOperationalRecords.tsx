@@ -3,6 +3,7 @@ import { FiCalendar } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
+import { appText, useAppText } from "../../../shared/i18n";
 import { formatDate, humanizeStatus } from "../../../shared/lib/format";
 import { hrApiClient } from "../../../shared/lib/hrApiClient";
 import type { HrRecord } from "../../../shared/types/hr";
@@ -40,6 +41,7 @@ export function EmployeeVacationsPanel({
   locale,
   onBeforeAction,
 }: EmployeeOperationalPanelProps): JSX.Element {
+  const text = useAppText();
   const { t } = useTranslation();
   const [records, setRecords] = useState<HrRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,13 +56,13 @@ export function EmployeeVacationsPanel({
     try {
       setRecords(await hrApiClient.listEmployeeVacations(employeeId));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить отпуска сотрудника"), {
+      toast.error(getErrorMessage(error, text("Не удалось загрузить отпуска сотрудника", "Failed to load employee vacations")), {
         toastId: `employee-vacations-load-${employeeId}`,
       });
     } finally {
       setIsLoading(false);
     }
-  }, [employeeId]);
+  }, [employeeId, text]);
 
   useEffect(() => {
     void loadRecords();
@@ -74,7 +76,7 @@ export function EmployeeVacationsPanel({
       setEditingRecord(null);
       setIsFormOpen(true);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось подготовить рабочую область"), {
+      toast.error(getErrorMessage(error, text("Не удалось подготовить рабочую область", "Failed to prepare workspace")), {
         toastId: `employee-vacations-workspace-${employeeId}`,
       });
     }
@@ -88,7 +90,7 @@ export function EmployeeVacationsPanel({
       setEditingRecord(record);
       setIsFormOpen(true);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось подготовить рабочую область"), {
+      toast.error(getErrorMessage(error, text("Не удалось подготовить рабочую область", "Failed to prepare workspace")), {
         toastId: `employee-vacations-workspace-${employeeId}`,
       });
     }
@@ -140,13 +142,13 @@ export function EmployeeVacationsPanel({
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="app-text text-xl font-black">Отпуска сотрудника</h2>
+                <h2 className="app-text text-xl font-black">{text("Отпуска сотрудника", "Employee vacations")}</h2>
                 <span className="app-accent-soft rounded-full border px-2.5 py-1 text-xs font-black">
                   {records.length}
                 </span>
               </div>
               <p className="app-muted mt-2 max-w-3xl text-sm font-medium">
-                Персональная история отпусков: вид, период, статус, оплачиваемость и лицо, согласовавшее отпуск.
+                {text("Персональная история отпусков: вид, период, статус, оплачиваемость и лицо, согласовавшее отпуск.", "Personal vacation history: type, period, status, payment, and approver.")}
               </p>
             </div>
           </div>
@@ -156,11 +158,11 @@ export function EmployeeVacationsPanel({
               action="open"
               to={`/vacations?employee=${employeeId}`}
             >
-              Открыть общий реестр
+              {text("Открыть общий реестр", "Open full registry")}
             </ActionLink>
             {canCreate && (
               <ActionButton action="create" onClick={() => void openCreate()}>
-                Оформить отпуск
+                {text("Оформить отпуск", "Create vacation")}
               </ActionButton>
             )}
           </div>
@@ -168,14 +170,14 @@ export function EmployeeVacationsPanel({
       </section>
 
       {isLoading ? (
-        <LoadingState label="Загрузка отпусков..." />
+        <LoadingState label={text("Загрузка отпусков...", "Loading vacations...")} />
       ) : records.length === 0 ? (
         <EmptyState
-          title="У сотрудника пока нет отпусков"
+          title={text("У сотрудника пока нет отпусков", "Employee has no vacations yet")}
           description={
             canCreate
-              ? "Оформите первый отпуск сотрудника или откройте общий реестр отпусков."
-              : "Записи об отпусках пока отсутствуют."
+              ? text("Оформите первый отпуск сотрудника или откройте общий реестр отпусков.", "Create the employee’s first vacation or open the full vacation registry.")
+              : text("Записи об отпусках пока отсутствуют.", "There are no vacation records yet.")
           }
         />
       ) : (
@@ -197,6 +199,7 @@ export function EmployeeVacationsPanel({
               locale={locale}
               record={record}
               statusLabel={humanizeVacationStatus(record.status, t)}
+              text={text}
             />
           ))}
         </div>
@@ -240,11 +243,13 @@ function VacationCard({
   locale,
   record,
   statusLabel,
+  text,
 }: {
   actions?: VacationCardActions;
   locale: string;
   record: HrRecord;
   statusLabel: string;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   return (
     <article className="app-surface app-border rounded-[24px] border p-5">
@@ -255,11 +260,11 @@ function VacationCard({
               {statusLabel}
             </span>
             <span className="app-surface-muted app-border rounded-full border px-3 py-1 text-xs font-bold">
-              {Number(record.is_paid) === 1 ? "Оплачиваемый" : "Неоплачиваемый"}
+              {Number(record.is_paid) === 1 ? text("Оплачиваемый", "Paid") : text("Неоплачиваемый", "Unpaid")}
             </span>
           </div>
           <h3 className="app-text mt-3 text-lg font-black">
-            {getString(record.vacation_type_name) || "Отпуск"}
+            {getString(record.vacation_type_name) || text("Отпуск", "Vacation")}
           </h3>
           <p className="app-muted mt-2 text-sm font-semibold">
             {formatDate(record.starts_at, locale)} — {formatDate(record.ends_at, locale)}
@@ -268,8 +273,8 @@ function VacationCard({
         {actions && (
           <RecordActions
             className="shrink-0"
-            deleteLabel="Удалить отпуск"
-            editLabel="Редактировать отпуск"
+            deleteLabel={text("Удалить отпуск", "Delete vacation")}
+            editLabel={text("Редактировать отпуск", "Edit vacation")}
             onDelete={actions.onDelete}
             onEdit={actions.onEdit}
             size="md"
@@ -278,9 +283,9 @@ function VacationCard({
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <RecordMetric label="Дней" value={getString(record.days_count) || "—"} />
+        <RecordMetric label={text("Дней", "Days")} value={getString(record.days_count) || "—"} />
         <RecordMetric
-          label="Дата согласования"
+          label={text("Дата согласования", "Approval date")}
           value={record.approved_at ? formatDate(record.approved_at, locale) : "—"}
         />
       </div>
@@ -289,13 +294,13 @@ function VacationCard({
         <div className="app-border-soft mt-5 grid gap-3 border-t pt-4 text-sm">
           {Boolean(record.approved_by_name) && (
             <p className="app-text-soft">
-              <span className="app-text font-black">Согласовал: </span>
+              <span className="app-text font-black">{text("Согласовал:", "Approved by:")} </span>
               {getString(record.approved_by_name)}
             </p>
           )}
           {Boolean(record.reason) && (
             <p className="app-text-soft">
-              <span className="app-text font-black">Основание: </span>
+              <span className="app-text font-black">{text("Основание:", "Reason:")} </span>
               {getString(record.reason)}
             </p>
           )}
@@ -320,7 +325,7 @@ function canDeleteVacation(record: HrRecord): boolean {
 
 function getRecordId(record: HrRecord | null): number {
   const id = Number(record?.id);
-  if (!Number.isFinite(id)) throw new Error("Не удалось определить запись отпуска");
+  if (!Number.isFinite(id)) throw new Error(appText("Не удалось определить запись отпуска", "Unable to identify vacation record"));
   return id;
 }
 
@@ -329,13 +334,14 @@ function getString(value: unknown): string {
 }
 
 function humanizeVacationStatus(value: unknown, t: (key: string) => string): string {
-  const labels: Record<string, string> = {
-    planned: "Запланирован",
-    approved: "Согласован",
-    rejected: "Отклонён",
-    completed: "Завершён",
+  const labels: Record<string, [string, string]> = {
+    planned: ["Запланирован", "Planned"],
+    approved: ["Согласован", "Approved"],
+    rejected: ["Отклонён", "Rejected"],
+    completed: ["Завершён", "Completed"],
   };
-  return labels[String(value ?? "")] ?? humanizeStatus(value, t);
+  const label = labels[String(value ?? "")];
+  return label ? appText(label[0], label[1]) : humanizeStatus(value, t);
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
