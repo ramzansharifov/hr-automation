@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
+import { appText } from "../../../shared/i18n";
 import { toast } from "react-toastify";
 import type { HrRecord } from "../../../shared/types/hr";
 import { Dialog, FormActions } from "../../../shared/ui";
@@ -112,7 +113,7 @@ export function EmployeeSectionEditDialog({
       toast.error(
         getUserFacingErrorMessage(
           error,
-          "Не удалось сохранить изменения. Проверьте заполненные данные",
+          appText("Не удалось сохранить изменения. Проверьте заполненные данные", "Failed to save changes. Check the entered data"),
         ),
       );
     } finally {
@@ -124,7 +125,10 @@ export function EmployeeSectionEditDialog({
     <Dialog
       description={
         activeSection === "company"
-          ? "Здесь редактируются кадровые реквизиты. Отдел, должность, оклад, дата приёма и увольнение изменяются только через кадровые действия."
+          ? appText(
+              "Здесь редактируются кадровые реквизиты. Отдел, должность, оклад, дата приёма и увольнение изменяются только через кадровые действия.",
+              "Employment details are edited here. Department, position, salary, hire date, and termination are changed only through employment actions.",
+            )
           : t("employeesDetails.edit.description")
       }
       footer={
