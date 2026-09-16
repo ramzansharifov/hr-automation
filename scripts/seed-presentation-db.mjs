@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { app } from "electron";
 import { createHash, scryptSync } from "node:crypto";
 import {
   copyFileSync,
@@ -560,8 +561,21 @@ function runLiveSeed() {
   }
 }
 
-if (VERIFY_MODE) {
-  runVerification();
-} else {
-  runLiveSeed();
+async function main() {
+  await app.whenReady();
+
+  try {
+    if (VERIFY_MODE) {
+      runVerification();
+    } else {
+      runLiveSeed();
+    }
+  } finally {
+    app.quit();
+  }
 }
+
+main().catch(function (error) {
+  console.error(error);
+  app.exit(1);
+});
