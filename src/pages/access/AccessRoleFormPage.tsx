@@ -743,7 +743,7 @@ export function AccessRoleFormPage(): JSX.Element {
                       <header className="app-surface-muted app-border-soft flex items-center justify-between gap-4 border-b p-5">
                         <div className="flex items-center gap-2">
                           <h2 className="app-text text-lg font-black">{section.title}</h2>
-                          <span className="app-muted text-xs font-bold">
+                          <span className="app-section-count">
                             {enabled}/{section.permissionCodes.length}
                           </span>
                         </div>
@@ -774,17 +774,17 @@ export function AccessRoleFormPage(): JSX.Element {
                                   {checked && <FiCheckCircle className="h-4 w-4 text-emerald-500" />}
                                   {risk && <RiskBadge risk={risk} />}
                                   {!delegable && (
-                                    <span className="app-surface-muted app-border app-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black">
+                                    <span className="app-surface-muted app-border app-meta inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-black">
                                       <FiLock className="h-3 w-3" /> Недоступно
                                     </span>
                                   )}
                                 </div>
                                 {dependencies.length > 0 && (
-                                  <p className="mt-2 text-[11px] font-semibold text-sky-700 dark:text-sky-300">
+                                  <p className="app-permission-dependency mt-2">
                                     Требует: {dependencies.join(" · ")}
                                   </p>
                                 )}
-                                <code className="app-muted mt-2 block text-[10px] font-bold">
+                                <code className="app-permission-code mt-2 block font-mono">
                                   {permission.code}
                                 </code>
                               </div>
@@ -1028,10 +1028,10 @@ function RiskBadge({ risk }: { risk: "elevated" | "critical" }): JSX.Element {
   return (
     <span
       className={[
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black",
+        "app-risk-badge inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
         critical
-          ? "border-rose-300/70 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300"
-          : "border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300",
+          ? "app-risk-badge--critical"
+          : "app-risk-badge--elevated",
       ].join(" ")}
     >
       <FiAlertTriangle className="h-3 w-3" />
