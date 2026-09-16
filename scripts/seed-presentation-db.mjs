@@ -445,17 +445,12 @@ function seedDatabase(database, userDataRoot) {
     "utf8",
   );
 
-  database.exec(sql);
-
-  const accessTransaction = database.transaction(function () {
+  const transaction = database.transaction(function () {
+    database.exec(sql);
     insertUsersAndAccess(database);
-  });
-  accessTransaction();
-
-  const documentTransaction = database.transaction(function () {
     createDocuments(database, userDataRoot);
   });
-  documentTransaction();
+  transaction();
 
   return validateSeed(database);
 }
