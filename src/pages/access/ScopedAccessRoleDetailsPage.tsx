@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessPermission,
@@ -27,8 +28,10 @@ import {
 } from "../../shared/ui";
 import { AccessMetric, StatusBadge, getErrorMessage } from "./AccessControlShared";
 import { groupPermissions } from "./accessControlData";
+import { accessPermissionName, accessRoleName } from "./accessTranslations";
 
 export function ScopedAccessRoleDetailsPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const params = useParams();
   const roleId = Number(params.id);
@@ -55,11 +58,11 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
       setPermissions(permissionData);
       setUsers(userData);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить роль"));
+      toast.error(getErrorMessage(error, text("Не удалось загрузить роль", "Failed to load role")));
     } finally {
       setIsLoading(false);
     }
-  }, [canViewUsers]);
+  }, [canViewUsers, text]);
 
   useEffect(() => {
     void loadData();
@@ -77,12 +80,12 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
     const query = search.trim().toLocaleLowerCase();
     if (!query) return rolePermissions;
     return rolePermissions.filter((permission) =>
-      [permission.name, permission.code, permission.module]
+      [permission.name, accessPermissionName(permission, text), permission.code, permission.module]
         .join(" ")
         .toLocaleLowerCase()
         .includes(query),
     );
-  }, [rolePermissions, search]);
+  }, [rolePermissions, search, text]);
   const permissionGroups = useMemo(
     () => groupPermissions(filteredPermissions),
     [filteredPermissions],
@@ -99,28 +102,28 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
     if (!deleteRole || !canDelete) return;
     try {
       await hrApiClient.deleteAccessRole(deleteRole.id);
-      toast.success("Роль удалена");
+      toast.success(text("Роль удалена", "Role deleted"));
       setDeleteRole(null);
       navigate("/roles");
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось удалить роль"));
+      toast.error(getErrorMessage(error, text("Не удалось удалить роль", "Failed to delete role")));
     }
   }
 
-  if (isLoading) return <LoadingState label="Загрузка роли..." />;
+  if (isLoading) return <LoadingState label={text("Загрузка роли...", "Loading role...")} />;
 
   if (!Number.isInteger(roleId) || roleId < 1 || !role) {
     return (
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <EmptyState
-          description="Роль не существует или находится вне вашей области администрирования."
-          title="Роль недоступна"
+          description={text("Роль не существует или находится вне вашей области администрирования.", "The role does not exist or is outside your administrative scope.")}
+          title={text("Роль недоступна", "Role unavailable")}
         />
       </section>
     );
   }
 
-  const scopeLabel = getRoleScopeLabel(role, session.enterpriseName, session.departmentName);
+  const scopeLabel = getRoleScopeLabel(role, session.enterpriseName, session.departmentName, text);
   const canModifyRole = !role.isSystem;
 
   return (
@@ -129,14 +132,14 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         actions={
           <div className="flex flex-wrap gap-3">
             <ActionButton action="back" onClick={() => navigate("/roles")}>
-              К ролям
+              {text("К ролям", "Back to roles")}
             </ActionButton>
             {canModifyRole && canEdit && (
               <ActionButton
                 action="edit"
                 onClick={() => navigate(`/roles/${role.id}/edit`)}
               >
-                Редактировать
+                {text("Редактировать", "Edit")}
               </ActionButton>
             )}
             {canModifyRole && canDelete && (
@@ -144,26 +147,26 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
                 action="delete"
                 onClick={() => setDeleteRole(role)}
               >
-                Удалить роль
+                {text("Удалить роль", "Delete role")}
               </ActionButton>
             )}
           </div>
         }
-        eyebrow={role.isSystem ? "Системная роль" : "Пользовательская роль"}
+        eyebrow={role.isSystem ? text("Системная роль", "System role") : text("Пользовательская роль", "Custom role")}
         icon={<FiShield />}
-        title={role.name}
+        title={accessRoleName(role.systemKey, role.name, text)}
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
         <AccessMetric
           icon={<FiCheckCircle />}
-          label="Разрешений"
+          label={text("Разрешений", "Permissions")}
           value={rolePermissions.length}
         />
-        <AccessMetric icon={<FiUsers />} label="Пользователей" value={assignedUsers.length} />
+        <AccessMetric icon={<FiUsers />} label={text("Пользователей", "Users")} value={assignedUsers.length} />
         <AccessMetric
           icon={role.scopeType === "department" ? <FiBriefcase /> : <FiLayers />}
-          label="Область"
+          label={text("Область", "Scope")}
           value={1}
         />
       </section>
@@ -171,12 +174,12 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
       <section className="app-surface app-border flex flex-col gap-3 rounded-[24px] border p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="app-muted text-xs font-black uppercase tracking-[0.12em]">
-            Где действует роль
+            {text("Где действует роль", "Where this role applies")}
           </p>
           <p className="app-text mt-1 font-black">{scopeLabel}</p>
         </div>
         <span className="app-surface-muted app-border rounded-full border px-3 py-1.5 text-xs font-black">
-          {role.isSystem ? "Системная" : "Локальная"}
+          {role.isSystem ? text("Системная", "System") : text("Локальная", "Local")}
         </span>
       </section>
 
@@ -184,10 +187,10 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         <div className="relative max-w-xl">
           <FiSearch className="app-muted pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
-            aria-label="Поиск разрешений роли"
+            aria-label={text("Поиск разрешений роли", "Search role permissions")}
             className="pl-10"
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Поиск по разрешениям"
+            placeholder={text("Поиск по разрешениям", "Search permissions")}
             value={search}
           />
         </div>
@@ -199,7 +202,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
             <section className="app-surface app-border overflow-hidden rounded-[24px] border" key={module}>
               <header className="app-surface-muted app-border-soft border-b px-5 py-4">
                 <p className="app-text font-black">{module}</p>
-                <p className="app-section-count mt-1">{items.length} разрешений</p>
+                <p className="app-section-count mt-1">{items.length} {text("разрешений", "permissions")}</p>
               </header>
               <div className="divide-y divide-[var(--app-border-soft)]">
                 {items.map((permission) => (
@@ -207,7 +210,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
                     <div className="flex items-start gap-3">
                       <FiCheckCircle className="app-accent-text mt-0.5 h-4 w-4 shrink-0" />
                       <div>
-                        <p className="app-text text-sm font-black">{permission.name}</p>
+                        <p className="app-text text-sm font-black">{accessPermissionName(permission, text)}</p>
                         <p className="app-permission-code mt-1 font-mono">{permission.code}</p>
                       </div>
                     </div>
@@ -219,8 +222,8 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
           {permissionGroups.length === 0 && (
             <section className="app-surface app-border overflow-hidden rounded-[24px] border">
               <EmptyState
-                description="Измените поисковый запрос."
-                title="Разрешения не найдены"
+                description={text("Измените поисковый запрос.", "Change the search query.")}
+                title={text("Разрешения не найдены", "No permissions found")}
               />
             </section>
           )}
@@ -229,7 +232,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
         <aside className="app-surface app-border h-fit rounded-[28px] border p-5">
           <div className="flex items-center gap-3">
             <FiUsers className="app-accent-text h-5 w-5" />
-            <p className="app-text font-black">Пользователи роли</p>
+            <p className="app-text font-black">{text("Пользователи роли", "Role users")}</p>
           </div>
           <div className="mt-4 space-y-2">
             {assignedUsers.slice(0, 12).map((user) => (
@@ -244,11 +247,11 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
               </div>
             ))}
             {assignedUsers.length === 0 && (
-              <p className="app-muted py-6 text-center text-sm">Роль пока никому не назначена</p>
+              <p className="app-muted py-6 text-center text-sm">{text("Роль пока никому не назначена", "The role is not assigned to anyone yet")}</p>
             )}
             {assignedUsers.length > 12 && (
               <p className="app-muted text-center text-xs font-semibold">
-                Ещё {assignedUsers.length - 12}
+                {text("Ещё", "More")} {assignedUsers.length - 12}
               </p>
             )}
           </div>
@@ -256,11 +259,11 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
       </section>
 
       <DeleteConfirmDialog
-        description="Удалить роль можно только после того, как она снята со всех пользователей."
+        description={text("Удалить роль можно только после того, как она снята со всех пользователей.", "A role can only be deleted after it has been removed from all users.")}
         onConfirm={confirmDeleteRole}
         onOpenChange={(open) => !open && setDeleteRole(null)}
         open={Boolean(deleteRole)}
-        title={`Удалить роль «${deleteRole?.name ?? ""}»?`}
+        title={text(`Удалить роль «${deleteRole?.name ?? ""}»?`, `Delete role “${deleteRole?.name ?? ""}”?`)}
       />
     </div>
   );
@@ -270,13 +273,16 @@ function getRoleScopeLabel(
   role: AccessRoleSummary,
   sessionEnterpriseName: string,
   sessionDepartmentName: string,
+  text: (ru: string, en: string) => string,
 ): string {
-  if (role.scopeType === "global") return "Вся система";
+  if (role.scopeType === "global") return text("Вся система", "Entire system");
   if (role.scopeType === "enterprise") {
-    return `Предприятие «${role.enterpriseName || sessionEnterpriseName || "не указано"}»`;
+    const name = role.enterpriseName || sessionEnterpriseName || text("не указано", "not specified");
+    return text(`Предприятие «${name}»`, `Enterprise “${name}”`);
   }
   if (role.scopeType === "department") {
-    return `Отдел «${role.departmentName || sessionDepartmentName || "не указан"}»`;
+    const name = role.departmentName || sessionDepartmentName || text("не указан", "not specified");
+    return text(`Отдел «${name}»`, `Department “${name}”`);
   }
-  return "Личный доступ сотрудника";
+  return text("Личный доступ сотрудника", "Employee own-data access");
 }
