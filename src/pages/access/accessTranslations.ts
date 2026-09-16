@@ -55,8 +55,8 @@ export function accessPermissionName(
   text: TextFn,
 ): string {
   const [entityCode, actionCode = "view"] = permission.code.split(".");
-  const entity = entityLabels[entityCode]?.[1] ?? entityCode.replaceAll("_", " ");
-  const action = actionLabels[actionCode]?.[1] ?? titleCase(actionCode.replaceAll("_", " "));
+  const entity = entityLabels[entityCode]?.[1] ?? entityCode.split("_").join(" ");
+  const action = actionLabels[actionCode]?.[1] ?? titleCase(actionCode.split("_").join(" "));
   return text(permission.name, `${action} ${entity}`);
 }
 
@@ -65,8 +65,8 @@ export function accessPermissionDescription(
   text: TextFn,
 ): string {
   const [entityCode, actionCode = "view"] = permission.code.split(".");
-  const entity = entityLabels[entityCode]?.[1] ?? entityCode.replaceAll("_", " ");
-  const action = actionLabels[actionCode]?.[1]?.toLocaleLowerCase("en-US") ?? actionCode.replaceAll("_", " ");
+  const entity = entityLabels[entityCode]?.[1] ?? entityCode.split("_").join(" ");
+  const action = actionLabels[actionCode]?.[1]?.toLocaleLowerCase("en-US") ?? actionCode.split("_").join(" ");
   return text(
     permission.description || permission.name,
     `Allows the user to ${action} ${entity} within the effective data scope.`,
