@@ -539,7 +539,7 @@ export const tg = {
       editTitle: "Таҳрири вазифа",
     },
     vacations: {
-      createTitle: "Оформкунии рухсатӣ",
+      createTitle: "Ба расмият даровардани рухсатӣ",
       editTitle: "Таҳрири рухсатӣ",
     },
     payroll: {
@@ -726,7 +726,7 @@ export const tg = {
     vacations: {
       title: "Рухсатиҳо",
       description: "Рухсатиҳои банақшагирифта ва дигар рухсатиҳои кормандон бо сана ва ҳолат.",
-      createLabel: "Оформкунии рухсатӣ",
+      createLabel: "Ба расмият даровардани рухсатӣ",
       columns: {
         employee: "Корманд",
         vacationType: "Навъи рухсатӣ",
