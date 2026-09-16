@@ -15,7 +15,7 @@ import type {
   HrRecord,
 } from "../../shared/types/hr";
 import { ActionButton, LoadingState } from "../../shared/ui";
-import { getAppLocale } from "../../shared/i18n";
+import { getAppLocale, useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import { getUserFacingErrorMessage } from "../../shared/lib/userFacingErrors";
 import {
@@ -42,6 +42,7 @@ import { employeeCreateSchema } from "../../features/employees/forms/employeeFor
 import { useEmployeeFormOptions } from "../../features/employees/hooks/useEmployeeFormOptions";
 
 export function EmployeeCreatePage(): JSX.Element {
+  const text = useAppText();
   const { i18n, t } = useTranslation();
   const locale = getAppLocale(i18n.language);
   const navigate = useNavigate();
@@ -94,10 +95,10 @@ export function EmployeeCreatePage(): JSX.Element {
       ...enterprises,
       {
         value,
-        label: textValue(candidateRecord.enterprise_name) || `Предприятие #${value}`,
+        label: textValue(candidateRecord.enterprise_name) || text(`Предприятие #${value}`, `Enterprise #${value}`),
       },
     ];
-  }, [candidateRecord, enterprises, isCandidateHire]);
+  }, [candidateRecord, enterprises, isCandidateHire, text]);
 
   const formDepartments = useMemo(() => {
     if (!isCandidateHire || !candidateRecord) return departments;
@@ -107,11 +108,11 @@ export function EmployeeCreatePage(): JSX.Element {
       ...departments,
       {
         value,
-        label: textValue(candidateRecord.department_name) || `Отдел #${value}`,
+        label: textValue(candidateRecord.department_name) || text(`Отдел #${value}`, `Department #${value}`),
         enterpriseId: idValue(candidateRecord.enterprise_id),
       },
     ];
-  }, [candidateRecord, departments, isCandidateHire]);
+  }, [candidateRecord, departments, isCandidateHire, text]);
 
   const formPositions = useMemo(() => {
     if (!isCandidateHire || !candidateRecord) return positions;
@@ -121,11 +122,11 @@ export function EmployeeCreatePage(): JSX.Element {
       ...positions,
       {
         value,
-        label: textValue(candidateRecord.position_name) || `Должность #${value}`,
+        label: textValue(candidateRecord.position_name) || text(`Должность #${value}`, `Position #${value}`),
         departmentId: idValue(candidateRecord.department_id),
       },
     ];
-  }, [candidateRecord, isCandidateHire, positions]);
+  }, [candidateRecord, isCandidateHire, positions, text]);
 
   const availableDepartments = useMemo(
     () =>
@@ -147,7 +148,7 @@ export function EmployeeCreatePage(): JSX.Element {
     }
 
     if (!Number.isInteger(candidateId) || candidateId <= 0) {
-      toast.error("Некорректный идентификатор кандидата");
+      toast.error(text("Некорректный идентификатор кандидата", "Invalid candidate ID"));
       setIsCandidateLoading(false);
       navigate("/candidates", { replace: true });
       return;
@@ -159,20 +160,20 @@ export function EmployeeCreatePage(): JSX.Element {
       .getCandidate(candidateId)
       .then((profile) => {
         if (!active) return;
-        if (!profile) throw new Error("Кандидат не найден");
+        if (!profile) throw new Error(text("Кандидат не найден", "Candidate not found"));
 
         const candidate = profile.candidate;
         if (candidate.employee_id || candidate.status === "hired") {
-          throw new Error("Кандидат уже принят на работу");
+          throw new Error(text("Кандидат уже принят на работу", "Candidate has already been hired"));
         }
         if (candidate.status !== "offer") {
-          throw new Error("Оформить сотрудника можно только для кандидата на этапе «Оффер»");
+          throw new Error(text("Оформить сотрудника можно только для кандидата на этапе «Оффер»", "An employee can only be created from a candidate at the Offer stage"));
         }
         if (
           candidate.vacancy_status !== "open" ||
           Number(candidate.vacancy_is_archived ?? 0) === 1
         ) {
-          throw new Error("Вакансия кандидата должна быть открыта");
+          throw new Error(text("Вакансия кандидата должна быть открыта", "The candidate vacancy must be open"));
         }
 
         setCandidateRecord(candidate);
@@ -183,7 +184,7 @@ export function EmployeeCreatePage(): JSX.Element {
         toast.error(
           getUserFacingErrorMessage(
             error,
-            "Не удалось подготовить оформление кандидата",
+            text("Не удалось подготовить оформление кандидата", "Failed to prepare candidate hiring"),
           ),
         );
         navigate(`/candidates/${candidateId}`, { replace: true });
@@ -195,7 +196,7 @@ export function EmployeeCreatePage(): JSX.Element {
     return () => {
       active = false;
     };
-  }, [candidateId, isCandidateHire, navigate, reset]);
+  }, [candidateId, isCandidateHire, navigate, reset, text]);
 
   useEffect(() => {
     if (
@@ -362,7 +363,7 @@ export function EmployeeCreatePage(): JSX.Element {
       const id = Number(created.id);
       toast.success(
         isCandidateHire
-          ? "Кандидат принят на работу и зарегистрирован как сотрудник"
+          ? text("Кандидат принят на работу и зарегистрирован как сотрудник", "Candidate hired and registered as an employee")
           : t("employeesCreate.toasts.created"),
       );
       navigate(
@@ -376,7 +377,7 @@ export function EmployeeCreatePage(): JSX.Element {
       toast.error(
         getUserFacingErrorMessage(
           error,
-          "Не удалось создать сотрудника. Проверьте заполненные данные",
+          text("Не удалось создать сотрудника. Проверьте заполненные данные", "Failed to create employee. Check the entered data"),
         ),
       );
     } finally {
@@ -405,7 +406,7 @@ export function EmployeeCreatePage(): JSX.Element {
 
       if (result.hasBlockingMatches) {
         toast.error(
-          "Найден дубликат сотрудника. Проверьте совпадающие поля перед продолжением.",
+          text("Найден дубликат сотрудника. Проверьте совпадающие поля перед продолжением.", "Duplicate employee found. Review the matching fields before continuing."),
           { toastId: "employee-create-blocking-duplicate" },
         );
         return false;
@@ -417,7 +418,7 @@ export function EmployeeCreatePage(): JSX.Element {
       }
 
       toast.warning(
-        "Найдены возможные совпадения. Проверьте их и подтвердите продолжение.",
+        text("Найдены возможные совпадения. Проверьте их и подтвердите продолжение.", "Possible matches found. Review them and confirm to continue."),
         { toastId: "employee-create-possible-duplicate" },
       );
       return false;
@@ -425,7 +426,7 @@ export function EmployeeCreatePage(): JSX.Element {
       toast.error(
         getUserFacingErrorMessage(
           error,
-          "Не удалось проверить сотрудника на дубликаты",
+          text("Не удалось проверить сотрудника на дубликаты", "Failed to check employee duplicates"),
         ),
         { toastId: "employee-create-duplicate-check-error" },
       );
@@ -441,7 +442,7 @@ export function EmployeeCreatePage(): JSX.Element {
     for (const match of result.matches) {
       for (const field of match.fields) {
         if (!field.blocking) continue;
-        const message = `Совпадает с сотрудником «${match.employeeName}»`;
+        const message = text(`Совпадает с сотрудником «${match.employeeName}»`, `Matches employee “${match.employeeName}”`);
 
         if (field.field === "employee_number") {
           setError("employee_number", { type: "duplicate", message });
@@ -536,17 +537,16 @@ export function EmployeeCreatePage(): JSX.Element {
     )?.label ?? "";
 
   if (isCandidateLoading) {
-    return <LoadingState label="Подготовка стандартной формы сотрудника..." />;
+    return <LoadingState label={text("Подготовка стандартной формы сотрудника...", "Preparing standard employee form...")} />;
   }
 
   return (
     <div className="app-surface app-border mx-auto max-w-6xl overflow-hidden rounded-[28px] border">
       {isCandidateHire && candidateRecord && (
         <section className="app-accent-soft app-border-soft border-b px-5 py-4 sm:px-7">
-          <p className="app-text font-black">Оформление кандидата как сотрудника</p>
+          <p className="app-text font-black">{text("Оформление кандидата как сотрудника", "Hire candidate as employee")}</p>
           <p className="app-muted mt-1 text-sm">
-            Известные данные кандидата и назначение из вакансии уже заполнены.
-            Проверьте их, дополните кадровые сведения и завершите стандартную форму.
+            {text("Известные данные кандидата и назначение из вакансии уже заполнены. Проверьте их, дополните кадровые сведения и завершите стандартную форму.", "Known candidate data and the vacancy assignment have already been filled in. Review them, complete the HR details, and finish the standard form.")}
           </p>
         </section>
       )}
