@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
+import { useAppText } from "../../shared/i18n";
 import type { ReactNode } from "react";
 import { FiSearch } from "react-icons/fi";
 
@@ -99,6 +100,7 @@ export function FormField({
 }
 
 export function MatchBar({ value }: { value: number }): JSX.Element {
+  const text = useAppText();
   const reduceMotion = useReducedMotion();
   const safeValue = Math.max(0, Math.min(100, Math.round(value)));
 
