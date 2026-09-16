@@ -108,6 +108,16 @@ function createWindow(): void {
           let e2eDepartmentId = 0
           let e2eEmployeeId = 0
           let foreignDepartmentId = 0
+          let foreignEmployeeId = 0
+          let otherEnterpriseId = 0
+          let otherDepartmentId = 0
+          let otherEmployeeId = 0
+          let ownVacancyId = 0
+          let foreignVacancyId = 0
+          let otherVacancyId = 0
+          let ownCandidateId = 0
+          let foreignCandidateId = 0
+          let otherCandidateId = 0
 
           if (businessContext?.requiresEnterpriseSelection && !businessContext.enterpriseId) {
             try {
@@ -159,6 +169,13 @@ function createWindow(): void {
                 name: 'E2E Position'
               }
             })
+            const foreignPosition = await window.hrApi.create({
+              entity: 'positions',
+              data: {
+                department_id: foreignDepartmentId,
+                name: 'E2E Foreign Position'
+              }
+            })
             const employee = await window.hrApi.create({
               entity: 'employees',
               data: {
@@ -175,6 +192,124 @@ function createWindow(): void {
               }
             })
             e2eEmployeeId = Number(employee.id)
+            const foreignEmployee = await window.hrApi.create({
+              entity: 'employees',
+              data: {
+                enterprise_id: e2eEnterpriseId,
+                department_id: foreignDepartmentId,
+                position_id: Number(foreignPosition.id),
+                last_name: 'Чужой',
+                first_name: 'Отдел',
+                hire_date: '2026-01-02',
+                lifecycle_status: 'active',
+                employment_started_at: '2026-01-02',
+                salary: 1100,
+                status: 'active'
+              }
+            })
+            foreignEmployeeId = Number(foreignEmployee.id)
+
+            const ownVacancy = await window.hrApi.saveVacancy({
+              positionId: Number(position.id),
+              status: 'open',
+              employmentType: 'full_time',
+              openingsCount: 2,
+              skills: [{ type: 'hard', name: 'E2E Own Skill', requiredLevel: 5 }]
+            })
+            ownVacancyId = Number(ownVacancy?.vacancy?.id)
+            const foreignVacancy = await window.hrApi.saveVacancy({
+              positionId: Number(foreignPosition.id),
+              status: 'open',
+              employmentType: 'full_time',
+              openingsCount: 2,
+              skills: [{ type: 'hard', name: 'E2E Foreign Skill', requiredLevel: 5 }]
+            })
+            foreignVacancyId = Number(foreignVacancy?.vacancy?.id)
+            const ownCandidate = await window.hrApi.saveCandidate({
+              vacancyId: ownVacancyId,
+              lastName: 'Свой',
+              firstName: 'Кандидат',
+              source: 'E2E',
+              skillScores: []
+            })
+            ownCandidateId = Number(ownCandidate?.candidate?.id)
+            const foreignCandidate = await window.hrApi.saveCandidate({
+              vacancyId: foreignVacancyId,
+              lastName: 'Чужой',
+              firstName: 'Кандидат',
+              source: 'E2E',
+              skillScores: []
+            })
+            foreignCandidateId = Number(foreignCandidate?.candidate?.id)
+
+            const otherEnterprise = await window.hrApi.create({
+              entity: 'enterprises',
+              data: {
+                name: 'E2E Other Enterprise',
+                legal_form: 'ООО',
+                legal_name: 'E2E Other Enterprise',
+                registration_number: 'E2E-002',
+                phone: '+992000000001',
+                email: 'other-e2e@example.test',
+                address: 'E2E Other'
+              }
+            })
+            otherEnterpriseId = Number(otherEnterprise.id)
+            const otherDepartment = await window.hrApi.create({
+              entity: 'departments',
+              data: {
+                enterprise_id: otherEnterpriseId,
+                name: 'E2E Other Department'
+              }
+            })
+            otherDepartmentId = Number(otherDepartment.id)
+            const otherPosition = await window.hrApi.create({
+              entity: 'positions',
+              data: {
+                department_id: otherDepartmentId,
+                name: 'E2E Other Position'
+              }
+            })
+            const otherEmployee = await window.hrApi.create({
+              entity: 'employees',
+              data: {
+                enterprise_id: otherEnterpriseId,
+                department_id: otherDepartmentId,
+                position_id: Number(otherPosition.id),
+                last_name: 'Другое',
+                first_name: 'Предприятие',
+                hire_date: '2026-01-03',
+                lifecycle_status: 'active',
+                employment_started_at: '2026-01-03',
+                salary: 1200,
+                status: 'active'
+              }
+            })
+            otherEmployeeId = Number(otherEmployee.id)
+
+            businessContext = await window.hrApi.setBusinessContext({
+              enterpriseId: otherEnterpriseId,
+              departmentId: null
+            })
+            const otherVacancy = await window.hrApi.saveVacancy({
+              positionId: Number(otherPosition.id),
+              status: 'open',
+              employmentType: 'full_time',
+              openingsCount: 2,
+              skills: [{ type: 'hard', name: 'E2E Other Skill', requiredLevel: 5 }]
+            })
+            otherVacancyId = Number(otherVacancy?.vacancy?.id)
+            const otherCandidate = await window.hrApi.saveCandidate({
+              vacancyId: otherVacancyId,
+              lastName: 'Другой',
+              firstName: 'Кандидат',
+              source: 'E2E',
+              skillScores: []
+            })
+            otherCandidateId = Number(otherCandidate?.candidate?.id)
+            await window.hrApi.advanceCandidate({ candidateId: otherCandidateId })
+            await window.hrApi.advanceCandidate({ candidateId: otherCandidateId })
+            await window.hrApi.advanceCandidate({ candidateId: otherCandidateId })
 
             employeeOwnershipReady =
               Number(employee.enterprise_id) === e2eEnterpriseId &&
@@ -182,7 +317,15 @@ function createWindow(): void {
               Number(employee.position_id) === Number(position.id) &&
               employee.status === 'active' &&
               employee.lifecycle_status === 'active' &&
-              employee.employment_started_at === '2026-01-01'
+              employee.employment_started_at === '2026-01-01' &&
+              foreignEmployeeId > 0 &&
+              otherEmployeeId > 0 &&
+              ownVacancyId > 0 &&
+              foreignVacancyId > 0 &&
+              otherVacancyId > 0 &&
+              ownCandidateId > 0 &&
+              foreignCandidateId > 0 &&
+              otherCandidateId > 0
 
             businessContext = await window.hrApi.setBusinessContext({
               enterpriseId: e2eEnterpriseId,
