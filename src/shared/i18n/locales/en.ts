@@ -30,6 +30,27 @@ export const en = {
     payroll: "Payroll",
     profile: "Profile",
     settings: "Settings",
+    analytics: "Analytics",
+    dataExchange: "Import & export",
+    myEnterprise: "Enterprise",
+    myDepartment: "Department",
+    colleagues: "Colleagues",
+    enterpriseOverview: "Enterprise overview",
+    departmentOverview: "Department overview",
+    enterpriseEmployees: "Enterprise employees",
+    departmentEmployees: "Department employees",
+    enterpriseVacations: "Enterprise vacations",
+    departmentVacations: "Department vacations",
+    vacationTypes: "Vacation types",
+    documentTypes: "Document types",
+    users: "Users",
+    roles: "Roles",
+    audit: "Audit log",
+    sections: {
+      main: "Main",
+      management: "Management",
+      administration: "Administration",
+    },
   },
 
   common: {
@@ -154,6 +175,17 @@ export const en = {
     title: "Profile",
     admin: "Administrator",
     localUser: "Local system user",
+  },
+
+  account: {
+    systemAdministrator: "System administrator",
+    user: "User",
+    enterpriseDirector: "Enterprise director",
+    departmentHead: "Department head",
+    enterpriseAdministrator: "Enterprise administrator",
+    departmentAdministrator: "Department administrator",
+    signOut: "Sign out",
+    signOutTitle: "Sign out of the system",
   },
 
   settings: {
