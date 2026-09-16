@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type { HrRecord, PreviousLeaderOutcome } from "../../shared/types/hr";
 import {
@@ -57,6 +58,12 @@ export function DepartmentLeaderDialog({
   open,
   positions,
 }: DepartmentLeaderDialogProps): JSX.Element {
+  const text = useAppText();
+  const previousOutcomeOptions: SelectOption[] = [
+    { value: "unassigned", label: text("Временно оставить без должности", "Temporarily leave without a position") },
+    { value: "assign_position", label: text("Назначить на обычную должность", "Assign to a regular position") },
+    { value: "transfer", label: text("Перевести в другой отдел / на другую должность", "Transfer to another department / position") },
+  ];
   const [candidates, setCandidates] = useState<HrRecord[]>([]);
   const [leaderId, setLeaderId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -98,7 +105,7 @@ export function DepartmentLeaderDialog({
       })
       .catch((error) => {
         if (!active) return;
-        toast.error(errorMessage(error, "Не удалось загрузить сотрудников"));
+        toast.error(errorMessage(error, text("Не удалось загрузить сотрудников", "Failed to load employees")));
         onOpenChange(false);
       })
       .finally(() => {
@@ -108,24 +115,24 @@ export function DepartmentLeaderDialog({
     return () => {
       active = false;
     };
-  }, [currentLeaderId, onOpenChange, open]);
+  }, [currentLeaderId, onOpenChange, open, text]);
 
   const options = useMemo<SelectOption[]>(
     () =>
       candidates.map((candidate) => ({
         value: String(candidate.id),
-        label: candidateLabel(candidate),
+        label: candidateLabel(candidate, text),
       })),
-    [candidates],
+    [candidates, text],
   );
 
   const departmentOptions = useMemo<SelectOption[]>(
     () =>
       targetDepartments.map((department) => ({
         value: String(department.id),
-        label: String(department.name ?? "Отдел"),
+        label: String(department.name ?? text("Отдел", "Department")),
       })),
-    [targetDepartments],
+    [targetDepartments, text],
   );
 
   const previousPositionOptions = useMemo<SelectOption[]>(() => {
@@ -138,9 +145,9 @@ export function DepartmentLeaderDialog({
       )
       .map((position) => ({
         value: String(position.id),
-        label: String(position.name ?? "Должность"),
+        label: String(position.name ?? text("Должность", "Position")),
       }));
-  }, [positions, previousForm.departmentId]);
+  }, [positions, previousForm.departmentId, text]);
 
   const selectedCandidate = candidates.find(
     (candidate) => String(candidate.id) === leaderId,
@@ -152,11 +159,11 @@ export function DepartmentLeaderDialog({
     Boolean(currentLeaderId) && leaderId === String(currentLeaderId);
   const isChangingLeadership = !selectedAlreadyLeads && (Boolean(currentLeaderId) || Boolean(leaderId));
   const leadershipTitle =
-    mode === "enterprise" ? "директором предприятия" : "руководителем отдела";
+    mode === "enterprise" ? text("директором предприятия", "enterprise director") : text("руководителем отдела", "department head");
   const fixedPositionLabel =
     mode === "enterprise"
-      ? `Директор предприятия — ${enterpriseName}`
-      : `Руководитель отдела — ${departmentName}`;
+      ? text(`Директор предприятия — ${enterpriseName}`, `Enterprise director — ${enterpriseName}`)
+      : text(`Руководитель отдела — ${departmentName}`, `Department head — ${departmentName}`);
   const canAssignEnterpriseLeader = mode !== "enterprise" || targetDepartments.length > 0;
 
   function selectCandidate(value: string): void {
@@ -181,33 +188,33 @@ export function DepartmentLeaderDialog({
     }
     if (!canChangeEmployment) {
       toast.error(
-        "Назначение, замена и снятие руководителя являются кадровыми изменениями. Требуется разрешение «Кадровые изменения»",
+        text("Назначение, замена и снятие руководителя являются кадровыми изменениями. Требуется разрешение «Кадровые изменения»", "Assigning, replacing, or removing a leader is an employment change. The Employment changes permission is required."),
       );
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(changeForm.effectiveAt)) {
-      toast.error("Укажите дату вступления кадрового изменения в силу");
+      toast.error(text("Укажите дату вступления кадрового изменения в силу", "Specify the effective date of the employment change"));
       return;
     }
     if (!changeForm.reason.trim()) {
-      toast.error("Укажите основание кадрового изменения");
+      toast.error(text("Укажите основание кадрового изменения", "Specify the reason for the employment change"));
       return;
     }
 
     if (leaderId) {
       if (!selectedCandidate) {
-        toast.error("Выберите сотрудника");
+        toast.error(text("Выберите сотрудника", "Select an employee"));
         return;
       }
       if (!canAssignEnterpriseLeader) {
         toast.error(
-          "Для назначения директора предприятия в предприятии должен быть создан хотя бы один отдел",
+          text("Для назначения директора предприятия в предприятии должен быть создан хотя бы один отдел", "At least one department must exist before assigning an enterprise director"),
         );
         return;
       }
       const salary = Number(changeForm.salary);
       if (!changeForm.salary.trim() || !Number.isFinite(salary) || salary < 0) {
-        toast.error("Укажите корректный оклад нового руководителя");
+        toast.error(text("Укажите корректный оклад нового руководителя", "Enter a valid salary for the new leader"));
         return;
       }
     }
@@ -217,11 +224,11 @@ export function DepartmentLeaderDialog({
       const previousPositionId = positiveId(previousForm.positionId);
       const salary = Number(previousForm.salary);
       if (!previousDepartmentId || !previousPositionId) {
-        toast.error("Выберите отдел и должность для прежнего руководителя");
+        toast.error(text("Выберите отдел и должность для прежнего руководителя", "Select a department and position for the previous leader"));
         return;
       }
       if (!Number.isFinite(salary) || salary < 0) {
-        toast.error("Укажите корректный оклад прежнего руководителя");
+        toast.error(text("Укажите корректный оклад прежнего руководителя", "Enter a valid salary for the previous leader"));
         return;
       }
     }
@@ -237,7 +244,7 @@ export function DepartmentLeaderDialog({
       : null;
     if (selectedCandidate && !targetDepartmentId) {
       toast.error(
-        "Для назначения директора предприятия в предприятии должен быть создан хотя бы один отдел",
+        text("Для назначения директора предприятия в предприятии должен быть создан хотя бы один отдел", "At least one department must exist before assigning an enterprise director"),
       );
       setConfirming(false);
       return;
@@ -280,16 +287,16 @@ export function DepartmentLeaderDialog({
       toast.success(
         selectedCandidate
           ? currentLeaderId
-            ? "Руководитель заменён, кадровая история сохранена"
+            ? text("Руководитель заменён, кадровая история сохранена", "Leader replaced and employment history preserved")
             : mode === "enterprise"
-              ? "Сотрудник назначен директором предприятия"
-              : "Сотрудник назначен руководителем отдела"
-          : "Руководитель снят, кадровая история сохранена",
+              ? text("Сотрудник назначен директором предприятия", "Employee assigned as enterprise director")
+              : text("Сотрудник назначен руководителем отдела", "Employee assigned as department head")
+          : text("Руководитель снят, кадровая история сохранена", "Leader removed and employment history preserved"),
       );
       onSaved();
       onOpenChange(false);
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось выполнить кадровое изменение руководителя"));
+      toast.error(errorMessage(error, text("Не удалось выполнить кадровое изменение руководителя", "Failed to apply leadership employment change")));
     } finally {
       setLoading(false);
     }
@@ -299,39 +306,39 @@ export function DepartmentLeaderDialog({
     <Dialog
       description={
         confirming
-          ? "Проверьте условия и подтвердите единое кадровое действие."
-          : `Назначение, замена и снятие ${leadershipTitle} фиксируются в кадровой истории.`
+          ? text("Проверьте условия и подтвердите единое кадровое действие.", "Review the details and confirm the employment action.")
+          : text(`Назначение, замена и снятие ${leadershipTitle} фиксируются в кадровой истории.`, `Assigning, replacing, and removing the ${leadershipTitle} is recorded in employment history.`)
       }
       onOpenChange={onOpenChange}
       open={open}
       title={
         mode === "enterprise"
-          ? "Управление директором предприятия"
-          : "Управление руководителем отдела"
+          ? text("Управление директором предприятия", "Manage enterprise director")
+          : text("Управление руководителем отдела", "Manage department head")
       }
     >
       {loading && candidates.length === 0 ? (
-        <LoadingState label="Загрузка сотрудников..." />
+        <LoadingState label={text("Загрузка сотрудников...", "Loading employees...")} />
       ) : confirming ? (
         <div className="grid gap-5">
           <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5">
-            <p className="app-text text-base font-black">Подтвердите кадровое действие</p>
+            <p className="app-text text-base font-black">{text("Подтвердите кадровое действие", "Confirm employment action")}</p>
             <div className="app-surface app-border mt-4 grid gap-2 rounded-xl border p-3 text-sm">
               <SummaryRow
-                label="Новый руководитель"
-                value={selectedCandidate ? employeeName(selectedCandidate) : "Не назначен"}
+                label={text("Новый руководитель", "New leader")}
+                value={selectedCandidate ? employeeName(selectedCandidate, text) : text("Не назначен", "Not assigned")}
               />
               {selectedCandidate && (
-                <SummaryRow label="Назначение" value={fixedPositionLabel} />
+                <SummaryRow label={text("Назначение", "Assignment")} value={fixedPositionLabel} />
               )}
               {currentLeaderId && (
                 <SummaryRow
-                  label="Прежний руководитель"
-                  value={previousOutcomeLabel(previousForm.outcome)}
+                  label={text("Прежний руководитель", "Previous leader")}
+                  value={previousOutcomeLabel(previousForm.outcome, text)}
                 />
               )}
-              <SummaryRow label="Дата" value={changeForm.effectiveAt} />
-              <SummaryRow label="Основание" value={changeForm.reason.trim()} />
+              <SummaryRow label={text("Дата", "Date")} value={changeForm.effectiveAt} />
+              <SummaryRow label={text("Основание", "Reason")} value={changeForm.reason.trim()} />
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -351,16 +358,16 @@ export function DepartmentLeaderDialog({
         </div>
       ) : (
         <div className="grid gap-5">
-          <Field label="Новый руководитель">
+          <Field label={text("Новый руководитель", "New leader")}>
             <SearchableSelect
               allowEmpty
-              ariaLabel="Новый руководитель"
-              emptyOptionLabel="Не назначен"
-              noOptionsLabel="Активные сотрудники не найдены"
+              ariaLabel={text("Новый руководитель", "New leader")}
+              emptyOptionLabel={text("Не назначен", "Not assigned")}
+              noOptionsLabel={text("Активные сотрудники не найдены", "No active employees found")}
               onValueChange={selectCandidate}
               options={options}
-              placeholder="Выберите сотрудника"
-              searchPlaceholder="Поиск по ФИО, предприятию, отделу или должности"
+              placeholder={text("Выберите сотрудника", "Select employee")}
+              searchPlaceholder={text("Поиск по ФИО, предприятию, отделу или должности", "Search by name, enterprise, department, or position")}
               value={leaderId}
             />
           </Field>
@@ -368,16 +375,16 @@ export function DepartmentLeaderDialog({
           {selectedCandidate && !selectedAlreadyLeads && (
             <div className="grid gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
               <div>
-                <p className="app-text text-sm font-black">Новое назначение</p>
+                <p className="app-text text-sm font-black">{text("Новое назначение", "New assignment")}</p>
                 <p className="app-muted mt-1 text-xs leading-5">
-                  Обычная должность прекращается, руководящая роль фиксируется отдельным кадровым событием.
+                  {text("Обычная должность прекращается, руководящая роль фиксируется отдельным кадровым событием.", "The regular position ends and the leadership role is recorded as a separate employment event.")}
                 </p>
               </div>
               <div className="app-surface app-border rounded-xl border p-3">
-                <p className="app-muted text-xs font-bold uppercase tracking-wide">Роль</p>
+                <p className="app-muted text-xs font-bold uppercase tracking-wide">{text("Роль", "Role")}</p>
                 <p className="app-text mt-1 font-black">{fixedPositionLabel}</p>
               </div>
-              <Field label="Оклад нового руководителя">
+              <Field label={text("Оклад нового руководителя", "New leader salary")}>
                 <Input
                   min="0"
                   onChange={(event) =>
@@ -394,13 +401,13 @@ export function DepartmentLeaderDialog({
           {currentLeaderId && !selectedAlreadyLeads && (
             <div className="app-surface-muted app-border grid gap-4 rounded-2xl border p-4">
               <div>
-                <p className="app-text text-sm font-black">Что сделать с прежним руководителем?</p>
+                <p className="app-text text-sm font-black">{text("Что сделать с прежним руководителем?", "What should happen to the previous leader?")}</p>
                 <p className="app-muted mt-1 text-xs leading-5">
-                  {currentLeader ? employeeName(currentLeader) : "Текущий руководитель"} не будет потерян из кадровой истории.
+                  {currentLeader ? employeeName(currentLeader, text) : text("Текущий руководитель", "Current leader")} {text("не будет потерян из кадровой истории.", "will remain in employment history.")}
                 </p>
               </div>
               <SearchableSelect
-                ariaLabel="Действие для прежнего руководителя"
+                ariaLabel={text("Действие для прежнего руководителя", "Action for previous leader")}
                 onValueChange={(value) =>
                   setPreviousForm((current) => ({
                     ...current,
@@ -413,9 +420,9 @@ export function DepartmentLeaderDialog({
 
               {previousForm.outcome !== "unassigned" && (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Отдел">
+                  <Field label={text("Отдел", "Department")}>
                     <SearchableSelect
-                      ariaLabel="Отдел прежнего руководителя"
+                      ariaLabel={text("Отдел прежнего руководителя", "Previous leader department")}
                       onValueChange={(value) =>
                         setPreviousForm((current) => ({
                           ...current,
@@ -424,22 +431,22 @@ export function DepartmentLeaderDialog({
                         }))
                       }
                       options={departmentOptions}
-                      placeholder="Выберите отдел"
+                      placeholder={text("Выберите отдел", "Select department")}
                       value={previousForm.departmentId}
                     />
                   </Field>
-                  <Field label="Должность">
+                  <Field label={text("Должность", "Position")}>
                     <SearchableSelect
-                      ariaLabel="Должность прежнего руководителя"
+                      ariaLabel={text("Должность прежнего руководителя", "Previous leader position")}
                       onValueChange={(value) =>
                         setPreviousForm((current) => ({ ...current, positionId: value }))
                       }
                       options={previousPositionOptions}
-                      placeholder="Выберите должность"
+                      placeholder={text("Выберите должность", "Select position")}
                       value={previousForm.positionId}
                     />
                   </Field>
-                  <Field label="Оклад">
+                  <Field label={text("Оклад", "Salary")}>
                     <Input
                       min="0"
                       onChange={(event) =>
@@ -457,7 +464,7 @@ export function DepartmentLeaderDialog({
 
           {isChangingLeadership && (
             <div className="grid gap-4">
-              <Field label="Дата вступления в силу">
+              <Field label={text("Дата вступления в силу", "Effective date")}>
                 <Input
                   disabled={!canChangeEmployment}
                   onChange={(event) =>
@@ -468,13 +475,13 @@ export function DepartmentLeaderDialog({
                   value={changeForm.effectiveAt}
                 />
               </Field>
-              <Field label="Основание кадрового изменения">
+              <Field label={text("Основание кадрового изменения", "Employment change reason")}>
                 <Textarea
                   disabled={!canChangeEmployment}
                   onChange={(event) =>
                     setChangeForm((value) => ({ ...value, reason: event.target.value }))
                   }
-                  placeholder="Например: приказ №12 от 25.08.2026"
+                  placeholder={text("Например: приказ №12 от 25.08.2026", "For example: order #12 dated 25.08.2026")}
                   required
                   rows={3}
                   value={changeForm.reason}
@@ -485,19 +492,19 @@ export function DepartmentLeaderDialog({
 
           {selectedAlreadyLeads && (
             <div className="app-accent-soft app-border rounded-2xl border p-4 text-sm font-semibold">
-              Этот сотрудник уже является текущим руководителем. Выберите другого сотрудника для замены или «Не назначен», чтобы снять назначение.
+              {text("Этот сотрудник уже является текущим руководителем. Выберите другого сотрудника для замены или «Не назначен», чтобы снять назначение.", "This employee is already the current leader. Select another employee to replace them or choose Not assigned to remove the assignment.")}
             </div>
           )}
 
           {!canChangeEmployment && isChangingLeadership && (
             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm font-semibold text-amber-700 dark:text-amber-300">
-              Для этого действия требуется разрешение «Кадровые изменения».
+              {text("Для этого действия требуется разрешение «Кадровые изменения».", "This action requires the Employment changes permission.")}
             </div>
           )}
 
           {mode === "enterprise" && targetDepartments.length === 0 && leaderId && (
             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm font-semibold text-amber-700 dark:text-amber-300">
-              В предприятии пока нет отделов. Сначала создайте хотя бы один отдел.
+              {text("В предприятии пока нет отделов. Сначала создайте хотя бы один отдел.", "There are no departments in the enterprise yet. Create at least one department first.")}
             </div>
           )}
 
@@ -515,14 +522,14 @@ export function DepartmentLeaderDialog({
               type="button"
             >
               {selectedAlreadyLeads
-                ? "Закрыть"
+                ? text("Закрыть", "Close")
                 : leaderId
                   ? currentLeaderId
-                    ? "Заменить руководителя"
-                    : "Назначить руководителя"
+                    ? text("Заменить руководителя", "Replace leader")
+                    : text("Назначить руководителя", "Assign leader")
                   : currentLeaderId
-                    ? "Снять руководителя"
-                    : "Закрыть"}
+                    ? text("Снять руководителя", "Remove leader")
+                    : text("Закрыть", "Close")}
             </ActionButton>
           </div>
         </div>
@@ -530,12 +537,6 @@ export function DepartmentLeaderDialog({
     </Dialog>
   );
 }
-
-const previousOutcomeOptions: SelectOption[] = [
-  { value: "unassigned", label: "Временно оставить без должности" },
-  { value: "assign_position", label: "Назначить на обычную должность" },
-  { value: "transfer", label: "Перевести в другой отдел / на другую должность" },
-];
 
 function Field({ children, label }: { children: React.ReactNode; label: string }): JSX.Element {
   return (
@@ -609,8 +610,11 @@ async function loadActiveEmployees(): Promise<HrRecord[]> {
   return records;
 }
 
-function candidateLabel(candidate: HrRecord): string {
-  const name = employeeName(candidate);
+function candidateLabel(
+  candidate: HrRecord,
+  text: (ru: string, en: string) => string,
+): string {
+  const name = employeeName(candidate, text);
   const assignment = [
     candidate.enterprise_name,
     candidate.department_name,
@@ -619,15 +623,18 @@ function candidateLabel(candidate: HrRecord): string {
     .map((value) => String(value ?? "").trim())
     .filter(Boolean)
     .join(" · ");
-  return assignment ? `${name} — ${assignment}` : `${name} — без назначения`;
+  return assignment ? `${name} — ${assignment}` : text(`${name} — без назначения`, `${name} — unassigned`);
 }
 
-function employeeName(record: HrRecord): string {
+function employeeName(
+  record: HrRecord,
+  text: (ru: string, en: string) => string,
+): string {
   return (
     [record.last_name, record.first_name, record.middle_name]
       .map((value) => String(value ?? "").trim())
       .filter(Boolean)
-      .join(" ") || "Сотрудник"
+      .join(" ") || text("Сотрудник", "Employee")
   );
 }
 
@@ -638,10 +645,17 @@ function localDateValue(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-function previousOutcomeLabel(value: PreviousLeaderOutcome): string {
-  if (value === "assign_position") return "Назначить на обычную должность";
-  if (value === "transfer") return "Перевести на другое назначение";
-  return "Временно оставить без должности";
+function previousOutcomeLabel(
+  value: PreviousLeaderOutcome,
+  text: (ru: string, en: string) => string,
+): string {
+  if (value === "assign_position") {
+    return text("Назначить на обычную должность", "Assign to a regular position");
+  }
+  if (value === "transfer") {
+    return text("Перевести на другое назначение", "Transfer to another assignment");
+  }
+  return text("Временно оставить без должности", "Temporarily leave without a position");
 }
 
 function positiveId(value: unknown): number | null {
