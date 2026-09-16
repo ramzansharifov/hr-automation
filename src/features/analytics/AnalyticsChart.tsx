@@ -52,7 +52,7 @@ export function AnalyticsChart({
     return () => observer.disconnect();
   }, []);
 
-  const theme = useMemo(() => readChartTheme(), [themeRevision]);
+  const theme = useMemo(() => readChartTheme(themeRevision), [themeRevision]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -113,7 +113,8 @@ interface ChartTheme {
   palette: string[];
 }
 
-function readChartTheme(): ChartTheme {
+function readChartTheme(revision: number): ChartTheme {
+  void revision;
   const root = document.documentElement;
   const styles = getComputedStyle(root);
   const dark = root.dataset.theme === "dark";
@@ -237,7 +238,6 @@ function createChartOptions({
         duration: 650,
         easing: "easeOutQuart",
       },
-      cutout: "66%",
       plugins: {
         legend: {
           display: true,
