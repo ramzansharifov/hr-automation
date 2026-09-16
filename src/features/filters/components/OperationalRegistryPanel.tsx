@@ -31,6 +31,17 @@ export function OperationalRegistryPanel({
   employeeId = "",
   registry,
 }: OperationalRegistryPanelProps): JSX.Element {
+  const text = useAppText();
+  const vacationStatusOptions: SelectOption[] = [
+    { value: "planned", label: text("Запланирован", "Planned") },
+    { value: "approved", label: text("Одобрен", "Approved") },
+    { value: "rejected", label: text("Отклонён", "Rejected") },
+    { value: "completed", label: text("Завершён", "Completed") },
+  ];
+  const paymentOptions: SelectOption[] = [
+    { value: "1", label: text("Оплачиваемый", "Paid") },
+    { value: "0", label: text("Неоплачиваемый", "Unpaid") },
+  ];
   const initialFilters = useMemo(
     () => withEmployee(getStoredVacationFilterValues(), employeeId),
     [employeeId],
