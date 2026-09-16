@@ -143,6 +143,7 @@ export const en = {
       completed: "Completed",
       paid: "Paid",
       pending: "Pending",
+      terminated: "Terminated",
       male: "Male",
       female: "Female",
     },
