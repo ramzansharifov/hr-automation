@@ -1,4 +1,5 @@
 import type { MouseEventHandler } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "../lib/cn";
 import { ActionButton } from "./ActionButton";
@@ -18,7 +19,7 @@ interface FormActionsProps {
 }
 
 export function FormActions({
-  cancelLabel = "Отмена",
+  cancelLabel,
   className,
   form,
   loading = false,
@@ -29,6 +30,8 @@ export function FormActions({
   submitLabel,
   submitType = "submit",
 }: FormActionsProps): JSX.Element {
+  const { t } = useTranslation();
+  const resolvedCancelLabel = cancelLabel ?? t("common.actions.cancel");
   return (
     <div className={cn("app-form-actions", className)}>
       {onCancel && (
@@ -38,7 +41,7 @@ export function FormActions({
           onClick={onCancel}
           type="button"
         >
-          {cancelLabel}
+          {resolvedCancelLabel}
         </ActionButton>
       )}
       <ActionButton
