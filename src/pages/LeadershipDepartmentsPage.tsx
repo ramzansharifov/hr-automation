@@ -5,10 +5,12 @@ import { useAuth } from "../features/auth/AuthContext";
 import { HrEntityTable } from "../features/hr-table/HrEntityTable";
 import { getLeadershipRole } from "../shared/access/leadership";
 import { getScopedAdminRole } from "../shared/access/scopedAdmin";
+import { useAppText } from "../shared/i18n";
 import type { HrFilterCondition, HrRecord } from "../shared/types/hr";
 import { EmptyState, PageHeader, useStoredViewMode } from "../shared/ui";
 
 export function LeadershipDepartmentsPage(): JSX.Element {
+  const text = useAppText();
   const navigate = useNavigate();
   const { session } = useAuth();
   const [viewMode, setViewMode] = useStoredViewMode("leadership-departments");
@@ -21,8 +23,8 @@ export function LeadershipDepartmentsPage(): JSX.Element {
   if (!canOpenEnterpriseDepartments) {
     return (
       <EmptyState
-        title="Раздел недоступен"
-        description="Список отделов доступен руководителю и администратору предприятия."
+        title={text("Раздел недоступен", "Section unavailable")}
+        description={text("Список отделов доступен руководителю и администратору предприятия.", "The department list is available to the enterprise director and enterprise administrator.")}
       />
     );
   }
@@ -30,8 +32,8 @@ export function LeadershipDepartmentsPage(): JSX.Element {
   if (!session.enterpriseId) {
     return (
       <EmptyState
-        title="Предприятие не определено"
-        description="Для текущей учётной записи не удалось определить предприятие. Проверьте организационную привязку сотрудника."
+        title={text("Предприятие не определено", "Enterprise not determined")}
+        description={text("Для текущей учётной записи не удалось определить предприятие. Проверьте организационную привязку сотрудника.", "The enterprise could not be determined for the current account. Check the employee organization assignment.")}
       />
     );
   }
@@ -53,12 +55,18 @@ export function LeadershipDepartmentsPage(): JSX.Element {
       <PageHeader
         description={
           canManageEnterprise
-            ? `Все подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь можно создавать отделы и открывать их для управления должностями, руководителем и данными подразделения.`
-            : `Подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь отображается только структура предприятия, которым вы руководите.`
+            ? text(
+                `Все подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь можно создавать отделы и открывать их для управления должностями, руководителем и данными подразделения.`,
+                `All departments of ${session.enterpriseName || "your enterprise"}. You can create departments and open them to manage positions, leadership, and department data.`,
+              )
+            : text(
+                `Подразделения ${session.enterpriseName || "вашего предприятия"}. Здесь отображается только структура предприятия, которым вы руководите.`,
+                `Departments of ${session.enterpriseName || "your enterprise"}. Only the structure of the enterprise you lead is shown here.`,
+              )
         }
-        eyebrow="Структура предприятия"
+        eyebrow={text("Структура предприятия", "Enterprise structure")}
         icon={<FiGrid />}
-        title="Отделы"
+        title={text("Отделы", "Departments")}
       />
 
       <HrEntityTable
