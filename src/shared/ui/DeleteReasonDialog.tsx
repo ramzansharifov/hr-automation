@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ActionButton } from "./ActionButton";
 import { Button } from "./Button";
@@ -20,10 +21,14 @@ export function DeleteReasonDialog({
   onConfirm,
   onOpenChange,
   open,
-  reasonLabel = "Основание удаления",
-  reasonPlaceholder = "Укажите причину удаления",
+  reasonLabel,
+  reasonPlaceholder,
   title,
 }: DeleteReasonDialogProps): JSX.Element {
+  const { t } = useTranslation();
+  const resolvedReasonLabel = reasonLabel ?? t("common.fields.deleteReason");
+  const resolvedReasonPlaceholder =
+    reasonPlaceholder ?? t("common.fields.deleteReasonPlaceholder");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const trimmedReason = reason.trim();
@@ -56,7 +61,7 @@ export function DeleteReasonDialog({
             onClick={() => onOpenChange(false)}
             variant="secondary"
           >
-            Отмена
+            {t("common.actions.cancel")}
           </Button>
           <ActionButton
             action="delete"
@@ -64,7 +69,7 @@ export function DeleteReasonDialog({
             loading={loading}
             onClick={() => void handleConfirm()}
           >
-            Удалить
+            {t("common.actions.delete")}
           </ActionButton>
         </div>
       }
@@ -76,12 +81,12 @@ export function DeleteReasonDialog({
       title={title}
     >
       <label className="grid gap-2">
-        <span className="app-text text-sm font-bold">{reasonLabel}</span>
+        <span className="app-text text-sm font-bold">{resolvedReasonLabel}</span>
         <Textarea
           autoFocus
           disabled={loading}
           onChange={(event) => setReason(event.target.value)}
-          placeholder={reasonPlaceholder}
+          placeholder={resolvedReasonPlaceholder}
           rows={4}
           value={reason}
         />
