@@ -1,5 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { en } from './locales/en'
 import { ru } from './locales/ru'
 
 export const DEFAULT_LANGUAGE = 'ru'
@@ -11,6 +12,11 @@ export const supportedLanguages = [
     labelKey: 'settings.language.options.ru',
     locale: 'ru-RU',
   },
+  {
+    id: 'en',
+    labelKey: 'settings.language.options.en',
+    locale: 'en-US',
+  },
 ] as const
 
 export type AppLanguage = (typeof supportedLanguages)[number]['id']
@@ -18,6 +24,9 @@ export type AppLanguage = (typeof supportedLanguages)[number]['id']
 const resources = {
   ru: {
     translation: ru,
+  },
+  en: {
+    translation: en,
   },
 } as const
 
@@ -54,7 +63,19 @@ void i18n.use(initReactI18next).init({
   },
 })
 
+function applyDocumentLanguage(language: string): void {
+  if (typeof document === 'undefined') return
+  const normalizedLanguage = language.split('-')[0]
+  if (isAppLanguage(normalizedLanguage)) {
+    document.documentElement.lang = normalizedLanguage
+  }
+}
+
+applyDocumentLanguage(i18n.language)
+
 i18n.on('languageChanged', (language) => {
+  applyDocumentLanguage(language)
+
   if (typeof window === 'undefined') {
     return
   }
