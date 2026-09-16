@@ -245,7 +245,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
                       </span>
                       <div className="min-w-0">
                         <p className="app-text text-sm font-black">{permission.name}</p>
-                        <code className="app-surface-muted app-border app-text-soft mt-2 inline-flex max-w-full rounded-lg border px-2 py-1 text-[11px] font-bold">
+                        <code className="app-permission-code app-surface-muted app-border mt-2 inline-flex max-w-full rounded-lg border px-2 py-1 font-mono">
                           {permission.code}
                         </code>
                       </div>
