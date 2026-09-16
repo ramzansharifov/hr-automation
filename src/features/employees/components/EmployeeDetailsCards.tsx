@@ -136,7 +136,7 @@ export function EmployeeOverviewCards({
         actionLabel={t("common.actions.edit")}
         icon={<FiPhone />}
         onEdit={onEditPersonal}
-        title={t("forms.fields.phone", { defaultValue: "Контакты" }) === "Контакты" ? "Контакты" : "Contacts"}
+        title={t("employeesDetails.sections.contacts")}
       >
         <ProfileRow
           label={t("forms.fields.phone")}
