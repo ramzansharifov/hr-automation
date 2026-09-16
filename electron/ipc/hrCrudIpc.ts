@@ -122,10 +122,7 @@ export function registerHrCrudIpcHandlers(): void {
     const params = ipcValidation.getById(raw);
     const record = service.getById(params);
     if (record) {
-      const session = authenticationService.getCurrentSession();
-      if (!canViewOwnOrganizationContext(params.entity, record, session)) {
-        authorizationService.assertCanViewRecord(params.entity, record);
-      }
+      authorizationService.assertCanViewRecord(params.entity, record);
     }
     return record;
   });
@@ -731,18 +728,6 @@ function applyVacationDecision(
     };
   }
   return data;
-}
-
-function canViewOwnOrganizationContext(
-  entity: HrEntityKey,
-  record: HrRecord,
-  session: AuthSession | null,
-): boolean {
-  if (!session || !session.permissionCodes.includes("profile.view")) return false;
-  if (entity === "departments") return Number(record.id) === session.departmentId;
-  if (entity === "positions") return Number(record.department_id) === session.departmentId;
-  if (entity === "enterprises") return Number(record.id) === session.enterpriseId;
-  return false;
 }
 
 function assertTrustedSender(event: IpcMainInvokeEvent): void {
