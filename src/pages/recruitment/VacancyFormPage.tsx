@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { FormField } from "../../features/recruitment/RecruitmentUi";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   HrRecord,
@@ -54,6 +55,9 @@ const emptyForm = (): VacancyFormState => ({
 });
 
 export function VacancyFormPage(): JSX.Element {
+  const text = useAppText();
+  const statusOptions = vacancyStatusOptions(text);
+  const employmentOptions = employmentTypeOptions(text);
   const navigate = useNavigate();
   const { id } = useParams();
   const vacancyId = id ? Number(id) : undefined;
@@ -103,7 +107,7 @@ export function VacancyFormPage(): JSX.Element {
         return;
       }
 
-      if (!profile) throw new Error("Вакансия не найдена");
+      if (!profile) throw new Error(text("Вакансия не найдена", "Vacancy not found"));
       const vacancy = profile.vacancy;
       const position = positionRows.items.find(
         (item) => Number(item.id) === Number(vacancy.position_id),
@@ -112,7 +116,7 @@ export function VacancyFormPage(): JSX.Element {
         (item) => Number(item.id) === Number(position?.department_id),
       );
       if (!position || !department) {
-        throw new Error("Структура вакансии больше не существует");
+        throw new Error(text("Структура вакансии больше не существует", "The vacancy organization structure no longer exists"));
       }
 
       const skills = profile.skills.map((skill) => ({
@@ -136,12 +140,12 @@ export function VacancyFormPage(): JSX.Element {
         softSkills: skills.filter((skill) => skill.type === "soft"),
       });
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось открыть форму вакансии"));
+      toast.error(errorMessage(error, text("Не удалось открыть форму вакансии", "Failed to open vacancy form")));
       navigate("/vacancies", { replace: true });
     } finally {
       setIsLoading(false);
     }
-  }, [isEdit, navigate, vacancyId]);
+  }, [isEdit, navigate, text, vacancyId]);
 
   useEffect(() => {
     void loadData();
@@ -215,10 +219,10 @@ export function VacancyFormPage(): JSX.Element {
           requiredLevel,
         })),
       });
-      toast.success(isEdit ? "Вакансия обновлена" : "Вакансия создана");
+      toast.success(isEdit ? text("Вакансия обновлена", "Vacancy updated") : text("Вакансия создана", "Vacancy created"));
       navigate("/vacancies");
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось сохранить вакансию"));
+      toast.error(errorMessage(error, text("Не удалось сохранить вакансию", "Failed to save vacancy")));
     } finally {
       setIsSaving(false);
     }
@@ -255,7 +259,7 @@ export function VacancyFormPage(): JSX.Element {
   }
 
   if (isLoading) {
-    return <LoadingState label="Загрузка формы вакансии..." />;
+    return <LoadingState label={text("Загрузка формы вакансии...", "Loading vacancy form...")} />;
   }
 
   return (
@@ -267,26 +271,26 @@ export function VacancyFormPage(): JSX.Element {
             <ActionIconButton
               action="back"
               className="rounded-full"
-              label="Вернуться к вакансиям"
+              label={text("Вернуться к вакансиям", "Back to vacancies")}
               onClick={() => navigate("/vacancies")}
               size="lg"
             />
             <div>
               <span className="app-accent-soft app-accent-text inline-flex items-center gap-2 rounded-full border border-[var(--accent-border)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em]">
                 <FiBriefcase className="h-3.5 w-3.5" />
-                Подбор персонала
+                {text("Подбор персонала", "Recruitment")}
               </span>
               <h1 className="app-text mt-3 text-3xl font-black tracking-tight sm:text-4xl">
-                {isEdit ? "Редактирование вакансии" : "Новая вакансия"}
+                {isEdit ? text("Редактирование вакансии", "Edit vacancy") : text("Новая вакансия", "New vacancy")}
               </h1>
               <p className="app-muted mt-2 max-w-2xl text-sm leading-6">
-                Сначала выберите предприятие, затем отдел и должность. Так вакансия всегда привязана к существующей структуре компании.
+                {text("Сначала выберите предприятие, затем отдел и должность. Так вакансия всегда привязана к существующей структуре компании.", "Select an enterprise, then a department and position. This keeps the vacancy linked to the existing organization structure.")}
               </p>
             </div>
           </div>
           <HeroMetric
-            label="Вакансия"
-            value={String(selectedPosition?.name ?? "Должность не выбрана")}
+            label={text("Вакансия", "Vacancy")}
+            value={String(selectedPosition?.name ?? text("Должность не выбрана", "Position not selected"))}
           />
         </div>
       </section>
@@ -297,12 +301,12 @@ export function VacancyFormPage(): JSX.Element {
           <main className="space-y-6">
             <section className="app-surface app-border rounded-[28px] border p-5 sm:p-7">
               <SectionHeading
-                description="Последовательный выбор исключает вакансии вне организационной структуры."
+                description={text("Последовательный выбор исключает вакансии вне организационной структуры.", "Sequential selection prevents vacancies from being created outside the organization structure.")}
                 number="01"
-                title="Место вакансии в структуре"
+                title={text("Место вакансии в структуре", "Vacancy position in the structure")}
               />
               <div className="mt-6 grid gap-5 md:grid-cols-3">
-                <FormField label="Предприятие">
+                <FormField label={text("Предприятие", "Enterprise")}>
                   <Select
                     onValueChange={(enterpriseId) =>
                       setForm((current) => ({
@@ -313,11 +317,11 @@ export function VacancyFormPage(): JSX.Element {
                       }))
                     }
                     options={enterpriseOptions}
-                    placeholder="Выберите предприятие"
+                    placeholder={text("Выберите предприятие", "Select enterprise")}
                     value={form.enterpriseId}
                   />
                 </FormField>
-                <FormField label="Отдел">
+                <FormField label={text("Отдел", "Department")}>
                   <Select
                     disabled={!form.enterpriseId}
                     onValueChange={(departmentId) =>
@@ -329,12 +333,12 @@ export function VacancyFormPage(): JSX.Element {
                     }
                     options={departmentOptions}
                     placeholder={
-                      form.enterpriseId ? "Выберите отдел" : "Сначала предприятие"
+                      form.enterpriseId ? text("Выберите отдел", "Select department") : text("Сначала предприятие", "Select enterprise first")
                     }
                     value={form.departmentId}
                   />
                 </FormField>
-                <FormField label="Должность">
+                <FormField label={text("Должность", "Position")}>
                   <Select
                     disabled={!form.departmentId}
                     onValueChange={(positionId) =>
@@ -342,7 +346,7 @@ export function VacancyFormPage(): JSX.Element {
                     }
                     options={positionOptions}
                     placeholder={
-                      form.departmentId ? "Выберите должность" : "Сначала отдел"
+                      form.departmentId ? text("Выберите должность", "Select position") : text("Сначала отдел", "Select department first")
                     }
                     value={form.positionId}
                   />
@@ -350,7 +354,7 @@ export function VacancyFormPage(): JSX.Element {
               </div>
 
               <div className="mt-6 grid gap-5 md:grid-cols-3">
-                <FormField label="Статус">
+                <FormField label={text("Статус", "Status")}>
                   <Select
                     onValueChange={(status) =>
                       setForm((current) => ({
@@ -358,11 +362,11 @@ export function VacancyFormPage(): JSX.Element {
                         status: status as VacancyFormState["status"],
                       }))
                     }
-                    options={vacancyStatusOptions}
+                    options={statusOptions}
                     value={form.status}
                   />
                 </FormField>
-                <FormField label="Формат занятости">
+                <FormField label={text("Формат занятости", "Employment type")}>
                   <Select
                     onValueChange={(employmentType) =>
                       setForm((current) => ({
@@ -371,11 +375,11 @@ export function VacancyFormPage(): JSX.Element {
                           employmentType as VacancyFormState["employmentType"],
                       }))
                     }
-                    options={employmentTypeOptions}
+                    options={employmentOptions}
                     value={form.employmentType}
                   />
                 </FormField>
-                <FormField label="Открытых мест">
+                <FormField label={text("Открытых мест", "Openings")}>
                   <Input
                     min="1"
                     onChange={(event) =>
@@ -394,7 +398,7 @@ export function VacancyFormPage(): JSX.Element {
 
             <div className="grid gap-6 2xl:grid-cols-2">
               <SkillSection
-                description="Инструменты, технологии и профессиональные знания."
+                description={text("Инструменты, технологии и профессиональные знания.", "Tools, technologies, and professional knowledge.")}
                 icon={<FiTool className="h-5 w-5" />}
                 onAdd={() => addSkill("hard")}
                 onRemove={(key) => removeSkill("hard", key)}
@@ -403,7 +407,7 @@ export function VacancyFormPage(): JSX.Element {
                 title="Hard skills"
               />
               <SkillSection
-                description="Коммуникация, взаимодействие и поведенческие качества."
+                description={text("Коммуникация, взаимодействие и поведенческие качества.", "Communication, collaboration, and behavioral qualities.")}
                 icon={<FiMessageCircle className="h-5 w-5" />}
                 onAdd={() => addSkill("soft")}
                 onRemove={(key) => removeSkill("soft", key)}
@@ -417,11 +421,11 @@ export function VacancyFormPage(): JSX.Element {
           <aside className="space-y-4 xl:sticky xl:top-[108px]">
             <section className="app-surface app-border rounded-[28px] border p-5">
               <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">
-                Выбранная структура
+                {text("Выбранная структура", "Selected structure")}
               </p>
               <div className="mt-4 space-y-1">
                 <SummaryRow
-                  label="Предприятие"
+                  label={text("Предприятие", "Enterprise")}
                   value={
                     selectedEnterprise
                       ? [selectedEnterprise.legal_form, selectedEnterprise.name]
@@ -431,15 +435,15 @@ export function VacancyFormPage(): JSX.Element {
                   }
                 />
                 <SummaryRow
-                  label="Отдел"
+                  label={text("Отдел", "Department")}
                   value={String(selectedDepartment?.name ?? "—")}
                 />
                 <SummaryRow
-                  label="Должность"
+                  label={text("Должность", "Position")}
                   value={String(selectedPosition?.name ?? "—")}
                 />
                 <SummaryRow
-                  label="Открытых мест"
+                  label={text("Открытых мест", "Openings")}
                   value={form.openingsCount || "0"}
                 />
               </div>
@@ -451,17 +455,17 @@ export function VacancyFormPage(): JSX.Element {
                   <FiCheckCircle className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="app-text font-black">Готовность формы</h3>
-                  <p className="app-muted text-xs">Заполните обязательные элементы</p>
+                  <h3 className="app-text font-black">{text("Готовность формы", "Form readiness")}</h3>
+                  <p className="app-muted text-xs">{text("Заполните обязательные элементы", "Complete the required items")}</p>
                 </div>
               </div>
               <div className="mt-4 space-y-3">
-                <ChecklistItem complete={Boolean(form.enterpriseId)} label="Выбрано предприятие" />
-                <ChecklistItem complete={Boolean(form.departmentId)} label="Выбран отдел" />
-                <ChecklistItem complete={Boolean(form.positionId)} label="Выбрана должность" />
+                <ChecklistItem complete={Boolean(form.enterpriseId)} label={text("Выбрано предприятие", "Enterprise selected")} />
+                <ChecklistItem complete={Boolean(form.departmentId)} label={text("Выбран отдел", "Department selected")} />
+                <ChecklistItem complete={Boolean(form.positionId)} label={text("Выбрана должность", "Position selected")} />
                 <ChecklistItem
                   complete={allSkills.length > 0 && namedSkillsCount === allSkills.length}
-                  label="Профиль навыков заполнен"
+                  label={text("Профиль навыков заполнен", "Skill profile completed")}
                 />
               </div>
             </section>
@@ -474,7 +478,7 @@ export function VacancyFormPage(): JSX.Element {
                 loading={isSaving}
                 type="submit"
               >
-                {isEdit ? "Сохранить изменения" : "Создать вакансию"}
+                {isEdit ? text("Сохранить изменения", "Save changes") : text("Создать вакансию", "Create vacancy")}
               </ActionButton>
               <ActionButton
                 action="cancel"
@@ -528,6 +532,7 @@ function SkillSection({
   skills: VacancySkillState[];
   title: string;
 }): JSX.Element {
+  const text = useAppText();
   return (
     <section className="app-surface app-border rounded-[28px] border p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -539,13 +544,13 @@ function SkillSection({
           </div>
         </div>
         <ActionButton action="create" onClick={onAdd} size="sm" type="button">
-          Добавить
+          {text("Добавить", "Add")}
         </ActionButton>
       </div>
 
       <div className="app-surface-muted app-border mt-4 rounded-2xl border px-4 py-3">
         <p className="app-text-soft text-xs font-semibold leading-5">
-          <strong className="app-text">Уровень</strong> — ожидаемое владение навыком по шкале 1–10.
+          <strong className="app-text">{text("Уровень", "Level")}</strong> {text("— ожидаемое владение навыком по шкале 1–10.", "— expected proficiency on a 1–10 scale.")}
         </p>
       </div>
 
@@ -553,33 +558,33 @@ function SkillSection({
         {skills.length === 0 && (
           <button className="app-border app-muted w-full rounded-2xl border border-dashed p-7" onClick={onAdd} type="button">
             <FiPlus className="mx-auto mb-2 h-5 w-5" />
-            <span className="text-sm font-black">Добавить первый навык</span>
+            <span className="text-sm font-black">{text("Добавить первый навык", "Add first skill")}</span>
           </button>
         )}
         {skills.map((skill, index) => (
           <article className="app-surface-muted app-border rounded-[22px] border p-4" key={skill.key}>
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="app-text text-sm font-black">{String(index + 1).padStart(2, "0")} · {skill.name.trim() || "Новый навык"}</p>
+              <p className="app-text text-sm font-black">{String(index + 1).padStart(2, "0")} · {skill.name.trim() || text("Новый навык", "New skill")}</p>
               <ActionIconButton
                 action="delete"
-                label="Удалить навык"
+                label={text("Удалить навык", "Delete skill")}
                 onClick={() => onRemove(skill.key)}
                 size="sm"
               />
             </div>
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px]">
-              <SkillInputField label="Навык">
+              <SkillInputField label={text("Навык", "Skill")}>
                 <Input
-                  aria-label={`${title}, навык ${index + 1}`}
+                  aria-label={text(`${title}, навык ${index + 1}`, `${title}, skill ${index + 1}`)}
                   onChange={(event) => onUpdate(skill.key, { name: event.target.value })}
-                  placeholder={skill.type === "hard" ? "Например: SQL" : "Например: Командная работа"}
+                  placeholder={skill.type === "hard" ? text("Например: SQL", "For example: SQL") : text("Например: Командная работа", "For example: Teamwork")}
                   required
                   value={skill.name}
                 />
               </SkillInputField>
-              <SkillInputField hint="1–10" label="Уровень">
+              <SkillInputField hint="1–10" label={text("Уровень", "Level")}>
                 <Input
-                  aria-label="Требуемый уровень навыка от 1 до 10"
+                  aria-label={text("Требуемый уровень навыка от 1 до 10", "Required skill level from 1 to 10")}
                   max="10"
                   min="1"
                   onChange={(event) => onUpdate(skill.key, { requiredLevel: Number(event.target.value) })}
@@ -641,19 +646,27 @@ function normalizeSkillType(value: unknown): VacancySkillType {
   return value === "soft" ? "soft" : "hard";
 }
 
-const vacancyStatusOptions: SelectOption[] = [
-  { value: "open", label: "Открыта" },
-  { value: "draft", label: "Черновик" },
-  { value: "paused", label: "Приостановлена" },
-  { value: "closed", label: "Закрыта" },
-];
+function vacancyStatusOptions(
+  text: (ru: string, en: string) => string,
+): SelectOption[] {
+  return [
+    { value: "open", label: text("Открыта", "Open") },
+    { value: "draft", label: text("Черновик", "Draft") },
+    { value: "paused", label: text("Приостановлена", "Paused") },
+    { value: "closed", label: text("Закрыта", "Closed") },
+  ];
+}
 
-const employmentTypeOptions: SelectOption[] = [
-  { value: "full_time", label: "Полная занятость" },
-  { value: "part_time", label: "Частичная занятость" },
-  { value: "temporary", label: "Временная работа" },
-  { value: "internship", label: "Стажировка" },
-];
+function employmentTypeOptions(
+  text: (ru: string, en: string) => string,
+): SelectOption[] {
+  return [
+    { value: "full_time", label: text("Полная занятость", "Full-time") },
+    { value: "part_time", label: text("Частичная занятость", "Part-time") },
+    { value: "temporary", label: text("Временная работа", "Temporary") },
+    { value: "internship", label: text("Стажировка", "Internship") },
+  ];
+}
 
 function errorMessage(error: unknown, fallback: string): string {
   const parts = error instanceof Error ? error.message.split("Error: ") : [];
