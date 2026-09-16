@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import type { AuthSession } from "../../src/shared/types/access";
 import type {
+  AnalyticsScopeSummary,
   AnalyticsSeriesPoint,
   HrAnalyticsReport,
 } from "../../src/shared/types/hr";
@@ -36,16 +37,18 @@ export class HrAnalyticsService {
     const averageAgeValue = this.scalarNullable(
       `SELECT AVG((julianday('now') - julianday(employee.birth_date)) / 365.2425)
        FROM employees AS employee
-       WHERE employee.birth_date IS NOT NULL AND (${employeeScope.sql})`,
+       WHERE employee.lifecycle_status = 'active'
+         AND employee.birth_date IS NOT NULL
+         AND (${employeeScope.sql})`,
       employeeParams,
     );
     const averageTenureValue = this.scalarNullable(
       `SELECT AVG(
-         (julianday(COALESCE(employee.terminated_at, DATE('now'))) -
-          julianday(employee.employment_started_at)) / 365.2425
+         (julianday(DATE('now')) - julianday(employee.employment_started_at)) / 365.2425
        )
        FROM employees AS employee
-       WHERE employee.employment_started_at IS NOT NULL
+       WHERE employee.lifecycle_status = 'active'
+         AND employee.employment_started_at IS NOT NULL
          AND (${employeeScope.sql})`,
       employeeParams,
     );
@@ -68,6 +71,18 @@ export class HrAnalyticsService {
       vacancyScope.params,
     );
 
+    const candidatesInProcess = this.scalar(
+      `SELECT COUNT(*)
+       FROM candidates AS candidate
+       JOIN vacancies AS vacancy ON vacancy.id = candidate.vacancy_id
+       JOIN positions AS position ON position.id = vacancy.position_id
+       JOIN departments AS department ON department.id = position.department_id
+       WHERE candidate.status IN ('new', 'screening', 'interview', 'offer')
+         AND vacancy.is_archived = 0
+         AND (${vacancyScope.sql})`,
+      vacancyScope.params,
+    );
+
     const averageTimeToHireDays = this.scalarNullable(
       `SELECT AVG(
          julianday(employee.employment_started_at) - julianday(candidate.created_at)
@@ -77,7 +92,8 @@ export class HrAnalyticsService {
        JOIN positions AS position ON position.id = vacancy.position_id
        JOIN departments AS department ON department.id = position.department_id
        JOIN employees AS employee ON employee.id = candidate.employee_id
-       WHERE employee.employment_started_at IS NOT NULL
+       WHERE candidate.status = 'hired'
+         AND employee.employment_started_at IS NOT NULL
          AND (${vacancyScope.sql})`,
       vacancyScope.params,
     );
@@ -98,7 +114,7 @@ export class HrAnalyticsService {
        LEFT JOIN enterprises AS enterprise ON enterprise.id = employee.enterprise_id
        WHERE employee.lifecycle_status = 'active' AND (${employeeScope.sql})
        GROUP BY enterprise.id, enterprise.name
-       ORDER BY value DESC`,
+       ORDER BY value DESC, label`,
       employeeParams,
     );
     const headcountByDepartment = this.series(
@@ -108,9 +124,20 @@ export class HrAnalyticsService {
        LEFT JOIN departments AS department ON department.id = employee.department_id
        WHERE employee.lifecycle_status = 'active' AND (${employeeScope.sql})
        GROUP BY department.id, department.name
-       ORDER BY value DESC`,
+       ORDER BY value DESC, label`,
       employeeParams,
     );
+    const headcountByPosition = this.series(
+      `SELECT COALESCE(position.name, 'Без должности') AS label,
+              COUNT(*) AS value
+       FROM employees AS employee
+       LEFT JOIN positions AS position ON position.id = employee.position_id
+       WHERE employee.lifecycle_status = 'active' AND (${employeeScope.sql})
+       GROUP BY position.id, position.name
+       ORDER BY value DESC, label`,
+      employeeParams,
+    );
+
     const hiresByMonth = this.series(
       `SELECT SUBSTR(history.effective_at, 1, 7) AS label, COUNT(*) AS value
        FROM employment_history AS history
@@ -138,7 +165,19 @@ export class HrAnalyticsService {
        JOIN departments AS department ON department.id = position.department_id
        WHERE vacancy.is_archived = 0 AND (${vacancyScope.sql})
        GROUP BY vacancy.status
-       ORDER BY value DESC`,
+       ORDER BY value DESC, vacancy.status`,
+      vacancyScope.params,
+    );
+    const candidatesByStatus = this.series(
+      `SELECT candidate.status AS label, COUNT(*) AS value
+       FROM candidates AS candidate
+       JOIN vacancies AS vacancy ON vacancy.id = candidate.vacancy_id
+       JOIN positions AS position ON position.id = vacancy.position_id
+       JOIN departments AS department ON department.id = position.department_id
+       WHERE vacancy.is_archived = 0
+         AND (${vacancyScope.sql})
+       GROUP BY candidate.status
+       ORDER BY value DESC, candidate.status`,
       vacancyScope.params,
     );
     const leaveByType = this.series(
@@ -151,11 +190,16 @@ export class HrAnalyticsService {
          AND SUBSTR(vacation.starts_at, 1, 4) = STRFTIME('%Y', 'now')
          AND (${vacationScope.sql})
        GROUP BY vacation_type.id, vacation_type.name
-       ORDER BY value DESC`,
+       ORDER BY value DESC, label`,
       vacationScope.params,
     );
 
+    const hiresLast12Months = sumSeries(hiresByMonth);
+    const terminationsLast12Months = sumSeries(terminationsByMonth);
+
     return {
+      generatedAt: new Date().toISOString(),
+      scope: this.scopeSummary(session),
       activeEmployees,
       pendingEmployees,
       terminatedEmployees,
@@ -164,12 +208,55 @@ export class HrAnalyticsService {
       openVacancies,
       averageTimeToHireDays: roundNullable(averageTimeToHireDays, 1),
       employeesOnLeaveToday,
+      hiresLast12Months,
+      terminationsLast12Months,
+      netChangeLast12Months: hiresLast12Months - terminationsLast12Months,
+      candidatesInProcess,
       headcountByEnterprise,
       headcountByDepartment,
+      headcountByPosition,
       hiresByMonth,
       terminationsByMonth,
       vacanciesByStatus,
+      candidatesByStatus,
       leaveByType,
+    };
+  }
+
+  private scopeSummary(session: AuthSession): AnalyticsScopeSummary {
+    if (session.scopeType === "global") {
+      return {
+        type: "global",
+        label: "Вся система",
+        enterpriseId: null,
+        departmentId: null,
+      };
+    }
+    if (session.scopeType === "enterprise") {
+      return {
+        type: "enterprise",
+        label:
+          session.enterpriseName ||
+          (session.enterpriseId ? `Предприятие #${session.enterpriseId}` : "Предприятие"),
+        enterpriseId: session.enterpriseId,
+        departmentId: null,
+      };
+    }
+    if (session.scopeType === "department") {
+      return {
+        type: "department",
+        label:
+          session.departmentName ||
+          (session.departmentId ? `Отдел #${session.departmentId}` : "Отдел"),
+        enterpriseId: session.enterpriseId,
+        departmentId: session.departmentId,
+      };
+    }
+    return {
+      type: "self",
+      label: "Только мои данные",
+      enterpriseId: session.enterpriseId,
+      departmentId: session.departmentId,
     };
   }
 
@@ -248,10 +335,13 @@ export class HrAnalyticsService {
         params: { scopeEnterpriseId: session.enterpriseId },
       };
     }
-    return {
-      sql: `${positionAlias}.department_id = @scopeDepartmentId`,
-      params: { scopeDepartmentId: session.departmentId },
-    };
+    if (session.scopeType === "department") {
+      return {
+        sql: `${positionAlias}.department_id = @scopeDepartmentId`,
+        params: { scopeDepartmentId: session.departmentId },
+      };
+    }
+    return { sql: "1 = 0", params: {} };
   }
 
   private scalar(
@@ -291,4 +381,8 @@ function roundNullable(value: number | null, digits: number): number | null {
   if (value === null) return null;
   const multiplier = 10 ** digits;
   return Math.round(value * multiplier) / multiplier;
+}
+
+function sumSeries(points: AnalyticsSeriesPoint[]): number {
+  return points.reduce((sum, point) => sum + point.value, 0);
 }

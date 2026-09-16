@@ -1,6 +1,7 @@
 import type {
   AccessPermission,
   AccessRoleSummary,
+  AccessScopeType,
   AccessUserSummary,
   AuthEmployeeOption,
   AuthSession,
@@ -400,7 +401,16 @@ export interface AnalyticsSeriesPoint {
   value: number;
 }
 
+export interface AnalyticsScopeSummary {
+  type: AccessScopeType;
+  label: string;
+  enterpriseId: number | null;
+  departmentId: number | null;
+}
+
 export interface HrAnalyticsReport {
+  generatedAt: string;
+  scope: AnalyticsScopeSummary;
   activeEmployees: number;
   pendingEmployees: number;
   terminatedEmployees: number;
@@ -409,11 +419,17 @@ export interface HrAnalyticsReport {
   openVacancies: number;
   averageTimeToHireDays: number | null;
   employeesOnLeaveToday: number;
+  hiresLast12Months: number;
+  terminationsLast12Months: number;
+  netChangeLast12Months: number;
+  candidatesInProcess: number;
   headcountByEnterprise: AnalyticsSeriesPoint[];
   headcountByDepartment: AnalyticsSeriesPoint[];
+  headcountByPosition: AnalyticsSeriesPoint[];
   hiresByMonth: AnalyticsSeriesPoint[];
   terminationsByMonth: AnalyticsSeriesPoint[];
   vacanciesByStatus: AnalyticsSeriesPoint[];
+  candidatesByStatus: AnalyticsSeriesPoint[];
   leaveByType: AnalyticsSeriesPoint[];
 }
 

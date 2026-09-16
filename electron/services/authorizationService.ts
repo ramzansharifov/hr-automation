@@ -425,6 +425,17 @@ export class AuthorizationService {
       };
     }
 
+    if (
+      session.scopeType === "self" &&
+      (entity === "enterprises" ||
+        entity === "departments" ||
+        entity === "positions")
+    ) {
+      // Organizational registries are not part of self scope. The intentionally
+      // limited employee directory is exposed through directory.view instead.
+      return { column: "id", values: [] };
+    }
+
     if (entity === "enterprises") {
       return { column: "id", values: compactIds([session.enterpriseId]) };
     }
@@ -678,6 +689,7 @@ export class AuthorizationService {
   }
 
   private getAllowedDepartmentIds(session: AuthSession): number[] {
+    if (session.scopeType === "self") return [];
     if (session.scopeType === "enterprise" && session.enterpriseId) {
       return (
         this.database
@@ -710,6 +722,9 @@ export class AuthorizationService {
 
   private isVacancyInScope(record: HrRecord, session: AuthSession): boolean {
     if (session.scopeType === "global") return true;
+    // A self-scoped permission must never inherit the employee's department
+    // merely because the session happens to contain a department id.
+    if (session.scopeType === "self") return false;
     const positionId = toPositiveNumber(record.position_id);
     if (!positionId) return false;
     const row = this.database
