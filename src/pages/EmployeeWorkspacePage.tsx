@@ -11,6 +11,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { useAppLocale, useAppText } from "../shared/i18n";
 import { formatDate } from "../shared/lib/format";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
@@ -32,6 +33,8 @@ export function EmployeeWorkspacePage({
 }: {
   section: EmployeeWorkspaceSection;
 }): JSX.Element {
+  const text = useAppText();
+  const locale = useAppLocale();
   const [workspace, setWorkspace] = useState<EmployeeWorkspaceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -50,7 +53,7 @@ export function EmployeeWorkspacePage({
           toast.error(
             error instanceof Error
               ? error.message
-              : "Не удалось загрузить данные о вашей организации",
+              : text("Не удалось загрузить данные о вашей организации", "Failed to load your organization data"),
           );
         }
       } finally {
@@ -62,10 +65,10 @@ export function EmployeeWorkspacePage({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [text]);
 
   const departmentOptions = useMemo<SelectOption[]>(() => {
-    if (!workspace) return [{ value: "all", label: "Все отделы" }];
+    if (!workspace) return [{ value: "all", label: text("Все отделы", "All departments") }];
     const departments = new Map<number, string>();
     if (workspace.department) {
       departments.set(workspace.department.id, workspace.department.name);
@@ -76,16 +79,16 @@ export function EmployeeWorkspacePage({
       }
     });
     return [
-      { value: "all", label: "Все отделы" },
+      { value: "all", label: text("Все отделы", "All departments") },
       ...Array.from(departments.entries())
-        .sort((left, right) => left[1].localeCompare(right[1], "ru"))
+        .sort((left, right) => left[1].localeCompare(right[1], locale))
         .map(([id, name]) => ({ value: String(id), label: name })),
     ];
-  }, [workspace]);
+  }, [locale, text, workspace]);
 
   const visibleColleagues = useMemo(() => {
     if (!workspace) return [];
-    const query = search.trim().toLocaleLowerCase("ru-RU");
+    const query = search.trim().toLocaleLowerCase(locale);
     return workspace.colleagues.filter((person) => {
       if (
         departmentFilter !== "all" &&
@@ -102,16 +105,16 @@ export function EmployeeWorkspacePage({
       ]
         .filter(Boolean)
         .some((value) =>
-          String(value).toLocaleLowerCase("ru-RU").includes(query),
+          String(value).toLocaleLowerCase(locale).includes(query),
         );
     });
-  }, [departmentFilter, search, workspace]);
+  }, [departmentFilter, locale, search, workspace]);
 
   if (isLoading) {
     const labels: Record<EmployeeWorkspaceSection, string> = {
-      enterprise: "Загрузка предприятия...",
-      department: "Загрузка отдела...",
-      colleagues: "Загрузка коллег...",
+      enterprise: text("Загрузка предприятия...", "Loading enterprise..."),
+      department: text("Загрузка отдела...", "Loading department..."),
+      colleagues: text("Загрузка коллег...", "Loading colleagues..."),
     };
     return <LoadingState label={labels[section]} />;
   }
@@ -119,8 +122,8 @@ export function EmployeeWorkspacePage({
   if (!workspace) {
     return (
       <EmptyState
-        title="Данные недоступны"
-        description="Не удалось получить информацию о вашей организации. Обратитесь к администратору."
+        title={text("Данные недоступны", "Data unavailable")}
+        description={text("Не удалось получить информацию о вашей организации. Обратитесь к администратору.", "Unable to retrieve information about your organization. Contact an administrator.")}
       />
     );
   }
@@ -141,12 +144,12 @@ export function EmployeeWorkspacePage({
       <WorkspaceLayout>
         <WorkspaceHero
           compact
-          eyebrow="Моё предприятие"
+          eyebrow={text("Моё предприятие", "My enterprise")}
           icon={<FiLayers />}
-          title={workspace.enterprise?.name ?? "Предприятие не назначено"}
+          title={workspace.enterprise?.name ?? text("Предприятие не назначено", "Enterprise not assigned")}
           description={
             workspace.enterprise?.legalName ??
-            "Организационная привязка сотрудника к предприятию пока не настроена."
+            text("Организационная привязка сотрудника к предприятию пока не настроена.", "The employee is not yet assigned to an enterprise.")
           }
         />
 
@@ -157,29 +160,29 @@ export function EmployeeWorkspacePage({
                 <span className="app-accent-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border">
                   <FiLayers />
                 </span>
-                <h2 className="app-text text-base font-black">Контакты предприятия</h2>
+                <h2 className="app-text text-base font-black">{text("Контакты предприятия", "Enterprise contacts")}</h2>
               </div>
 
               <div className="mt-4 grid gap-x-7 gap-y-4 sm:grid-cols-2">
-                <CompactInfo label="Электронная почта" value={workspace.enterprise?.email} />
-                <CompactInfo label="Телефон" value={workspace.enterprise?.phone} />
-                <CompactInfo label="Адрес" value={workspace.enterprise?.address} wide />
+                <CompactInfo label={text("Электронная почта", "Email")} value={workspace.enterprise?.email} />
+                <CompactInfo label={text("Телефон", "Phone")} value={workspace.enterprise?.phone} />
+                <CompactInfo label={text("Адрес", "Address")} value={workspace.enterprise?.address} wide />
               </div>
             </div>
 
             <div className="app-border-soft border-t pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
               <p className="app-muted text-[10px] font-black uppercase tracking-wide">
-                Руководитель предприятия
+                {text("Руководитель предприятия", "Enterprise director")}
               </p>
-              <LeaderSummary person={workspace.enterpriseLeader} />
+              <LeaderSummary person={workspace.enterpriseLeader} text={text} />
             </div>
           </div>
 
           <div className="app-border-soft mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-4">
-            <CompactInfo label="Мой отдел" value={workspace.department?.name} />
-            <CompactInfo label="Должность" value={workspace.self.positionName} />
-            <CompactInfo label="Коллеги" value={workspace.colleagues.length} />
-            <CompactInfo label="Отделов" value={enterpriseDepartmentIds.size} />
+            <CompactInfo label={text("Мой отдел", "My department")} value={workspace.department?.name} />
+            <CompactInfo label={text("Должность", "Position")} value={workspace.self.positionName} />
+            <CompactInfo label={text("Коллеги", "Colleagues")} value={workspace.colleagues.length} />
+            <CompactInfo label={text("Отделов", "Departments")} value={enterpriseDepartmentIds.size} />
           </div>
         </section>
       </WorkspaceLayout>
@@ -190,47 +193,47 @@ export function EmployeeWorkspacePage({
     return (
       <WorkspaceLayout>
         <WorkspaceHero
-          eyebrow="Мой отдел"
+          eyebrow={text("Мой отдел", "My department")}
           icon={<FiBriefcase />}
-          title={workspace.department?.name ?? "Отдел не назначен"}
+          title={workspace.department?.name ?? text("Отдел не назначен", "Department not assigned")}
           description={
             workspace.self.positionName
-              ? `Ваша должность: ${workspace.self.positionName}`
-              : "Должность сотрудника пока не указана."
+              ? text(`Ваша должность: ${workspace.self.positionName}`, `Your position: ${workspace.self.positionName}`)
+              : text("Должность сотрудника пока не указана.", "The employee position is not specified yet.")
           }
         />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             icon={<FiUsers />}
-            label="Коллег в отделе"
+            label={text("Коллег в отделе", "Department colleagues")}
             value={ownDepartmentColleagues.length}
           />
           <MetricCard
             icon={<FiUserCheck />}
-            label="Начальник отдела"
-            value={workspace.departmentLeader?.fullName ?? "Не назначен"}
+            label={text("Начальник отдела", "Department head")}
+            value={workspace.departmentLeader?.fullName ?? text("Не назначен", "Not assigned")}
           />
           <MetricCard
             icon={<FiBriefcase />}
-            label="Моя должность"
-            value={workspace.self.positionName ?? "Не указана"}
+            label={text("Моя должность", "My position")}
+            value={workspace.self.positionName ?? text("Не указана", "Not specified")}
           />
           <MetricCard
             icon={<FiMapPin />}
-            label="Рабочее место"
-            value={workspace.self.workplace ?? "Не указано"}
+            label={text("Рабочее место", "Workplace")}
+            value={workspace.self.workplace ?? text("Не указано", "Not specified")}
           />
         </section>
 
         <section className="grid items-start gap-5 xl:grid-cols-2">
-          <InfoPanel icon={<FiMapPin />} title="Информация об отделе">
-            <InfoRow label="Название" value={workspace.department?.name} />
-            <InfoRow label="Предприятие" value={workspace.enterprise?.name} />
-            <InfoRow label="Электронная почта" value={workspace.department?.email} />
-            <InfoRow label="Телефон" value={workspace.department?.phone} />
+          <InfoPanel icon={<FiMapPin />} title={text("Информация об отделе", "Department information")}>
+            <InfoRow label={text("Название", "Name")} value={workspace.department?.name} />
+            <InfoRow label={text("Предприятие", "Enterprise")} value={workspace.enterprise?.name} />
+            <InfoRow label={text("Электронная почта", "Email")} value={workspace.department?.email} />
+            <InfoRow label={text("Телефон", "Phone")} value={workspace.department?.phone} />
             <InfoRow
-              label="Расположение"
+              label={text("Расположение", "Location")}
               value={workspace.department?.location}
               wide
             />
@@ -238,27 +241,27 @@ export function EmployeeWorkspacePage({
 
           <section className="app-surface app-border overflow-hidden rounded-[28px] border">
             <SectionHeader
-              description="Ваш непосредственный руководитель в организационной структуре."
+              description={text("Ваш непосредственный руководитель в организационной структуре.", "Your direct manager in the organization structure.")}
               icon={<FiUserCheck />}
-              title="Начальник отдела"
+              title={text("Начальник отдела", "Department head")}
             />
             <div className="p-5">
-              <LeaderCard person={workspace.departmentLeader} />
+              <LeaderCard person={workspace.departmentLeader} text={text} />
             </div>
           </section>
         </section>
 
-        <InfoPanel icon={<FiBriefcase />} title="Моя работа в отделе">
-          <InfoRow label="Должность" value={workspace.self.positionName} />
-          <InfoRow label="Рабочее место" value={workspace.self.workplace} />
+        <InfoPanel icon={<FiBriefcase />} title={text("Моя работа в отделе", "My work in the department")}>
+          <InfoRow label={text("Должность", "Position")} value={workspace.self.positionName} />
+          <InfoRow label={text("Рабочее место", "Workplace")} value={workspace.self.workplace} />
           <InfoRow
-            label="Тип занятости"
-            value={employmentTypeLabel(workspace.self.employmentType)}
+            label={text("Тип занятости", "Employment type")}
+            value={employmentTypeLabel(workspace.self.employmentType, text)}
           />
           <InfoRow
-            label="Дата начала работы"
+            label={text("Дата начала работы", "Start date")}
             value={
-              workspace.self.hireDate ? formatDate(workspace.self.hireDate) : null
+              workspace.self.hireDate ? formatDate(workspace.self.hireDate, locale) : null
             }
           />
         </InfoPanel>
@@ -269,35 +272,35 @@ export function EmployeeWorkspacePage({
   return (
     <WorkspaceLayout>
       <WorkspaceHero
-        eyebrow="Внутренний справочник"
+        eyebrow={text("Внутренний справочник", "Internal directory")}
         icon={<FiUsers />}
-        title="Коллеги"
-        description={`Активные сотрудники ${workspace.enterprise?.name ?? "вашего предприятия"}. По коллегам доступны только данные, необходимые для рабочей коммуникации.`}
+        title={text("Коллеги", "Colleagues")}
+        description={text(`Активные сотрудники ${workspace.enterprise?.name ?? "вашего предприятия"}. По коллегам доступны только данные, необходимые для рабочей коммуникации.`, `Active employees of ${workspace.enterprise?.name ?? "your enterprise"}. Only information needed for work communication is shown for colleagues.`)}
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
         <MetricCard
           icon={<FiUsers />}
-          label="Всего коллег"
+          label={text("Всего коллег", "Total colleagues")}
           value={workspace.colleagues.length}
         />
         <MetricCard
           icon={<FiBriefcase />}
-          label="В моём отделе"
+          label={text("В моём отделе", "In my department")}
           value={ownDepartmentColleagues.length}
         />
         <MetricCard
           icon={<FiLayers />}
-          label="Отделов в справочнике"
+          label={text("Отделов в справочнике", "Departments in directory")}
           value={enterpriseDepartmentIds.size}
         />
       </section>
 
       <section className="app-surface app-border overflow-hidden rounded-[28px] border">
         <SectionHeader
-          description="Поиск по ФИО, рабочей почте, должности или отделу."
+          description={text("Поиск по ФИО, рабочей почте, должности или отделу.", "Search by name, work email, position, or department.")}
           icon={<FiUsers />}
-          title="Справочник коллег"
+          title={text("Справочник коллег", "Colleague directory")}
         />
 
         <div className="app-border-soft flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
@@ -306,12 +309,12 @@ export function EmployeeWorkspacePage({
             <Input
               className="pl-11"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Поиск по ФИО, почте или должности"
+              placeholder={text("Поиск по ФИО, почте или должности", "Search by name, email, or position")}
               value={search}
             />
           </div>
           <Select
-            ariaLabel="Фильтр по отделу"
+            ariaLabel={text("Фильтр по отделу", "Department filter")}
             className="w-full sm:w-64"
             onValueChange={setDepartmentFilter}
             options={departmentOptions}
@@ -325,12 +328,10 @@ export function EmployeeWorkspacePage({
           </span>
           <div>
             <p className="app-text text-sm font-black">
-              Безопасный внутренний справочник
+              {text("Безопасный внутренний справочник", "Safe internal directory")}
             </p>
             <p className="app-muted mt-1 text-xs font-semibold leading-5">
-              Показываются только ФИО, рабочая почта, должность и отдел. Телефоны,
-              зарплаты, адреса, документы и другие кадровые данные коллег не
-              раскрываются.
+              {text("Показываются только ФИО, рабочая почта, должность и отдел. Телефоны, зарплаты, адреса, документы и другие кадровые данные коллег не раскрываются.", "Only names, work email, position, and department are shown. Phone numbers, salaries, addresses, documents, and other HR data of colleagues are not disclosed.")}
             </p>
           </div>
         </div>
@@ -344,12 +345,13 @@ export function EmployeeWorkspacePage({
                 }
                 key={person.id}
                 person={person}
+                text={text}
               />
             ))}
           </div>
         ) : (
           <div className="app-muted p-10 text-center text-sm font-semibold">
-            По выбранным условиям коллеги не найдены.
+            {text("По выбранным условиям коллеги не найдены.", "No colleagues match the selected filters.")}
           </div>
         )}
       </section>
@@ -447,8 +449,10 @@ function CompactInfo({
 
 function LeaderSummary({
   person,
+  text,
 }: {
   person: EmployeeWorkspacePerson | null;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   return (
     <div className="mt-3 flex items-start gap-3">
@@ -457,7 +461,7 @@ function LeaderSummary({
       </span>
       <div className="min-w-0">
         <p className="app-text text-sm font-black">
-          {person?.fullName ?? "Не назначен"}
+          {person?.fullName ?? text("Не назначен", "Not assigned")}
         </p>
         {person?.positionName && (
           <p className="app-text-soft mt-1 text-xs font-bold">{person.positionName}</p>
@@ -564,8 +568,10 @@ function SectionHeader({
 
 function LeaderCard({
   person,
+  text,
 }: {
   person: EmployeeWorkspacePerson | null;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   return (
     <article className="app-surface-muted app-border rounded-2xl border p-4">
@@ -575,7 +581,7 @@ function LeaderCard({
         </span>
         <div className="min-w-0 flex-1">
           <p className="app-text text-sm font-black">
-            {person?.fullName ?? "Руководитель не назначен"}
+            {person?.fullName ?? text("Руководитель не назначен", "Leader not assigned")}
           </p>
           {person?.positionName && (
             <p className="app-text-soft mt-1 text-xs font-bold">
@@ -601,9 +607,11 @@ function LeaderCard({
 function ColleagueCard({
   isOwnDepartment,
   person,
+  text,
 }: {
   isOwnDepartment: boolean;
   person: EmployeeWorkspacePerson;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   return (
     <article className="app-surface-muted app-border rounded-2xl border p-4 transition hover:border-[var(--accent-border)] hover:shadow-lg">
@@ -616,15 +624,15 @@ function ColleagueCard({
             <p className="app-text min-w-0 font-black">{person.fullName}</p>
             {isOwnDepartment && (
               <span className="app-accent-soft rounded-full border px-2.5 py-1 text-[10px] font-black">
-                Мой отдел
+                {text("Мой отдел", "My department")}
               </span>
             )}
           </div>
           <p className="app-text-soft mt-2 text-xs font-bold">
-            {person.positionName ?? "Должность не указана"}
+            {person.positionName ?? text("Должность не указана", "Position not specified")}
           </p>
           <p className="app-muted mt-1 text-xs font-semibold">
-            {person.departmentName ?? "Отдел не указан"}
+            {person.departmentName ?? text("Отдел не указан", "Department not specified")}
           </p>
           {person.email && (
             <p className="app-accent-text mt-3 flex items-center gap-2 break-all text-xs font-bold">
@@ -637,14 +645,18 @@ function ColleagueCard({
   );
 }
 
-function employmentTypeLabel(value: string | null): string {
-  const labels: Record<string, string> = {
-    full_time: "Полная занятость",
-    part_time: "Частичная занятость",
-    temporary: "Временная работа",
-    internship: "Стажировка",
+function employmentTypeLabel(
+  value: string | null,
+  text: (ru: string, en: string) => string,
+): string {
+  const labels: Record<string, [string, string]> = {
+    full_time: ["Полная занятость", "Full-time"],
+    part_time: ["Частичная занятость", "Part-time"],
+    temporary: ["Временная работа", "Temporary"],
+    internship: ["Стажировка", "Internship"],
   };
-  return value ? labels[value] ?? value : "—";
+  const label = value ? labels[value] : null;
+  return label ? text(label[0], label[1]) : value || "—";
 }
 
 function initials(value: string): string {
