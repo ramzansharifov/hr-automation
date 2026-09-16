@@ -320,16 +320,20 @@ export function StatusBadge({
 }: {
   status: AccessUserStatus;
 }): JSX.Element {
+  const active = status === "active";
+  const label = active ? "Активен" : "Заблокирован";
+
   return (
     <span
+      aria-label={`Статус: ${label}`}
       className={[
-        "inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black",
-        status === "active"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-          : "app-surface app-border app-muted",
+        "app-status-badge",
+        active ? "app-status-badge--active" : "app-status-badge--blocked",
       ].join(" ")}
+      title={label}
     >
-      {status === "active" ? "Активен" : "Заблокирован"}
+      <span aria-hidden="true" className="app-status-badge__dot" />
+      <span>{label}</span>
     </span>
   );
 }
