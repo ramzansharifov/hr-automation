@@ -167,6 +167,88 @@ export const en = {
     },
   },
 
+  analytics: {
+    title: "Analytics",
+    description:
+      "Workforce, employee movement, recruitment, and vacations. All metrics are calculated on the backend strictly within the current permission scope.",
+    loading: "Building HR analytics...",
+    refreshError: "Failed to load analytics",
+    scope: {
+      title: "Data scope protected by role",
+      description: "The backend returned aggregates only for: {{scope}}. UI filters cannot expand this scope.",
+      updated: "Updated",
+      global: "Entire system",
+      self: "My data only",
+    },
+    sections: {
+      workforce: {
+        title: "Workforce",
+        description: "Current workforce and completeness of HR data.",
+      },
+      movement: {
+        title: "Employee movement",
+        description: "Hires and terminations over the last 12 months in the current data scope.",
+      },
+      recruitment: {
+        title: "Recruitment",
+        description: "Vacancy and candidate pipeline status without leaving the permitted enterprise or department.",
+      },
+      vacations: {
+        title: "Vacations",
+        description: "Vacation days used in the current year within the available scope.",
+      },
+    },
+    metrics: {
+      activeEmployees: "Active employees",
+      openVacancies: "Open vacancies",
+      candidatesInProcess: "Candidates in process",
+      onLeaveToday: "On vacation today",
+      averageAge: "Average age",
+      averageTenure: "Average tenure",
+      pendingEmployees: "Require completion",
+      terminatedEmployees: "Terminated in database",
+      hires12m: "Hired in 12 months",
+      terminations12m: "Terminated in 12 months",
+      netChange: "Net change",
+      averageTimeToHire: "Average time-to-hire",
+      activePipeline: "Candidates in active pipeline",
+    },
+    charts: {
+      headcountEnterprises: "Headcount by enterprise",
+      headcountDepartments: "Headcount by department",
+      headcountPositions: "Headcount by position",
+      employees: "Employees",
+      movement: "Hire and termination trend",
+      hired: "Hired",
+      terminated: "Terminated",
+      candidatesStages: "Candidates by stage",
+      vacanciesStatuses: "Vacancies by status",
+      candidates: "Candidates",
+      vacancies: "Vacancies",
+      vacationDays: "Vacation days by type",
+      days: "Days",
+      empty: "Not enough data yet.",
+    },
+    units: {
+      years: "yrs",
+      days: "days",
+      daySuffix: " days",
+    },
+    vacancyStatus: {
+      draft: "Draft",
+      open: "Open",
+      closed: "Closed",
+    },
+    candidateStatus: {
+      new: "New",
+      screening: "Screening",
+      interview: "Interview",
+      offer: "Offer",
+      hired: "Hired",
+      rejected: "Rejected",
+    },
+  },
+
   dashboard: {
     hero: {
       productName: "HR Automation",
