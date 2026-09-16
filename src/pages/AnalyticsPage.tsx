@@ -13,6 +13,10 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
+import {
+  AnalyticsChart,
+  type AnalyticsChartSeries,
+} from "../features/analytics/AnalyticsChart";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
   AnalyticsSeriesPoint,
@@ -47,7 +51,8 @@ export function AnalyticsPage(): JSX.Element {
 
   if (!report) return <LoadingState label="Собираем HR-аналитику..." />;
 
-  const structureCards = analyticsStructureCards(report);
+  const structureCharts = analyticsStructureCharts(report);
+  const movement = movementChartData(report);
 
   return (
     <div className="grid gap-6">
@@ -115,13 +120,29 @@ export function AnalyticsPage(): JSX.Element {
             value={report.terminatedEmployees}
           />
         </div>
-        <div className={structureCards.length > 1 ? "grid gap-5 xl:grid-cols-2" : "grid gap-5"}>
-          {structureCards.map((card) => (
-            <SeriesCard
+
+        <div
+          className={
+            structureCharts.length > 1
+              ? "grid gap-5 xl:grid-cols-2"
+              : "grid gap-5"
+          }
+        >
+          {structureCharts.map((chart) => (
+            <AnalyticsChart
+              height={chartHeight(chart.points)}
+              horizontal
               icon={<FiLayers />}
-              key={card.title}
-              points={card.points}
-              title={card.title}
+              key={chart.title}
+              kind="bar"
+              labels={chart.points.map((point) => point.label)}
+              series={[
+                {
+                  label: "Сотрудников",
+                  values: chart.points.map((point) => point.value),
+                },
+              ]}
+              title={chart.title}
             />
           ))}
         </div>
@@ -150,20 +171,15 @@ export function AnalyticsPage(): JSX.Element {
             value={report.netChangeLast12Months}
           />
         </div>
-        <div className="grid gap-5 xl:grid-cols-2">
-          <SeriesCard
-            icon={<FiTrendingUp />}
-            labelFormatter={formatMonth}
-            points={report.hiresByMonth}
-            title="Приёмы по месяцам"
-          />
-          <SeriesCard
-            icon={<FiTrendingDown />}
-            labelFormatter={formatMonth}
-            points={report.terminationsByMonth}
-            title="Увольнения по месяцам"
-          />
-        </div>
+
+        <AnalyticsChart
+          height={340}
+          icon={<FiActivity />}
+          kind="line"
+          labels={movement.labels}
+          series={movement.series}
+          title="Динамика приёмов и увольнений"
+        />
       </AnalyticsSection>
 
       <AnalyticsSection
@@ -181,17 +197,36 @@ export function AnalyticsPage(): JSX.Element {
             value={report.candidatesInProcess}
           />
         </div>
+
         <div className="grid gap-5 xl:grid-cols-2">
-          <SeriesCard
+          <AnalyticsChart
+            height={330}
             icon={<FiUserCheck />}
-            labelFormatter={candidateStatusLabel}
-            points={report.candidatesByStatus}
+            kind="doughnut"
+            labels={report.candidatesByStatus.map((point) =>
+              candidateStatusLabel(point.label),
+            )}
+            series={[
+              {
+                label: "Кандидатов",
+                values: report.candidatesByStatus.map((point) => point.value),
+              },
+            ]}
             title="Кандидаты по этапам"
           />
-          <SeriesCard
+          <AnalyticsChart
+            height={330}
             icon={<FiBriefcase />}
-            labelFormatter={vacancyStatusLabel}
-            points={report.vacanciesByStatus}
+            kind="doughnut"
+            labels={report.vacanciesByStatus.map((point) =>
+              vacancyStatusLabel(point.label),
+            )}
+            series={[
+              {
+                label: "Вакансий",
+                values: report.vacanciesByStatus.map((point) => point.value),
+              },
+            ]}
             title="Вакансии по статусам"
           />
         </div>
@@ -202,10 +237,20 @@ export function AnalyticsPage(): JSX.Element {
         icon={<FiCalendar />}
         title="Отпуска"
       >
-        <SeriesCard
+        <AnalyticsChart
+          height={chartHeight(report.leaveByType)}
+          horizontal
           icon={<FiCalendar />}
-          points={report.leaveByType}
+          kind="bar"
+          labels={report.leaveByType.map((point) => point.label)}
+          series={[
+            {
+              label: "Дней",
+              values: report.leaveByType.map((point) => point.value),
+            },
+          ]}
           title="Отпускные дни по видам"
+          valueSuffix=" дн."
         />
       </AnalyticsSection>
     </div>
@@ -301,7 +346,9 @@ function MovementMetric({
         {icon}
       </span>
       <div>
-        <p className="app-muted text-xs font-black uppercase tracking-wide">{label}</p>
+        <p className="app-muted text-xs font-black uppercase tracking-wide">
+          {label}
+        </p>
         <p className="app-text mt-1 text-2xl font-black">
           {signed && value > 0 ? "+" : ""}
           <AnimatedNumber value={value} />
@@ -311,81 +358,89 @@ function MovementMetric({
   );
 }
 
-function SeriesCard({
-  icon,
-  labelFormatter = identity,
-  points,
-  title,
-}: {
-  icon: ReactNode;
-  labelFormatter?: (label: string) => string;
-  points: AnalyticsSeriesPoint[];
-  title: string;
-}): JSX.Element {
-  const max = Math.max(...points.map((point) => point.value), 1);
-  return (
-    <article className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
-      <div className="flex items-center gap-3">
-        <span className="app-accent-soft flex h-10 w-10 items-center justify-center rounded-xl border">
-          {icon}
-        </span>
-        <h3 className="app-text font-black">{title}</h3>
-      </div>
-      <div className="mt-5 grid gap-3">
-        {points.length === 0 ? (
-          <p className="app-muted text-sm">Пока недостаточно данных.</p>
-        ) : (
-          points.slice(0, 12).map((point) => (
-            <div className="grid gap-1.5" key={point.label}>
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="app-text truncate font-semibold">
-                  {labelFormatter(point.label)}
-                </span>
-                <span className="app-text-soft shrink-0 font-black">
-                  {point.value}
-                </span>
-              </div>
-              <div
-                aria-label={`${labelFormatter(point.label)}: ${point.value}`}
-                className="app-surface-muted h-2 overflow-hidden rounded-full"
-                role="img"
-              >
-                <div
-                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500"
-                  style={{
-                    width: `${Math.max(
-                      (point.value / max) * 100,
-                      point.value > 0 ? 3 : 0,
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </article>
-  );
-}
-
-function analyticsStructureCards(
+function analyticsStructureCharts(
   report: HrAnalyticsReport,
 ): Array<{ title: string; points: AnalyticsSeriesPoint[] }> {
   if (report.scope.type === "global") {
     return [
-      { title: "Численность по предприятиям", points: report.headcountByEnterprise },
-      { title: "Численность по отделам", points: report.headcountByDepartment },
+      {
+        title: "Численность по предприятиям",
+        points: report.headcountByEnterprise,
+      },
+      {
+        title: "Численность по отделам",
+        points: report.headcountByDepartment,
+      },
     ];
   }
   if (report.scope.type === "enterprise") {
     return [
-      { title: "Численность по отделам", points: report.headcountByDepartment },
-      { title: "Численность по должностям", points: report.headcountByPosition },
+      {
+        title: "Численность по отделам",
+        points: report.headcountByDepartment,
+      },
+      {
+        title: "Численность по должностям",
+        points: report.headcountByPosition,
+      },
     ];
   }
   return [
-    { title: "Численность по должностям", points: report.headcountByPosition },
+    {
+      title: "Численность по должностям",
+      points: report.headcountByPosition,
+    },
   ];
+}
+
+function movementChartData(report: HrAnalyticsReport): {
+  labels: string[];
+  series: AnalyticsChartSeries[];
+} {
+  const months = lastTwelveMonths(report.generatedAt);
+  const hires = new Map(report.hiresByMonth.map((point) => [point.label, point.value]));
+  const terminations = new Map(
+    report.terminationsByMonth.map((point) => [point.label, point.value]),
+  );
+
+  return {
+    labels: months.map(formatMonth),
+    series: [
+      {
+        label: "Принято",
+        values: months.map((month) => hires.get(month) ?? 0),
+      },
+      {
+        label: "Уволено",
+        values: months.map((month) => terminations.get(month) ?? 0),
+      },
+    ],
+  };
+}
+
+function lastTwelveMonths(generatedAt: string): string[] {
+  const current = new Date(generatedAt);
+  const safeDate = Number.isNaN(current.getTime()) ? new Date() : current;
+  const result: string[] = [];
+
+  for (let offset = 11; offset >= 0; offset -= 1) {
+    const date = new Date(
+      Date.UTC(
+        safeDate.getUTCFullYear(),
+        safeDate.getUTCMonth() - offset,
+        1,
+      ),
+    );
+    result.push(
+      `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`,
+    );
+  }
+
+  return result;
+}
+
+function chartHeight(points: AnalyticsSeriesPoint[]): number {
+  return Math.max(280, Math.min(440, 150 + points.length * 42));
 }
 
 function formatUnit(value: number | null, unit: string): string {
@@ -409,7 +464,7 @@ function formatMonth(value: string): string {
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ru-RU", {
     month: "short",
-    year: "numeric",
+    year: "2-digit",
     timeZone: "UTC",
   }).format(date);
 }
@@ -435,10 +490,8 @@ function candidateStatusLabel(value: string): string {
   return labels[value] ?? value;
 }
 
-function identity(value: string): string {
-  return value;
-}
-
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message.split("Error: ").pop() || fallback : fallback;
+  return error instanceof Error
+    ? error.message.split("Error: ").pop() || fallback
+    : fallback;
 }
