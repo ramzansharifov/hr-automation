@@ -358,6 +358,9 @@ function createWindow(): void {
           let customRoleDepartmentEditDenied = false
           let customRoleEducationReady = false
           let customRoleEducationEditDenied = false
+          let departmentTenantIsolationReady = false
+          let enterpriseTenantIsolationReady = false
+          let selfScopeIsolationReady = false
 
           if (
             e2eEnterpriseId > 0 &&
