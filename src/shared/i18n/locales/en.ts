@@ -1,0 +1,577 @@
+export const en = {
+  app: {
+    brand: {
+      title: "HR Automation",
+      subtitle: "Human Resources System",
+    },
+    topbar: {
+      title: "Dashboard",
+      databaseActive: "SQLite active",
+    },
+    sidebar: {
+      expand: "Expand",
+      collapse: "Collapse",
+      expandSidebar: "Expand sidebar",
+      collapseSidebar: "Collapse sidebar",
+      mainNavigation: "Main navigation",
+    },
+  },
+
+  navigation: {
+    dashboard: "Dashboard",
+    employees: "Employees",
+    filters: "Filters",
+    enterprises: "Enterprises",
+    vacancies: "Vacancies",
+    candidates: "Candidates",
+    departments: "Departments",
+    positions: "Positions",
+    vacations: "Vacations",
+    payroll: "Payroll",
+    profile: "Profile",
+    settings: "Settings",
+  },
+
+  common: {
+    answers: { yes: "Yes", no: "No" },
+    actions: {
+      refresh: "Refresh",
+      open: "Open",
+      back: "Back",
+      next: "Next",
+      create: "Create",
+      edit: "Edit",
+      delete: "Delete",
+      save: "Save",
+      cancel: "Cancel",
+      confirm: "Confirm",
+      close: "Close",
+      more: "Actions",
+      openMenu: "Open actions menu",
+    },
+    fields: {
+      search: "Search",
+    },
+    table: {
+      total: "Total",
+      empty: "No records yet",
+      noRecords: "No records",
+      loading: "Loading...",
+      actions: "Actions",
+      pageSize: "Show",
+      pageSizeSuffix: "records",
+      sort: {
+        asc: "ASC",
+        desc: "DESC",
+      },
+    },
+    errors: {
+      dashboardLoad: "Failed to load dashboard",
+      dataLoad: "Failed to load data",
+    },
+    notifications: {
+      createFormSoon: "The create form will be available in the next patch",
+    },
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+      planned: "Planned",
+      approved: "Approved",
+      rejected: "Rejected",
+      completed: "Completed",
+      paid: "Paid",
+      pending: "Pending",
+      male: "Male",
+      female: "Female",
+    },
+  },
+
+  dashboard: {
+    hero: {
+      productName: "HR Automation",
+      title: "Human Resources Automation",
+      employeesButton: "Employees",
+    },
+    stats: {
+      total: "Total",
+      active: "Active",
+      month: "Month",
+      employees: "Employees",
+      departments: "Departments",
+      positions: "Positions",
+      vacations: "Vacations",
+      payroll: "Payroll",
+    },
+    sections: {
+      card: "Card",
+      latestEmployees: "Latest employees",
+      upcomingVacations: "Upcoming vacations",
+    },
+  },
+
+  profile: {
+    title: "Profile",
+    admin: "Administrator",
+    localUser: "Local system user",
+  },
+
+  settings: {
+    title: "Settings",
+    appearance: {
+      title: "Appearance",
+      description:
+        "Theme and accent apply to the entire interface and are stored locally.",
+      theme: {
+        title: "Theme",
+        currentPalette: "The {{palette}} palette is currently active.",
+        palette: {
+          light: "light",
+          dark: "dark",
+        },
+        options: {
+          light: "Light",
+          dark: "Dark",
+          system: "System",
+        },
+      },
+      accent: {
+        title: "Accent color",
+        description:
+          "Used for active navigation, buttons, links, and highlights.",
+        options: {
+          blue: "Blue",
+          indigo: "Indigo",
+          emerald: "Emerald",
+          violet: "Violet",
+          rose: "Rose",
+          amber: "Amber",
+        },
+      },
+    },
+    language: {
+      title: "Interface language",
+      description:
+        "Choose the language used throughout the application.",
+      current: "Current language",
+      options: {
+        ru: "Russian",
+        en: "English",
+      },
+    },
+    system: {
+      title: "System",
+      database: {
+        title: "Database",
+        description: "SQLite is connected through the Electron backend.",
+      },
+      interface: {
+        title: "Interface",
+        description:
+          "Appearance and language settings apply without restarting the application.",
+      },
+    },
+  },
+
+  employeesPage: {
+    title: "Employees",
+    description: "Search, filter, and review employee profiles.",
+    filters: {
+      title: "Filters",
+      description: "Fill in the fields and click Search.",
+      searchButton: "Search",
+      clearButton: "Clear",
+      addButton: "Add employee",
+    },
+  },
+  filtersPage: {
+    title: "Filters",
+    description: "A dedicated module for searching and filtering employees.",
+    formDescription:
+      "Configure search parameters and apply them to the employee list.",
+    activeCount: "Active filters: {{count}}",
+    sections: {
+      personalDescription: "Search by name, contacts, and personal data.",
+      companyDescription: "Filter by department, position, and employee status.",
+    },
+    toasts: {
+      applied: "Filters applied",
+      cleared: "Filters cleared",
+    },
+  },
+
+  employeesCreate: {
+    title: "New employee",
+    description:
+      "Complete the employee profile step by step and review the data before creation.",
+    stepLabel: "Step {{number}}",
+    steps: {
+      personal: "Personal data",
+      address: "Address",
+      company: "Company data",
+      review: "Review",
+    },
+    stepDescriptions: {
+      personal:
+        "Core information, contacts, and employee identification details.",
+      address: "Residential address and additional location information.",
+      company: "Department, position, hire date, and current employee status.",
+      notes:
+        "Additional internal information for administrative use.",
+    },
+    actions: {
+      next: "Next",
+      back: "Back",
+      cancel: "Cancel",
+      create: "Create employee",
+    },
+    toasts: {
+      created: "Employee created",
+      createError: "Failed to create employee",
+      validationError: "Check the required fields before creating the employee",
+    },
+  },
+
+  employeesDetails: {
+    title: "Employee profile",
+    backToList: "Back to list",
+    emptyValue: "Not specified",
+    notFoundTitle: "Employee not found",
+    notFoundDescription: "The record does not exist or has been deleted.",
+    card: {
+      title: "Employee card",
+      employeeLabel: "Employee",
+      frontSide: "Front side",
+      backSide: "Back side",
+      flipToAddress: "Show address data",
+      flipToPersonal: "Show personal data",
+    },
+    sections: {
+      personal: "Personal data",
+      address: "Address",
+      company: "Company data",
+      education: "Education",
+      experience: "Work experience",
+      notes: "Service information",
+    },
+    edit: {
+      description: "Only fields in the selected section will be changed.",
+      personal: "Edit personal data",
+      address: "Edit address data",
+      company: "Edit company data",
+      notes: "Edit service information",
+    },
+    education: {
+      formTitle: "Add education",
+      editTitle: "Edit education",
+      description:
+        "Specify the education level, institution, and study period.",
+      emptyTitle: "No education records have been added yet",
+      types: {
+        school: "School",
+        university: "University",
+      },
+      degrees: {
+        basicGeneral: "Basic general education (9 grades)",
+        secondaryGeneral: "Secondary general education (11 grades)",
+        secondaryVocational: "Secondary vocational education",
+        incompleteHigher: "Incomplete higher education",
+        bachelor: "Higher education — Bachelor's degree",
+        specialist: "Higher education — Specialist degree",
+        master: "Higher education — Master's degree",
+        postgraduate: "Postgraduate professional education",
+        academicDegree: "Academic degree",
+      },
+      toasts: {
+        loadError: "Failed to load education data",
+      },
+    },
+    experience: {
+      formTitle: "Add work experience",
+      editTitle: "Edit work experience",
+      description: "Specify the company, position, employment period, and duties.",
+      emptyTitle: "No work experience has been added yet",
+      current: "Present",
+      toasts: {
+        loadError: "Failed to load work experience",
+      },
+    },
+    toasts: {
+      loadError: "Failed to load employee profile",
+    },
+  },
+
+  forms: {
+    dialogDescription: "Fill in the fields and save the changes.",
+    placeholders: {
+      select: "Select a value",
+      loadingOptions: "Loading options...",
+      selectDepartment: "Select department",
+      selectEnterprise: "Select enterprise",
+      selectPosition: "Select position",
+      selectEmployee: "Select employee",
+      emptyOption: "Not selected",
+    },
+    validation: {
+      required: "Required field",
+      email: "Enter a valid email",
+      nonNegative: "Value cannot be negative",
+      dateRange: "End date cannot be earlier than start date",
+    },
+    errors: {
+      missingId: "Could not determine the record for this action",
+    },
+    toasts: {
+      created: "Record created",
+      updated: "Record updated",
+      deleted: "Record deleted",
+      createError: "Failed to create record",
+      updateError: "Failed to update record",
+      deleteError: "Failed to delete record",
+      relationsLoadError: "Failed to load selection options",
+    },
+    delete: {
+      title: "Delete record",
+      description:
+        "This action cannot be undone. The record will be removed from the database.",
+    },
+    employees: {
+      createTitle: "Add employee",
+      editTitle: "Edit employee",
+    },
+    enterprises: {
+      createTitle: "Add enterprise",
+      editTitle: "Edit enterprise",
+    },
+    employmentHistory: {
+      createTitle: "Add employment change",
+      editTitle: "Edit employment change",
+    },
+    departments: {
+      createTitle: "Add department",
+      editTitle: "Edit department",
+    },
+    positions: {
+      createTitle: "Add position",
+      editTitle: "Edit position",
+    },
+    vacations: {
+      createTitle: "Create vacation",
+      editTitle: "Edit vacation",
+    },
+    payroll: {
+      createTitle: "Add payroll record",
+      editTitle: "Edit payroll record",
+    },
+    employeeEducation: {
+      createTitle: "Add education",
+      editTitle: "Edit education",
+    },
+    employeeExperience: {
+      createTitle: "Add work experience",
+      editTitle: "Edit work experience",
+    },
+    fields: {
+      lastName: "Last name",
+      firstName: "First name",
+      middleName: "Middle name",
+      departmentId: "Department",
+      positionId: "Position",
+      employeeId: "Employee",
+      enterpriseId: "Enterprise",
+      enterpriseName: "Enterprise name",
+      legalName: "Legal name",
+      registrationNumber: "Registration number",
+      generalDirector: "General director",
+      departmentDirector: "Department director",
+      changeType: "Change type",
+      effectiveAt: "Effective date",
+      birthDate: "Date of birth",
+      gender: "Gender",
+      address: "Address",
+      addressCountry: "Country",
+      addressCity: "City",
+      addressStreet: "Street",
+      addressHouse: "House",
+      addressApartment: "Apartment",
+      phone: "Phone",
+      email: "Email",
+      hireDate: "Hire date",
+      status: "Status",
+      salary: "Salary",
+      note: "Note",
+      educationType: "Education type",
+      educationDegree: "Education level",
+      institutionName: "Educational institution",
+      schoolName: "School",
+      universityName: "University",
+      speciality: "Specialty",
+      startedAt: "Start date",
+      endedAt: "End date",
+      documentNumber: "Document number",
+      companyName: "Company",
+      experiencePositionName: "Position",
+      isCurrent: "Currently employed",
+      name: "Name",
+      managerName: "Manager",
+      location: "Location",
+      createdOn: "Creation date",
+      baseSalary: "Salary",
+      allowance: "Allowance",
+      bonus: "Bonus",
+      responsibilities: "Responsibilities",
+      requirements: "Requirements",
+      vacationType: "Vacation type",
+      startsAt: "Start",
+      endsAt: "End",
+      daysCount: "Number of days",
+      isPaid: "Paid vacation",
+      vacationPayment: "Vacation payment",
+      approvedAt: "Approval date",
+      reason: "Reason",
+      accrualMonth: "Accrual month",
+      deductions: "Deductions",
+      taxes: "Taxes",
+      paidAt: "Payment date",
+    },
+  },
+
+  entities: {
+    enterprises: {
+      title: "Enterprises",
+      description:
+        "Top-level organizational entities, legal details, and general directors.",
+      createLabel: "Add enterprise",
+      columns: {
+        name: "Enterprise",
+        legalName: "Legal name",
+        generalDirector: "General director",
+        phone: "Phone",
+        email: "Email",
+      },
+    },
+    employees: {
+      title: "Employees",
+      description:
+        "Workforce, contacts, departments, positions, and hire dates.",
+      createLabel: "Add employee",
+      columns: {
+        lastName: "Last name",
+        fullName: "Full name",
+        firstName: "First name",
+        middleName: "Middle name",
+        department: "Department",
+        position: "Position",
+        phone: "Phone",
+        email: "Email",
+        hireDate: "Hire date",
+        status: "Status",
+      },
+    },
+    employeeEducation: {
+      title: "Education",
+      description:
+        "Employee education, institutions, specialties, and documents.",
+      createLabel: "Add education",
+      columns: {
+        institution: "Educational institution",
+        type: "Type",
+        degree: "Degree",
+        speciality: "Specialty",
+        startedAt: "Start",
+        endedAt: "End",
+      },
+    },
+    employeeExperience: {
+      title: "Work experience",
+      description:
+        "Previous employers, positions, and employee responsibilities.",
+      createLabel: "Add experience",
+      columns: {
+        company: "Company",
+        position: "Position",
+        startedAt: "Start",
+        endedAt: "End",
+      },
+    },
+    employmentHistory: {
+      title: "Employment history",
+      description:
+        "History of assignments, transfers, and salary changes.",
+      createLabel: "Add change",
+      columns: {
+        employee: "Employee",
+        changeType: "Change",
+        position: "New position",
+        salary: "New salary",
+        effectiveAt: "Date",
+        reason: "Reason",
+      },
+    },
+    departments: {
+      title: "Departments",
+      description:
+        "Organizational structure, managers, phones, and department locations.",
+      createLabel: "Add department",
+      columns: {
+        enterprise: "Enterprise",
+        name: "Name",
+        managerName: "Manager",
+        director: "Department director",
+        phone: "Phone",
+        email: "Email",
+        location: "Location",
+        createdOn: "Creation date",
+        note: "Note",
+      },
+    },
+    positions: {
+      title: "Positions",
+      description:
+        "Salaries, allowances, bonuses, duties, and position requirements.",
+      createLabel: "Add position",
+      columns: {
+        department: "Department",
+        name: "Position",
+        baseSalary: "Salary",
+        allowance: "Allowance",
+        bonus: "Bonus",
+        responsibilities: "Responsibilities",
+        requirements: "Requirements",
+      },
+    },
+    vacations: {
+      title: "Vacations",
+      description:
+        "Planned, annual, and other employee vacations with dates and statuses.",
+      createLabel: "Create vacation",
+      columns: {
+        employee: "Employee",
+        vacationType: "Vacation type",
+        startsAt: "Start",
+        endsAt: "End",
+        daysCount: "Days",
+        isPaid: "Paid",
+        payment: "Vacation payment",
+        reason: "Reason",
+        status: "Status",
+      },
+    },
+    payroll: {
+      title: "Payroll",
+      description:
+        "Monthly accruals: salary, bonuses, allowances, deductions, taxes, and net pay.",
+      createLabel: "Add payroll record",
+      columns: {
+        employee: "Employee",
+        accrualMonth: "Month",
+        baseSalary: "Salary",
+        bonus: "Bonus",
+        allowance: "Allowance",
+        deductions: "Deductions",
+        taxes: "Taxes",
+        netAmount: "Net amount",
+        paidAt: "Payment date",
+      },
+    },
+  },
+} as const;
