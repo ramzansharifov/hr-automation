@@ -3,6 +3,7 @@ import { FiActivity, FiSearch } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { useAppLocale, useAppText } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { AuditEvent } from "../shared/types/hr";
 import {
@@ -14,6 +15,8 @@ import {
 } from "../shared/ui";
 
 export function AuditLogPage(): JSX.Element {
+  const text = useAppText();
+  const locale = useAppLocale();
   const { session } = useAuth();
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [search, setSearch] = useState("");
@@ -29,11 +32,11 @@ export function AuditLogPage(): JSX.Element {
         }),
       );
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить журнал действий"));
+      toast.error(getErrorMessage(error, text("Не удалось загрузить журнал действий", "Failed to load audit log")));
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, [search, text]);
 
   useEffect(() => {
     void load("");
@@ -44,40 +47,40 @@ export function AuditLogPage(): JSX.Element {
   const columns: DataTableColumn<AuditEvent>[] = [
     {
       key: "occurredAt",
-      header: "Дата и время",
+      header: text("Дата и время", "Date and time"),
       render: (event) => (
         <span className="app-text whitespace-nowrap font-bold">
-          {formatAuditDate(event.occurredAt)}
+          {formatAuditDate(event.occurredAt, locale)}
         </span>
       ),
     },
     {
       key: "actor",
-      header: "Кто",
+      header: text("Кто", "Actor"),
       render: (event) => (
         <div className="min-w-[170px]">
           <p className="app-text font-black">{event.actorUsername}</p>
           <p className="app-muted mt-1 text-xs">
-            {actorTypeLabel(event.actorAccountType)}
+            {actorTypeLabel(event.actorAccountType, text)}
           </p>
         </div>
       ),
     },
     {
       key: "action",
-      header: "Действие",
+      header: text("Действие", "Action"),
       render: (event) => (
         <span className="app-accent-soft app-accent-text inline-flex rounded-full border px-2.5 py-1 text-xs font-black">
-          {actionLabel(event.action)}
+          {actionLabel(event.action, text)}
         </span>
       ),
     },
     {
       key: "entity",
-      header: "Объект",
+      header: text("Объект", "Object"),
       render: (event) => (
         <div className="min-w-[130px]">
-          <p className="app-text font-bold">{entityLabel(event.entityType)}</p>
+          <p className="app-text font-bold">{entityLabel(event.entityType, text)}</p>
           {event.entityId !== null && (
             <p className="app-muted mt-1 text-xs">ID {event.entityId}</p>
           )}
@@ -86,18 +89,27 @@ export function AuditLogPage(): JSX.Element {
     },
     {
       key: "change",
-      header: "Изменение",
-      render: (event) => <ChangeSummary event={event} />,
+      header: text("Изменение", "Change"),
+      render: (event) => <ChangeSummary event={event} text={text} />,
     },
   ];
 
   const auditScope = session.permissionScopes["audit.view"];
   const description =
     auditScope === "enterprise"
-      ? `Неизменяемая история действий, относящихся к предприятию «${session.enterpriseName || "текущее предприятие"}».`
+      ? text(
+          `Неизменяемая история действий, относящихся к предприятию «${session.enterpriseName || "текущее предприятие"}».`,
+          `Immutable history of actions related to enterprise “${session.enterpriseName || "current enterprise"}”.`,
+        )
       : auditScope === "department"
-        ? `Неизменяемая история действий, относящихся к отделу «${session.departmentName || "текущий отдел"}».`
-        : "Неизменяемая история кадровых, административных и системных операций.";
+        ? text(
+            `Неизменяемая история действий, относящихся к отделу «${session.departmentName || "текущий отдел"}».`,
+            `Immutable history of actions related to department “${session.departmentName || "current department"}”.`,
+          )
+        : text(
+            "Неизменяемая история кадровых, административных и системных операций.",
+            "Immutable history of HR, administrative, and system operations.",
+          );
 
   return (
     <div className="space-y-6">
@@ -110,9 +122,9 @@ export function AuditLogPage(): JSX.Element {
           />
         }
         description={description}
-        eyebrow="Администрирование"
+        eyebrow={text("Администрирование", "Administration")}
         icon={<FiActivity />}
-        title="Журнал действий"
+        title={text("Журнал действий", "Audit log")}
       />
 
       <section className="app-surface app-border rounded-[26px] border p-5">
@@ -128,7 +140,7 @@ export function AuditLogPage(): JSX.Element {
             <Input
               className="pl-11"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Пользователь, действие, сущность или ID"
+              placeholder={text("Пользователь, действие, сущность или ID", "User, action, entity, or ID")}
               value={search}
             />
           </div>
@@ -147,18 +159,18 @@ export function AuditLogPage(): JSX.Element {
       </section>
 
       <DataTable
-        ariaLabel="Журнал действий"
+        ariaLabel={text("Журнал действий", "Audit log")}
         columns={columns}
-        emptyDescription="По выбранному запросу события не найдены."
-        emptyTitle="Записей нет"
+        emptyDescription={text("По выбранному запросу события не найдены.", "No events match the selected query.")}
+        emptyTitle={text("Записей нет", "No records")}
         footer={
           <>
-            Записей: <span className="app-text font-black">{events.length}</span>
+            {text("Записей:", "Records:")} <span className="app-text font-black">{events.length}</span>
           </>
         }
         getRowKey={(event) => event.id}
         isLoading={isLoading}
-        loadingLabel="Загрузка журнала действий..."
+        loadingLabel={text("Загрузка журнала действий...", "Loading audit log...")}
         rows={events}
         showViewModeToggle={false}
         viewMode="table"
@@ -167,7 +179,13 @@ export function AuditLogPage(): JSX.Element {
   );
 }
 
-function ChangeSummary({ event }: { event: AuditEvent }): JSX.Element {
+function ChangeSummary({
+  event,
+  text,
+}: {
+  event: AuditEvent;
+  text: (ru: string, en: string) => string;
+}): JSX.Element {
   if (event.metadata && Object.keys(event.metadata).length > 0) {
     return (
       <p className="app-muted max-w-md text-xs leading-5">
@@ -185,75 +203,89 @@ function ChangeSummary({ event }: { event: AuditEvent }): JSX.Element {
     return (
       <p className="app-muted max-w-md text-xs leading-5">
         {changed.length > 0
-          ? `Изменены поля: ${changed.slice(0, 6).join(", ")}`
-          : "Запись обновлена"}
+          ? text(
+              `Изменены поля: ${changed.slice(0, 6).join(", ")}`,
+              `Changed fields: ${changed.slice(0, 6).join(", ")}`,
+            )
+          : text("Запись обновлена", "Record updated")}
       </p>
     );
   }
   return <span className="app-muted text-xs">—</span>;
 }
 
-function formatAuditDate(value: string): string {
+function formatAuditDate(value: string, locale: string): string {
   const date = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("ru-RU");
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(locale);
 }
 
-function actorTypeLabel(value: AuditEvent["actorAccountType"]): string {
-  if (value === "system_admin") return "Системный администратор";
-  if (value === "employee_user") return "Пользователь сотрудника";
-  return "Система";
+function actorTypeLabel(
+  value: AuditEvent["actorAccountType"],
+  text: (ru: string, en: string) => string,
+): string {
+  if (value === "system_admin") return text("Системный администратор", "System administrator");
+  if (value === "employee_user") return text("Пользователь сотрудника", "Employee user");
+  return text("Система", "System");
 }
 
-const actionLabels: Record<string, string> = {
-  create: "Создание",
-  update: "Изменение",
-  delete: "Удаление",
-  login: "Вход",
-  logout: "Выход",
-  "password.change": "Смена пароля",
-  "employment.change": "Кадровое изменение",
-  "employment.terminate": "Увольнение",
-  "employment.correct_hire_date": "Исправление даты приёма",
-  "candidate.hire": "Приём кандидата",
-  "vacancy.create": "Создание вакансии",
-  "vacancy.update": "Изменение вакансии",
-  "vacancy.delete": "Удаление вакансии",
-  "candidate.create": "Создание кандидата",
-  "candidate.update": "Изменение кандидата",
-  "candidate.delete": "Удаление кандидата",
-  "access.role.create": "Создание роли",
-  "access.role.update": "Изменение роли",
-  "access.role.delete": "Удаление роли",
-  "access.user.create": "Создание пользователя",
-  "access.user.update": "Изменение пользователя",
-  "access.user.delete": "Удаление пользователя",
-  "access.password.reset": "Сброс пароля",
-  "backup.create": "Резервная копия",
-  "backup.restore": "Восстановление",
-  "export.employees_csv": "Экспорт сотрудников",
+const actionLabels: Record<string, [string, string]> = {
+  create: ["Создание", "Create"],
+  update: ["Изменение", "Update"],
+  delete: ["Удаление", "Delete"],
+  login: ["Вход", "Sign in"],
+  logout: ["Выход", "Sign out"],
+  "password.change": ["Смена пароля", "Password change"],
+  "employment.change": ["Кадровое изменение", "Employment change"],
+  "employment.terminate": ["Увольнение", "Termination"],
+  "employment.correct_hire_date": ["Исправление даты приёма", "Hire date correction"],
+  "candidate.hire": ["Приём кандидата", "Candidate hire"],
+  "vacancy.create": ["Создание вакансии", "Vacancy creation"],
+  "vacancy.update": ["Изменение вакансии", "Vacancy update"],
+  "vacancy.delete": ["Удаление вакансии", "Vacancy deletion"],
+  "candidate.create": ["Создание кандидата", "Candidate creation"],
+  "candidate.update": ["Изменение кандидата", "Candidate update"],
+  "candidate.delete": ["Удаление кандидата", "Candidate deletion"],
+  "access.role.create": ["Создание роли", "Role creation"],
+  "access.role.update": ["Изменение роли", "Role update"],
+  "access.role.delete": ["Удаление роли", "Role deletion"],
+  "access.user.create": ["Создание пользователя", "User creation"],
+  "access.user.update": ["Изменение пользователя", "User update"],
+  "access.user.delete": ["Удаление пользователя", "User deletion"],
+  "access.password.reset": ["Сброс пароля", "Password reset"],
+  "backup.create": ["Резервная копия", "Backup"],
+  "backup.restore": ["Восстановление", "Restore"],
+  "export.employees_csv": ["Экспорт сотрудников", "Employee export"],
 };
 
-function actionLabel(value: string): string {
-  return actionLabels[value] ?? value;
+function actionLabel(
+  value: string,
+  text: (ru: string, en: string) => string,
+): string {
+  const label = actionLabels[value];
+  return label ? text(label[0], label[1]) : value;
 }
 
-const entityLabels: Record<string, string> = {
-  employees: "Сотрудник",
-  candidates: "Кандидат",
-  vacancies: "Вакансия",
-  vacations: "Отпуск",
-  vacation_types: "Вид отпуска",
-  enterprises: "Предприятие",
-  departments: "Отдел",
-  positions: "Должность",
-  roles: "Роль",
-  users: "Пользователь",
-  auth: "Авторизация",
-  system: "Система",
+const entityLabels: Record<string, [string, string]> = {
+  employees: ["Сотрудник", "Employee"],
+  candidates: ["Кандидат", "Candidate"],
+  vacancies: ["Вакансия", "Vacancy"],
+  vacations: ["Отпуск", "Vacation"],
+  vacation_types: ["Вид отпуска", "Vacation type"],
+  enterprises: ["Предприятие", "Enterprise"],
+  departments: ["Отдел", "Department"],
+  positions: ["Должность", "Position"],
+  roles: ["Роль", "Role"],
+  users: ["Пользователь", "User"],
+  auth: ["Авторизация", "Authentication"],
+  system: ["Система", "System"],
 };
 
-function entityLabel(value: string): string {
-  return entityLabels[value] ?? value;
+function entityLabel(
+  value: string,
+  text: (ru: string, en: string) => string,
+): string {
+  const label = entityLabels[value];
+  return label ? text(label[0], label[1]) : value;
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
