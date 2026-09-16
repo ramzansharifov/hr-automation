@@ -229,6 +229,7 @@ export function GlobalSearch(): JSX.Element {
     canSearchVacancies,
     hasQuery,
     trimmedQuery,
+    t,
   ]);
 
   async function openResult(result: GlobalSearchResult): Promise<void> {
