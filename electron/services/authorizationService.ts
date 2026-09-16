@@ -425,6 +425,17 @@ export class AuthorizationService {
       };
     }
 
+    if (
+      session.scopeType === "self" &&
+      (entity === "enterprises" ||
+        entity === "departments" ||
+        entity === "positions")
+    ) {
+      // Organizational registries are not part of self scope. The intentionally
+      // limited employee directory is exposed through directory.view instead.
+      return { column: "id", values: [] };
+    }
+
     if (entity === "enterprises") {
       return { column: "id", values: compactIds([session.enterpriseId]) };
     }
