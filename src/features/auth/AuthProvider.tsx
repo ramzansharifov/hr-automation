@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiCheck, FiKey, FiLock, FiLogIn } from "react-icons/fi";
+import { FiCheck, FiKey, FiLock } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 
 import { HRLogo } from "../../app/brand/HRLogo";
@@ -145,7 +145,7 @@ function LoginScreen({
   return (
     <AuthShell>
       <AuthCard
-        icon={<FiLogIn />}
+        logoClassName="mx-auto h-24 w-24 sm:h-28 sm:w-28"
         title={text("Вход в HR Automation", "Sign in to HR Automation")}
         description={text(
           "Введите логин и пароль своей учётной записи.",
@@ -318,21 +318,25 @@ function AuthCard({
   children,
   description,
   icon,
+  logoClassName = "mx-auto h-16 w-16",
   title,
 }: {
   children: ReactNode;
   description: string;
-  icon: ReactNode;
+  icon?: ReactNode;
+  logoClassName?: string;
   title: string;
 }): JSX.Element {
   return (
     <section className="app-surface app-border overflow-hidden rounded-[30px] border shadow-2xl shadow-slate-950/10">
       <header className="app-border-soft border-b p-7 text-center sm:p-9">
-        <HRLogo className="mx-auto h-16 w-16" />
-        <span className="app-accent-soft mx-auto mt-5 flex h-12 w-12 items-center justify-center rounded-2xl border [&>svg]:h-6 [&>svg]:w-6">
-          {icon}
-        </span>
-        <h1 className="app-text mt-4 text-2xl font-black tracking-tight sm:text-3xl">
+        <HRLogo className={logoClassName} />
+        {icon ? (
+          <span className="app-accent-soft mx-auto mt-5 flex h-12 w-12 items-center justify-center rounded-2xl border [&>svg]:h-6 [&>svg]:w-6">
+            {icon}
+          </span>
+        ) : null}
+        <h1 className={["app-text text-2xl font-black tracking-tight sm:text-3xl", icon ? "mt-4" : "mt-5"].join(" ")}>
           {title}
         </h1>
         <p className="app-muted mx-auto mt-2 max-w-md text-sm leading-6">
