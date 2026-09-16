@@ -331,13 +331,13 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
 
     async function handleFormSubmit(data: HrRecord): Promise<void> {
       if (dialogMode === 'create') {
-        if (!canCreateEntity) throw new Error('Недостаточно прав для создания записи')
+        if (!canCreateEntity) throw new Error(t('common.errors.createForbidden', { defaultValue: i18n.language.startsWith('en') ? 'Insufficient permission to create this record' : 'Недостаточно прав для создания записи' }))
         await hrApiClient.create({ entity, data })
         handleRefresh()
         return
       }
 
-      if (!canEditEntity) throw new Error('Недостаточно прав для изменения записи')
+      if (!canEditEntity) throw new Error(t('common.errors.editForbidden', { defaultValue: i18n.language.startsWith('en') ? 'Insufficient permission to edit this record' : 'Недостаточно прав для изменения записи' }))
       await hrApiClient.update({
         entity,
         id: getRecordId(editingRecord),
@@ -347,7 +347,7 @@ export const HrEntityTable = forwardRef<HrEntityTableHandle, HrEntityTableProps>
     }
 
     async function handleDeleteConfirm(): Promise<void> {
-      if (!canDeleteEntity) throw new Error('Недостаточно прав для удаления записи')
+      if (!canDeleteEntity) throw new Error(t('common.errors.deleteForbidden', { defaultValue: i18n.language.startsWith('en') ? 'Insufficient permission to delete this record' : 'Недостаточно прав для удаления записи' }))
       await hrApiClient.delete({
         entity,
         id: getRecordId(deletingRecord),
