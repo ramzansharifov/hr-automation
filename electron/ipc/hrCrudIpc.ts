@@ -5,7 +5,6 @@ import type {
 } from "../../src/shared/types/access";
 import type {
   AuditListParams,
-  HrEntityKey,
   HrRecord,
 } from "../../src/shared/types/hr";
 import { getDatabase } from "../database/connection";
