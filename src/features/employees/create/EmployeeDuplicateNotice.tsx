@@ -1,5 +1,6 @@
 import { FiAlertTriangle, FiShield } from "react-icons/fi";
 
+import { useAppText } from "../../../shared/i18n";
 import type {
   EmployeeDuplicateCheckResult,
   EmployeeDuplicateMatch,
@@ -15,6 +16,7 @@ export function EmployeeDuplicateNotice({
   onContinue,
   result,
 }: EmployeeDuplicateNoticeProps): JSX.Element | null {
+  const text = useAppText();
   if (result.matches.length === 0) return null;
 
   const blocking = result.hasBlockingMatches;
@@ -43,25 +45,25 @@ export function EmployeeDuplicateNotice({
         <div className="min-w-0 flex-1">
           <p className="app-text font-extrabold">
             {blocking
-              ? "Найден дубликат сотрудника"
-              : "Найдены возможные совпадения"}
+              ? text("Найден дубликат сотрудника", "Duplicate employee found")
+              : text("Найдены возможные совпадения", "Possible matches found")}
           </p>
           <p className="app-text-soft mt-1 text-sm">
             {blocking
-              ? "Переход дальше заблокирован. Исправьте отмеченные данные — ниже указано, с какой существующей карточкой они совпадают."
-              : "Это не обязательно дубликат, но перед продолжением проверьте совпадающие данные."}
+              ? text("Переход дальше заблокирован. Исправьте отмеченные данные — ниже указано, с какой существующей карточкой они совпадают.", "You cannot continue until the highlighted data is corrected. The matching existing employee profile is shown below.")
+              : text("Это не обязательно дубликат, но перед продолжением проверьте совпадающие данные.", "This may not be a duplicate, but review the matching data before continuing.")}
           </p>
 
           <div className="mt-4 space-y-3">
             {result.matches.map((match) => (
-              <DuplicateMatchCard key={match.employeeId} match={match} />
+              <DuplicateMatchCard key={match.employeeId} match={match} text={text} />
             ))}
           </div>
 
           {!blocking && onContinue && (
             <div className="mt-4 flex justify-end">
               <ActionButton action="next" onClick={onContinue} size="sm">
-                Продолжить несмотря на совпадения
+                {text("Продолжить несмотря на совпадения", "Continue despite matches")}
               </ActionButton>
             </div>
           )}
@@ -73,8 +75,10 @@ export function EmployeeDuplicateNotice({
 
 function DuplicateMatchCard({
   match,
+  text,
 }: {
   match: EmployeeDuplicateMatch;
+  text: (ru: string, en: string) => string;
 }): JSX.Element {
   const location = [match.enterpriseName, match.departmentName]
     .filter(Boolean)
@@ -86,9 +90,9 @@ function DuplicateMatchCard({
         <div>
           <p className="app-text font-bold">{match.employeeName}</p>
           <p className="app-muted mt-1 text-xs">
-            Карточка #{match.employeeId}
+            {text("Карточка", "Profile")} #{match.employeeId}
             {match.employeeNumber
-              ? ` · табельный № ${match.employeeNumber}`
+              ? text(` · табельный № ${match.employeeNumber}`, ` · employee # ${match.employeeNumber}`)
               : ""}
             {location ? ` · ${location}` : ""}
           </p>
@@ -103,15 +107,15 @@ function DuplicateMatchCard({
         >
           {match.blocking
             ? match.lifecycleStatus === "terminated"
-              ? "Ранее уволен"
-              : "Дубликат"
-            : "Проверить"}
+              ? text("Ранее уволен", "Previously terminated")
+              : text("Дубликат", "Duplicate")
+            : text("Проверить", "Review")}
         </span>
       </div>
 
       {match.blocking && match.lifecycleStatus === "terminated" && (
         <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">
-          Не создавайте новую карточку: откройте существующего сотрудника и используйте действие «Принять повторно».
+          {text("Не создавайте новую карточку: откройте существующего сотрудника и используйте действие «Принять повторно».", "Do not create a new profile: open the existing employee and use the Rehire action.")}
         </p>
       )}
 
@@ -127,7 +131,7 @@ function DuplicateMatchCard({
             key={`${field.field}:${field.value}`}
           >
             <p className="app-muted text-[11px] font-bold uppercase tracking-wide">
-              Совпадает: {field.label}
+              {text("Совпадает:", "Matches:")} {field.label}
             </p>
             <p className="app-text mt-1 break-words text-sm font-semibold">
               {field.value || "—"}
