@@ -573,7 +573,7 @@ export function OrganizationDetailsPage(): JSX.Element {
           canChangeEmployment={canAssignLeader}
           currentLeaderId={leaderEmployeeId}
           departmentId={departmentId}
-          departmentName={department ? recordName(department) : ""}
+          departmentName={department ? recordName(department, text) : ""}
           departments={departments}
           enterpriseId={enterpriseId}
           enterpriseName={recordName(enterprise, text)}
