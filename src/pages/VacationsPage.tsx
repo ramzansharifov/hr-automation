@@ -397,6 +397,7 @@ function MetricCard({
 }
 
 function StatusBadge({ status }: { status: string }): JSX.Element {
+  const text = useAppText();
   const className =
     status === "approved"
       ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600"
