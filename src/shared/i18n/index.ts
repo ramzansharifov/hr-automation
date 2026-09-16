@@ -47,6 +47,11 @@ export function useAppLocale(): string {
   return getAppLocale(instance.resolvedLanguage ?? instance.language)
 }
 
+export function appText(ru: string, en: string): string {
+  const language = (i18n.resolvedLanguage ?? i18n.language).split('-')[0]
+  return language === 'en' ? en : ru
+}
+
 export function useAppText(): (ru: string, en: string) => string {
   const { i18n: instance } = useTranslation()
   const language = (instance.resolvedLanguage ?? instance.language).split('-')[0]
