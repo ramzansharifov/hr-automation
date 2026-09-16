@@ -52,7 +52,6 @@ import {
 } from "./accessTranslations";
 import {
   rolePermissionGroupLabel,
-  rolePermissionSectionDescription,
   rolePermissionSectionTitle,
   rolePermissionSections,
   type RolePermissionSectionDefinition,
@@ -709,10 +708,10 @@ export function AccessRoleFormPage(): JSX.Element {
           <div className="flex flex-wrap gap-2">
             {permissionFilters.map((filter) => (
               <Button
-                key={filter.value}
-                onClick={() => setPermissionFilter(filter.value)}
+                key={filter}
+                onClick={() => setPermissionFilter(filter)}
                 size="sm"
-                variant={permissionFilter === filter.value ? "primary" : "secondary"}
+                variant={permissionFilter === filter ? "primary" : "secondary"}
               >
                 {permissionFilterLabel(filter, text)}
               </Button>
