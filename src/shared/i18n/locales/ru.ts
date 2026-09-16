@@ -167,6 +167,88 @@ export const ru = {
     },
   },
 
+  analytics: {
+    title: "Аналитика",
+    description:
+      "Кадровый состав, движение, подбор и отпуска. Все показатели рассчитываются на backend только в области данных текущего разрешения.",
+    loading: "Собираем HR-аналитику...",
+    refreshError: "Не удалось загрузить аналитику",
+    scope: {
+      title: "Область данных защищена ролью",
+      description: "Backend вернул только агрегаты области: {{scope}}. Выбор фильтров в интерфейсе не может расширить эту область.",
+      updated: "Обновлено",
+      global: "Вся система",
+      self: "Только мои данные",
+    },
+    sections: {
+      workforce: {
+        title: "Кадровый состав",
+        description: "Текущий состав и качество заполнения кадровых данных.",
+      },
+      movement: {
+        title: "Кадровое движение",
+        description: "Приёмы и увольнения за последние 12 месяцев в текущей области данных.",
+      },
+      recruitment: {
+        title: "Подбор",
+        description: "Состояние вакансий и воронки кандидатов без выхода за доступное предприятие или отдел.",
+      },
+      vacations: {
+        title: "Отпуска",
+        description: "Использованные отпускные дни текущего года в доступной области.",
+      },
+    },
+    metrics: {
+      activeEmployees: "Активные сотрудники",
+      openVacancies: "Открытые вакансии",
+      candidatesInProcess: "Кандидаты в процессе",
+      onLeaveToday: "Сегодня в отпуске",
+      averageAge: "Средний возраст",
+      averageTenure: "Средний стаж",
+      pendingEmployees: "Требуют дооформления",
+      terminatedEmployees: "Уволенные в базе",
+      hires12m: "Принято за 12 месяцев",
+      terminations12m: "Уволено за 12 месяцев",
+      netChange: "Чистое изменение",
+      averageTimeToHire: "Средний time-to-hire",
+      activePipeline: "Кандидаты в активной воронке",
+    },
+    charts: {
+      headcountEnterprises: "Численность по предприятиям",
+      headcountDepartments: "Численность по отделам",
+      headcountPositions: "Численность по должностям",
+      employees: "Сотрудников",
+      movement: "Динамика приёмов и увольнений",
+      hired: "Принято",
+      terminated: "Уволено",
+      candidatesStages: "Кандидаты по этапам",
+      vacanciesStatuses: "Вакансии по статусам",
+      candidates: "Кандидатов",
+      vacancies: "Вакансий",
+      vacationDays: "Отпускные дни по видам",
+      days: "Дней",
+      empty: "Пока недостаточно данных.",
+    },
+    units: {
+      years: "лет",
+      days: "дн.",
+      daySuffix: " дн.",
+    },
+    vacancyStatus: {
+      draft: "Черновик",
+      open: "Открыта",
+      closed: "Закрыта",
+    },
+    candidateStatus: {
+      new: "Новый",
+      screening: "Первичный отбор",
+      interview: "Собеседование",
+      offer: "Оффер",
+      hired: "Принят на работу",
+      rejected: "Отклонён",
+    },
+  },
+
   dashboard: {
     hero: {
       productName: "HR Automation",
