@@ -278,6 +278,12 @@ jobs:
         shell: bash
         run: set -o pipefail; npm run postinstall 2>&1 | tee electron-deps.log
 
+      - name: Validate presentation demo seed
+        id: presentation_seed
+        continue-on-error: true
+        shell: bash
+        run: set -o pipefail; xvfb-run -a npm run test:presentation-seed 2>&1 | tee presentation-seed.log
+
       - name: Electron renderer smoke test
         id: e2e
         continue-on-error: true
@@ -295,8 +301,9 @@ jobs:
             lint.log
             build.log
             electron-deps.log
+            presentation-seed.log
             e2e.log
 
       - name: Fail on validation errors
-        if: steps.integration.outcome == 'failure' || steps.audit.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.build.outcome == 'failure' || steps.electron_deps.outcome == 'failure' || steps.e2e.outcome == 'failure'
+        if: steps.integration.outcome == 'failure' || steps.audit.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.build.outcome == 'failure' || steps.electron_deps.outcome == 'failure' || steps.presentation_seed.outcome == 'failure' || steps.e2e.outcome == 'failure'
         run: exit 1
