@@ -199,7 +199,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
             <section className="app-surface app-border overflow-hidden rounded-[24px] border" key={module}>
               <header className="app-surface-muted app-border-soft border-b px-5 py-4">
                 <p className="app-text font-black">{module}</p>
-                <p className="app-muted mt-1 text-xs">{items.length} разрешений</p>
+                <p className="app-section-count mt-1">{items.length} разрешений</p>
               </header>
               <div className="divide-y divide-[var(--app-border-soft)]">
                 {items.map((permission) => (
@@ -208,7 +208,7 @@ export function ScopedAccessRoleDetailsPage(): JSX.Element {
                       <FiCheckCircle className="app-accent-text mt-0.5 h-4 w-4 shrink-0" />
                       <div>
                         <p className="app-text text-sm font-black">{permission.name}</p>
-                        <p className="app-muted mt-1 font-mono text-[10px]">{permission.code}</p>
+                        <p className="app-permission-code mt-1 font-mono">{permission.code}</p>
                       </div>
                     </div>
                   </div>
