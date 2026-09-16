@@ -3,6 +3,7 @@ import { FiDownload, FiFile, FiUpload } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { useAppText } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type {
   DataExportDomain,
@@ -38,16 +39,16 @@ const importFields = [
 type ImportFieldKey = (typeof importFields)[number]["key"];
 type ImportMapState = Partial<Record<ImportFieldKey, string>>;
 
-const exportDomains: SelectOption[] = [
-  { value: "employees", label: "Сотрудники" },
-  { value: "organization", label: "Организационная структура" },
-  { value: "vacations", label: "Отпуска" },
-  { value: "employment_history", label: "Кадровый журнал" },
-  { value: "vacancies", label: "Вакансии" },
-  { value: "audit", label: "Журнал действий" },
-];
-
 export function DataExchangePage(): JSX.Element {
+  const text = useAppText();
+  const exportDomains: SelectOption[] = [
+    { value: "employees", label: text("Сотрудники", "Employees") },
+    { value: "organization", label: text("Организационная структура", "Organization structure") },
+    { value: "vacations", label: text("Отпуска", "Vacations") },
+    { value: "employment_history", label: text("Кадровый журнал", "Employment history") },
+    { value: "vacancies", label: text("Вакансии", "Vacancies") },
+    { value: "audit", label: text("Журнал действий", "Audit log") },
+  ];
   const { hasPermission } = useAuth();
   const [selection, setSelection] = useState<EmployeeImportSelection | null>(null);
   const [columnMap, setColumnMap] = useState<ImportMapState>({});
@@ -74,7 +75,7 @@ export function DataExchangePage(): JSX.Element {
       setColumnMap(autoMapHeaders(selected.headers));
       setPreview(null);
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось прочитать файл"));
+      toast.error(errorMessage(error, text("Не удалось прочитать файл", "Failed to read file")));
     } finally {
       setBusy(false);
     }
@@ -90,10 +91,10 @@ export function DataExchangePage(): JSX.Element {
       });
       setPreview(result);
       if (result.errors.length === 0) {
-        toast.success(`Проверка завершена: ${result.validRows} строк готовы к импорту`);
+        toast.success(text(`Проверка завершена: ${result.validRows} строк готовы к импорту`, `Validation complete: ${result.validRows} rows are ready to import`));
       }
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось проверить импорт"));
+      toast.error(errorMessage(error, text("Не удалось проверить импорт", "Failed to validate import")));
     } finally {
       setBusy(false);
     }
@@ -108,12 +109,12 @@ export function DataExchangePage(): JSX.Element {
         columnMap: runtimeColumnMap(columnMap),
         dryRun: false,
       });
-      toast.success(`Импортировано сотрудников: ${result.importedRows}. Пропущено: ${result.skippedRows}.`);
+      toast.success(text(`Импортировано сотрудников: ${result.importedRows}. Пропущено: ${result.skippedRows}.`, `Employees imported: ${result.importedRows}. Skipped: ${result.skippedRows}.`));
       setSelection(null);
       setPreview(null);
       setColumnMap({});
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось выполнить импорт"));
+      toast.error(errorMessage(error, text("Не удалось выполнить импорт", "Failed to import data")));
     } finally {
       setBusy(false);
     }
@@ -123,9 +124,9 @@ export function DataExchangePage(): JSX.Element {
     setBusy(true);
     try {
       const result = await hrApiClient.exportData({ domain: exportDomain, format: exportFormat });
-      if (!result.canceled) toast.success("Файл экспорта сохранён");
+      if (!result.canceled) toast.success(text("Файл экспорта сохранён", "Export file saved"));
     } catch (error) {
-      toast.error(errorMessage(error, "Не удалось выполнить экспорт"));
+      toast.error(errorMessage(error, text("Не удалось выполнить экспорт", "Failed to export data")));
     } finally {
       setBusy(false);
     }
@@ -133,12 +134,12 @@ export function DataExchangePage(): JSX.Element {
 
   return (
     <div className="grid gap-6">
-      <PageHeader eyebrow="Data Exchange" icon={<FiFile />} title="Импорт и экспорт" />
+      <PageHeader eyebrow="Data Exchange" icon={<FiFile />} title={text("Импорт и экспорт", "Import & export")} />
 
       <section className="grid gap-5 xl:grid-cols-2">
         <article className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="app-text text-lg font-black">Импорт сотрудников</h2>
+            <h2 className="app-text text-lg font-black">{text("Импорт сотрудников", "Employee import")}</h2>
             <FiUpload className="app-muted h-5 w-5 shrink-0" />
           </div>
 
@@ -149,31 +150,31 @@ export function DataExchangePage(): JSX.Element {
                 disabled={busy}
                 onClick={() => void selectImportFile()}
               >
-                Выбрать CSV / XLSX
+                {text("Выбрать CSV / XLSX", "Choose CSV / XLSX")}
               </ActionButton>
 
               {selection && (
                 <>
                   <div className="app-surface-muted app-border rounded-2xl border p-4 text-sm">
                     <p className="app-text font-black">{selection.fileName}</p>
-                    <p className="app-muted mt-1">Строк: {selection.totalRows} · Колонок: {selection.headers.length}</p>
+                    <p className="app-muted mt-1">{text("Строк:", "Rows:")} {selection.totalRows} · {text("Колонок:", "Columns:")} {selection.headers.length}</p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     {importFields.map((field) => (
                       <label className="grid gap-2" key={field.key}>
                         <span className="app-text text-sm font-black">
-                          {field.label}{field.required ? " *" : ""}
+                          {importFieldLabel(field.key, text)}{field.required ? " *" : ""}
                         </span>
                         <Select
                           allowEmpty={!field.required}
-                          emptyOptionLabel="Не импортировать"
+                          emptyOptionLabel={text("Не импортировать", "Do not import")}
                           onValueChange={(value) => {
                             setPreview(null);
                             setColumnMap((current) => ({ ...current, [field.key]: value || undefined }));
                           }}
                           options={headerOptions}
-                          placeholder="Выберите колонку"
+                          placeholder={text("Выберите колонку", "Select column")}
                           value={columnMap[field.key] ?? ""}
                         />
                       </label>
@@ -186,14 +187,14 @@ export function DataExchangePage(): JSX.Element {
                       disabled={busy}
                       onClick={() => void previewImport()}
                     >
-                      Проверить / Dry run
+                      {text("Проверить / Dry run", "Validate / Dry run")}
                     </ActionButton>
                     <ActionButton
                       action="confirm"
                       disabled={busy || !preview || preview.validRows === 0}
                       onClick={() => void applyImport()}
                     >
-                      Импортировать {preview?.validRows ?? ""}
+                      {text("Импортировать", "Import")} {preview?.validRows ?? ""}
                     </ActionButton>
                   </div>
                 </>
@@ -202,18 +203,18 @@ export function DataExchangePage(): JSX.Element {
               {preview && (
                 <div className="grid gap-4">
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <MiniMetric label="Всего" value={preview.totalRows} />
-                    <MiniMetric label="Готово" value={preview.validRows} />
-                    <MiniMetric label="Дубликаты" value={preview.duplicateRows} />
-                    <MiniMetric label="Проверить" value={preview.warningRows} />
+                    <MiniMetric label={text("Всего", "Total")} value={preview.totalRows} />
+                    <MiniMetric label={text("Готово", "Ready")} value={preview.validRows} />
+                    <MiniMetric label={text("Дубликаты", "Duplicates")} value={preview.duplicateRows} />
+                    <MiniMetric label={text("Проверить", "Review")} value={preview.warningRows} />
                   </div>
                   {preview.errors.length > 0 && (
                     <div className="max-h-64 overflow-auto rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
-                      <p className="font-black text-rose-600 dark:text-rose-300">Ошибки проверки</p>
+                      <p className="font-black text-rose-600 dark:text-rose-300">{text("Ошибки проверки", "Validation errors")}</p>
                       <div className="mt-3 grid gap-2 text-sm">
                         {preview.errors.slice(0, 100).map((item, index) => (
                           <p className="app-muted" key={`${item.row}-${index}`}>
-                            <strong className="app-text">Строка {item.row}:</strong> {item.message}
+                            <strong className="app-text">{text("Строка", "Row")} {item.row}:</strong> {item.message}
                           </p>
                         ))}
                       </div>
@@ -222,12 +223,12 @@ export function DataExchangePage(): JSX.Element {
                   {preview.warnings.length > 0 && (
                     <div className="max-h-64 overflow-auto rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
                       <p className="font-black text-amber-700 dark:text-amber-300">
-                        Возможные совпадения — проверьте перед импортом
+                        {text("Возможные совпадения — проверьте перед импортом", "Possible matches — review before importing")}
                       </p>
                       <div className="mt-3 grid gap-2 text-sm">
                         {preview.warnings.slice(0, 100).map((item, index) => (
                           <p className="app-muted" key={`warning-${item.row}-${index}`}>
-                            <strong className="app-text">Строка {item.row}:</strong>{" "}
+                            <strong className="app-text">{text("Строка", "Row")} {item.row}:</strong>{" "}
                             {item.message}
                           </p>
                         ))}
@@ -239,7 +240,7 @@ export function DataExchangePage(): JSX.Element {
 
               {selection && selection.sampleRows.length > 0 && (
                 <div className="overflow-hidden rounded-2xl border border-[var(--color-border)]">
-                  <div className="app-surface-muted px-4 py-3 text-sm font-black">Предпросмотр исходного файла</div>
+                  <div className="app-surface-muted px-4 py-3 text-sm font-black">{text("Предпросмотр исходного файла", "Source file preview")}</div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-xs">
                       <thead className="app-muted">
@@ -264,26 +265,26 @@ export function DataExchangePage(): JSX.Element {
               )}
             </div>
           ) : (
-            <EmptyState description="У текущей роли нет разрешения на импорт кадровых данных." title="Импорт недоступен" />
+            <EmptyState description={text("У текущей роли нет разрешения на импорт кадровых данных.", "The current role does not have permission to import HR data.")} title={text("Импорт недоступен", "Import unavailable")} />
           )}
         </article>
 
         <article className="app-surface app-border rounded-[24px] border p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="app-text text-lg font-black">Расширенный экспорт</h2>
+            <h2 className="app-text text-lg font-black">{text("Расширенный экспорт", "Advanced export")}</h2>
             <FiDownload className="app-muted h-5 w-5 shrink-0" />
           </div>
 
           {hasPermission("data_exchange.export") ? (
             <div className="mt-5 grid gap-4">
-              <Field label="Раздел">
+              <Field label={text("Раздел", "Section")}>
                 <Select
                   onValueChange={(value) => setExportDomain(value as DataExportDomain)}
                   options={exportDomains}
                   value={exportDomain}
                 />
               </Field>
-              <Field label="Формат">
+              <Field label={text("Формат", "Format")}>
                 <Select
                   onValueChange={(value) => setExportFormat(value as DataExportFormat)}
                   options={[
@@ -294,9 +295,9 @@ export function DataExchangePage(): JSX.Element {
                 />
               </Field>
               <div className="app-surface-muted app-border rounded-2xl border p-4 text-sm leading-6">
-                <p className="app-text font-black">Область данных применяется автоматически</p>
+                <p className="app-text font-black">{text("Область данных применяется автоматически", "Data scope is applied automatically")}</p>
                 <p className="app-muted mt-1">
-                  Администратор предприятия выгружает только своё предприятие, администратор отдела — только свой отдел. Глобальная роль получает полный набор данных.
+                  {text("Администратор предприятия выгружает только своё предприятие, администратор отдела — только свой отдел. Глобальная роль получает полный набор данных.", "An enterprise administrator exports only their enterprise, a department administrator only their department, and a global role receives the complete dataset.")}
                 </p>
               </div>
               <ActionButton
@@ -304,16 +305,39 @@ export function DataExchangePage(): JSX.Element {
                 disabled={busy}
                 onClick={() => void exportData()}
               >
-                Экспортировать
+                {text("Экспортировать", "Export")}
               </ActionButton>
             </div>
           ) : (
-            <EmptyState description="У текущей роли нет разрешения на расширенный экспорт." title="Экспорт недоступен" />
+            <EmptyState description={text("У текущей роли нет разрешения на расширенный экспорт.", "The current role does not have permission for advanced export.")} title={text("Экспорт недоступен", "Export unavailable")} />
           )}
         </article>
       </section>
     </div>
   );
+}
+
+function importFieldLabel(
+  key: ImportFieldKey,
+  text: (ru: string, en: string) => string,
+): string {
+  const labels: Record<ImportFieldKey, [string, string]> = {
+    last_name: ["Фамилия", "Last name"],
+    first_name: ["Имя", "First name"],
+    middle_name: ["Отчество", "Middle name"],
+    birth_date: ["Дата рождения", "Date of birth"],
+    email: ["Email", "Email"],
+    phone: ["Телефон", "Phone"],
+    employee_number: ["Табельный номер", "Employee number"],
+    contract_number: ["Номер трудового договора", "Employment contract number"],
+    enterprise: ["Предприятие", "Enterprise"],
+    department: ["Отдел", "Department"],
+    position: ["Должность", "Position"],
+    hire_date: ["Дата приёма", "Hire date"],
+    salary: ["Оклад", "Salary"],
+  };
+  const label = labels[key];
+  return text(label[0], label[1]);
 }
 
 function Field({ children, label }: { children: React.ReactNode; label: string }): JSX.Element {
