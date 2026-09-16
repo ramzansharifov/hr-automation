@@ -288,7 +288,7 @@ export function AccessRoleDetailsPage(): JSX.Element {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="app-text font-black">Системный администратор</p>
-                    <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">Встроенная</span>
+                    <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[11px] font-black">Встроенная</span>
                   </div>
                   <p className="app-muted mt-1 text-xs">@{systemAdmin.username}</p>
                 </div>
