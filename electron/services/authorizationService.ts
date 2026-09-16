@@ -678,6 +678,7 @@ export class AuthorizationService {
   }
 
   private getAllowedDepartmentIds(session: AuthSession): number[] {
+    if (session.scopeType === "self") return [];
     if (session.scopeType === "enterprise" && session.enterpriseId) {
       return (
         this.database
@@ -710,6 +711,9 @@ export class AuthorizationService {
 
   private isVacancyInScope(record: HrRecord, session: AuthSession): boolean {
     if (session.scopeType === "global") return true;
+    // A self-scoped permission must never inherit the employee's department
+    // merely because the session happens to contain a department id.
+    if (session.scopeType === "self") return false;
     const positionId = toPositiveNumber(record.position_id);
     if (!positionId) return false;
     const row = this.database
