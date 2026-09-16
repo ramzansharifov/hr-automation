@@ -125,8 +125,8 @@ function LoginScreen({
   onAuthenticated: (session: AuthSession) => void;
 }): JSX.Element {
   const text = useAppText();
-  const [username, setUsername] = useState("superadmin");
-  const [password, setPassword] = useState("superadmin");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -148,8 +148,9 @@ function LoginScreen({
         icon={<FiLogIn />}
         title={text("Вход в HR Automation", "Sign in to HR Automation")}
         description={text(
-          "Системный администратор не является сотрудником. Для входа используйте готовую учётную запись superadmin.",
-          "The system administrator is not an employee. Use the built-in superadmin account to sign in.",
+          "Введите логин и пароль своей учётной записи.",
+          "Enter your account username and password.",
+          "Логин ва рамзи ҳисоби худро ворид кунед.",
         )}
       >
         <form
@@ -159,15 +160,12 @@ function LoginScreen({
             void submit();
           }}
         >
-          <div className="app-surface-muted app-border rounded-2xl border px-4 py-3 text-sm font-semibold">
-            <span className="app-muted">{text("Логин и пароль по умолчанию:", "Default username and password:")}</span>{" "}
-            <span className="app-text font-black">superadmin / superadmin</span>
-          </div>
           <AuthField label={text("Логин", "Username")}>
             <Input
               autoComplete="username"
               autoFocus
               onChange={(event) => setUsername(event.target.value)}
+              placeholder={text("Введите логин", "Enter username", "Логинро ворид кунед")}
               value={username}
             />
           </AuthField>
@@ -175,6 +173,7 @@ function LoginScreen({
             <Input
               autoComplete="current-password"
               onChange={(event) => setPassword(event.target.value)}
+              placeholder={text("Введите пароль", "Enter password", "Рамзро ворид кунед")}
               type="password"
               value={password}
             />
