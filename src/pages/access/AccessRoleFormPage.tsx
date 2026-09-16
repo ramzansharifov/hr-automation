@@ -566,7 +566,7 @@ export function AccessRoleFormPage(): JSX.Element {
               <div className="flex items-start justify-between gap-4">
                 <p className="app-text text-sm font-black">Область действия</p>
                 {isEditMode && (
-                  <span className="app-surface-muted app-border app-muted rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide">
+                  <span className="app-surface-muted app-border app-meta rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide">
                     Не изменяется
                   </span>
                 )}
@@ -670,7 +670,7 @@ export function AccessRoleFormPage(): JSX.Element {
             />
           </div>
           {isDirty && (
-            <p className="mt-3 text-xs font-black text-amber-600 dark:text-amber-300">
+            <p className="mt-3 text-xs font-black text-amber-800 dark:text-amber-300">
               Есть несохранённые изменения
             </p>
           )}
