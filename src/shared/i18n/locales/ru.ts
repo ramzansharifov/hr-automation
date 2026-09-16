@@ -148,6 +148,25 @@ export const ru = {
     },
   },
 
+  globalSearch: {
+    ariaLabel: "Глобальный поиск",
+    placeholder: "Поиск сотрудников, структуры, вакансий и кандидатов",
+    clear: "Очистить поиск",
+    searching: "Поиск...",
+    emptyTitle: "Ничего не найдено",
+    emptyDescription: "Попробуйте изменить запрос",
+    fallbackName: "Без имени",
+    fallbackStructure: "Организационная структура",
+    kinds: {
+      employee: "Сотрудник",
+      enterprise: "Предприятие",
+      department: "Отдел",
+      position: "Должность",
+      vacancy: "Вакансия",
+      candidate: "Кандидат",
+    },
+  },
+
   dashboard: {
     hero: {
       productName: "HR Automation",
