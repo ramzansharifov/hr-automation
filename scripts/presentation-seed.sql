@@ -1,8 +1,6 @@
 -- Rich, deterministic demonstration dataset for HR Automation.
 -- Run only against a clean migrated database through scripts/seed-presentation-db.mjs.
 
-BEGIN;
-
 INSERT INTO enterprises (
   id, name, legal_name, legal_form, registration_number, phone, email, address, created_at, updated_at
 ) VALUES
@@ -507,4 +505,3 @@ SELECT
   (SELECT department_id FROM employees WHERE id=((n-1)%45)+1)
 FROM seq;
 
-COMMIT;
