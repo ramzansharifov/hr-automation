@@ -233,7 +233,7 @@ export function UserDialog({
                   className={[
                     "app-surface-muted app-border flex min-h-[84px] items-center justify-between gap-4 rounded-2xl border p-4 transition",
                     disabled
-                      ? "opacity-70"
+                      ? "opacity-80"
                       : "hover:border-[var(--accent-border)]",
                   ].join(" ")}
                   key={role.id}
