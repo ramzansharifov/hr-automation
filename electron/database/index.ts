@@ -7,7 +7,7 @@ export function initializeDatabase(): void {
   const database = getDatabase()
   runMigrations(database)
 
-  if (!app.isPackaged) {
+  if (!app.isPackaged && process.env.HR_SEED_DEMO === '1') {
     seedDatabase(database)
   }
 }
