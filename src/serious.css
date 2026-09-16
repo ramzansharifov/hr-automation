@@ -9,12 +9,18 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f8f9fb;
   --color-surface-hover: #f1f3f6;
-  --color-border: #dfe3e9;
-  --color-border-soft: #eceff3;
+  --color-border: #d7dce4;
+  --color-border-soft: #e5e9ef;
   --color-text: #111827;
-  --color-text-soft: #374151;
-  --color-text-muted: #6b7280;
-  --color-placeholder: #9ca3af;
+  --color-text-soft: #303846;
+  --color-text-muted: #596273;
+  --color-placeholder: #707b8d;
+  --color-meta: #4f5969;
+  --color-code: #465163;
+  --color-info-text: #075985;
+  --color-warning-text: #854d0e;
+  --color-danger-text: #9f1239;
+  --accent-text: #1d4ed8;
   --shell-panel: #ffffff;
   --shell-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
   --shell-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.03);
@@ -39,12 +45,113 @@
   --color-text-soft: #d1d5db;
   --color-text-muted: #9ca3af;
   --color-placeholder: #6b7280;
+  --color-meta: #b2bac7;
+  --color-code: #c1c8d4;
+  --color-info-text: #7dd3fc;
+  --color-warning-text: #fcd34d;
+  --color-danger-text: #fda4af;
+  --accent-text: var(--accent);
   --shell-panel: #111722;
   --shell-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
   --shell-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.18);
   --sidebar-bg: #080c14;
 
 
+}
+
+/* Light-theme readability uses a dedicated text tone instead of the raw accent.
+ * This keeps small labels readable for amber/emerald as well as blue/indigo. */
+:root[data-accent="blue"] {
+  --accent-text: #1d4ed8;
+}
+
+:root[data-accent="indigo"] {
+  --accent-text: #4338ca;
+}
+
+:root[data-accent="emerald"] {
+  --accent-text: #047857;
+}
+
+:root[data-accent="violet"] {
+  --accent-text: #6d28d9;
+}
+
+:root[data-accent="rose"] {
+  --accent-text: #be123c;
+}
+
+:root[data-accent="amber"] {
+  --accent-text: #92400e;
+}
+
+:root[data-theme="dark"][data-accent] {
+  --accent-text: var(--accent);
+}
+
+/* Semantic small-text styles. These are shared by access-control screens and
+ * can be reused anywhere technical metadata needs stronger light-theme contrast. */
+.app-meta {
+  color: var(--color-meta) !important;
+}
+
+.app-permission-code {
+  color: var(--color-code) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.015em;
+}
+
+.app-permission-dependency {
+  color: var(--color-info-text) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+}
+
+.app-section-count {
+  color: var(--color-meta) !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+}
+
+.app-risk-badge {
+  border-width: 1px;
+  font-size: 0.6875rem !important;
+  font-weight: 800 !important;
+  line-height: 1rem;
+}
+
+.app-risk-badge--elevated {
+  background: #fff7ed !important;
+  border-color: #fdba74 !important;
+  color: #9a3412 !important;
+}
+
+.app-risk-badge--critical {
+  background: #fff1f2 !important;
+  border-color: #fda4af !important;
+  color: #9f1239 !important;
+}
+
+:root[data-theme="dark"] .app-risk-badge--elevated {
+  background: rgba(120, 53, 15, 0.28) !important;
+  border-color: rgba(251, 191, 36, 0.46) !important;
+  color: #fde68a !important;
+}
+
+:root[data-theme="dark"] .app-risk-badge--critical {
+  background: rgba(136, 19, 55, 0.28) !important;
+  border-color: rgba(251, 113, 133, 0.46) !important;
+  color: #fecdd3 !important;
+}
+
+.app-accent-text,
+.app-link-accent {
+  color: var(--accent-text) !important;
+}
+
+.app-link-accent:hover {
+  color: var(--accent-hover) !important;
 }
 
 /* Neutral application canvas. Decorative page glows made every HR screen feel like a landing page. */

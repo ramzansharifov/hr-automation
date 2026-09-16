@@ -329,7 +329,7 @@ export function AccessUsersPage(): JSX.Element {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="app-text font-black">Системный администратор</span>
-                <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">
+                <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[11px] font-black">
                   Встроенная
                 </span>
               </div>
@@ -427,7 +427,7 @@ export function AccessUsersPage(): JSX.Element {
               {row.user.effectivePermissionCodes.length} разрешений
             </p>
             {row.user.mustChangePassword && (
-              <p className="mt-1 text-xs font-semibold text-amber-600 dark:text-amber-300">
+              <p className="mt-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
                 Требуется смена пароля
               </p>
             )}

@@ -328,7 +328,7 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
             Зависимые разрешения добавляются автоматически. В списке доступны только действия, которые можно безопасно делегировать в вашей области.
           </p>
           {isDirty && (
-            <p className="mt-4 text-xs font-black text-amber-600 dark:text-amber-300">
+            <p className="mt-4 text-xs font-black text-amber-800 dark:text-amber-300">
               Есть несохранённые изменения
             </p>
           )}
@@ -374,10 +374,10 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
                         {risk && (
                           <span
                             className={[
-                              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black",
+                              "app-risk-badge inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
                               risk === "critical"
-                                ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300"
-                                : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+                                ? "app-risk-badge--critical"
+                                : "app-risk-badge--elevated",
                             ].join(" ")}
                           >
                             <FiAlertTriangle className="h-3 w-3" />
@@ -385,10 +385,10 @@ export function ScopedAccessRoleFormPage(): JSX.Element {
                           </span>
                         )}
                       </div>
-                      <p className="app-muted mt-1 text-xs leading-5">
+                      <p className="app-meta mt-1 text-xs font-medium leading-5">
                         {permission.description}
                       </p>
-                      <p className="app-muted mt-1 font-mono text-[10px]">{permission.code}</p>
+                      <p className="app-permission-code mt-1 font-mono">{permission.code}</p>
                     </div>
                     <Toggle
                       ariaLabel={`Разрешение ${permission.name}`}
