@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 
 import { useAuth } from "../../features/auth/AuthContext";
 import { legacyPermissionCodes } from "../../shared/access/permissionRules";
+import { useAppText } from "../../shared/i18n";
 import { hrApiClient } from "../../shared/lib/hrApiClient";
 import type {
   AccessRoleSummary,
@@ -39,6 +40,7 @@ import {
   type EmployeeOption,
   type UserDraft,
 } from "./AccessControlShared";
+import { accessRoleName } from "./accessTranslations";
 
 const emptySystemAdmin: SystemAdminSummary = {
   id: 1,
@@ -54,6 +56,7 @@ type UserRow =
   | { kind: "user"; id: string; user: AccessUserSummary };
 
 export function AccessUsersPage(): JSX.Element {
+  const text = useAppText();
   const { hasPermission, session } = useAuth();
   const canCreate = hasPermission("users.create");
   const canEdit = hasPermission("users.edit");
@@ -96,7 +99,7 @@ export function AccessUsersPage(): JSX.Element {
           toast.error(
             getErrorMessage(
               error,
-              "Не удалось загрузить сотрудников для конструктора пользователя",
+              text("Не удалось загрузить сотрудников для конструктора пользователя", "Failed to load employees for the user builder"),
             ),
           );
         }
@@ -104,11 +107,11 @@ export function AccessUsersPage(): JSX.Element {
         setEmployees([]);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить пользователей"));
+      toast.error(getErrorMessage(error, text("Не удалось загрузить пользователей", "Failed to load users")));
     } finally {
       setIsLoading(false);
     }
-  }, [canCreate, canEdit]);
+  }, [canCreate, canEdit, text]);
 
   useEffect(() => {
     void loadData();
@@ -129,12 +132,12 @@ export function AccessUsersPage(): JSX.Element {
       toast.error(
         getErrorMessage(
           error,
-          "Не удалось обновить роли и сотрудников для конструктора пользователя",
+          text("Не удалось обновить роли и сотрудников для конструктора пользователя", "Failed to refresh roles and employees for the user builder"),
         ),
       );
       return null;
     }
-  }, []);
+  }, [text]);
 
   const availableEmployeeOptions = useMemo(() => {
     const currentEmployeeId = userDraft.id
@@ -217,7 +220,7 @@ export function AccessUsersPage(): JSX.Element {
     );
     if (forbiddenRole) {
       toast.error(
-        `Нельзя редактировать назначение: роль «${forbiddenRole.name}» содержит права выше ваших`,
+        text(`Нельзя редактировать назначение: роль «${forbiddenRole.name}» содержит права выше ваших`, `Cannot edit assignment: role “${forbiddenRole.name}” contains permissions beyond yours`),
       );
       return;
     }
@@ -247,11 +250,11 @@ export function AccessUsersPage(): JSX.Element {
         mustChangePassword: userDraft.mustChangePassword,
       };
       await hrApiClient.saveAccessUser(params);
-      toast.success(userDraft.id ? "Пользователь обновлён" : "Пользователь создан");
+      toast.success(userDraft.id ? text("Пользователь обновлён", "User updated") : text("Пользователь создан", "User created"));
       setUserDialogOpen(false);
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось сохранить пользователя"));
+      toast.error(getErrorMessage(error, text("Не удалось сохранить пользователя", "Failed to save user")));
     } finally {
       setIsSaving(false);
     }
@@ -263,10 +266,10 @@ export function AccessUsersPage(): JSX.Element {
     try {
       await hrApiClient.deleteAccessUser(deleteUser.id);
       setDeleteUser(null);
-      toast.success("Пользователь удалён");
+      toast.success(text("Пользователь удалён", "User deleted"));
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось удалить пользователя"));
+      toast.error(getErrorMessage(error, text("Не удалось удалить пользователя", "Failed to delete user")));
     } finally {
       setIsSaving(false);
     }
@@ -283,10 +286,10 @@ export function AccessUsersPage(): JSX.Element {
       });
       setPasswordDialogUser(null);
       setPassword("");
-      toast.success("Временный пароль установлен");
+      toast.success(text("Временный пароль установлен", "Temporary password set"));
       await loadData();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось изменить пароль"));
+      toast.error(getErrorMessage(error, text("Не удалось изменить пароль", "Failed to change password")));
     } finally {
       setIsSaving(false);
     }
@@ -296,15 +299,15 @@ export function AccessUsersPage(): JSX.Element {
     if (!hasActions) return undefined;
     return (
       <RecordActions
-        deleteLabel="Удалить пользователя"
-        editLabel="Редактировать пользователя"
+        deleteLabel={text("Удалить пользователя", "Delete user")}
+        editLabel={text("Редактировать пользователя", "Edit user")}
         onDelete={canDelete ? () => setDeleteUser(user) : undefined}
         onEdit={canEdit ? () => void openEditUser(user) : undefined}
       >
         {canResetPassword && (
           <ActionIconButton
             action="passwordReset"
-            label="Сбросить пароль"
+            label={text("Сбросить пароль", "Reset password")}
             onClick={() => {
               setPassword("");
               setPasswordDialogUser(user);
@@ -319,7 +322,7 @@ export function AccessUsersPage(): JSX.Element {
   const columns: DataTableColumn<UserRow>[] = [
     {
       key: "account",
-      header: "Учётная запись",
+      header: text("Учётная запись", "Account"),
       render: (row) =>
         row.kind === "system" ? (
           <div className="flex min-w-[210px] items-center gap-3">
@@ -328,9 +331,9 @@ export function AccessUsersPage(): JSX.Element {
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="app-text font-black">Системный администратор</span>
+                <span className="app-text font-black">{text("Системный администратор", "System administrator")}</span>
                 <span className="app-accent-soft app-accent-text rounded-full px-2 py-0.5 text-[11px] font-black">
-                  Встроенная
+                  {text("Встроенная", "Built-in")}
                 </span>
               </div>
               <p className="app-accent-text mt-1 text-xs font-black">
@@ -354,7 +357,7 @@ export function AccessUsersPage(): JSX.Element {
     },
     {
       key: "structure",
-      header: "Структура",
+      header: text("Структура", "Structure"),
       render: (row) =>
         row.kind === "system" ? (
           <span className="app-muted text-sm">Не связан с сотрудником</span>
@@ -373,7 +376,7 @@ export function AccessUsersPage(): JSX.Element {
     },
     {
       key: "status",
-      header: "Статус",
+      header: text("Статус", "Status"),
       render: (row) =>
         row.kind === "system" ? (
           <StatusBadge status="active" />
@@ -383,7 +386,7 @@ export function AccessUsersPage(): JSX.Element {
     },
     {
       key: "roles",
-      header: "Роли",
+      header: text("Роли", "Roles"),
       render: (row) => (
         <div className="flex max-w-[280px] flex-wrap gap-1.5">
           {row.kind === "system" ? (
@@ -438,7 +441,7 @@ export function AccessUsersPage(): JSX.Element {
       ? [
           {
             key: "actions",
-            header: "Действия",
+            header: text("Действия", "Actions"),
             align: "center" as const,
             render: (row: UserRow) =>
               row.kind === "system" ? (
@@ -465,23 +468,23 @@ export function AccessUsersPage(): JSX.Element {
               action="create"
               onClick={() => void openCreateUser()}
             >
-              Добавить пользователя
+              {text("Добавить пользователя", "Add user")}
             </ActionButton>
           ) : undefined
         }
         description="Учётные записи сотрудников, назначенные роли и состояние доступа к системе."
         icon={<FiUsers />}
-        title="Пользователи"
+        title={text("Пользователи", "Users")}
       />
 
       <section className="grid gap-4 sm:grid-cols-3">
         <AccessMetric icon={<FiUsers />} label="Учётные записи" value={rows.length} />
-        <AccessMetric icon={<FiUserCheck />} label="Активные" value={activeUsers} />
-        <AccessMetric icon={<FiLock />} label="Заблокированные" value={blockedUsers} />
+        <AccessMetric icon={<FiUserCheck />} label={text("Активные", "Active")} value={activeUsers} />
+        <AccessMetric icon={<FiLock />} label={text("Заблокированные", "Blocked")} value={blockedUsers} />
       </section>
 
       <DataTable
-        ariaLabel="Пользователи системы"
+        ariaLabel={text("Пользователи системы", "System users")}
         card={{
           leading: (row) =>
             row.kind === "system" ? (
@@ -505,7 +508,7 @@ export function AccessUsersPage(): JSX.Element {
                 <span className="app-text-soft">
                   {[row.user.enterpriseName, row.user.departmentName]
                     .filter(Boolean)
-                    .join(" · ") || "Структура не указана"}
+                    .join(" · ") || text("Структура не указана", "Structure not specified")}
                 </span>
                 <span className="app-text-soft">
                   Ролей: {row.user.roles.length}
@@ -521,7 +524,7 @@ export function AccessUsersPage(): JSX.Element {
             ? "Создайте учётную запись и свяжите её с активным сотрудником."
             : "Учётных записей пока нет."
         }
-        emptyTitle="Пользователей пока нет"
+        emptyTitle={text("Пользователей пока нет", "No users yet")}
         footer={
           <>
             Учётных записей: <span className="app-text font-black">{rows.length}</span>
@@ -529,7 +532,7 @@ export function AccessUsersPage(): JSX.Element {
         }
         getRowKey={(row) => row.id}
         isLoading={isLoading}
-        loadingLabel="Загрузка пользователей..."
+        loadingLabel={text("Загрузка пользователей...", "Loading users...")}
         rows={rows}
         toolbar={
           <ActionButton
@@ -565,13 +568,13 @@ export function AccessUsersPage(): JSX.Element {
             }
           }}
           open={Boolean(passwordDialogUser)}
-          title={`Сбросить пароль: ${passwordDialogUser?.username ?? ""}`}
+          title={text(`Сбросить пароль: ${passwordDialogUser?.username ?? ""}`, `Reset password: ${passwordDialogUser?.username ?? ""}`)}
         >
-          <Field label="Новый временный пароль">
+          <Field label={text("Новый временный пароль", "New temporary password")}>
             <Input
               autoComplete="new-password"
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Минимум 8 символов, буква и цифра"
+              placeholder={text("Минимум 8 символов, буква и цифра", "At least 8 characters, including a letter and a number")}
               type="password"
               value={password}
             />
@@ -587,7 +590,7 @@ export function AccessUsersPage(): JSX.Element {
               loading={isSaving}
               onClick={() => void resetPassword()}
             >
-              Установить пароль
+              {text("Установить пароль", "Set password")}
             </ActionButton>
           </div>
         </Dialog>
@@ -600,7 +603,7 @@ export function AccessUsersPage(): JSX.Element {
           onConfirm={confirmDeleteUser}
           onOpenChange={(open) => !open && setDeleteUser(null)}
           open={Boolean(deleteUser)}
-          title={`Удалить пользователя ${deleteUser?.username ?? ""}?`}
+          title={text(`Удалить пользователя ${deleteUser?.username ?? ""}?`, `Delete user ${deleteUser?.username ?? ""}?`)}
         />
       )}
     </div>
