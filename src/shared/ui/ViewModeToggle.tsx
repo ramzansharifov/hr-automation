@@ -1,4 +1,5 @@
 import { FiGrid, FiList } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "../lib/cn";
 import { Button } from "./Button";
@@ -15,9 +16,10 @@ export function ViewModeToggle({
   onChange,
   value,
 }: ViewModeToggleProps): JSX.Element {
+  const { t } = useTranslation();
   return (
     <div
-      aria-label="Режим отображения"
+      aria-label={t("common.table.viewMode")}
       className={cn(
         "app-border inline-flex items-center gap-1 border bg-[var(--color-surface)] p-1",
         className,
@@ -31,7 +33,7 @@ export function ViewModeToggle({
         size="sm"
         variant={value === "table" ? "primary" : "ghost"}
       >
-        Таблица
+        {t("common.table.tableView")}
       </Button>
       <Button
         aria-pressed={value === "cards"}
@@ -40,7 +42,7 @@ export function ViewModeToggle({
         size="sm"
         variant={value === "cards" ? "primary" : "ghost"}
       >
-        Карточки
+        {t("common.table.cardView")}
       </Button>
     </div>
   );
