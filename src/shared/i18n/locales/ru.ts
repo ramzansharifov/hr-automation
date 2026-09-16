@@ -30,6 +30,27 @@ export const ru = {
     payroll: "Зарплата",
     profile: "Профиль",
     settings: "Настройки",
+    analytics: "Аналитика",
+    dataExchange: "Импорт и экспорт",
+    myEnterprise: "Предприятие",
+    myDepartment: "Отдел",
+    colleagues: "Коллеги",
+    enterpriseOverview: "Обзор предприятия",
+    departmentOverview: "Обзор отдела",
+    enterpriseEmployees: "Сотрудники предприятия",
+    departmentEmployees: "Сотрудники отдела",
+    enterpriseVacations: "Отпуска предприятия",
+    departmentVacations: "Отпуска отдела",
+    vacationTypes: "Виды отпусков",
+    documentTypes: "Типы документов",
+    users: "Пользователи",
+    roles: "Роли",
+    audit: "Журнал действий",
+    sections: {
+      main: "Основное",
+      management: "Управление",
+      administration: "Администрирование",
+    },
   },
 
   common: {
@@ -154,6 +175,17 @@ export const ru = {
     title: "Профиль",
     admin: "Администратор",
     localUser: "Локальный пользователь системы",
+  },
+
+  account: {
+    systemAdministrator: "Системный администратор",
+    user: "Пользователь",
+    enterpriseDirector: "Директор предприятия",
+    departmentHead: "Руководитель отдела",
+    enterpriseAdministrator: "Администратор предприятия",
+    departmentAdministrator: "Администратор отдела",
+    signOut: "Выйти",
+    signOutTitle: "Выйти из системы",
   },
 
   settings: {
