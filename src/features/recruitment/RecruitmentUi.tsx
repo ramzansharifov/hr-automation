@@ -107,7 +107,7 @@ export function MatchBar({ value }: { value: number }): JSX.Element {
   return (
     <div className="min-w-[150px]">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="app-text-soft text-xs font-bold">Соответствие</span>
+        <span className="app-text-soft text-xs font-bold">{text("Соответствие", "Match")}</span>
         <span className="app-text text-sm font-black">{safeValue}%</span>
       </div>
       <div className="app-surface-muted h-2 overflow-hidden rounded-full">
