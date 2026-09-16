@@ -10,14 +10,8 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../features/auth/AuthContext";
-import {
-  getLeadershipRole,
-  leadershipRoleLabel,
-} from "../shared/access/leadership";
-import {
-  getScopedAdminRole,
-  scopedAdminRoleLabel,
-} from "../shared/access/scopedAdmin";
+import { getLeadershipRole } from "../shared/access/leadership";
+import { getScopedAdminRole } from "../shared/access/scopedAdmin";
 import type { AppNavigationItem } from "./navigation";
 import {
   administrationNavigationItems,
@@ -212,12 +206,16 @@ export function AppLayout(): JSX.Element {
     ? session.username
     : session.employeeName || session.username;
   const primaryRole = isSystemAdmin
-    ? "Системный администратор"
-    : scopedAdminRole
-      ? scopedAdminRoleLabel(scopedAdminRole)
-      : leadershipRole
-        ? leadershipRoleLabel(leadershipRole)
-        : session.roles[0]?.name ?? "Пользователь";
+    ? t("account.systemAdministrator")
+    : scopedAdminRole === "enterprise_admin"
+      ? t("account.enterpriseAdministrator")
+      : scopedAdminRole === "department_admin"
+        ? t("account.departmentAdministrator")
+        : leadershipRole === "enterprise_director"
+          ? t("account.enterpriseDirector")
+          : leadershipRole === "department_head"
+            ? t("account.departmentHead")
+            : session.roles[0]?.name ?? t("account.user");
 
   return (
     <Tooltip.Provider delayDuration={120}>
@@ -290,13 +288,17 @@ export function AppLayout(): JSX.Element {
             <SidebarSection
               isCollapsed={isSidebarCollapsed}
               items={visibleMainNavigationItems}
-              title={leadershipRole || scopedAdminRole ? "Управление" : "Основное"}
+              title={
+                leadershipRole || scopedAdminRole
+                  ? t("navigation.sections.management")
+                  : t("navigation.sections.main")
+              }
             />
             <SidebarSection
               isCollapsed={isSidebarCollapsed}
               items={visibleAdministrationNavigationItems}
               separated={visibleMainNavigationItems.length > 0}
-              title="Администрирование"
+              title={t("navigation.sections.administration")}
             />
           </nav>
 
@@ -338,10 +340,10 @@ export function AppLayout(): JSX.Element {
                 </div>
                 <ActionIconButton
                   action="logout"
-                  label="Выйти из системы"
+                  label={t("account.signOutTitle")}
                   onClick={() => void logout()}
                   size="lg"
-                  title="Выйти"
+                  title={t("account.signOut")}
                 />
               </div>
             </div>
