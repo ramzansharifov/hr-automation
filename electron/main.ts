@@ -754,10 +754,28 @@ function createWindow(): void {
             })
             const selfDashboard = await window.hrApi.dashboard()
             let selfAnalyticsDenied = false
+            let selfEnterpriseRegistryDenied = false
+            let selfDepartmentRegistryDenied = false
             try {
               await window.hrApi.getAnalytics()
             } catch {
               selfAnalyticsDenied = true
+            }
+            try {
+              await window.hrApi.getById({
+                entity: 'enterprises',
+                id: otherEnterpriseId
+              })
+            } catch {
+              selfEnterpriseRegistryDenied = true
+            }
+            try {
+              await window.hrApi.getById({
+                entity: 'departments',
+                id: otherDepartmentId
+              })
+            } catch {
+              selfDepartmentRegistryDenied = true
             }
             selfScopeIsolationReady =
               selfSession?.scopeType === 'self' &&
@@ -767,7 +785,9 @@ function createWindow(): void {
               selfDashboard?.positionsTotal === 0 &&
               selfDashboard?.openVacancies === 0 &&
               selfDashboard?.candidatesOnOffer === 0 &&
-              selfAnalyticsDenied
+              selfAnalyticsDenied &&
+              selfEnterpriseRegistryDenied &&
+              selfDepartmentRegistryDenied
           }
 
           return {
