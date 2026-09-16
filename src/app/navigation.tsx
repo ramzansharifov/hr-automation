@@ -56,21 +56,21 @@ const dashboardNavigationItem: AppNavigationItem = {
 };
 
 const analyticsNavigationItem: AppNavigationItem = {
-  titleKey: "Аналитика",
+  titleKey: "navigation.analytics",
   path: "/analytics",
   icon: FiBarChart2,
   permissionCode: "analytics.view",
 };
 
 const dataExchangeNavigationItem: AppNavigationItem = {
-  titleKey: "Импорт и экспорт",
+  titleKey: "navigation.dataExchange",
   path: "/data-exchange",
   icon: FiDatabase,
   permissionCodes: ["data_exchange.import", "data_exchange.export"],
 };
 
 const myEnterpriseNavigationItem: AppNavigationItem = {
-  titleKey: "Предприятие",
+  titleKey: "navigation.myEnterprise",
   path: "/my-enterprise",
   icon: FiLayers,
   permissionCode: "directory.view",
@@ -78,7 +78,7 @@ const myEnterpriseNavigationItem: AppNavigationItem = {
 };
 
 const myDepartmentNavigationItem: AppNavigationItem = {
-  titleKey: "Отдел",
+  titleKey: "navigation.myDepartment",
   path: "/my-department",
   icon: FiBriefcase,
   permissionCode: "directory.view",
@@ -86,7 +86,7 @@ const myDepartmentNavigationItem: AppNavigationItem = {
 };
 
 const colleaguesNavigationItem: AppNavigationItem = {
-  titleKey: "Коллеги",
+  titleKey: "navigation.colleagues",
   path: "/colleagues",
   icon: FiUsers,
   permissionCode: "directory.view",
@@ -110,7 +110,7 @@ const enterprisesNavigationItem: AppNavigationItem = {
 };
 
 const vacationsNavigationItem: AppNavigationItem = {
-  titleKey: "Отпуска",
+  titleKey: "navigation.vacations",
   path: "/vacations",
   icon: FiCalendar,
   permissionCode: "vacations.view",
@@ -139,7 +139,7 @@ const filtersNavigationItem: AppNavigationItem = {
 };
 
 const departmentsManagementNavigationItem: AppNavigationItem = {
-  titleKey: "Отделы",
+  titleKey: "navigation.departments",
   path: "/management/departments",
   icon: FiGrid,
   permissionCode: "departments.view",
@@ -162,17 +162,17 @@ export const mainNavigationItems: AppNavigationItem[] = [
 const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
   {
     ...dashboardNavigationItem,
-    titleKey: "Обзор предприятия",
+    titleKey: "navigation.enterpriseOverview",
   },
   myEnterpriseNavigationItem,
   departmentsManagementNavigationItem,
   {
     ...employeesNavigationItem,
-    titleKey: "Сотрудники предприятия",
+    titleKey: "navigation.enterpriseEmployees",
   },
   {
     ...vacationsNavigationItem,
-    titleKey: "Отпуска предприятия",
+    titleKey: "navigation.enterpriseVacations",
   },
   vacanciesNavigationItem,
   candidatesNavigationItem,
@@ -183,17 +183,17 @@ const enterpriseDirectorNavigationItems: AppNavigationItem[] = [
 const departmentHeadNavigationItems: AppNavigationItem[] = [
   {
     ...dashboardNavigationItem,
-    titleKey: "Обзор отдела",
+    titleKey: "navigation.departmentOverview",
   },
   myDepartmentNavigationItem,
   myEnterpriseNavigationItem,
   {
     ...employeesNavigationItem,
-    titleKey: "Сотрудники отдела",
+    titleKey: "navigation.departmentEmployees",
   },
   {
     ...vacationsNavigationItem,
-    titleKey: "Отпуска отдела",
+    titleKey: "navigation.departmentVacations",
   },
   vacanciesNavigationItem,
   candidatesNavigationItem,
@@ -204,17 +204,17 @@ const departmentHeadNavigationItems: AppNavigationItem[] = [
 const enterpriseAdminNavigationItems: AppNavigationItem[] = [
   {
     ...dashboardNavigationItem,
-    titleKey: "Обзор предприятия",
+    titleKey: "navigation.enterpriseOverview",
   },
   myEnterpriseNavigationItem,
   departmentsManagementNavigationItem,
   {
     ...employeesNavigationItem,
-    titleKey: "Сотрудники предприятия",
+    titleKey: "navigation.enterpriseEmployees",
   },
   {
     ...vacationsNavigationItem,
-    titleKey: "Отпуска предприятия",
+    titleKey: "navigation.enterpriseVacations",
   },
   vacanciesNavigationItem,
   candidatesNavigationItem,
@@ -225,17 +225,17 @@ const enterpriseAdminNavigationItems: AppNavigationItem[] = [
 const departmentAdminNavigationItems: AppNavigationItem[] = [
   {
     ...dashboardNavigationItem,
-    titleKey: "Обзор отдела",
+    titleKey: "navigation.departmentOverview",
   },
   myDepartmentNavigationItem,
   myEnterpriseNavigationItem,
   {
     ...employeesNavigationItem,
-    titleKey: "Сотрудники отдела",
+    titleKey: "navigation.departmentEmployees",
   },
   {
     ...vacationsNavigationItem,
-    titleKey: "Отпуска отдела",
+    titleKey: "navigation.departmentVacations",
   },
   vacanciesNavigationItem,
   candidatesNavigationItem,
@@ -265,32 +265,32 @@ export function getMainNavigationItems(
 export const administrationNavigationItems: AppNavigationItem[] = [
   dataExchangeNavigationItem,
   {
-    titleKey: "Виды отпусков",
+    titleKey: "navigation.vacationTypes",
     path: "/vacation-types",
     icon: FiBookOpen,
     permissionCode: "vacation_types.view",
     entity: "vacation_types",
   },
   {
-    titleKey: "Типы документов",
+    titleKey: "navigation.documentTypes",
     path: "/document-types",
     icon: FiFileText,
     permissionCode: "document_types.view",
   },
   {
-    titleKey: "Пользователи",
+    titleKey: "navigation.users",
     path: "/users",
     icon: FiUserCheck,
     permissionCode: "users.view",
   },
   {
-    titleKey: "Роли",
+    titleKey: "navigation.roles",
     path: "/roles",
     icon: FiShield,
     permissionCode: "roles.view",
   },
   {
-    titleKey: "Журнал действий",
+    titleKey: "navigation.audit",
     path: "/audit",
     icon: FiActivity,
     permissionCode: "audit.view",
