@@ -20,7 +20,7 @@ import {
   type ThemePreference,
 } from "../app/themeContext";
 import { useAuth } from "../features/auth/AuthContext";
-import { supportedLanguages } from "../shared/i18n";
+import { getAppLocale, supportedLanguages } from "../shared/i18n";
 import { hrApiClient } from "../shared/lib/hrApiClient";
 import type { BackupInfo } from "../shared/types/hr";
 import {
@@ -42,6 +42,7 @@ export function SettingsPage(): JSX.Element {
   const { hasPermission, session } = useAuth();
   const { accentColor, resolvedTheme, setAccentColor, setTheme, theme } = useTheme();
   const currentLanguage = i18n.resolvedLanguage ?? i18n.language;
+  const currentLocale = getAppLocale(currentLanguage);
   const canViewBackups =
     hasPermission("settings.backups_view") &&
     session.permissionScopes["settings.backups_view"] === "global";
@@ -74,11 +75,11 @@ export function SettingsPage(): JSX.Element {
     try {
       setBackups(await hrApiClient.listBackups());
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось загрузить резервные копии"));
+      toast.error(getErrorMessage(error, t("settings.administration.backups.loadError")));
     } finally {
       setIsLoadingBackups(false);
     }
-  }, [canViewBackups]);
+  }, [canViewBackups, t]);
 
   useEffect(() => {
     void loadBackups();
@@ -89,10 +90,10 @@ export function SettingsPage(): JSX.Element {
     setIsCreatingBackup(true);
     try {
       const backup = await hrApiClient.createBackup();
-      toast.success(`Резервная копия создана: ${backup.name}`);
+      toast.success(t("settings.administration.backups.created", { name: backup.name }));
       if (canViewBackups) await loadBackups();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось создать резервную копию"));
+      toast.error(getErrorMessage(error, t("settings.administration.backups.createError")));
     } finally {
       setIsCreatingBackup(false);
     }
@@ -102,10 +103,10 @@ export function SettingsPage(): JSX.Element {
     if (!restoreTarget || !canRestoreBackup) return;
     try {
       await hrApiClient.restoreBackup(restoreTarget.name);
-      toast.info("База восстановлена. Приложение будет перезапущено.");
+      toast.info(t("settings.administration.backups.restored"));
       setRestoreTarget(null);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось восстановить резервную копию"));
+      toast.error(getErrorMessage(error, t("settings.administration.backups.restoreError")));
     }
   }
 
@@ -114,7 +115,7 @@ export function SettingsPage(): JSX.Element {
     try {
       await hrApiClient.openBackupsFolder();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось открыть папку резервных копий"));
+      toast.error(getErrorMessage(error, t("settings.administration.backups.folderError")));
     }
   }
 
@@ -122,9 +123,9 @@ export function SettingsPage(): JSX.Element {
     if (!canExportEmployees) return;
     try {
       const result = await hrApiClient.exportEmployeesCsv();
-      if (!result.canceled) toast.success("Реестр сотрудников экспортирован");
+      if (!result.canceled) toast.success(t("settings.administration.export.success"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Не удалось экспортировать сотрудников"));
+      toast.error(getErrorMessage(error, t("settings.administration.export.error")));
     }
   }
 
@@ -210,13 +211,13 @@ export function SettingsPage(): JSX.Element {
       {hasSystemTools && (
         <section className="space-y-5">
           <div>
-            <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">Администрирование</p>
-            <h2 className="app-text mt-1 text-2xl font-black">Системные инструменты</h2>
+            <p className="app-accent-text text-xs font-black uppercase tracking-[0.16em]">{t("settings.administration.eyebrow")}</p>
+            <h2 className="app-text mt-1 text-2xl font-black">{t("settings.administration.title")}</h2>
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.5fr)]">
             {(canViewBackups || canCreateBackup || canRestoreBackup || canOpenBackupsFolder) && (
-              <SettingsCard icon={<FiHardDrive className="h-5 w-5" />} title="Резервные копии">
+              <SettingsCard icon={<FiHardDrive className="h-5 w-5" />} title={t("settings.administration.backups.title")}>
                 <div className="mb-5 flex flex-wrap gap-3">
                   {canCreateBackup && (
                     <ActionButton
@@ -224,7 +225,7 @@ export function SettingsPage(): JSX.Element {
                       loading={isCreatingBackup}
                       onClick={() => void createBackup()}
                     >
-                      Создать копию
+                      {t("settings.administration.backups.create")}
                     </ActionButton>
                   )}
                   {canOpenBackupsFolder && (
@@ -244,10 +245,10 @@ export function SettingsPage(): JSX.Element {
 
                 {canViewBackups ? (
                   isLoadingBackups ? (
-                    <LoadingState label="Загрузка резервных копий..." />
+                    <LoadingState label={t("settings.administration.backups.loading")} />
                   ) : backups.length === 0 ? (
                     <div className="app-surface-muted app-muted rounded-2xl border border-dashed p-6 text-center text-sm">
-                      Резервных копий пока нет.
+                      {t("settings.administration.backups.empty")}
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -259,7 +260,7 @@ export function SettingsPage(): JSX.Element {
                           <div className="min-w-0">
                             <p className="app-text truncate text-sm font-black">{backup.name}</p>
                             <p className="app-muted mt-1 text-xs font-bold">
-                              {new Date(backup.createdAt).toLocaleString("ru-RU")} · {formatBytes(backup.sizeBytes)}
+                              {new Date(backup.createdAt).toLocaleString(currentLocale)} · {formatBytes(backup.sizeBytes, currentLocale)}
                             </p>
                           </div>
                           {canRestoreBackup && (
@@ -275,20 +276,20 @@ export function SettingsPage(): JSX.Element {
                   )
                 ) : (
                   <p className="app-muted text-sm">
-                    Просмотр списка копий отключён. Доступны только разрешённые операции выше.
+                    {t("settings.administration.backups.listUnavailable")}
                   </p>
                 )}
               </SettingsCard>
             )}
 
             {canExportEmployees && (
-              <SettingsCard icon={<FiDownload className="h-5 w-5" />} title="Экспорт">
+              <SettingsCard icon={<FiDownload className="h-5 w-5" />} title={t("settings.administration.export.title")}>
                 <ActionButton
                   action="export"
                   className="w-full"
                   onClick={() => void exportEmployees()}
                 >
-                  Экспортировать сотрудников
+                  {t("settings.administration.export.employees")}
                 </ActionButton>
               </SettingsCard>
             )}
@@ -298,13 +299,15 @@ export function SettingsPage(): JSX.Element {
 
       {canRestoreBackup && (
         <ConfirmDialog
-          cancelLabel="Отмена"
+          cancelLabel={t("common.actions.cancel")}
           confirmAction="restore"
-          confirmLabel="Восстановить базу"
+          confirmLabel={t("settings.administration.backups.restoreConfirm")}
           confirmVariant="danger"
           description={
             restoreTarget
-              ? `Текущая база будет заменена копией «${restoreTarget.name}». После восстановления приложение автоматически перезапустится.`
+              ? t("settings.administration.backups.restoreDescription", {
+                  name: restoreTarget.name,
+                })
               : ""
           }
           onConfirm={() => void restoreBackup()}
@@ -312,7 +315,7 @@ export function SettingsPage(): JSX.Element {
             if (!open) setRestoreTarget(null);
           }}
           open={Boolean(restoreTarget)}
-          title="Восстановить резервную копию?"
+          title={t("settings.administration.backups.restoreTitle")}
         />
       )}
     </div>
@@ -339,10 +342,12 @@ function SettingsCard({
   );
 }
 
-function formatBytes(value: number): string {
-  if (value < 1024) return `${value} Б`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} КБ`;
-  return `${(value / 1024 / 1024).toFixed(1)} МБ`;
+function formatBytes(value: number, locale: string): string {
+  const format = (amount: number): string =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(amount);
+  if (value < 1024) return `${format(value)} B`;
+  if (value < 1024 * 1024) return `${format(value / 1024)} KB`;
+  return `${format(value / 1024 / 1024)} MB`;
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
