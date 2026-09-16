@@ -14,8 +14,8 @@
     "test:e2e": "node tests/electron-smoke.mjs",
     "db:reset": "node scripts/reset-local-db.mjs",
     "postinstall": "electron-builder install-app-deps",
-    "db:seed:presentation": "electron scripts/seed-presentation-db.mjs",
-    "test:presentation-seed": "electron scripts/seed-presentation-db.mjs --verify"
+    "db:seed:presentation": "electron --no-sandbox scripts/seed-presentation-db.mjs",
+    "test:presentation-seed": "electron --no-sandbox scripts/seed-presentation-db.mjs --verify"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
